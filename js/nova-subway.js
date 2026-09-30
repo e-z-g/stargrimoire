@@ -107,7 +107,7 @@ function subwayModule() {
   const SUBWAY_NAMES = {
     len: 7, spacing: 2, evenIters: 100, evenPull: 1, charW: 0.42,
     place: { move: 0.5, oct: 4, length: 1, dir: 2, cross: 30, over: 30, straight: 2, radius: 4, sweeps: 12, flatLeaf: 1.5, nebula: 4, nebulaShape: 1.5, near: { reach: 2.5, count: 12, weight: 5 }, overName: 30, side: [0, 0.3, 0.5, 0.8, 20, 20.3] },
-    route: { hop: 1, diag: 0.5, bend: [0, 1, 1.5, 2, Infinity], port: 2, cross: 6, conflict: 30, hist: 1, rip: 10, maxRip: 20, margin: 3, improve: 3, move: 0.05, unrouted: 200, leaveStraight: true, nebulaShape: 5 },
+    route: { hop: 1, diag: 0.5, bend: [0, 1, 1.5, 2, Infinity], through: 1, port: 2, cross: 6, conflict: 30, hist: 1, rip: 10, maxRip: 20, margin: 3, improve: 3, move: 0.05, unrouted: 200, leaveStraight: true, nebulaShape: 5 },
   };
 
   /* The numbers. len is a typical link in grid steps and spacing the least
@@ -116,7 +116,7 @@ function subwayModule() {
   const SUBWAY_TUNE = {
     len: 4, spacing: 2, evenIters: 100, evenPull: 1,
     place: { move: 0.5, oct: 4, length: 1, dir: 2, cross: 30, over: 30, straight: 2, radius: 4, sweeps: 12, flatLeaf: 1.5, nebula: 4, nebulaShape: 1.5 },
-    route: { hop: 1, diag: 0.5, bend: [0, 1, 1.5, 2, Infinity], port: 2, cross: 6, conflict: 30, hist: 1, rip: 10, maxRip: 20, margin: 3, improve: 3, move: 0.05, unrouted: 200, nebulaShape: 0 },
+    route: { hop: 1, diag: 0.5, bend: [0, 1, 1.5, 2, Infinity], through: 1, port: 2, cross: 6, conflict: 30, hist: 1, rip: 10, maxRip: 20, margin: 3, improve: 3, move: 0.05, unrouted: 200, nebulaShape: 0 },
   };
 
   /* The map that keeps each link's heading: how far a piece may turn from
@@ -134,6 +134,15 @@ function subwayModule() {
      Most of the tangle is the galaxy's own: with no heading kept at all,
      the map with room for names still crosses 17 times there. */
   const SUBWAY_HEADING = { cone: Math.PI / 4, evenPull: 8, place: 100, way: 100, nameStep: 12, tangle: 5 };
+  /* Lines through stations (the maintainer's asking, 30 September 2026: a line should run on
+     through a station rather than set off another way). At each place its links are paired
+     as a line runs through it: a place with two links, those two; a busier one, links whose
+     true directions from it are at least `apart` apart, the most nearly opposite first. The
+     placing charges the one pair at a place where only one line runs through, for the angle it
+     makes, as it charged a place with two links alone before; the router charges a link for the turn from its partner's last step to its
+     first, `through` times a bend's cost, so that of two ways equally short the one that runs
+     on from its neighbour is taken. */
+  const SUBWAY_LINES = { apart: 2 * Math.PI / 3, turn: [0, 1, 1.5, 2, 3] };
   // A kind of map is its switches joined by '-', in this order: names, fine, mixed, heading, dots; '45'
   // is none. mixed is the 22.5-degree map with 22.5 degrees only where needed, and brings fine with it;
   // dots, on the map that keeps each link's heading, draws every place as a point, no bars (subwayBars).
@@ -242,6 +251,25 @@ function subwayModule() {
     return out;
   };
 
+  // each place's links paired as lines run through it (SUBWAY_LINES): a Map, link to link, a place
+  function subwayPairs(pos, links) {
+    const inc = pos.map(() => []);
+    links.forEach(([a, b], e) => { inc[a].push(e); inc[b].push(e); });
+    return inc.map((es, v) => {
+      const out = new Map();
+      const way = e => { const w = links[e][0] === v ? links[e][1] : links[e][0]; return Math.atan2(pos[w].y - pos[v].y, pos[w].x - pos[v].x); };
+      if (es.length === 2) { out.set(es[0], es[1]); out.set(es[1], es[0]); return out; }
+      const c = [];
+      for (let i = 0; i < es.length; i++) for (let j = i + 1; j < es.length; j++) {
+        const t = subwayAngDiff(way(es[i]), way(es[j]));
+        if (t >= SUBWAY_LINES.apart) c.push([t, es[i], es[j]]);
+      }
+      c.sort((a, b) => b[0] - a[0] || a[1] - b[1] || a[2] - b[2]);
+      for (const [, e, f] of c) if (!out.has(e) && !out.has(f)) { out.set(e, f); out.set(f, e); }
+      return out;
+    });
+  }
+
   function subwayAdjacency(n, links) {
     const adj = Array.from({ length: n }, () => []);
     links.forEach(([a, b], e) => { adj[a].push({ to: b, e }); adj[b].push({ to: a, e }); });
@@ -301,7 +329,7 @@ function subwayModule() {
      heading, for the map that keeps them, each link's true direction;
      bars, each place's bar or null (subwayBars), which takes its points.
      Returns [{i, j}], and each place's side for its name. */
-  function subwayPlace(want, links, P, spacing, len, names, groups, heading, neighbours, bars) {
+  function subwayPlace(want, links, P, spacing, len, names, groups, heading, neighbours, bars, pairs) {
     const { Math, Infinity } = globalThis; // looked up once: in node:vm, where the checks run, a global is a slow lookup
     const n = want.length, adj = subwayAdjacency(n, links);
     const gi = new Int32Array(n), gj = new Int32Array(n), occ = new Map();
@@ -429,12 +457,19 @@ function subwayModule() {
       for (let t = 0; t < cur.length; t++) if (cur[(k + t) % cur.length] !== order0[v][t]) return false;
       return true;
     };
+    // the one line through c, where only one runs through it (subwayPairs), charged for the angle it
+    // makes: a place with two links, or a line with a branch off it; where two or more lines cross,
+    // holding each straight cost the stock galaxy more bends in all than it saved (30 September 2026)
     const straightness = (c, ci, cj, mover, mi, mj) => {
-      if (adj[c].length !== 2) return 0;
-      const at = w => (w === mover ? [mi, mj] : [gi[w], gj[w]]);
-      const [a, b] = adj[c].map(x => at(x.to));
-      const t = angDiff(Math.atan2(a[1] - cj, a[0] - ci), Math.atan2(b[1] - cj, b[0] - ci));
-      return P.straight * ((Math.PI - t) / Math.PI) ** 2;
+      if (pairs[c].size !== 2) return 0;
+      const at = w => (w === mover ? [mi, mj] : [gi[w], gj[w]]), end = e => at(links[e][0] === c ? links[e][1] : links[e][0]);
+      let s = 0;
+      for (const [e, f] of pairs[c]) if (e < f) {
+        const a = end(e), b = end(f);
+        const t = angDiff(Math.atan2(a[1] - cj, a[0] - ci), Math.atan2(b[1] - cj, b[0] - ci));
+        s += P.straight * ((Math.PI - t) / Math.PI) ** 2;
+      }
+      return s;
     };
     // the terms that change when v is at (i, j)
     // the links through the points within one of a candidate link's, the only ones it can cross
@@ -583,7 +618,7 @@ function subwayModule() {
      link leaves a place by one of its ports (subwayBarPorts), from the
      point of its bar the port is on. Returns the paths, as grid points
      from each link's first end to its second, and where the systems ended. */
-  function subwayRoute(at, want, links, C, names, heading, groups, shape, bars) {
+  function subwayRoute(at, want, links, C, names, heading, groups, shape, bars, pairs) {
     const { Math, Infinity } = globalThis; // looked up once: in node:vm, where the checks run, a global is a slow lookup
     const n = at.length, M = C.margin;
     const mi = Math.min(...at.map(p => p.i)) - M, mj = Math.min(...at.map(p => p.j)) - M;
@@ -667,6 +702,20 @@ function subwayModule() {
        when that finds nothing. On the map that keeps each link's heading, the path takes only
        the directions within it; with free 1, within twice that, and with free 2, any; and any
        where its ends are not where such steps reach. */
+    // what link e pays at place x for each direction it may leave x in: the turn from the link a line
+    // runs on through x by (subwayPairs), once that one is drawn; null where there is none, or x is a bar
+    const throughAt = (e, x) => {
+      const f = barOf(x) ? undefined : pairs[x].get(e);
+      if (f === undefined || !paths[f]) return null;
+      const s = paths[f], d = links[f][0] === x ? dirOf(s[0], s[1]) : dirOf(s[s.length - 1], s[s.length - 2]), out = new Float64Array(8);
+      for (let q = 0; q < 8; q++) out[q] = C.through * SUBWAY_LINES.turn[subwayTurn(q, (d + 4) % 8)];
+      return out;
+    };
+    const throughOf = (e, seq) => {
+      const a = throughAt(e, links[e][0]), b = throughAt(e, links[e][1]);
+      return (a ? a[dirOf(seq[0], seq[1])] : 0) + (b ? b[dirOf(seq[seq.length - 1], seq[seq.length - 2])] : 0);
+    };
+
     const BOX = 12;
     function route(e, soft, free) {
       const [u, v] = links[e], a = node[u], b = node[v];
@@ -682,6 +731,7 @@ function subwayModule() {
       const dirOk = new Uint8Array(8).fill(1), slack = free ? SUBWAY_HEADING.cone : 0;
       if (heading && free !== 2 && reachable(e, s, t, slack)) for (let d = 0; d < 8; d++) dirOk[d] = subwayHeadingOk(heading, e, SUBWAY_DIRS[d][0], SUBWAY_DIRS[d][1], slack) ? 1 : 0;
       const want = Math.atan2(tj - ((s / W) | 0), ti - (s % W));
+      const thrU = throughAt(e, u), thrV = throughAt(e, v);
       // no step costs less than C.hop, and a diagonal C.diag more: a lower bound, so the path found is the cheapest
       const hcost = k => {
         let h = Infinity;
@@ -723,11 +773,11 @@ function subwayModule() {
           const ni = i + SUBWAY_DIRS[d][0], nj = j + SUBWAY_DIRS[d][1];
           if (ni < x0 || nj < y0 || ni > x1 || nj > y1 || !inGrid(ni, nj)) continue;
           const nk = id(ni, nj);
-          let c = c0 + C.hop + (d & 1 ? C.diag : 0) + (din < 0 ? portCost(d, want) : C.bend[subwayTurn(din, d)]);
+          let c = c0 + C.hop + (d & 1 ? C.diag : 0) + (din < 0 ? portCost(d, want) + (thrU ? thrU[d] : 0) : C.bend[subwayTurn(din, d)]);
           if (edgeUse[k * 8 + d] >= 0) { if (!soft) continue; c += C.conflict; }
           if (diagOwner(i, j, d) >= 0) c += C.cross;
           if (stationAt[nk] >= 0) {
-            if (stationAt[nk] === v) { const q = slotOf(v, nk, (d + 4) % 8); if (q >= 0 && okV[q]) relax(nk * 8 + d, c, st, c); }
+            if (stationAt[nk] === v) { const q = slotOf(v, nk, (d + 4) % 8); if (q >= 0 && okV[q]) { const cv = c + (thrV ? thrV[(d + 4) % 8] : 0); relax(nk * 8 + d, cv, st, cv); } }
             continue;
           }
           // the room kept for a name: never passed, or on the map that keeps each link's heading, at a price
@@ -873,7 +923,7 @@ function subwayModule() {
     // the map that keeps each link's heading, one drawn off it a quarter as much again, or half
     // beyond twice it
     const keeps = (e, seq, slack = 0) => !heading || seq.every((k, q) => q + 1 === seq.length || subwayHeadingOk(heading, e, seq[q + 1] % W - k % W, ((seq[q + 1] / W) | 0) - ((k / W) | 0), slack));
-    const cost = (e, seq) => (seq ? pathCost(e, seq) + (keeps(e, seq) ? 0 : keeps(e, seq, SUBWAY_HEADING.cone) ? C.unrouted / 4 : C.unrouted / 2) : C.unrouted);
+    const cost = (e, seq) => (seq ? pathCost(e, seq) + throughOf(e, seq) + (keeps(e, seq) ? 0 : keeps(e, seq, SUBWAY_HEADING.cone) ? C.unrouted / 4 : C.unrouted / 2) : C.unrouted);
     const retry = () => { const stuck = links.map((_, e) => e).filter(e => !paths[e]); if (stuck.length) { ripped.fill(0); routeAll(stuck, C.rip * links.length / 4); } };
     for (let round = 0; round < C.improve; round++) {
       retry();
@@ -1552,13 +1602,14 @@ function subwayModule() {
     // on the map that keeps each link's heading, the places whose links cannot all leave one point keeping
     // it, unless the map is asked for points only (dots)
     const bars = subwayBars(pos.length, links, F.dots ? null : heading);
-    const placed = subwayPlace(want, links, T.place, T.spacing, T.len, width, groups, heading, neighbours, bars);
+    const pairs = subwayPairs(pos, links);
+    const placed = subwayPlace(want, links, T.place, T.spacing, T.len, width, groups, heading, neighbours, bars, pairs);
     // the links round each place leave it in the order they have evened out, or on the map that keeps
     // each link's heading, in their true order
     // the map with room for names leaves a place whose links run straight where it is, which keeps its
     // room; with the names put after the lines there is none to keep, and a move may bring a link back
     // within its heading
-    const routed = subwayRoute(placed.at, heading ? pos : want, links, late ? { ...T.route, leaveStraight: false, nameStep: SUBWAY_HEADING.nameStep } : T.route, names ? { side: placed.side, width } : null, heading, groups, T.route.nebulaShape, bars);
+    const routed = subwayRoute(placed.at, heading ? pos : want, links, late ? { ...T.route, leaveStraight: false, nameStep: SUBWAY_HEADING.nameStep } : T.route, names ? { side: placed.side, width } : null, heading, groups, T.route.nebulaShape, bars, pairs);
     const stats = { moves: placed.moves, rerouted: routed.rerouted, moved: routed.moved, failed: routed.paths.filter(p => !p).length, bars: bars.filter(Boolean).length };
     let at = routed.at.map(p => ({ x: p.i, y: p.j })), lines = routed.paths.map(p => p && p.map(q => ({ x: q.i, y: q.j })));
     if (F.fine && !stats.failed) {

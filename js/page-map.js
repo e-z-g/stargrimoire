@@ -71,7 +71,7 @@ const LAYOUT = { kind: null, want: null, mix: 0, sub: null, subs: {}, pending: {
    2026), red at one jump to blue at the furthest: turbo (Mikhailov, 2019),
    d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every colour
    is at least 3:1 against the black of the map. */
-let LINKS_BY = 'plain', NAMES = true, NEBULAE = true;
+let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, DOTS = true;
 function turbo(t) {
   t = Math.max(0, Math.min(1, t));
   const c = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -898,11 +898,15 @@ function drawDots(ctx) {
   for (const d of DRAWN) {
     if (d.t >= 1) continue;
     ctx.globalAlpha = (1 - d.t) * (dimOther && d.sys.govt !== VIEW.govt ? 0.25 : 1) * (placeFaint(d.p) ? FAINT : 1);
-    markPath(ctx, d, r);
-    ctx.fillStyle = dotFill(d.sys);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(225,232,242,0.75)';
-    ctx.stroke();
+    // the dot itself, unless Dots is off (the maintainer found them in the way of the lines on a
+    // big galaxy zoomed out, 30 September 2026); the rings round it are drawn either way
+    if (DOTS) {
+      markPath(ctx, d, r);
+      ctx.fillStyle = dotFill(d.sys);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(225,232,242,0.75)';
+      ctx.stroke();
+    }
     // a system on the route ringed in the route's gold
     if (onRoute(d.p)) { markPath(ctx, d, r + 2.5); ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
     if (SHOW_MODE === 'all' && d.sys.versions.length > 1) {
@@ -2185,6 +2189,7 @@ function wireTools() {
   document.addEventListener('fullscreenchange', fullChanged);
   document.addEventListener('webkitfullscreenchange', fullChanged);
   $('optNebulae').onchange = () => { NEBULAE = $('optNebulae').checked; redraw(); };
+  $('optDots').onchange = () => { DOTS = $('optDots').checked; redraw(); };
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };

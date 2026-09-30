@@ -132,8 +132,15 @@ function subwayModule() {
      degrees where needed, links off their heading 1 to 3 at most; 4 and 6
      did less, as the layout answers small changes unevenly, and 12 nothing.
      Most of the tangle is the galaxy's own: with no heading kept at all,
-     the map with room for names still crosses 17 times there. */
-  const SUBWAY_HEADING = { cone: Math.PI / 4, evenPull: 8, place: 100, way: 100, nameStep: 12, tangle: 5 };
+     the map with room for names still crosses 17 times there.
+     ownName: what a link pays, as a share of nameStep, to cross the room kept
+     for the name of a place it ends at. The names are put last, so that room
+     is only a plan, and at the full price a line would bend round its own
+     station's name rather than run straight on out of it (Starfleet
+     Adventures' Chuch'Hov, whose line to Tak'lur bent three times for it, 30
+     September 2026); at 0 the stock galaxy's lines ran straight through
+     stations 196 times where they had 141, at a quarter of it no fewer. */
+  const SUBWAY_HEADING = { cone: Math.PI / 4, evenPull: 8, place: 100, way: 100, nameStep: 12, ownName: 0, tangle: 5 };
   /* Lines through stations (the maintainer's asking, 30 September 2026: a line should run on
      through a station rather than set off another way). At each place its links are paired
      as a line runs through it: a place with two links, those two; a busier one, links whose
@@ -781,7 +788,7 @@ function subwayModule() {
             continue;
           }
           // the room kept for a name: never passed, or on the map that keeps each link's heading, at a price
-          if (labelAt[nk] >= 0) { if (!C.nameStep) continue; c += C.nameStep; }
+          if (labelAt[nk] >= 0) { if (!C.nameStep) continue; c += labelAt[nk] === u || labelAt[nk] === v ? C.nameStep * SUBWAY_HEADING.ownName : C.nameStep; }
           c += C.hist * hist[nk];
           if (pathAt[nk] >= 0) {
             if (crossAt[nk] >= 0 || axisAt[nk] === 9 || axisAt[nk] === d % 4) { if (!soft) continue; c += C.conflict; }
@@ -862,7 +869,7 @@ function subwayModule() {
         c += C.hop + (d & 1 ? C.diag : 0) + (q === 0 ? portCost(d, want) : C.bend[subwayTurn(dirOf(seq[q - 1], k), d)]);
         if (diagOwner(k % W, (k / W) | 0, d) >= 0) c += C.cross;
         if (q > 0 && ((pathAt[k] >= 0 && pathAt[k] !== e) || (crossAt[k] >= 0 && crossAt[k] !== e))) c += C.cross;
-        if (q > 0 && C.nameStep && labelAt[k] >= 0) c += C.nameStep;
+        if (q > 0 && C.nameStep && labelAt[k] >= 0) c += labelAt[k] === links[e][0] || labelAt[k] === links[e][1] ? C.nameStep * SUBWAY_HEADING.ownName : C.nameStep;
       }
       return c;
     }

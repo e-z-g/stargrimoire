@@ -317,7 +317,7 @@ function decodeLINF(data){
   const s=[]; for(let i=0;i<12;i+=2) s.push(u16be(data,i));
   const sg=v=>v>0x7fff?v-0x10000:v;
   return `Six shorts: ${s.map(sg).join(', ')}.\n`+
-         `The first two read as a size, ${s[0]} by ${s[1]}. What the record is for is not read.`;
+         `The first two read as a size, ${s[0]} by ${s[1]}. What the record is for has not been worked out.`;
 }
 
 /* The colour cycles, as the editor holds them.
@@ -342,7 +342,7 @@ function decodeCycleTable(data){
   if(rows.length<2) return null;
   return rows.length+' colour cycles, as (first index, length, flag):\n'+
     rows.map(r=>`  0x${r.start.toString(16).toUpperCase().padStart(2,'0')}  ${r.count} entries  flag ${r.flag}`).join('\n')+
-    '\n\nThe starting indices here run 16 below the ones the game animates; what the 16 is has not been read.';
+    '\n\nThe starting indices here are 16 lower than the ones the game animates; why they differ by 16 has not been worked out.';
 }
 
 // A resource that is entirely zero is read, not unread, and saying which it is
@@ -1106,8 +1106,8 @@ function decodeCodeResource(type, id, data){
     else lines.push(`  jump table offset ${first}, ${u16be(data,2)} entr${u16be(data,2)===1?'y':'ies'}`);
   }
   lines.push('');
-  lines.push('  This browser does not disassemble 68K. The bytes are below, and');
-  lines.push('  "Save raw" writes them out for something that does.');
+  lines.push('  This page does not disassemble 68K code. The bytes are below, and');
+  lines.push('  "Save raw" saves them for a tool that does.');
   return lines.join('\n');
 }
 
@@ -1274,7 +1274,7 @@ function trueTypeToSfnt(data){
   const scaler=String.fromCharCode(data[0],data[1],data[2],data[3]);
   const ver=u32be(data,0);
   if(scaler==='ttcf') throw new Error('that is a font collection (.ttc). Save one face out of it as a .ttf first.');
-  if(scaler==='OTTO') throw new Error('that font draws with PostScript outlines (OpenType CFF). The classic Mac only rasterises TrueType outlines, so it needs a .ttf rather than an .otf.');
+  if(scaler==='OTTO') throw new Error('that font draws with PostScript outlines (OpenType CFF). The classic Mac can only draw TrueType outlines, so it needs a .ttf rather than an .otf.');
   if(ver!==0x00010000&&scaler!=='true') throw new Error('that file does not begin like a TrueType font');
   const numTables=u16be(data,4);
   const tables=[];

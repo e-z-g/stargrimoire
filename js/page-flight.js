@@ -88,7 +88,6 @@ function flightLoop(now) {
     for (const [id, w] of FLIGHT.worlds) {
       w.view = flightView(id);
       novaFlightStep(w);
-      for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
     }
     stepped = true;
   }
@@ -189,6 +188,16 @@ function drawWorld(ctx, d, w) {
     ctx.globalAlpha = d.t; ctx.strokeStyle = hex(W.beamColor); ctx.lineWidth = bw;
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
   }
+  // particles: a dot each, a pixel of the system at least a screen pixel
+  if (w.parts && w.parts.length) {
+    const r = Math.max(1, z);
+    for (const p of w.parts) {
+      const [x, y] = toScreen(d.p.x + k * p.x / 256, d.p.y + k * p.y / 256);
+      if (x < 0 || y < 0 || x > CW || y > CH) continue;
+      ctx.fillStyle = hex(p.color);
+      ctx.fillRect(x - r / 2, y - r / 2, r, r);
+    }
+  }
   if (w.booms) for (const b of w.booms) {
     const B = b && w.D.fight.booms[b.boom];
     if (!B || b.delay > 0) continue;
@@ -256,7 +265,7 @@ function battleFight() {
   const w = FLIGHT.world;
   if (!w) return;
   for (let i = 0; i < 64; i++) w.ships[i] = null;
-  w.shots.fill(null); w.booms.fill(null); w.beams.fill(null);
+  w.shots.fill(null); w.booms.fill(null); w.beams.fill(null); w.parts = [];
   w.noArrivals = true;
   BATTLE.placed = []; BATTLE.sys = FLIGHT.sys;
   for (let i = 0; i < 2; i++) {

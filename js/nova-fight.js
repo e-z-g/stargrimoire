@@ -10,14 +10,15 @@
    throes and the explosions. Each function names the routine it follows
    and its address in the Intel half of 1.1.1.
 
-   Not here yet, each a later part of stage 4: guided missiles
-   (HandleShotGuidance; AIFireMissile does not fire), beams (SpawnBeam,
-   HandleBeams), rockets and bombs (guidance 5 and 6), submunitions,
-   ionization, cloaking, fighters and their bays, boarding and plunder,
-   escape pods, reinforcements, shots against asteroids and stellars,
-   and the particles and smoke (which draw on the random numbers: a
-   weapon with Particles or HitParticles makes the program draw more than
-   this does).
+   Then guided missiles, beams, fighters and their bays, fleets' orders
+   and leads, plundering and capture, submunitions, particles (their draws
+   on the random numbers as the program makes them), asteroids broken and
+   the boxes they leave, mining and scooping, and SpriteWorld's layers,
+   whose order is the order hits are taken in.
+
+   Not here yet: point defence, ionization, cloaking, escape pods,
+   reinforcements, shots against stellars, smoke, and the trail particles'
+   preference (taken as on).
 
    The player is in none of it: every branch about the player is left
    out, and the player's combat rating, which scales some of it, is taken
@@ -47,12 +48,24 @@ function novaFightData(D) {
       hitParticles: r.HitParticles, exitType: r.ExitType, durability: r.Durability,
       beamLength: r.BeamLength, animDelay: r.BeamWidth, beamWidth: r.BeamWidth, falloff: r.BeamLength > 0 && r.Falloff <= 0 ? 16 : r.Falloff,
       beamColor: r.BeamColor, coronaColor: r.CoronaColor, subCount: r.SubCount, subType: r.SubType, subLimit: r.SubLimit,
+      // the loader's (0x7aa25): the submunition as an index, -1 for none (no count, none of 128 to 383), SubTheta -1 as 0
+      subIdx: r.SubCount > 0 && r.SubType >= 128 && r.SubType <= 383 ? r.SubType - 128 : -1, subTheta: r.SubTheta === -1 ? 0 : r.SubTheta,
+      partLifeMin: r.PartLifeMin, partLifeMax: r.PartLifeMax, partColor: r.PartColor, partVel: f32(r.PartVel * 0.01),
+      hitPartLife: r.HitPartLife, hitPartVel: f32(r.HitPartVel * 0.01), hitPartColor: r.HitPartColor,
+      // and eight variants of the trail particles' speed and colour, each PartVel or PartColor x 0.6 to 1.4, drawn at loading (here from a fixed seed: they change no draws)
+      partVels: [], partColors: [],
       burstCount: r.BurstCount > 0 ? r.BurstCount : -1, burstReload: r.BurstReload,
       jam: (r.JamVuln || [0, 0, 0, 0]).map(v => Math.min(100, Math.max(0, v))),
       spin: r.Graphic >= 0 ? 3000 + r.Graphic : 0, range: 0,
     });
   }
   for (const w of F.weaps) if (w) w.range = novaWeaponRange(F, w);
+  const load = novaRandom(1);
+  for (const w of F.weaps) if (w) for (let k = 0; k < 8; k++) {
+    const f = f32((load.rand(0x51) + 60) * 0.01), c = w.partColor || 0;
+    w.partVels.push(f32(f * w.partVel));
+    w.partColors.push(((Math.min(255, Math.trunc(((c >> 16) & 255) * f)) << 16) | (Math.min(255, Math.trunc(((c >> 8) & 255) * f)) << 8) | Math.min(255, Math.trunc((c & 255) * f))));
+  }
   for (let i = 0; i < 64; i++) {
     const r = novaGet(game, 'bööm', 128 + i);
     F.booms.push(r ? { adv: f32(f32(r.FrameAdvance) * 0.01), sound: r.SoundIndex, spin: 400 + r.GraphicIndex } : null);
@@ -256,11 +269,12 @@ function novaThreatens(w, o, s) {
   }
   return false;
 }
-// IsShipThreatenedByMyEnemy 0x824f6: some enemy of s threatens o.
+/* IsShipThreatenedByMyEnemy 0x824f6, despite its name: o is attacking an
+   enemy of s (the program asks whether that enemy is threatened by o). */
 function novaThreatenedByMyEnemy(w, o, s) {
   for (let i = 1; i < 64; i++) {
     const e = w.ships[i];
-    if (e && i !== s.slot && i !== o.slot && novaThreatens(w, e, o) && novaIsEnemy(w.D, s, e)) return true;
+    if (e && i !== s.slot && i !== o.slot && novaThreatens(w, o, e) && novaIsEnemy(w.D, s, e)) return true;
   }
   return false;
 }
@@ -421,62 +435,68 @@ function novaNearest(w, s, ok) {
 }
 
 /* SelectWarshipTarget 0x89d5e, the parts about ships not the player: a
-   target kept while fighting it; none when out of ammunition; for a
-   xenophobic government the nearest enemy it can face (its strength
-   within the ship's friends' strength x MaxOdds); else joining an ally's
-   fight against a ship it can face (AI types up to 4); else the nearest
-   enemy it can face, a fleet's lead preferring the heaviest; else the
-   nearest ship threatening it or its escorts. */
+   target kept while fighting it; none when out of ammunition or with no
+   government; for a xenophobic government first the nearest enemy it can
+   face (its strength within the ship's friends' strength x MaxOdds), for
+   another joining an ally's fight against a ship it can face (AI types up
+   to 4); then the nearest enemy it can face, a lead with escorts taking
+   the heaviest; else the nearest ship threatening it or its escorts. */
 function novaSelectTarget(w, s) {
   const D = w.D;
   if (s.primary !== -1 && (s.state === 3 || s.state === 4) && novaActive(w, s.primary)) return;
   if (novaOutOfAmmo(w, s) === 2) return;
   const destroying = novaHasDestroying(w, s), g = D.govts.get(s.govt);
-  if (g) {
-    const odds = g.maxOdds, cand = new Array(64).fill(false);
-    if (g.flags & 1) {
-      let n = 0;
-      for (let i = 1; i < 64; i++) {
-        const o = w.ships[i];
-        if (!o || novaDying(o) || o.disabled || !novaVisible(o, s) || i === s.slot || o.leader === s.slot || novaGovtAllies(D, s.govt, o.govt) || !novaIsEnemy(D, s, o)) continue;
-        cand[i] = true; n++;
-      }
-      if (n > 0) {
-        const own = novaFriendStrength(w, s);
-        for (let i = 0; i < 64; i++) if (cand[i] && novaFriendStrength(w, w.ships[i]) > f32(own * odds)) { cand[i] = false; n--; }
-        if (n > 0) { s.primary = novaNearest(w, s, i => cand[i]); return; }
-      }
-    } else {
-      if (s.ai <= 4) {
-        let own = null;
-        for (let i = 1; i < 64; i++) {
-          const o = w.ships[i];
-          if (!o || i === s.slot || o.govt === -1 || o.primary === -1 || (o.state !== 3 && o.state !== 4) || !novaGovtAllies(D, s.govt, o.govt)) continue;
-          const t = w.ships[o.primary];
-          if (!t || !novaVisible(t, s)) continue;
-          if (own === null) own = novaFriendStrength(w, s);
-          if (f32(own * odds) >= novaFriendStrength(w, t)) { s.primary = o.primary; s.state = 4; return; }
-        }
-      }
-      let n = 0;
-      for (let i = 1; i < 64; i++) {
-        const o = w.ships[i];
-        if (!o || i === s.slot || !novaVisible(o, s) || (!destroying && o.disabled) || !novaIsEnemy(D, s, o)) continue;
-        cand[i] = true; n++;
-      }
-      if (n > 0) {
-        const own = novaFriendStrength(w, s), leads = w.ships.some(o => o && o.leader === s.slot);
-        let heaviest = -1;
-        for (let i = 0; i < 64; i++) {
-          if (!cand[i]) continue;
-          if (novaFriendStrength(w, w.ships[i]) > f32(own * odds)) { cand[i] = false; n--; continue; }
-          if (leads) { const m = novaClassFight(D, w.ships[i].cls).mass; if (heaviest === -1 || m > heaviest) heaviest = m; }
-        }
-        if (n > 0) s.primary = novaNearest(w, s, i => cand[i] && (heaviest === -1 || novaClassFight(D, w.ships[i].cls).mass === heaviest));
-      }
-      if (s.primary === -1) s.primary = novaNearest(w, s, i => i !== s.slot && novaActive(w, i) && novaVisible(w.ships[i], s) && novaThreatens(w, w.ships[i], s));
+  if (!g) return;
+  const odds = g.maxOdds, cand = new Array(64).fill(false);
+  if (g.flags & 1) {
+    // a xenophobe: the nearest ship of a government not its ally that it is at war with, not too strong for it
+    let n = 0;
+    for (let i = 1; i < 64; i++) {
+      const o = w.ships[i];
+      if (!o || novaDying(o) || o.disabled || !novaVisible(o, s) || i === s.slot || o.leader === s.slot || novaGovtAllies(D, s.govt, o.govt) || !novaIsEnemy(D, s, o)) continue;
+      cand[i] = true; n++;
+    }
+    if (n > 0) {
+      const own = novaFriendStrength(w, s);
+      for (let i = 0; i < 64; i++) if (cand[i] && novaFriendStrength(w, w.ships[i]) > f32(own * odds)) { cand[i] = false; n--; }
+      if (n > 0) s.primary = novaNearest(w, s, i => cand[i]);
+    }
+  } else if (s.ai <= 4) {
+    // joining an ally's fight, against a target not too strong
+    let own = null;
+    for (let i = 1; i < 64; i++) {
+      const o = w.ships[i];
+      if (!o || i === s.slot || o.govt === -1 || o.primary === -1 || (o.state !== 3 && o.state !== 4) || !novaGovtAllies(D, s.govt, o.govt)) continue;
+      const t = w.ships[o.primary];
+      if (!t || !novaVisible(t, s)) continue;
+      if (own === null) own = novaFriendStrength(w, s);
+      if (f32(own * odds) >= novaFriendStrength(w, t)) { s.primary = o.primary; s.state = 4; return; }
     }
   }
+  /* Then, for both (a xenophobe's choice standing only if nothing here is
+     found): the nearest enemy seen, not too strong, disabled ones only with
+     a weapon that destroys; a lead with escorts takes the heaviest. The
+     xenophobe's candidates stay among those weighed. */
+  let n = 0;
+  for (let i = 1; i < 64; i++) {
+    const o = w.ships[i];
+    if (!o || i === s.slot || !novaVisible(o, s) || (!destroying && o.disabled) || !novaIsEnemy(D, s, o)) continue;
+    cand[i] = true; n++;
+  }
+  if (n > 0) {
+    const own = novaFriendStrength(w, s);
+    let heaviest = -1;
+    for (let i = 0; i < 64; i++) {
+      if (!cand[i]) continue;
+      if (novaFriendStrength(w, w.ships[i]) > f32(own * odds)) { cand[i] = false; n--; continue; }
+      if (s.hasEscorts) { const m = novaClassFight(D, w.ships[i].cls).mass; if (heaviest === -1 || m > heaviest) heaviest = m; }
+    }
+    if (n > 0) {
+      const p = novaNearest(w, s, i => cand[i] && (heaviest === -1 || novaClassFight(D, w.ships[i].cls).mass === heaviest));
+      if (p !== -1) s.primary = p;
+    }
+  }
+  if (s.primary === -1) s.primary = novaNearest(w, s, i => i !== s.slot && novaActive(w, i) && novaVisible(w.ships[i], s) && novaThreatens(w, w.ships[i], s));
 }
 
 /* The leave-or-park test the supervisors share: fuel to jump (above 99),
@@ -693,7 +713,7 @@ function novaHopeless(w, s) {
   if (Math.abs(rx) <= 0.35 && Math.abs(ry) < 0.35) return false;
   const d = novaBearing(0, 0, rx, ry) - novaBearing(t.x, t.y, s.x, s.y);
   if (d >= -89 && d <= 89) return false;
-  const d2 = Math.abs(f32(f32((s.x - t.x) ** 2) + f32((s.y - t.y) ** 2))) * 0.8;
+  const d2 = Math.abs(novaDist2(s.x, s.y, t.x, t.y)) * 0.8;
   for (const r of s.weap) {
     const W = novaWeapOf(w.D, r.i);
     if (r.count <= 0 || !(r.ammo > 0 || r.ammo === -1) || W.guid !== 1 || !novaSuitableMissile(W, t) || !novaHasAmmo(w, s, r.i)) continue;
@@ -798,7 +818,7 @@ function novaLowAttack(w, s) {
 function novaLeadAngle(s, t, W, from) {
   let a = novaBearing(from.x, from.y, t.x, t.y);
   if (!W || ![-1, 4, 6, 7, 8, 9].includes(W.guid)) return a;
-  const d = f32(Math.sqrt(f32(f32(f32(t.x - from.x) ** 2) + f32(f32(t.y - from.y) ** 2)))), spd = W.speed;
+  const d = f32(Math.sqrt(novaDist2(t.x, t.y, from.x, from.y))), spd = W.speed;
   let tt;
   if (W.guid === 6) tt = spd * 19.59 >= d ? f32(d / (spd * 0.316)) : f32((d + spd * -19.59) / spd + 2.066666666666667);
   else tt = f32(d / spd);
@@ -870,9 +890,9 @@ function novaFireTurret(w, s) {
    and armour). */
 function novaFireMissile(w, s) {
   const D = w.D, t = s.primary !== -1 ? w.ships[s.primary] : null;
-  if (!t || ((novaClassFight(D, t.cls).flags2 & 4))) return;
-  if (t.targeted >= f32(t.shield + t.armor) * 1.05) return;
-  const d2 = Math.abs(f32(f32((s.x - t.x) ** 2) + f32((s.y - t.y) ** 2))) * 0.95;
+  if (!t || ((novaClassFight(D, t.cls).flags2 & 4) && !s.cls.targetsAll)) return;
+  if (f32(t.shield + t.armor) * 1.05 <= t.targeted) return;
+  const d2 = Math.abs(novaDist2(s.x, s.y, t.x, t.y)) * 0.95;
   for (const r of s.weap) {
     const W = novaWeapOf(D, r.i);
     if (r.count <= 0 || W.guid !== 1 || !novaSuitableMissile(W, t) || !novaSameHide(D, t, W) || !novaHasAmmo(w, s, r.i)) continue;
@@ -1018,6 +1038,9 @@ function novaEscortFireUnprovoked(w, s) {
    shot (or whole, Flags 0x0040), or BurstReload at the end of a burst. */
 function novaFireShipWeapon(w, s) {
   const D = w.D, i = s.lastW, r = s.wi.get(i), W = novaWeapOf(D, i);
+  s.lastFire = novaNow(w);
+  // a ship that folds to fire (shän Flags 0x02 and 0x80) fires only folded, folding first
+  if ((s.cls.shanFlags & 2) && (s.cls.shanFlags & 0x80) && s.foldFrame > 0 && s.cls.sets > 1) { s.fold = -1; return; }
   if (!r || !W || r.reload > 0 || r.count <= 0) return;
   const n = novaMaxShots(w, s, W, r);
   let fired = 0;
@@ -1090,7 +1113,7 @@ function novaShotStart(w, s, pos, W, tpos) {
     let best = -1, bd = 0;
     for (let idx = 0; idx < 4; idx++) {
       const p = { x: pos.x, y: pos.y }; place(p, idx);
-      const d = f32(f32((p.x - tpos.x) ** 2) + f32((p.y - tpos.y) ** 2));
+      const d = novaDist2(p.x, p.y, tpos.x, tpos.y);
       if (best === -1 || d < bd) { best = idx; bd = d; }
     }
     s.exits[et] = best;
@@ -1144,6 +1167,8 @@ function novaSpawnShot(w, owner, target, i, isSub) {
   if (W.ammoType === -999 && s && !isSub) { s.shield = 0; s.armor = 0; novaSetDisabled(D, s); }
   sh.jam = W.jam.map(v => (v > 0 ? w.rand(v + 1) : 0));
   w.shots[slot] = sh;
+  // its layer (SpawnShot): guided shots, point defence, a turret's of a class with Flags3 0x0040, and the rest
+  novaPutInLayer(w, 'h', slot, g === 1 ? 'guided' : g === 9 ? 'pd' : g === 4 && s && (s.cls.flags3 & 0x40) ? 'turret' : 'shot');
   return slot;
 }
 
@@ -1162,16 +1187,32 @@ function novaHandleShot(w, sh) {
     if (sh.life <= 0) sh.life = -1;
     novaShotGuidance(w, sh);
     sh.x = f32(sh.x + sh.vx); sh.y = f32(sh.y + sh.vy);
-    // the frame: stepped (Flags 0x0001) or by heading
-    if (W.flags & 1) {
+    // the frame shown: by heading, or stepped (Flags 0x0001), the one before the step, back to the first or held at the last (Flags2 0x0002), the first while not yet armed (Flags2 0x0001)
+    const spr = novaFightSprite(D, novaSpinSprite(D, W.spin)), n = spr ? spr.frames : 1;
+    let shown;
+    if (!(W.flags & 1)) shown = Math.trunc(f32(n * sh.heading) / 360);
+    else {
+      shown = sh.frame;
       sh.anim = f32(sh.anim + 1);
-      if (sh.anim >= W.animDelay || !(W.animDelay > 0)) { sh.frame++; sh.anim = 0; }
+      if (W.animDelay <= sh.anim || W.animDelay < 1) { sh.frame++; sh.anim = 0; }
+      if (n <= sh.frame) sh.frame = (W.flags2 & 2) ? n - 1 : 0;
+      if ((W.flags2 & 1) && W.count - W.proxSafety < sh.life) { shown = 0; if (W.flags2 & 2) sh.frame = 0; }
+    }
+    if (n <= shown) shown = n - 1;
+    sh.shown = shown < 0 ? 0 : shown;
+    // a trail of particles (Particles), from its tail
+    if (W.particles > 0) {
+      const p = { x: sh.x, y: sh.y }, half = Math.trunc((spr ? spr.w : 0) / 2);
+      novaAccel(Math.trunc(f32(180 + sh.heading)) % 360, half, p);
+      const c = W.partColors[w.rand(8)], v = W.partVels[w.rand(8)];
+      novaSpawnParticles(w, Math.trunc(p.x), Math.trunc(p.y), v, 0, W.partLifeMin, W.partLifeMax, c, 32, W.particles, 0);
     }
     if ((W.flags3 & 4) && sh.owner !== -1 && w.ships[sh.owner]) { const r = w.ships[sh.owner].wi.get(sh.w); if (r) r.reload = f32(W.reload); }
     if (W.decay > 0) { sh.decayAcc = f32(sh.decayAcc + 1); if (sh.decayAcc > W.decay) { sh.decays++; sh.decayAcc = 0; } }
     return;
   }
   if (sh.life > -32000) {
+    if (!(W.flags2 & 0x20) && W.subCount > 0) novaSubmunitions(w, sh, sh.target);
     if (W.flags & 0x8000) {
       novaCreateExplosion(w, sh.x, sh.y, W.explod, W.blast, true);
       if (W.blast > 0 && !(W.flags2 & 0x0400)) for (let i = 0; i < 64; i++) {
@@ -1181,7 +1222,7 @@ function novaHandleShot(w, sh) {
         if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast)
           novaDamageShip(w, o, sh, W.impact, W.mass, W.energy, sh.owner, false, false, sh.dis, false, !!(W.flags & 0x20));
       }
-    } else if (W.explod > 0) novaSpawnExplod(w, sh.x, sh.y, W.explod, 0);
+    } else if (W.explod > 0) novaSpawnExplod(w, sh.x, sh.y, 0, 0);
   }
   w.shots[sh.slot] = null;
 }
@@ -1215,8 +1256,9 @@ function novaShotCanHit(w, sh, t) {
 function novaSpriteHit(D, t, sh, W) {
   const ts = novaFightSprite(D, t.cls.sprite), ss = novaFightSprite(D, novaSpinSprite(D, W.spin));
   const tw = ts ? ts.w : 32, th = ts ? ts.h : 32, sw = ss ? ss.w : 8, shh = ss ? ss.h : 8;
-  const tl = Math.trunc(t.x) - Math.ceil(tw / 2), tt = Math.trunc(t.y) - Math.ceil(th / 2);
-  const sl = Math.trunc(sh.x) - Math.ceil(sw / 2), st = Math.trunc(sh.y) - Math.ceil(sw / 2);
+  // placed as the program places sprites: the middle less half the width (the height for a ship's top, the width again for a shot's)
+  const tl = Math.trunc(t.x) - Math.trunc(tw / 2), tt = Math.trunc(t.y) - Math.trunc(th / 2);
+  const sl = Math.trunc(sh.x) - Math.trunc(sw / 2), st = Math.trunc(sh.y) - Math.trunc(sw / 2);
   if (sl >= tl + tw || tl >= sl + sw || st >= tt + th || tt >= st + shh) return false;
   if (!ts || !ss || tw <= 32) {
     const ha = Math.trunc(tw / 2), hb = Math.trunc(sw / 2), dx = (sl + hb) - (tl + ha), dy = (st + hb) - (tt + ha);
@@ -1231,25 +1273,50 @@ function novaSpriteHit(D, t, sh, W) {
 // A shot's frame (HandleShot): stepped, or by its heading over the sprite's frames.
 function novaShotFrame(W, sh, spr) {
   const n = spr ? spr.frames : 1;
+  if (sh.shown !== undefined) return Math.min(sh.shown, n - 1);
   let f = (W.flags & 1) ? sh.frame : Math.trunc(f32(n * sh.heading) / 360);
   if (f >= n) f = (W.flags & 1) && (W.flags2 & 2) ? n - 1 : (W.flags & 1) ? (sh.frame = 0) : n - 1;
   return f < 0 ? 0 : f;
 }
 
-/* The start of each step (DoPlayGameWork 0x43e70, 0x44015): every shot
-   tested against every ship (SWCollideSpriteLayer), and a hit taken
-   unless the shot is not yet armed (ProxSafety); then the proximity
-   fuses (CheckShotProximities 0x371bc). */
+/* The start of each step (DoPlayGameWork 0x43e70, 0x44015): SpriteWorld's
+   collisions (SWCollideSpriteLayer), layer by layer in the program's
+   order -- a scooping ship against the boxes while there are any; then
+   for the plain shots, the guided and the turrets' in turn, every ship
+   (the plain ships' layer, the escorts', the disabled) against every shot,
+   then every asteroid against them -- each list walked in its order, a
+   hit taken unless the shot is not yet armed (ProxSafety); then the
+   proximity fuses (CheckShotProximities 0x371bc). */
 function novaShotHits(w) {
-  const D = w.D;
-  for (const sh of w.shots) {
-    if (!sh || !(sh.life > 0)) continue;
-    const W = novaWeapOf(D, sh.w);
-    for (let i = 0; i < 64 && w.shots[sh.slot] === sh; i++) {
-      const t = w.ships[i];
-      if (!t || !novaShotCanHit(w, sh, t) || !novaSpriteHit(D, t, sh, W)) continue;
-      if (W.proxSafety > 0 && sh.life > W.count - W.proxSafety) continue;
-      novaShipHit(w, sh, t, false);
+  const D = w.D, L = w.layers || (w.layers = novaLayers());
+  if (w.boxesActive) for (const tl of ['ship', 'escort', 'disabled']) for (const ti of L[tl].slice()) {
+    const t = w.ships[ti];
+    if (!t || t.state !== 0x11) continue;
+    for (let bi = 0; bi < 64; bi++) { const x = w.boxes[bi]; if (x && !(x.life < 0) && x.on && novaBoxHit(D, t, x)) novaScoop(w, t, x); }
+  }
+  for (const sl of ['shot', 'guided', 'turret']) {
+    for (const tl of ['ship', 'escort', 'disabled']) for (const ti of L[tl].slice()) {
+      const t = w.ships[ti];
+      if (!t) continue;
+      for (const si of L[sl]) {
+        const sh = w.shots[si];
+        if (!sh || !(sh.life > 0)) continue;
+        const W = novaWeapOf(D, sh.w);
+        if (!novaShotCanHit(w, sh, t) || !novaSpriteHit(D, t, sh, W)) continue;
+        if (W.proxSafety > 0 && sh.life > W.count - W.proxSafety) continue;
+        novaShipHit(w, sh, t, false);
+      }
+    }
+    for (let ai = 0; ai < 16; ai++) {
+      const a = w.roids[ai];
+      if (!a.active) continue;
+      for (const si of L[sl]) {
+        const sh = w.shots[si];
+        if (!sh || !(sh.life > 0)) continue;
+        const W = novaWeapOf(D, sh.w);
+        if (!(W.seeker & 1) && novaRoidShotHit(D, a, sh, W)) novaAsteroidHit(w, sh, a);
+        if (!a.active) break;
+      }
     }
   }
   for (const sh of w.shots) {
@@ -1272,6 +1339,7 @@ function novaShipHit(w, sh, t, sub) {
   novaCreateExplosion(w, sh.x, sh.y, W.explod, W.blast, true);
   let mass = W.mass, energy = W.energy;
   if (sh.decays > 0) { mass = Math.max(0, mass - sh.decays); energy = Math.max(0, energy - sh.decays); }
+  if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(sh.x), Math.trunc(sh.y), W.hitPartVel, 20, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
   novaDamageShip(w, t, sh, W.impact, mass, energy, sh.owner, true, sh.target === t.slot, sh.dis, false, !!(W.flags & 0x20));
   if (W.blast > 0) for (let i = 0; i < 64; i++) {
     const o = w.ships[i];
@@ -1279,7 +1347,7 @@ function novaShipHit(w, sh, t, sub) {
     if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast)
       novaDamageShip(w, o, sh, W.impact, W.mass, W.energy, sh.owner, false, false, sh.dis, false, !!(W.flags & 0x20));
   }
-  void sub;
+  if (sub && W.subCount > 0) novaSubmunitions(w, sh, t.slot);
   sh.life = -1;
   w.shots[sh.slot] = null;
 }
@@ -1360,7 +1428,7 @@ function novaRetaliate(w, t, A, attacker, mass, energy, aimed) {
   t.harass = 0;
   if (t.primary !== -1 && t.state === 4 && novaAngleApart(Math.trunc(t.heading), t.want) <= 44) {
     const cur = w.ships[t.primary];
-    if (cur && f32(f32((t.x - A.x) ** 2) + f32((t.y - A.y) ** 2)) > f32(f32(f32((t.x - cur.x) ** 2) + f32((t.y - cur.y) ** 2)) * 0.25)) return;
+    if (cur && novaDist2(t.x, t.y, A.x, A.y) > f32(novaDist2(t.x, t.y, cur.x, cur.y) * 0.25)) return;
   }
   t.anger = ((t.anger + Math.max(0, mass) + Math.max(0, energy)) << 16) >> 16;
   t.primary = attacker;
@@ -1534,7 +1602,7 @@ function novaSpawnBeam(w, owner, target, i, exit, pd) {
 function novaClosestExit(w, s, et, t) {
   let best = -1, bd = 0;
   for (let idx = 0; idx < 4; idx++) {
-    const p = novaExitPoint(w, s, et, idx), d = f32(f32((p.x - t.x) ** 2) + f32((p.y - t.y) ** 2));
+    const p = novaExitPoint(w, s, et, idx), d = novaDist2(p.x, p.y, t.x, t.y);
     if (best === -1 || d < bd) { best = idx; bd = d; }
   }
   return best;
@@ -1586,7 +1654,7 @@ function novaHandleBeams(w) {
         if (!novaSameHide(D, t, W)) continue;
         const ts = novaFightSprite(D, t.cls.sprite), tw = Math.trunc((ts ? ts.w : 32) * 0.66);
         const reach = W.beamLength + Math.trunc(tw / 2);
-        const d2 = f32(f32((t.x - o.x) ** 2) + f32((t.y - o.y) ** 2));
+        const d2 = novaDist2(t.x, t.y, o.x, o.y);
         if (!(d2 <= reach * reach)) continue;
         const a = novaBearing(o.x, o.y, t.x, t.y), tol = Math.trunc(tw * 10 / 32);
         if (Math.abs(a - ang) > tol) continue;
@@ -1595,7 +1663,7 @@ function novaHandleBeams(w) {
       }
       if (hit !== -1) {
         const t = w.ships[hit], p = { x: o.x, y: o.y };
-        len = f32(Math.trunc(hw * -0.2 + Math.sqrt(f32(f32((t.x - o.x) ** 2) + f32((t.y - o.y) ** 2)))));
+        len = f32(Math.trunc(hw * -0.2 + Math.sqrt(novaDist2(t.x, t.y, o.x, o.y))));
         novaAccel(ang, len, p);
         novaCreateExplosion(w, p.x, p.y, W.explod, W.blast, true);
         let impact = W.impact;
@@ -1794,7 +1862,7 @@ function novaNearbyThreat(w, c, s, range) {
   const L = s.leader, lead = w.ships[L];
   if (c === s || c.slot === c.leader || c.slot === L || c.leader === L || !novaVisible(c, s) || (c.disabled && s.orders !== 2)) return 0;
   if (!lead || !novaThreatens(w, c, lead)) return 0;
-  const d2 = (a, b) => f32(f32(f32(a.x - b.x) ** 2) + f32(f32(a.y - b.y) ** 2));
+  const d2 = (a, b) => novaDist2(a.x, a.y, b.x, b.y);
   const dl = d2(lead, c);
   let f;
   if (range < 1) f = d2(s, c);
@@ -1914,7 +1982,7 @@ function novaFindShipToPlunder(w, s) {
     if (j === s.slot || !o || o.leader === s.slot || o.boarded || !o.disabled) continue;
     if (!(o.ai < 3) && o.cls.ai > 2 && !destroys) continue;
     if (!(o.cls.rec.Crew > 0) || (o.leader !== 0 && novaGovtAllies(D, s.govt, o.govt))) continue;
-    const d = Math.trunc(f32(f32(f32(s.x - o.x) ** 2) + f32(f32(s.y - o.y) ** 2)));
+    const d = Math.trunc(novaDist2(s.x, s.y, o.x, o.y));
     if (best === -1 || d < bd) { best = j; bd = d; }
   }
   if (best !== -1) { s.primary = best; s.state = 0xd; s.mode = 0; }
@@ -2025,4 +2093,241 @@ function novaFighterAboard(w, f) {
     novaGone(w, f, 'landed');
     return;
   }
+}
+
+/* ---- particles and submunitions --------------------------------------------- */
+
+/* SpawnParticles 0x44b70: `count` particles from (x, y), each at `speed`
+   (give or take `spread` per cent, 1 to 99) in a direction drawn of 360,
+   living lifeMin, or lifeMin to lifeMax, steps, scattered within `scatter`
+   if given -- the draws as the program makes them, the particles kept
+   (NewParticle, 8.8 fixed point) for the page to draw. */
+function novaSpawnParticles(w, x, y, speed, spread, lifeMin, lifeMax, color, alpha, count, scatter) {
+  if (!w.parts) w.parts = [];
+  for (let k = 0; k < count; k++) {
+    let v = speed;
+    if (spread >= 1 && spread <= 99) v = f32((w.rand(spread * 2 + 1) - spread + 100) * 0.01 * speed);
+    const d = { x: 0, y: 0 }; novaAccel(w.rand(360), v, d);
+    let life = lifeMin;
+    if (lifeMin < lifeMax) life = lifeMin + w.rand(lifeMax - lifeMin + 1);
+    const p = { x: f32(x), y: f32(y) };
+    if (scatter > 0) { const r = w.rand(scatter * 100); novaAccel(w.rand(360), f32(r * 0.01), p); }
+    if (life > 0 && w.parts.length < 2000) w.parts.push({ x: Math.trunc(p.x) * 256, y: Math.trunc(p.y) * 256, vx: Math.trunc(d.x * 256), vy: Math.trunc(d.y * 256), life, color, alpha });
+  }
+}
+// MoveParticles 0xc60c5: a step older, gone at 0, and moved.
+function novaMoveParticles(w) {
+  if (!w.parts || !w.parts.length) return;
+  w.parts = w.parts.filter(p => { if (--p.life <= 0) return false; p.x += p.vx; p.y += p.vy; return true; });
+}
+/* SpawnShotSubmunitions 0x3f1d5: SubCount shots of the SubType, from the
+   shot, a generation deeper (none past SubLimit); a point-defence shot's
+   aimed at its target, one with Flags2 0x0010 at the nearest ship it can
+   hit (else the ship hit, else straight on); SubTheta above 0 scatters
+   each within that many degrees, below 0 fans them that far apart. */
+function novaSubmunitions(w, sh, target) {
+  const D = w.D, W = novaWeapOf(D, sh.w);
+  if (W.subIdx === -1 || !(W.subCount > 0) || !(W.subLimit < 1 || (sh.depth || 0) < W.subLimit)) return;
+  for (let k = 0; k < W.subCount; k++) {
+    const j = novaSpawnShot(w, sh.owner, target, W.subIdx, true);
+    if (j === -1) return;
+    const n = w.shots[j];
+    Object.assign(n, { x: sh.x, y: sh.y, vx: 0, vy: 0, depth: (sh.depth || 0) + 1, heading: sh.heading });
+    if (W.guid === 9) n.target = sh.target;
+    else if (W.flags2 & 0x10) {
+      n.target = -1;
+      n.target = novaNearestShotTarget(w, n);
+      if (n.target === -1) n.target = target;
+      if (n.target === -1) n.heading = sh.heading;
+      else { const t = w.ships[n.target] || w.last[n.target]; n.heading = t ? novaBearing(sh.x, sh.y, t.x, t.y) : sh.heading; }
+    }
+    const th = W.subTheta;
+    if (th > 0) n.heading = f32(f32(th - w.rand(th * 2 + 1)) + n.heading);
+    else if (th < 0) {
+      const a = Math.abs(th);
+      n.heading = f32(n.heading - Math.trunc(a * (W.subCount - 1) / 2));
+      n.heading = f32(a * k + n.heading);
+    }
+    if (n.heading < 0) n.heading = f32(n.heading + 360);
+    if (n.heading >= 360) n.heading = f32(n.heading - 360);
+    const NW = novaWeapOf(D, n.w);
+    if (NW.guid === 6) { n.vx = sh.vx; n.vy = sh.vy; }
+    else { const v = { x: n.vx, y: n.vy }; novaAccel(Math.trunc(n.heading), NW.speed, v); n.vx = v.x; n.vy = v.y; }
+  }
+}
+/* FindNearestValidShotTarget 0x6a3a: the nearest ship the shot can hit, by
+   whole distances squared in 16 bits (which wraps beyond 181 or so). */
+function novaNearestShotTarget(w, sh) {
+  let best = -1, bd = 0;
+  for (let i = 0; i < 64; i++) {
+    const t = w.ships[i];
+    if (!t || !novaShotCanHit(w, sh, t)) continue;
+    const dx = ((Math.abs(Math.trunc(t.x) - Math.trunc(sh.x))) << 16) >> 16, dy = ((Math.abs(Math.trunc(t.y) - Math.trunc(sh.y))) << 16) >> 16;
+    const d = ((dx * dx + dy * dy) << 16) >> 16;
+    if (best === -1 || d < bd) { best = i; bd = d; }
+  }
+  return best;
+}
+
+/* ---- layers ------------------------------------------------------------------ */
+
+/* SpriteWorld's layers as lists in the order its collisions walk them:
+   InitSprites 0x? adds the ships' sprites 63 down to 0 and the shots' 0 up
+   to 127; a sprite put in another layer goes to its end (PutSpriteInLayer
+   0x?), and one put in its own stays where it is. */
+function novaLayers() {
+  const L = { ship: [], escort: [], disabled: [], shot: [], guided: [], turret: [], pd: [], of: new Map() };
+  for (let i = 63; i >= 0; i--) { L.ship.push(i); L.of.set('s' + i, 'ship'); }
+  for (let i = 0; i < 128; i++) { L.shot.push(i); L.of.set('h' + i, 'shot'); }
+  return L;
+}
+function novaPutInLayer(w, kind, id, layer) {
+  const L = w.layers || (w.layers = novaLayers()), k = kind + id, cur = L.of.get(k);
+  if (cur === layer) return;
+  if (cur) { const a = L[cur], j = a.indexOf(id); if (j >= 0) a.splice(j, 1); }
+  L[layer].push(id); L.of.set(k, layer);
+}
+
+/* ---- asteroids hit, and the boxes they leave ---------------------------------- */
+
+// Whether two sprites' masks meet: each at its left and top, by its frame (SWRLECollision).
+function novaMaskHit(a, af, al, at, b, bf, bl, bt) {
+  if (bl >= al + a.w || al >= bl + b.w || bt >= at + a.h || at >= bt + b.h) return false;
+  const am = novaSpriteMask(a, Math.min(a.frames - 1, Math.max(0, af))), bm = novaSpriteMask(b, Math.min(b.frames - 1, Math.max(0, bf)));
+  const x0 = Math.max(al, bl), x1 = Math.min(al + a.w, bl + b.w), y0 = Math.max(at, bt), y1 = Math.min(at + a.h, bt + b.h);
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (am[(y - at) * a.w + (x - al)] && bm[(y - bt) * b.w + (x - bl)]) return true;
+  return false;
+}
+// AsteroidCollisionHandler 0x369c8's test: always by the masks.
+function novaRoidShotHit(D, a, sh, W) {
+  const t = D.roids[a.type], ra = novaFightSprite(D, t.sprite), ss = novaFightSprite(D, novaSpinSprite(D, W.spin));
+  if (!ra || !ss) return false;
+  return novaMaskHit(ra, Math.trunc(a.frame), Math.trunc(a.x) - Math.trunc(ra.w / 2), Math.trunc(a.y) - Math.trunc(ra.h / 2),
+                     ss, novaShotFrame(W, sh, ss), Math.trunc(sh.x) - Math.trunc(ss.w / 2), Math.trunc(sh.y) - Math.trunc(ss.w / 2));
+}
+/* HandleAsteroidHit 0x36637: the shot's explosion and hit particles; its
+   blast only if the player fired it; the asteroid's strength less the
+   shot's EnergyDmg (ten times that with Flags2 0x8000), destroyed below 0,
+   else pushed by the Impact over the asteroid's Mass, to at most 2. */
+function novaAsteroidHit(w, sh, a) {
+  const D = w.D, W = novaWeapOf(D, sh.w), t = D.roids[a.type];
+  novaCreateExplosion(w, sh.x, sh.y, W.explod, W.blast, true);
+  if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(sh.x), Math.trunc(sh.y), W.hitPartVel, 20, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
+  a.strength = (W.flags2 & 0x8000) ? ((a.strength + W.energy * -10) << 16) >> 16 : ((a.strength - W.energy) << 16) >> 16;
+  if (a.strength < 0) novaDestroyAsteroid(w, a);
+  else if (W.impact !== 0 && t.mass > 0) {
+    const v = { x: a.vx, y: a.vy };
+    novaAdjustedAccel(Math.trunc(sh.heading), f32(W.impact / t.mass), 2, v);
+    a.vx = Math.min(2, Math.max(-2, v.x)); a.vy = Math.min(2, Math.max(-2, v.y));
+  }
+  sh.life = -1;
+  w.shots[sh.slot] = null;
+}
+/* DestroyAsteroid 0xadc9: its yield as boxes (YieldQty x 0.5 to 1.5 of
+   them), a spray of particles, its explosion, and FragCount / 2 to
+   FragCount x 1.5 fragments of its FragTypes. */
+function novaDestroyAsteroid(w, a) {
+  const D = w.D, t = D.roids[a.type];
+  if (t.yieldQty > 0) {
+    const n = (Math.trunc(t.yieldQty * (w.rand(0x65) + 50) * 0.01) << 16) >> 16;
+    for (let k = 0; k < n; k++) novaSpawnBox(w, a.x, a.y, t.yieldType, (a.type >> 2) + 1);
+  }
+  if (t.partCount > 0) {
+    const spr = novaFightSprite(D, t.sprite), wd = spr && spr.frames > 0 ? spr.w : 32;
+    novaSpawnParticles(w, Math.trunc(a.x), Math.trunc(a.y), f32(0.2), 40, 240, 480, t.partColor, 32, t.partCount, Math.trunc(wd / 3));
+  }
+  if (t.explod !== -1) novaCreateExplosion(w, a.x, a.y, t.explod, 0, true);
+  if (t.fragCount > 0) {
+    const n = w.rand(t.fragCount) + (t.fragCount >> 1), f = [t.frag1, t.frag2];
+    for (let k = 0; k < n; k++) {
+      if (t.frag1 === -1) { if (t.frag2 !== -1) novaSpawnSubAsteroid(w, a, t.frag2); }
+      else novaSpawnSubAsteroid(w, a, t.frag2 !== -1 ? f[w.rand(2)] : t.frag1);
+    }
+  }
+  a.active = false;
+}
+// SpawnSubAsteroid 0x3fbc7: a fragment, where the asteroid was, drifting up to 1 a step, its frame and spin drawn.
+function novaSpawnSubAsteroid(w, from, type) {
+  const D = w.D, t = D.roids[type], a = w.roids.find(r => !r.active);
+  if (!a) return;
+  const spr = novaFightSprite(D, t.sprite);
+  Object.assign(a, { active: true, type, x: from.x, y: from.y });
+  a.vx = f32((w.rand(200) - 100) * 0.01); a.vy = f32((w.rand(200) - 100) * 0.01);
+  a.frame = w.rand(spr ? spr.frames : t.frames);
+  a.spin = f32(f32(t.spin * (w.rand(0x29) + 80)) * 0.01);
+  if (w.rand(2) === 0) a.spin = -a.spin;
+  a.strength = t.strength;
+}
+/* SpawnScoopableBox 0x3e3c5: a box of the yield, lasting 300 to 499 steps,
+   turning one way, the other or not, pushed 0.12 to 0.28 a step. */
+function novaSpawnBox(w, x, y, kind, sprite) {
+  if (!w.boxes) w.boxes = new Array(64).fill(null);
+  const i = w.boxes.findIndex(b => !b || b.life < -1);
+  if (i < 0) return;
+  const b = { x, y, vx: 0, vy: 0, life: f32(w.rand(200) + 300), frame: 0, kind, sprite, on: true, turn: 0 };
+  b.frame = f32(w.rand(0x24));
+  const r = w.rand(4);
+  b.turn = r === 0 ? -1 : r === 3 ? 1 : 0;
+  w.boxes[i] = b;
+  const sp = w.rand(0x51), v = { x: 0, y: 0 };
+  novaAccel(w.rand(0x168), f32((sp + 60) * 0.2 * 0.01), v);
+  b.vx = v.x; b.vy = v.y;
+}
+// HandleBoxes 0x2df85: each box turns, ages and drifts; mining boxes are about while any is.
+function novaHandleBoxes(w) {
+  w.boxesActive = false;
+  if (!w.boxes) return;
+  for (let i = 0; i < 64; i++) {
+    const b = w.boxes[i];
+    if (!b) continue;
+    if (b.life < 0) { b.life = -2; continue; }
+    b.frame = f32(b.frame + b.turn);
+    while (b.frame >= 36) b.frame = f32(b.frame - 36);
+    while (b.frame < 0) b.frame = f32(b.frame + 36);
+    b.life = f32(b.life - 1);
+    b.x = f32(b.x + b.vx); b.y = f32(b.y + b.vy);
+    if (b.on) w.boxesActive = true;
+  }
+}
+// The boxes' sprites (spïn 500 + n), placed a whole width and height up and left of the box (HandleBoxes).
+function novaBoxHit(D, t, x) {
+  const ts = novaFightSprite(D, t.cls.sprite), bs = novaFightSprite(D, novaSpinSprite(D, 500 + x.sprite));
+  if (!ts || !bs) return false;
+  return novaMaskHit(ts, t.frame || 0, Math.trunc(t.x) - Math.trunc(ts.w / 2), Math.trunc(t.y) - Math.trunc(ts.h / 2),
+                     bs, Math.trunc(x.frame), Math.trunc(x.x) - bs.w, Math.trunc(x.y) - bs.h);
+}
+// ShipCollisionHandler 0x36f87, a box: gone, and a ton of its commodity aboard.
+function novaScoop(w, t, x) {
+  x.life = -1;
+  if (x.kind >= 0 && x.kind < 6) t.cargo[x.kind] = ((t.cargo[x.kind] + 1) << 16) >> 16;
+}
+
+/* AIFireGunUntargeted 0x80425, a miner at its asteroid: the loaded, ready
+   weapon doing the most mass damage of its guns (unguided, beams -- not one
+   that homes on asteroids, Seeker 0x0001, for a ship that destroys them --
+   rockets, and front-quadrant turrets with no target), not one of Flags2
+   0x0400. */
+function novaFireGunUntargeted(w, s) {
+  const D = w.D;
+  let pick = -1, best = 0;
+  for (const r of s.weap) {
+    if (!(r.count > 0)) continue;
+    const W = novaWeapOf(D, r.i), g = W.guid;
+    if (g === 0) { if ((W.seeker & 1) && (s.cls.flags3 & 1)) continue; }
+    else if (g === 7) { if (s.primary !== -1) continue; }
+    else if (g !== -1 && g !== 6) continue;
+    if (W.flags2 & 0x0400) continue;
+    if (!novaHasAmmo(w, s, r.i) || r.reload > 0) continue;
+    const d = Math.max(1, W.mass);
+    if (best < d) { pick = r.i; best = d; }
+  }
+  if (pick >= 0) s.lastW = pick;
+  if (s.lastW !== -1) s.latch = true;
+}
+// CalcObjectLeadAngle 0x2b18e: the lead on a moving object, for unguided shots, rockets of no guidance (4, 7, 8, 9) and the like.
+function novaObjectLeadAngle(s, pos, vel, W) {
+  let a = novaBearing(s.x, s.y, pos.x, pos.y);
+  if (!W || ![-1, 4, 7, 8, 9].includes(W.guid)) return a;
+  const d = f32(Math.sqrt(novaDist2(pos.x, pos.y, s.x, s.y))), tt = f32(d / W.speed);
+  return novaBearing(s.x, s.y, f32(pos.x + f32(tt * f32(vel.x - s.vx))), f32(pos.y + f32(f32(vel.y - s.vy) * tt)));
 }

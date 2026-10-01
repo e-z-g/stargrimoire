@@ -527,7 +527,12 @@ function linkPoints(l, pa, pb) {
     return { x: L[i - 1].x + (L[i].x - L[i - 1].x) * t, y: L[i - 1].y + (L[i].y - L[i - 1].y) * t };
   };
   const FA = frac(A), FB = frac(B), fs = [...new Set(FA.concat(FB))].sort((a, b) => a - b);
-  return fs.map(f => { const a = along(A, FA, f), b = along(B, FB, f); return { x: a.x + (b.x - a.x) * m, y: a.y + (b.y - a.y) * m }; });
+  const pts = fs.map(f => { const a = along(A, FA, f), b = along(B, FB, f); return { x: a.x + (b.x - a.x) * m, y: a.y + (b.y - a.y) * m }; });
+  // an end at a bar drawn as a dot (barKept) runs on into the dot
+  const barred = q => ((m > 0 && LAYOUT.sub && LAYOUT.sub.bar(q.tx, q.ty)) || (LAYOUT.base && LAYOUT.base.bar(q.tx, q.ty))) && !barKept(q);
+  if (barred(pa)) pts.unshift({ x: pa.x, y: pa.y });
+  if (barred(pb)) pts.push({ x: pb.x, y: pb.y });
+  return pts;
 }
 // A path with a length cut from each end, or null when nothing is left.
 function trimPath(pts, a, b) {
@@ -890,7 +895,31 @@ function drawGateMarks(ctx, d, r) {
 /* A place the subway map draws as a bar, where many of its lines leave one
    way (nova-subway.js, subwayBars): its two ends on the screen, slid out of
    its dot as LAYOUT.mix goes to 1, or from one map's bar to another's; null for a dot. */
+// Whether a place the subway map lays out as a bar (subwayBars) is drawn as one: only while the
+// links shown at it could not all leave one point within 45 degrees of their true directions. The
+// layout decides it once for every link of every version, so that the bits do not change it; the
+// maintainer found Age of the Council's Kelin a bar with two links shown, its other three hidden
+// (30 September 2026). Drawn as a dot, its lines run on from the bar's points into the dot.
+let BAR_KEPT = null;
+function barKept(p) {
+  if (!BAR_KEPT || BAR_KEPT.places !== PLACES || BAR_KEPT.links !== LINKS) {
+    const ways = new Map();
+    const way = (a, b) => { if (!ways.has(a)) ways.set(a, new Map()); ways.get(a).set(b, Math.atan2(b.ty - a.ty, b.tx - a.tx)); };
+    for (const l of LINKS) {
+      const pa = PLACE_OF.get(l.from.id), pb = PLACE_OF.get(l.to.id);
+      if (pa && pb && pa !== pb) { way(pa, pb); way(pb, pa); }
+    }
+    const kept = new Set();
+    for (const [q, m] of ways) {
+      const A = [...m.values()].sort((x, y) => x - y);
+      if (A.length >= 4 && !subwayPortFit(A, subwayBarPorts(0, 1), Math.PI / 4)) kept.add(q);
+    }
+    BAR_KEPT = { places: PLACES, links: LINKS, kept };
+  }
+  return BAR_KEPT.kept.has(p);
+}
 function barEnds(p) {
+  if (!barKept(p)) return null;
   const m = LAYOUT.mix, b = m > 0 && LAYOUT.sub && LAYOUT.sub.bar(p.tx, p.ty), o = LAYOUT.base && LAYOUT.base.bar(p.tx, p.ty);
   if (!b && !o) return null;
   // each end as far from the place as the map sliding in has it, and the one sliding out

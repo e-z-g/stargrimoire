@@ -330,12 +330,12 @@ function novaShipMaxSpeed(D, ship) {
   return Math.max(0, s);
 }
 function novaShipTurn(ship) {
-  const t = ship.cls.turn;
+  let t = ship.cls.turn;
+  // held by another ship's tractor beam, a third as quick
+  if (ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot) t = f32(t * 0.333);
   return Math.max(0, ship.cls.turn >= 1 ? Math.max(1, t) : t);
 }
 const novaInertialess = ship => !!(ship.cls.flags2 & 0x0040);
-// Whether a ship has the fuel to jump (the supervisors' test): its class's Fuel above 99.
-const novaCanJump = s => s.cls.fuel > 99;
 // AIIsShipJumping 0x82bf9.
 const novaJumping = s => (s.state === 2 || s.state === 0xb || s.state === 3) && (s.mode === 4 || s.mode === 0xd);
 
@@ -358,6 +358,8 @@ function novaFlightWorld(D, sys, state, seed, view) {
   return w;
 }
 const novaNow = w => 2 * w.t;   // TickCount, in 60ths
+// frameCounter (PlayGame 0x457ba): a step at a time, after 1024 back to 0
+const novaFrameCounter = w => w.t % 1025;
 /* HandleShipDisplay 0x2b58f, a ship that folds (shän Flags 0x02, not
    banking): unfolding (fold 1) or folding (-1) a set every AnimDelay steps,
    between the first set and the last; one that folds to fire (0x80)
@@ -381,7 +383,7 @@ const novaDist2 = (ax, ay, bx, by) => f32(f32(f32(ax - bx) ** 2) + f32(f32(ay - 
 function novaFreshShip(w, slot) {
   const old = w.ships[slot] || w.last[slot];
   return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false,
-           hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false,
+           hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false, tractor: -1, tractorAt: 0,
            x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: old ? old.heading : 0, want: 0,
            thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1,
            goal: -2, cached: -1, disabled: false, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0, fold: 0, foldFrame: 0, lastFire: 0 };
@@ -777,7 +779,7 @@ function novaAI(w, s) {
     }
   } else {
     if (s.state === 8) s.state = 0;
-    if (s.hasEscorts && w.t % 8 === s.slot >> 3) novaIssueEscortOrders(w, s);
+    if (s.hasEscorts && novaFrameCounter(w) % 8 === s.slot >> 3) novaIssueEscortOrders(w, s);
     // state 19, waiting: a 1 in 100 chance a frame of thinking again
     if (s.state === 0x13 && w.rand(100) !== 0) think = false;
     else {
@@ -817,7 +819,7 @@ function novaTravelOrLeave(w, s) {
     s.sec = novaPickStellar(w, s, false, false);
     if (s.sec !== -1) { s.state = 1; return; }
   }
-  if (novaCanJump(s)) novaLeave(w, s); else s.state = 6;
+  if (novaCanLeave(w, s)) novaLeave(w, s); else s.state = 6;
 }
 function novaWimpyTraderAI(w, s) {
   if (s.state === 9 || s.state === 0xf || s.state === 0x16) return;
@@ -843,7 +845,8 @@ function novaInterceptorAI(w, s) {
       const can = i => { const o = w.ships[i]; return o && i !== s.slot && i !== s.cached && o.ai !== 4 && o.state !== 0x15; };
       let n = 0;
       for (let i = 0; i < 64; i++) if (can(i)) n++;
-      if (n > 0) for (let d = 0; d < 0x100 && s.primary === -1; d++) {
+      // drawn until one is found, as the program draws
+      if (n > 0) while (s.primary === -1) {
         const i = w.rand(0x40);
         if (can(i)) { s.primary = i; s.cached = i; s.state = 7; }
       }
@@ -851,7 +854,7 @@ function novaInterceptorAI(w, s) {
     if (s.primary === -1 && s.state === 0) {
       s.goal = -2;
       const id = novaPickStellar(w, s, false, true);
-      if (id === -1) { if (novaCanJump(s)) novaLeave(w, s); else s.state = 6; }
+      if (id === -1) { if (novaCanLeave(w, s)) novaLeave(w, s); else s.state = 6; }
       else { s.sec = id; s.state = 1; }
     }
   }
@@ -1374,6 +1377,27 @@ function novaHandleShip(w, s) {
   if (s.timer > 0 && c.id !== 895) {
     s.timer = f32(s.timer - 1);
     if (s.glow > 0) s.glow--;
+  }
+  /* A tractor beam's hold lapses with its holder gone, disabled or dying, or
+     30 ticks after it last held (the velocity matching while held is to
+     the player's thrust, so is not done here). */
+  if (s.tractor !== -1) {
+    const h = w.ships[s.tractor];
+    if (s.tractor !== s.slot && (!h || h.disabled || novaDying(h))) { s.tractor = -1; s.tractorAt = 0; }
+    if (s.tractorAt + 30 <= novaNow(w)) s.tractor = -1;
+  }
+  /* A ship dying, half through its death throes, with an escape ship in a
+     bay (a class of Flags 0x8000): one chance in three it gets away, with
+     some of its shields and half its speed; then the bays are empty. */
+  if (novaDying(s) && s.death <= f32(novaClassFight(D, c).deathDelay * 0.5)) {
+    const bay = s.weap.find(r => { const W = novaWeapOf(D, r.i), e = W && W.guid === 99 && r.ammo > 0 && D.classes.get(W.ammoType); return e && (e.flags & 0x8000); });
+    if (bay) {
+      if (w.rand(3) === 0) {
+        const f = novaLaunchFighter(w, s, bay.i);
+        if (f) { if (f.shield > 1) f.shield = f32(w.rand(Math.trunc(f.shield))); f.vx = f32(f.vx * 0.5); f.vy = f32(f.vy * 0.5); }
+      }
+      for (const r of s.weap) { r.count = 0; r.ammo = 0; }
+    }
   }
   // gone into a gate once its 16 steps are down to under one (HandleShipDisplay 0x2bfa5)
   if (s.mode === 0x17 && s.timer < 1) novaGone(w, s, 'gate');

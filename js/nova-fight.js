@@ -504,6 +504,7 @@ function novaSelectTarget(w, s) {
    leave (përs Flags2 0x0001 with fuel under 100). */
 function novaCanLeave(w, s) {
   if (!(s.cls.fuel > 99)) return false;
+  if (s.tractor !== undefined && s.tractor !== -1 && s.tractor !== s.slot) return false;
   const p = s.pers ? w.D.persons.get(s.pers) : null;
   return !(p && (p.Flags2 & 1) && s.fuel < 100);
 }
@@ -601,7 +602,7 @@ function novaInterceptorTail(w, s, g) {
    the player. */
 function novaTraderFight(w, s, brave) {
   if (!(s.anger > 0) || s.primary === -1) return;
-  const t = w.ships[s.primary];
+  const t = w.ships[s.primary] || w.last[s.primary];
   if (brave && t && Math.abs(Math.trunc(f32(s.x - t.x))) <= 1250 && Math.abs(Math.trunc(f32(s.y - t.y))) <= 1250) { if (s.jump <= 0) s.state = 4; }
   else if (s.leader === 0) { s.state = 10; s.sec = 0; }
   else s.state = 3;
@@ -710,7 +711,7 @@ function novaHopeless(w, s) {
   const t = s.primary !== -1 ? w.ships[s.primary] : null;
   if (!t || t.state !== 3 || novaClassFight(w.D, s.cls).mass <= 99) return false;
   const rx = f32(t.vx - s.vx), ry = f32(t.vy - s.vy);
-  if (Math.abs(rx) <= 0.35 && Math.abs(ry) < 0.35) return false;
+  if (Math.abs(rx) <= 0.35 && Math.abs(ry) <= 0.35) return false;
   const d = novaBearing(0, 0, rx, ry) - novaBearing(t.x, t.y, s.x, s.y);
   if (d >= -89 && d <= 89) return false;
   const d2 = Math.abs(novaDist2(s.x, s.y, t.x, t.y)) * 0.8;
@@ -912,7 +913,7 @@ function novaTargetedDamage(w) {
   for (const sh of w.shots) {
     if (!sh || !(sh.life > 0) || sh.lost || sh.target < 0 || sh.target > 63) continue;
     const t = w.ships[sh.target], W = novaWeapOf(w.D, sh.w);
-    if (t) t.targeted = Math.trunc(t.targeted + (W.mass + W.energy) * 0.5);
+    if (t) t.targeted = (Math.trunc(t.targeted + (W.mass + W.energy) * 0.5) << 16) >> 16;
   }
 }
 /* ShipECM 0x3b05: a ship's jamming of type k, kept once worked out: its
@@ -923,7 +924,8 @@ function novaECM(w, s, k) {
   if (s.disabled) return 0;
   if (!s.ecm) s.ecm = [-1, -1, -1, -1];
   if (s.ecm[k] >= 0) return s.ecm[k];
-  const D = w.D, r = s.cls.rec, g = D.u.govts.get(r.InherentGovt);
+  // the class's government for jamming and voices (+0x9f6): InherentGovt 128 to 383, or 1128 to 1383 (those count only for this), not 2128 and up
+  const D = w.D, r = s.cls.rec, ig = r.InherentGovt, gi = ig >= 128 && ig < 384 ? ig : ig >= 1128 && ig < 1384 ? ig - 1000 : -1, g = gi >= 0 ? D.u.govts.get(gi) : null;
   let v = g && g.InhJam ? g.InhJam[k] || 0 : 0;
   const items = [...(r.DefaultItems || []), ...(r.DefaultItms2 || [])], counts = [...(r.ItemCount || []), ...(r.ItemCount2 || [])];
   items.forEach((id, i) => {
@@ -970,14 +972,15 @@ function novaShotGuidance(w, sh) {
         if ((W.seeker & 0x8000) && w.rand(500) === 0 && sh.owner >= 0 && sh.owner <= 63) { sh.target = sh.owner; sh.owner = -1; }
         break;
       }
-      const o = sh.owner >= 0 && sh.owner <= 63 ? w.ships[sh.owner] : null;
+      const o = sh.owner >= 0 && sh.owner <= 63 ? w.ships[sh.owner] || w.last[sh.owner] : null;
       if (t && o && !novaVisible(t, o)) {
         if ((W.seeker & 0x8000) && w.rand(1000) === 0 && sh.owner !== -1) { sh.target = sh.owner; sh.owner = -1; }
         rate = 0;
       }
-      if ((W.seeker & 0x4000) && t) {
-        const dx = Math.trunc(f32(t.x - sh.x)), dy = Math.trunc(f32(t.y - sh.y));
-        if (dx >= -249 && dx <= 249 && dy >= -249 && dy <= 249 && Math.abs(Math.trunc(f32(novaBearing(sh.x, sh.y, t.x, t.y) - sh.heading))) % 360 > 45) sh.target = -1;
+      const t2 = sh.target >= 0 && sh.target <= 63 ? w.ships[sh.target] || w.last[sh.target] : null;
+      if ((W.seeker & 0x4000) && t2) {
+        const dx = Math.trunc(f32(t2.x - sh.x)), dy = Math.trunc(f32(t2.y - sh.y));
+        if (dx >= -249 && dx <= 249 && dy >= -249 && dy <= 249 && Math.abs(Math.trunc(f32(novaBearing(sh.x, sh.y, t2.x, t2.y) - sh.heading))) % 360 > 45) sh.target = -1;
       }
       turnTo(a, rate);
     }
@@ -992,7 +995,7 @@ function novaShotGuidance(w, sh) {
       }
     }
   } else if (sh.lost === 999) {
-    if (age > 15) sh.heading = (w.t * 2) % 300 <= 149 ? f32(sh.heading - W.guidedTurn) : f32(sh.heading + W.guidedTurn);
+    if (age > 15) sh.heading = novaFrameCounter(w) % 300 < 150 ? f32(sh.heading - W.guidedTurn) : f32(sh.heading + W.guidedTurn);
     wrap(); fresh();
     if ((W.seeker & 0x8000) && w.rand(1000) === 0 && sh.owner >= 0 && sh.owner <= 63) { sh.lost = 0; sh.target = sh.owner; sh.owner = -1; }
   } else if (sh.lost === 1) {
@@ -1234,8 +1237,9 @@ function novaHandleShot(w, sh) {
 function novaShotCanHit(w, sh, t) {
   const D = w.D, W = novaWeapOf(D, sh.w);
   if (!(sh.life > 0) || sh.owner === t.slot || sh.lost === 998) return false;
-  if (W.guid === 1 && sh.target !== t.slot && !(W.flags2 & 0x0800)) return false;
-  const O = sh.owner >= 0 && sh.owner <= 63 ? w.ships[sh.owner] : null;
+  if (W.guid === 1 && sh.target !== t.slot && !(W.flags2 & 0x0008)) return false;
+  // the firer as it was, even gone
+  const O = sh.owner >= 0 && sh.owner <= 63 ? w.ships[sh.owner] || w.last[sh.owner] : null;
   if (O) {
     if (O.leader !== -1 && O.leader === t.leader) return false;
     if (O.govt !== -1 && O.govt === t.govt) return false;
@@ -1322,13 +1326,21 @@ function novaShotHits(w) {
   for (const sh of w.shots) {
     if (!sh || !(sh.life >= 0)) continue;
     const W = novaWeapOf(D, sh.w);
-    if (!(sh.life < W.count - W.proxSafety) || (W.flags2 & 0x0400) || !(W.prox > 0)) continue;
+    if (!(sh.life < W.count - W.proxSafety) || !(W.prox > 0)) continue;
+    let hit = false;
     for (let i = 0; i < 64; i++) {
       const t = w.ships[i];
       if (!t || !novaShotCanHit(w, sh, t)) continue;
-      const ts = novaFightSprite(D, t.cls.sprite), r = Math.trunc(W.prox + (ts ? ts.w : 32) * 0.333);
+      const ts = novaFightSprite(D, t.cls.sprite), r = Math.trunc((ts ? ts.w : 32) * 0.333 + W.prox);
       const dx = Math.trunc(t.x) - Math.trunc(sh.x), dy = Math.trunc(t.y) - Math.trunc(sh.y);
-      if (r * r >= dx * dx + dy * dy) { novaShipHit(w, sh, t, true); break; }
+      if (dx * dx + dy * dy <= r * r) { novaShipHit(w, sh, t, true); hit = true; break; }
+    }
+    // the asteroids too, by the bare radius, but for a shot that passes them (Seeker 0x0001)
+    if (!hit && !(W.seeker & 1)) for (let i = 0; i < 16; i++) {
+      const a = w.roids[i];
+      if (!a.active) continue;
+      const dx = Math.trunc(f32(a.x - sh.x)), dy = Math.trunc(f32(a.y - sh.y));
+      if (dx * dx + dy * dy <= W.prox * W.prox) { novaAsteroidHit(w, sh, a); break; }
     }
   }
 }
@@ -1647,6 +1659,7 @@ function novaHandleBeams(w) {
     let len = W.beamLength;
     if (b.life >= 0) {
       if (W.flags2 & 0x0200) s.flash = 32;
+      s.lastFire = novaNow(w);
       let hit = -1, hd = 0, hw = 0;
       for (let i = 0; i < 64; i++) {
         const t = w.ships[i];
@@ -1661,13 +1674,69 @@ function novaHandleBeams(w) {
         const di = Math.trunc(d2);
         if (hit === -1 || di < hd) { hit = i; hd = di; hw = ts ? ts.w : 32; }
       }
-      if (hit !== -1) {
+      // with no ship in the beam, or one mining, the asteroids: the one in the beam whose number's ship is nearest (the program measures the ship in that slot, not the asteroid)
+      let ra = -1;
+      if (hit === -1 || (b.owner > 0 && s.state === 0x10)) {
+        if (!(W.seeker & 1)) {
+          let bd = 0;
+          for (let k = 0; k < 16; k++) {
+            const a = w.roids[k];
+            if (!a.active) continue;
+            const rs = novaFightSprite(D, D.roids[a.type].sprite), yh = rs ? rs.h : 32, reach = W.beamLength + Math.trunc(yh / 2);
+            if (!(novaDist2(a.x, a.y, o.x, o.y) <= reach * reach)) continue;
+            if (Math.abs(novaBearing(o.x, o.y, a.x, a.y) - ang) > Math.trunc(yh * 10 / 32)) continue;
+            const sk = w.ships[k] || w.last[k] || { x: 0, y: 0 }, di = Math.trunc(novaDist2(sk.x, sk.y, o.x, o.y));
+            if (ra === -1 || di < bd) { ra = k; bd = di; }
+          }
+        }
+        if (ra !== -1) {
+          const a = w.roids[ra], t = D.roids[a.type], rs = novaFightSprite(D, t.sprite), p = { x: o.x, y: o.y };
+          len = f32(Math.trunc((rs ? rs.h : 32) * -0.2 + Math.sqrt(novaDist2(o.x, o.y, a.x, a.y))));
+          novaAccel(ang, len, p);
+          novaCreateExplosion(w, p.x, p.y, W.explod, W.blast, true);
+          if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(p.x), Math.trunc(p.y), W.hitPartVel, 25, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
+          const dmg = (W.flags2 & 0x8000) ? W.mass * 10 : W.mass;
+          a.strength = ((a.strength - dmg) << 16) >> 16;
+          if (a.strength < 0) novaDestroyAsteroid(w, a);
+          else if (W.impact !== 0 && t.mass > 0) {
+            const oc = novaClassFight(D, s.cls);
+            if (W.impact < 0 && oc.mass < t.mass * 0.5 && oc.mass > 0 && !(oc.flags & 0x0400)) {
+              // a tractor beam on an asteroid much heavier than the ship pulls the ship, and holds it
+              if (Math.abs(f32(o.x - a.x)) >= 50 || Math.abs(f32(o.y - a.y)) >= 50) {
+                const v = { x: s.vx, y: s.vy }; novaAdjustedAccel(novaBearing(a.x, a.y, o.x, o.y), f32(W.impact / oc.mass), s.cls.speed, v);
+                const m = novaShipMaxSpeed(D, s); s.vx = Math.min(m, Math.max(-m, v.x)); s.vy = Math.min(m, Math.max(-m, v.y));
+              }
+              if (s.tractor === -1 || s.tractor === undefined) s.tractor = s.slot;
+              s.tractorAt = novaNow(w);
+            } else {
+              const v = { x: a.vx, y: a.vy }; novaAdjustedAccel(ang, f32(W.impact / t.mass), 2, v);
+              a.vx = Math.min(2, Math.max(-2, v.x)); a.vy = Math.min(2, Math.max(-2, v.y));
+            }
+          }
+        } else len = W.beamLength;
+      } else {
         const t = w.ships[hit], p = { x: o.x, y: o.y };
         len = f32(Math.trunc(hw * -0.2 + Math.sqrt(novaDist2(t.x, t.y, o.x, o.y))));
         novaAccel(ang, len, p);
         novaCreateExplosion(w, p.x, p.y, W.explod, W.blast, true);
+        if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(p.x), Math.trunc(p.y), W.hitPartVel, 25, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
         let impact = W.impact;
-        if (impact < 0) impact = 0;   // a tractor beam's pull comes later
+        if (impact < 0 && t.pers !== 0x3ff) {
+          // a tractor beam: a ship no heavier than three quarters of the firer's is held to it (and pulled, by the hit); else the firer is pulled to it and held
+          const tc = novaClassFight(D, t.cls), oc = novaClassFight(D, s.cls);
+          if (tc.mass > 0 && !(tc.flags & 0x0400)) {
+            if (tc.mass * 0.75 <= oc.mass) { t.tractor = b.owner; t.tractorAt = novaNow(w); }
+            else {
+              if (s.tractor === -1 || s.tractor === undefined) s.tractor = b.owner;
+              s.tractorAt = novaNow(w);
+              if ((Math.abs(f32(o.x - t.x)) >= 50 || Math.abs(f32(o.y - t.y)) >= 50) && oc.mass > 0 && !(oc.flags & 0x0400)) {
+                const v = { x: s.vx, y: s.vy }; novaAdjustedAccel(novaBearing(t.x, t.y, o.x, o.y), f32(impact / oc.mass), s.cls.speed, v);
+                const m = novaShipMaxSpeed(D, s); s.vx = Math.min(m, Math.max(-m, v.x)); s.vy = Math.min(m, Math.max(-m, v.y));
+              }
+              impact = 0;
+            }
+          }
+        }
         const aimed = b.target === -1 ? s.primary === hit : b.target === hit;
         novaDamageShip(w, t, o, impact, W.mass, W.energy, b.owner, true, aimed, b.dis, false, !!(W.flags & 0x20));
       }
@@ -1742,8 +1811,8 @@ function novaLaunchFighter(w, s, i) {
   novaArm(w, f);
   f.shield = novaShieldCap(D, f); f.armor = novaArmorCap(D, f); novaSetDisabled(D, f);
   if (f.primary !== -1 && (f.primary === f.leader || (w.ships[f.primary] && w.ships[f.primary].leader === f.leader && f.leader !== -1))) f.primary = -1;
-  Object.assign(f, { state: 0, mode: 0, goal: -2, cached: -1, mate: -1 });
-  return true;
+  Object.assign(f, { state: 0, mode: 0, goal: -2, cached: -1, mate: -1, tractor: -1 });
+  return f;
 }
 
 /* ---- fleets ----------------------------------------------------------------- */

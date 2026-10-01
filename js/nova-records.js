@@ -208,6 +208,7 @@ const NOVA_RECORDS = {
     ['Govt', 'i16'], ['LinkSyst', 'i16'], ['ActivateOn', 'str', 256], ['Quote', 'i16'],
     ['Flags', 'h16'], ['Unused', 'pad', 16],
   ],
+  'bööm': [['FrameAdvance', 'i16'], ['SoundIndex', 'i16'], ['GraphicIndex', 'i16']],
   'röid': [
     ['Strength', 'i16'], ['SpinRate', 'i16'], ['YieldType', 'i16'], ['YieldQty', 'i16'],
     ['PartCount', 'i16'], ['PartColor', 'rgb'], ['FragType1', 'i16'], ['FragType2', 'i16'],

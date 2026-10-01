@@ -311,9 +311,12 @@ const novaJumping = s => (s.state === 2 || s.state === 0xb || s.state === 3) && 
 function novaFlightWorld(D, sys, state, seed, view) {
   const w = { D, sys, si: novaSysInfo(D, sys), state: state || {}, random: novaRandom(seed), ships: new Array(64).fill(null), t: 0, gone: [],
               roids: Array.from({ length: 16 }, () => ({ active: false })), view: view || { x: 0, y: 0, hw: 320, hh: 240 } };
+  w.shots = new Array(128).fill(null);
+  w.booms = new Array(32).fill(null);
   w.rand = n => w.random.rand(n);
   w.holds = tree => { try { return ncbEval(tree, w.state); } catch (e) { return true; } };
   novaSetupShips(w);
+  for (const s of w.ships) if (s && !s.armed) novaArm(w, s);
   novaCreateAsteroids(w);
   return w;
 }
@@ -374,7 +377,7 @@ function novaSpawnDudeShip(w) {
     } else { s.x = w.rand(1500) - 750; s.y = w.rand(1500) - 750; }
     s.heading = w.rand(360);
     s.skill = novaSkill(w, cls);
-    w.rand(3);
+    s.aggr = w.rand(3) ^ 2;
     if (novaDerelict(w.D, s.govt)) s.glow = 0;
     w.rand(2);
     novaSpriteDraws(w, s, cls);
@@ -392,7 +395,7 @@ function novaSpawnBlank(w) {
   if (slot < 0) return null;
   const s = novaFreshShip(w, slot), first = w.D.classes.values().next().value;
   s.skill = novaSkill(w, first);
-  w.rand(3);
+  s.aggr = w.rand(3) ^ 2;
   if (first) novaSpriteDraws(w, s, first);
   s.x = w.rand(1500) - 750; s.y = w.rand(1500) - 750;
   w.ships[slot] = s;
@@ -664,11 +667,23 @@ function novaHyperShipSpawn(w) {
 /* One 30th of a second, in the program's order (DoPlayGameWork 0x44070):
    arrivals, each ship's AI, each ship's move. */
 function novaFlightStep(w) {
+  novaShotHits(w);
   novaEnterMoreShips(w);
   novaSpawnAsteroid(w, true);
   w.miners = false;
+  for (const s of w.ships) if (s && !s.armed) novaArm(w, s);
   for (const s of w.ships) if (s && w.ships[s.slot] === s) novaAI(w, s);
-  for (const s of w.ships) if (s && w.ships[s.slot] === s) novaHandleShip(w, s);
+  novaOddsRound(w);
+  for (const sh of w.shots) if (sh && w.shots[sh.slot] === sh) novaHandleShot(w, sh);
+  for (const s of w.ships) {
+    if (!s || w.ships[s.slot] !== s) continue;
+    novaShipUpkeep(w, s);
+    novaHandleShip(w, s);
+    if (w.ships[s.slot] !== s) continue;
+    novaShipFire(w, s);
+    novaDeathThroes(w, s);
+  }
+  novaHandleExplods(w);
   novaHandleAsteroids(w);
   w.t++;
 }
@@ -721,20 +736,12 @@ function novaTravelOrLeave(w, s) {
 function novaWimpyTraderAI(w, s) {
   if (s.state === 9 || s.state === 0xf || s.state === 0x16) return;
   if (s.state === 0) novaTravelOrLeave(w, s);
+  novaTraderFight(w, s, false);
 }
 function novaBraveTraderAI(w, s) {
   if (s.state === 9 || s.state === 0xf || s.state === 0x16) return;
-  if (s.state === 0 && s.primary === -1) novaTravelOrLeave(w, s);
-}
-/* WarshipAI 0x8b729 and PirateWarshipAI 0x8c2d2 without their targets:
-   idle, the ladder, run twice as the program runs it; parked, back to
-   idle. */
-function novaWarshipAI(w, s) {
-  if (s.state === 9 || s.state === 0xf || s.state === 0x16) return;
-  if (s.mode === 4 && s.state !== 2 && s.state !== 0xb) s.state = 2;
-  if (s.state === 0 && s.primary === -1 && s.jump <= 0) { novaTravelOrLeave(w, s); if (s.primary === -1) novaTravelOrLeave(w, s); }
-  if (s.state === 6) s.state = 0;
-  if (s.state === 2 && !novaCanJump(s)) { s.sec = -1; s.sec = novaPickStellar(w, s, false, false); s.state = s.sec === -1 ? 6 : 1; }
+  if (s.state === 0) novaTravelOrLeave(w, s);
+  novaTraderFight(w, s, true);
 }
 /* InterceptorAI 0x8c895 without its targets: idle, travelling or going
    into a gate, and not coasting, it picks a ship at random to go and look
@@ -742,8 +749,9 @@ function novaWarshipAI(w, s) {
    gate); with none, idle, it makes for a stellar neither gate nor wormhole
    (its visits forgotten each time), or leaves, or parks. */
 function novaInterceptorAI(w, s) {
-  if (s.state === 0x16 || s.state === 9 || s.state === 0xf) return;
+  if (s.disabled || s.state === 0x16 || s.state === 9 || s.state === 0xf) return;
   if (s.cached !== -1 && !w.ships[s.cached]) s.cached = -1;
+  const g = novaInterceptorFight(w, s);
   if ((s.state === 0 || s.state === 1 || s.state === 0x14) && s.timer <= 0) {
     if (s.primary === -1) {
       const can = i => { const o = w.ships[i]; return o && i !== s.slot && i !== s.cached && o.ai !== 4 && o.state !== 0x15; };
@@ -761,6 +769,7 @@ function novaInterceptorAI(w, s) {
       else { s.sec = id; s.state = 1; }
     }
   }
+  novaInterceptorTail(w, s, g);
 }
 /* MinerAI 0x8b202, for ships whose Flags3 says they destroy asteroids
    (0x0001) or scoop debris (0x0002): with no asteroids or debris here
@@ -809,6 +818,7 @@ function novaHighLevel(w, s) {
   if (s.primary >= 0 && !w.ships[s.primary]) s.primary = -1;
   if (s.state !== 0xb && s.state !== 2 && s.state !== 3) s.jump = 0;
   if (s.jump > 0) s.state = s.leader === 0 ? 0xb : s.primary !== -1 ? 3 : 2;
+  if (novaHighTarget(w, s)) return;
   // 1: to a stellar; a gate is gone into (0x14). Near it, braking at 0.98 a step, then stopped beside it and coasting 10 to 16 seconds.
   if (s.state === 1 && s.sec !== -1) {
     const sp = D.u.stellars.get(s.sec);
@@ -857,6 +867,7 @@ function novaHighLevel(w, s) {
       else Object.assign(s, { primary: -1, sec: -1, state: 0, mode: 0 });
     }
   }
+  novaHighAttack(w, s);
   // 10: keeping station on the lead: velocity matched within 300 (mode 12), closing within 600 (11), else pursuing (9)
   if (s.state === 10 && s.leader !== -1) {
     const lead = w.ships[s.leader];
@@ -887,8 +898,10 @@ function novaHighLevel(w, s) {
 function novaLowLevel(w, s) {
   const D = w.D, ok = !s.disabled;
   s.thrust = 0;
+  s.latch = false;
   if (s.desired >= 0) s.desired = novaShipMaxSpeed(D, s);
   s.want = Math.trunc(s.heading);
+  if (s.mode === 0) novaEscortFireUnprovoked(w, s);
   const vel = () => novaDeg(novaBearing(0, 0, f32(s.vx * 100), f32(s.vy * 100)));
   // 1: braking: turned against the velocity, full thrust, then half thrust and 0.94 a step below 1.75, and still below 0.35
   if (s.mode === 1 && ok) {
@@ -948,6 +961,7 @@ function novaLowLevel(w, s) {
       }
     }
   }
+  novaLowAttack(w, s);
   // 11 and 9: toward the lead (or the ship being looked at): straight at it beyond 200, else steering the velocity onto it; 11 at half speed within 100
   if ((s.mode === 0xb || s.mode === 9) && (s.primary !== -1 || s.sec !== -1) && ok) {
     const t = w.ships[s.primary >= 0 ? s.primary : s.sec];

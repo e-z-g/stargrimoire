@@ -29,7 +29,7 @@
    page-ships.js, whose drawing and sprites it uses; page-map.js calls
    drawFlight, flightEngaged and flightPanel. */
 
-const MIN_SHIP = 12;
+const MIN_SHIP = 12, MIN_SHOT = 3;
 const FLIGHT_SPEEDS = [0.5, 1, 2, 4];
 const FLIGHT = { on: true, data: null, worlds: new Map(), sys: null, paused: false, started: false, speed: 1, due: 0, last: 0, tick: null, engaged: new Set(),
                  // the world of the system you are in, whose ships the panel lists
@@ -157,6 +157,30 @@ function drawWorld(ctx, d, w) {
       ctx.beginPath(); ctx.arc(x, y, wd / 2, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();
     }
+  }
+  // shots, at their frame, never under MIN_SHOT pixels; explosions after their wait
+  const sprite = (id, f, x, y, min) => {
+    const spr = shipSprite(id), img = spr && spr.kind === 'rle' ? shipFrame(spr, Math.max(0, Math.min(spr.count - 1, f))) : null;
+    if (!img) return;
+    let wd = img.width * z, ht = img.height * z;
+    const m = Math.max(wd, ht);
+    if (m < min) { wd *= min / m; ht *= min / m; }
+    if (x + wd < 0 || y + ht < 0 || x - wd > CW || y - ht > CH) return;
+    ctx.imageSmoothingEnabled = wd < img.width;
+    ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
+  };
+  if (w.shots) for (const sh of w.shots) {
+    if (!sh || !(sh.life > 0)) continue;
+    const W = w.D.fight.weaps[sh.w], id = W && novaSpinSprite(w.D, W.spin), info = id && novaFightSprite(w.D, id);
+    if (!info) continue;
+    const [x, y] = toScreen(d.p.x + k * sh.x, d.p.y + k * sh.y);
+    sprite(id, novaShotFrame(W, sh, info), x, y, MIN_SHOT);
+  }
+  if (w.booms) for (const b of w.booms) {
+    const B = b && w.D.fight.booms[b.boom];
+    if (!B || b.delay > 0) continue;
+    const [x, y] = toScreen(d.p.x + k * b.x, d.p.y + k * b.y);
+    sprite(novaSpinSprite(w.D, B.spin), Math.trunc(b.frame), x, y, MIN_SHIP);
   }
   ctx.restore();
 }

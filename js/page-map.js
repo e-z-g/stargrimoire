@@ -430,11 +430,14 @@ function openness(p) {
 
 let DRAWN = [];   // the places on the screen at the last draw
 let LABELS_DRAWN = { systems: 0, stellars: 0, boxes: [] };   // the names the last draw put on the screen, for page_check
+let NAME_BOXES = [];   // every system name the last draw put on the screen, as { x0, y0, x1, y1 }: the nebulae's names keep off them
+let NEB_NAMES = [];   // the nebulae drawn as plain shapes, whose names are put after the systems'
 function draw() {
   if (!U) return;
   const ctx = CTX, cur = curPlace();
   DRAWN = [];
   LABELS_DRAWN = { systems: 0, stellars: 0, boxes: [] };
+  NAME_BOXES = []; NEB_NAMES = [];
   for (const p of PLACES) {
     const [x, y] = toScreen(p.x, p.y), D = 2 * p.rho * CAM.s, r = Math.max(D / 2, 12);
     if (p !== cur && (x + r < -20 || y + r < -20 || x - r > CW + 20 || y - r > CH + 20)) continue;
@@ -451,6 +454,7 @@ function draw() {
   drawDots(ctx);
   for (const d of DRAWN) if (d.t > 0) drawStellars(ctx, d, d.p === cur);
   drawSystemLabels(ctx);
+  drawNebulaNames(ctx);
   drawSelection(ctx);
   const cd = cur && DRAWN.find(d => d.p === cur);
   if (cd) drawEdgeMarks(ctx, cd);
@@ -550,11 +554,46 @@ function nebulaShape(ctx, n, img, x, y, w, h, a) {
   ctx.closePath();
   ctx.globalAlpha = 0.16 * a; ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fill();
   ctx.globalAlpha = 0.45 * a; ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1;
-  ctx.globalAlpha = 0.8 * a; ctx.fillStyle = `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})`;
-  ctx.font = '600 13px ' + font(); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText(n.name, x + w / 2, y + Math.min(8, h / 6));
-  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
   ctx.globalAlpha = a;
+  NEB_NAMES.push({ n, x, y, w, h, a, colour: `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})` });
+}
+/* The names of the nebulae drawn as plain shapes, after the systems' (the maintainer's asking, 30
+   September 2026: they ran into them): each at the first of its spots -- along the top of its
+   shape, in the middle, at the left, at the right, then along the bottom, then just outside it above
+   and below, along what of it is on the screen -- that is on the screen and meets no system's name, no
+   system's mark and no nebula's name already put, at
+   13 pixels or else 11; where none is clear it is left off, and is in the panel still. */
+function drawNebulaNames(ctx) {
+  if (!NEB_NAMES.length) return;
+  const r = systemRadius() + 2, marks = DRAWN.filter(d => d.t < 1).map(d => ({ x0: d.x - r, x1: d.x + r, y0: d.y - r, y1: d.y + r }));
+  const hit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  const placed = [];
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  for (const { n, x, y, w, h, a, colour } of NEB_NAMES) {
+    let spot = null;
+    for (const size of [13, 11]) {
+      ctx.font = '600 ' + size + 'px ' + font();
+      const tw = ctx.measureText(n.name).width, pad = 6, hh = size / 2 + 2;
+      // where the shape runs off the screen, along what of it is on it
+      const vx0 = Math.max(x, 0), vx1 = Math.min(x + w, CW), xs = [(vx0 + vx1) / 2 - tw / 2, vx0 + pad, vx1 - pad - tw];
+      const vy0 = Math.max(y, 0), vy1 = Math.min(y + h, CH), ys = [vy0 + pad + hh, vy1 - pad - hh, y - hh - 2, y + h + hh + 2];
+      for (const ty of ys) for (const tx of xs) {
+        const box = { x0: tx - 2, x1: tx + tw + 2, y0: ty - hh, y1: ty + hh };
+        if (box.x0 < 0 || box.y0 < 0 || box.x1 > CW || box.y1 > CH) continue;
+        if (NAME_BOXES.some(b => hit(box, b)) || marks.some(b => hit(box, b)) || placed.some(b => hit(box, b))) continue;
+        spot = { tx, ty, box, size }; break;
+      }
+      if (spot) break;
+    }
+    if (!spot) continue;
+    placed.push(spot.box);
+    ctx.font = '600 ' + spot.size + 'px ' + font();
+    ctx.globalAlpha = 0.85 * a;
+    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#04060a'; ctx.strokeText(n.name, spot.tx, spot.ty);
+    ctx.fillStyle = colour; ctx.fillText(n.name, spot.tx, spot.ty);
+  }
+  ctx.restore();
 }
 
 // An open system's disc, in its background colour, with a faint rim that
@@ -1243,6 +1282,7 @@ function drawSystemLabels(ctx) {
           }
         }
         nameText(ctx, d.sys.name, sx, sy, special);
+        { const tw = ctx.measureText(d.sys.name).width, x0 = nm.align === 'left' ? sx : nm.align === 'right' ? sx - tw : sx - tw / 2; NAME_BOXES.push({ x0, x1: x0 + tw, y0: sy - size / 2, y1: sy + size / 2 }); }
         LABELS_DRAWN.systems++;
         ctx.textAlign = 'start';
         ctx.font = weight + '11.5px ' + font();
@@ -1259,6 +1299,7 @@ function drawSystemLabels(ctx) {
     nameText(ctx, name, x, y + 7, special);
     LABELS_DRAWN.systems++;
     LABELS_DRAWN.boxes.push({ id: d.sys.id, side: k, special, x, y, w: w + 2, h: 14 });
+    NAME_BOXES.push({ x0: x, x1: x + w, y0: y, y1: y + 14 });
   }
   ctx.globalAlpha = 1;
 }

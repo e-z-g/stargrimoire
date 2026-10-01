@@ -1,16 +1,17 @@
-/* page-flight.js -- ships flying in the system you are in.
+/* page-flight.js -- ships flying in the systems on the map.
    =========================================================================
 
-   The world is nova-flight.js's: set up as you arrive in a system, as the
-   game sets one up when the player arrives, with a new seed each time, and
-   dropped when you leave it, so that only the system you are in runs, as in
-   the game. Its ships come, go to its stellars and leave by their own AI,
-   and a ship's place is where the game has it, so one arriving, or leaving
-   from 1,000 out, may be off a small system's disc. It is stepped thirty times a second, as the game counts its
-   time, or faster or slower by the panel's speed, and not while paused, on
-   a landing page, or with the map hidden. Where the browser asks for
-   reduced motion it starts paused. A hypergate a ship is coming out of
-   opens (flightEngaged).
+   Each system whose stellars are drawn has a world of nova-flight.js's,
+   set up as its stellars start to show, as the game sets one up when the
+   player arrives, with a new seed each time, and dropped when they go, so
+   its ships fade in and out with them. The game runs only the player's
+   system; here each open one runs as if the player were there. Their
+   ships come, go to the stellars and leave by their own AI, and only what
+   is within a system's circle is drawn. They are stepped thirty times a
+   second, as the game counts its time, or faster or slower by the panel's
+   speed, all together, and not while paused, on a landing page, or with
+   the map hidden. Where the browser asks for reduced motion they start
+   paused. A hypergate a ship is coming out of opens (flightEngaged).
 
    The asteroids are the player's in the game, kept on and just off the
    player's screen; the map's view stands in for it (flightView), so they
@@ -30,7 +31,9 @@
 
 const MIN_SHIP = 12;
 const FLIGHT_SPEEDS = [0.5, 1, 2, 4];
-const FLIGHT = { on: true, data: null, world: null, sys: null, paused: false, speed: 1, due: 0, last: 0, tick: null, engaged: new Set() };
+const FLIGHT = { on: true, data: null, worlds: new Map(), sys: null, paused: false, started: false, speed: 1, due: 0, last: 0, tick: null, engaged: new Set(),
+                 // the world of the system you are in, whose ships the panel lists
+                 get world() { return this.sys === null ? null : this.worlds.get(this.sys) || null; } };
 
 // The ships' records, once the shäns are read (they are in the ships files).
 function flightData() {
@@ -40,21 +43,32 @@ function flightData() {
   return (FLIGHT.data = novaFlightData(U));
 }
 
-/* The world for the system you are in: a new one on arriving, none
-   elsewhere. Called from the draw. */
+/* A world for each system whose stellars the last draw showed, and for
+   the one you are in; none for the others. Called from the draw. On a
+   landing page the map is not drawn, and the worlds are kept. */
 function flightSync() {
-  const here = FLIGHT.on && VIEW.sys !== null && (VIEW.mode === 'system' || VIEW.mode === 'planet') ? VIEW.sys : null;
-  if (here === FLIGHT.sys && (FLIGHT.world || here === null)) return;
-  if (here !== FLIGHT.sys) { FLIGHT.world = null; FLIGHT.engaged = new Set(); FLIGHT.sys = here; }
-  if (here === null) return;
+  if (VIEW.mode === 'planet') return;
+  FLIGHT.sys = FLIGHT.on && VIEW.sys !== null && VIEW.mode === 'system' ? VIEW.sys : null;
+  const open = new Set();
+  if (FLIGHT.on) {
+    for (const d of DRAWN) if (d.t > 0) open.add(d.sys.id);
+    if (FLIGHT.sys !== null) open.add(FLIGHT.sys);
+  }
+  for (const id of FLIGHT.worlds.keys()) if (!open.has(id)) FLIGHT.worlds.delete(id);
+  if (!open.size) return;
   wantShipFiles();
   const D = flightData();
   if (!D) return;
-  FLIGHT.world = novaFlightWorld(D, U.byId.get(here), STATE, Math.floor(Math.random() * 0x7fffffff), flightView(here));
-  for (const s of FLIGHT.world.ships) if (s) s.frame = novaShipFrame(s);
-  FLIGHT.paused = FLIGHT.paused || reducedMotion();
-  FLIGHT.due = 0;
-  renderPanel();
+  let made = false;
+  for (const id of open) {
+    if (FLIGHT.worlds.has(id)) continue;
+    const w = novaFlightWorld(D, U.byId.get(id), STATE, Math.floor(Math.random() * 0x7fffffff), flightView(id));
+    for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
+    FLIGHT.worlds.set(id, w);
+    if (id === FLIGHT.sys) made = true;
+  }
+  if (!FLIGHT.started) { FLIGHT.started = true; FLIGHT.paused = FLIGHT.paused || reducedMotion(); }
+  if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); renderPanel(); }
 }
 
 /* The player's screen, for the asteroids: the map's view in the system's
@@ -66,29 +80,31 @@ function flightView(id) {
 
 function flightLoop(now) {
   FLIGHT.tick = null;
-  const w = FLIGHT.world;
-  if (!w || $('app').hidden || VIEW.mode !== 'system' || FLIGHT.paused) { FLIGHT.last = 0; return; }
+  if (!FLIGHT.worlds.size || $('app').hidden || VIEW.mode === 'planet' || FLIGHT.paused) { FLIGHT.last = 0; return; }
   if (FLIGHT.last) FLIGHT.due = Math.min(FLIGHT.due + (now - FLIGHT.last) * 0.03 * FLIGHT.speed, 4 * FLIGHT.speed);
   FLIGHT.last = now;
   let stepped = false;
   for (; FLIGHT.due >= 1; FLIGHT.due--) {
-    w.view = flightView(FLIGHT.sys);
-    novaFlightStep(w);
-    for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
+    for (const [id, w] of FLIGHT.worlds) {
+      w.view = flightView(id);
+      novaFlightStep(w);
+      for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
+    }
     stepped = true;
   }
   if (stepped) {
-    FLIGHT.engaged = novaFlightEngaged(w, gateOpen);
+    FLIGHT.engaged = new Set();
+    for (const w of FLIGHT.worlds.values()) for (const id of novaFlightEngaged(w, gateOpen)) FLIGHT.engaged.add(id);
     // a gate opening needs the stellars' clock running
     if (FLIGHT.engaged.size && !ANIM_TICK) { ANIM_LAST = 0; ANIM_TICK = requestAnimationFrame(stellarAnimLoop); }
     // the panel's list, when ships have come or gone
-    const here = w.ships.map(s => (s ? s.cls.id : 0)).join();
+    const w = FLIGHT.world, here = w ? w.ships.map(s => (s ? s.cls.id : 0)).join() : '';
     if (here !== FLIGHT.here) { FLIGHT.here = here; renderPanel(); }
     redraw();
   }
   FLIGHT.tick = requestAnimationFrame(flightLoop);
 }
-function flightRun() { if (!FLIGHT.tick && FLIGHT.world && !FLIGHT.paused) { FLIGHT.last = 0; FLIGHT.tick = requestAnimationFrame(flightLoop); } }
+function flightRun() { if (!FLIGHT.tick && FLIGHT.worlds.size && !FLIGHT.paused) { FLIGHT.last = 0; FLIGHT.tick = requestAnimationFrame(flightLoop); } }
 
 function flightEngaged(id) { return FLIGHT.engaged.has(id); }
 // Whether a hypergate's animation is past its opening frames (novaGateTransition), which widens the reach of a ship bound for it.
@@ -97,11 +113,18 @@ function gateOpen(id) {
   return !!(a && f && a.cur >= novaGateTransition(sp, f.count));
 }
 
-function drawFlight(ctx, d) {
+/* Each open system's asteroids and ships, within its circle and as faded
+   as its stellars. */
+function drawFlight(ctx) {
   flightSync();
-  const w = FLIGHT.world;
-  if (!d || !w || d.sys.id !== FLIGHT.sys || d.t <= 0) return;
-  if (VIEW.mode === 'system') flightRun();
+  if (!FLIGHT.worlds.size) return;
+  flightRun();
+  for (const d of DRAWN) {
+    const w = d.t > 0 && FLIGHT.worlds.get(d.sys.id);
+    if (w) drawWorld(ctx, d, w);
+  }
+}
+function drawWorld(ctx, d, w) {
   const k = kOf(d.sys), z = k * CAM.s;
   // only what is within the system's circle
   ctx.save();
@@ -153,17 +176,17 @@ function flightPanel(sys) {
 }
 function flightControl(what) {
   if (what === 'pause') { FLIGHT.paused = !FLIGHT.paused; flightRun(); }
-  else if (what === 'again') { FLIGHT.world = null; FLIGHT.sys = null; flightSync(); redraw(); }
+  else if (what === 'again') { FLIGHT.worlds.delete(FLIGHT.sys); flightSync(); redraw(); }
   else if (what.startsWith('speed:')) FLIGHT.speed = +what.slice(6);
   renderPanel();
 }
 function flightSwitch(on) {
   FLIGHT.on = on;
-  if (!on) { FLIGHT.world = null; FLIGHT.sys = null; FLIGHT.engaged = new Set(); }
+  if (!on) { FLIGHT.worlds.clear(); FLIGHT.sys = null; FLIGHT.engaged = new Set(); }
   renderPanel();
   redraw();
 }
 // More files read: the asteroids' sprites may be among them.
 function flightFilesChanged() { if (FLIGHT.data) FLIGHT.data.roids = novaFlightRoids(GAME); }
 // Other files: the records are read again, and the world set up again.
-function flightReset() { FLIGHT.data = null; FLIGHT.world = null; FLIGHT.sys = null; FLIGHT.engaged = new Set(); }
+function flightReset() { FLIGHT.data = null; FLIGHT.worlds.clear(); FLIGHT.sys = null; FLIGHT.engaged = new Set(); }

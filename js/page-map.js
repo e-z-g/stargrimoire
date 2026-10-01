@@ -549,7 +549,7 @@ function draw() {
   drawGates(ctx);
   drawDots(ctx);
   for (const d of DRAWN) if (d.t > 0) drawStellars(ctx, d, d.p === cur);
-  drawFlight(ctx, cur && DRAWN.find(d => d.p === cur));
+  drawFlight(ctx);
   drawSystemLabels(ctx);
   drawNebulaNames(ctx);
   drawSelection(ctx);

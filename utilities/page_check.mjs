@@ -419,8 +419,20 @@ try {
             const went = { mode: VIEW.mode, sys: VIEW.sys, kind: sp && novaGateKind(sp), own: sp && (novaStellarSystem(U, sp.id, SHOWN) || {}).id, page: $('planet').classList.contains('on'), hash: location.hash, fade: $('fade').style.opacity };
             history.replaceState(null, '', '#stellar=465&system=130'); applyHash(); await new Promise(r => setTimeout(r, 100)); await idle();
             const hash = { mode: VIEW.mode, sys: VIEW.sys, sel: VIEW.sel, page: $('planet').classList.contains('on') };
+            // HG-Kania: it opens and asks, under the program's heading, Tichel, Dani or Koria; Dani, and
+            // out of HG-Dani, which opens; HG-Vega is offline, and says so
+            await show('planet', { sys: 128, stellar: 1404 }); await idle();
+            await new Promise(r => setTimeout(r, 1200));
+            const ask = { pick: GATE_PICK && GATE_PICK.choices.map(c => c.sys.id), head: ($('panel').querySelector('h3') || {}).textContent,
+                          buttons: [...$('panel').querySelectorAll('[data-gate-to]')].map(b => b.textContent), open: (STELLAR_ANIM.get(1404) || {}).cur > 0 };
+            const dani = [...$('panel').querySelectorAll('[data-gate-to]')].find(b => b.textContent === 'Dani');
+            if (dani) dani.click();
+            await new Promise(r => setTimeout(r, 100)); await idle(); await new Promise(r => setTimeout(r, 600));
+            const gone = { sys: VIEW.sys, sel: VIEW.sel, pick: GATE_PICK, open: (STELLAR_ANIM.get(1413) || {}).cur > 0, fade: $('fade').style.opacity };
+            await show('planet', { sys: 137, stellar: 131 }); await idle();
+            const vega = { sys: VIEW.sys, note: $('mapNote').hidden ? null : $('mapNote').textContent, pick: GATE_PICK };
             await show('galaxy', {}, true); await idle();
-            return { went, hash };
+            return { went, hash, ask, gone, vega };
           })()`);
           // Stellars as you zoom in, off: Sol stays a dot however near, opens when gone to, and
           // closes again when zoomed out of; and the details hidden and shown.
@@ -516,7 +528,11 @@ try {
       if (tr.went.mode !== 'system' || tr.went.sys === 130 || tr.went.kind !== 'wormhole' || tr.went.own !== tr.went.sys || tr.went.page || !new RegExp('system=' + tr.went.sys).test(tr.went.hash) || tr.went.fade !== '0')
         fail(`${dev.name}: through Sol's wormhole: ${JSON.stringify(tr.went)}`);
       if (tr.hash.mode !== 'system' || tr.hash.sys !== 130 || !tr.hash.sel || tr.hash.sel.id !== 465 || tr.hash.page) fail(`${dev.name}: Sol's wormhole from the address: ${JSON.stringify(tr.hash)}`);
-      console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through`);
+      if (JSON.stringify(tr.ask.pick) !== '[129,298,483]' || tr.ask.head !== 'Hypergate Destination:' || tr.ask.buttons.join() !== 'Tichel,Dani,Koria' || !tr.ask.open)
+        fail(`${dev.name}: HG-Kania asking: ${JSON.stringify(tr.ask)}`);
+      if (tr.gone.sys !== 298 || !tr.gone.sel || tr.gone.sel.id !== 1413 || tr.gone.pick || !tr.gone.open || tr.gone.fade !== '0') fail(`${dev.name}: through HG-Kania to Dani: ${JSON.stringify(tr.gone)}`);
+      if (tr.vega.sys !== 137 || tr.vega.note !== 'Your ship is unable to enter this hypergate - it is offline.' || tr.vega.pick) fail(`${dev.name}: HG-Vega: ${JSON.stringify(tr.vega)}`);
+      console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through; HG-Kania opened and asked, and went to Dani; HG-Vega offline`);
       const st = o.stellars;
       if (st.near.most !== 0 || st.near.mode !== 'galaxy') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
       if (st.went.mode !== 'system' || st.went.sys !== 130 || st.went.open !== 1) fail(`${dev.name}: without the stellars, going to Sol: ${JSON.stringify(st.went)}`);

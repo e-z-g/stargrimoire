@@ -76,6 +76,24 @@ if (haveRelease('1.0.10')) {
   const others = new Set([...u.stellars.values()].filter(S.novaRandomWormhole).map(sp => sp.id).filter(id => id !== 465));
   const alone = new Set([...newGame].filter(id => !u.byId.get(id).stellars.some(t => others.has(t))));
   eq('Sol\'s wormhole alone', !!S.novaWormholeTrip(u, alone, u.stellars.get(465), u.byId.get(130), () => 0).refused, true);
+  // Hypergates (Mac 1.1.1 PlayerEnterHypergate): HG-Kania's links, each system once by its first slot; with
+  // Koria's other version (533) shown, the link to HG-Koria arrives there; HG-Vega is offline
+  const pick = (shown, gate, sys) => { const r = S.novaHypergateChoices(u, shown, u.stellars.get(gate), u.byId.get(sys)); return r.choices ? r.choices.map(c => [c.sys.id, c.spob.id]) : r; };
+  eq('HG-Kania at a new game', pick(newGame, 1404, 128), [[129, 1405], [298, 1413], [483, 1418]]);
+  const koria533 = new Set([...newGame].filter(id => id !== 483).concat([533]));
+  eq('HG-Kania with Koria 533', pick(koria533, 1404, 128), [[129, 1405], [298, 1413], [533, 1418]]);
+  eq('HG-Vega', pick(newGame, 131, 137), { refused: true });
+  eq('HG-Kania from Tichel', pick(newGame, 1404, 129), { refused: true });
+}
+// A link to a gate no shown system lists arrives in the version shown at the place of the first system
+// that lists it (Mac 0x1b4820, 0x1b16b0); no shipped link needs it, so a made-up galaxy of two places.
+{
+  const a = { id: 10, name: 'A', versions: [] }, b1 = { id: 20, name: 'B', versions: [] }, b2 = { id: 21, name: 'B2', versions: [] };
+  b1.versions = [b1, b2]; b2.versions = [b1, b2]; a.versions = [a];
+  const g1 = { id: 500, Flags: 1, Flags2: 0x1000, HyperLink: [501, -1, -1, -1, -1, -1, -1, -1] }, g2 = { id: 501, Flags: 1, Flags2: 0x1000, HyperLink: [500] };
+  const u = { stellars: new Map([[500, g1], [501, g2]]), inSystems: new Map([[500, [10]], [501, [20]]]), byId: new Map([[10, a], [20, b1], [21, b2]]) };
+  const r = S.novaHypergateChoices(u, new Set([10, 21]), g1, a);
+  eq('a link into a hidden version', r.choices && r.choices.map(c => c.sys.id), [21]);
 }
 
 // ---- every release ---------------------------------------------------------

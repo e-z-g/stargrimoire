@@ -178,11 +178,13 @@ function stellarSprite(sp) {
    animations are stepped thirty times a second, as the game counts its
    time, while one is on the screen, and not at all where the browser asks
    for reduced motion. The map takes no stellar as destroyed, as everywhere
-   else on it. A hypergate stays shut, as it does with no ship near; a
-   sprite in a PICT sheet (none shipped) keeps its first frame. */
+   else on it. A hypergate stays shut, as it does with no ship near, but
+   while it is being gone through (ENGAGED); a sprite in a PICT sheet (none
+   shipped) keeps its first frame. */
 const FRAME_CACHE = new Map();    // spïn id -> { bytes, index, count, frames } or null
 const STELLAR_ANIM = new Map();   // stellar id -> novaStellarAnimState()
 let ANIM_SEEN = new Set(), ANIM_TICK = null, ANIM_LAST = 0, ANIM_DUE = 0;
+const ENGAGED = new Set();        // the hypergates being gone through, which open as for a ship near
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function spriteFrames(sp) {
@@ -208,7 +210,7 @@ function stellarImage(sp, img) {
   if (!f) return img;
   let a = STELLAR_ANIM.get(sp.id);
   if (!a) STELLAR_ANIM.set(sp.id, a = novaStellarAnimState());
-  if ((sp.Flags2 & 0x1000) && a.cur === 0) return img;
+  if ((sp.Flags2 & 0x1000) && a.cur === 0 && !ENGAGED.has(sp.id)) return img;
   ANIM_SEEN.add(sp.id);
   const n = a.cur;
   if (n === 0) return img;
@@ -232,7 +234,7 @@ function stellarAnimLoop(now) {
   for (; ANIM_DUE >= 1; ANIM_DUE--) {
     for (const id of ANIM_SEEN) {
       const sp = U.stellars.get(id), f = sp && spriteFrames(sp), a = STELLAR_ANIM.get(id);
-      if (f && a && novaStellarAnimStep(sp, a, f.count, 1, false, rand)) changed = true;
+      if (f && a && novaStellarAnimStep(sp, a, f.count, 1, ENGAGED.has(id), rand)) changed = true;
     }
   }
   if (changed) redraw();
@@ -1688,31 +1690,65 @@ async function rise(quick) {
   fadeTo(0);
 }
 
-/* Going in on a wormhole is going through it (novaWormholeTrip): the fall
-   into it, and the rise out of the wormhole it leads to, in that system, as
-   the maintainer asked (1 October 2026). Where the program would refuse,
-   its message, over the map. */
-async function wormholeTrip(sys, sp, quick) {
+/* Going in on a wormhole or a hypergate is going through it, as the
+   maintainer asked (1 October 2026): the fall into it, and the rise out of
+   the stellar it leads to, in that system. A wormhole picks where
+   (novaWormholeTrip); a hypergate opens and asks, its choices in the panel
+   under the program's own heading (novaHypergateChoices, GATE_PICK), and a
+   hypergate come out of opens too. Where the program would refuse, its
+   message, over the map. */
+let GATE_PICK = null;   // { spob, sys, choices } while a hypergate asks where to
+// Text from STR# 2002, the entries joined by a space as the program shows them.
+function gameText(...ns) { const l = novaStrings(GAME, 2002); return ns.every(n => l[n - 1]) ? ns.map(n => l[n - 1]).join(' ') : null; }
+async function toGate(sys, sp, quick) {
   OPEN_SYS = sys.id;
   if (VIEW.mode !== 'system' || VIEW.sys !== sys.id) { VIEW.sys = sys.id; await flyTo(systemView(sys), quick); }
-  VIEW.mode = 'system'; VIEW.sys = sys.id; VIEW.sel = { kind: 'stellar', id: sp.id };
-  const trip = novaWormholeTrip(U, SHOWN, sp, sys, n => Math.floor(Math.random() * n));
-  if (!trip.to) {
-    const l = novaStrings(GAME, 2002);
-    mapNote(l[83] && l[85] ? `${l[83]} ${l[85]}` : 'This wormhole cannot be entered.');
-    return;
-  }
+  VIEW.mode = 'system'; VIEW.sys = sys.id; VIEW.stellar = null; VIEW.sel = { kind: 'stellar', id: sp.id };
+}
+async function throughGate(sys, sp, to, quick) {
   if (!quick) { const f = fallView(sys, sp); await zoomVia(f.x, f.y, f, TUNE.animMs, 'in', fadeTo); }
-  const to = trip.to.sys, back = systemView(to);
-  OPEN_SYS = to.id; VIEW.sys = to.id; VIEW.sel = { kind: 'stellar', id: trip.to.spob.id };
+  ENGAGED.delete(sp.id);
+  const back = systemView(to.sys);
+  OPEN_SYS = to.sys.id; VIEW.sys = to.sys.id; VIEW.mode = 'system'; VIEW.stellar = null; VIEW.sel = { kind: 'stellar', id: to.spob.id };
+  if (novaGateKind(to.spob) === 'hypergate') { ENGAGED.add(to.spob.id); setTimeout(() => { ENGAGED.delete(to.spob.id); redraw(); }, 2500); }
   if (!quick) {
-    const f = fallView(to, trip.to.spob);
+    const f = fallView(to.sys, to.spob);
     Object.assign(CAM, f);
     fadeTo(1);
     await zoomVia(f.x, f.y, back, TUNE.animMs, 'out', e => fadeTo(1 - e));
   }
   Object.assign(CAM, back);
   fadeTo(0);
+}
+async function wormholeTrip(sys, sp, quick) {
+  await toGate(sys, sp, quick);
+  const trip = novaWormholeTrip(U, SHOWN, sp, sys, n => Math.floor(Math.random() * n));
+  if (!trip.to) { mapNote(gameText(84, 86) || 'This wormhole cannot be entered.'); return; }
+  await throughGate(sys, sp, trip.to, quick);
+}
+async function hypergateAsk(sys, sp, quick) {
+  await toGate(sys, sp, quick);
+  const r = novaHypergateChoices(U, SHOWN, sp, sys);
+  if (r.refused) { mapNote(gameText(84, 85) || 'This hypergate cannot be entered.'); return; }
+  if (r.none) return;
+  GATE_PICK = { spob: sp.id, sys: sys.id, choices: r.choices };
+  ENGAGED.add(sp.id);
+}
+function gatePickEnd() {
+  if (GATE_PICK) ENGAGED.delete(GATE_PICK.spob);
+  GATE_PICK = null;
+}
+async function hypergateGo(i) {
+  if (!GATE_PICK || MOVING) return;
+  const pick = GATE_PICK, sys = U.byId.get(pick.sys), sp = U.stellars.get(pick.spob);
+  GATE_PICK = null;
+  const quick = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  MOVING = true;
+  try { await throughGate(sys, sp, pick.choices[i], quick); } finally { MOVING = false; }
+  writeHash();
+  renderCrumbs();
+  renderPanel();
+  redraw();
 }
 // A message over the map for a few seconds.
 let NOTE_TIMER = null;
@@ -1726,6 +1762,7 @@ function mapNote(text) {
 let MOVING = false;
 async function show(mode, opts, instant) {
   if (MOVING) return;
+  gatePickEnd();
   const was = VIEW.mode, wasSys = VIEW.sys;
   const quick = instant || matchMedia('(prefers-reduced-motion: reduce)').matches;
   MOVING = true;
@@ -1752,14 +1789,15 @@ async function show(mode, opts, instant) {
         await flyTo(to, quick);
       }
       VIEW.mode = 'system'; VIEW.sys = sys.id; VIEW.stellar = null;
-    } else if (mode === 'planet' && VIEW.mode !== 'planet' && novaGateKind(U.stellars.get(opts.stellar)) === 'wormhole') {
-      // from the address, the wormhole shown, not gone through
+    } else if (mode === 'planet' && VIEW.mode !== 'planet' && novaGateKind(U.stellars.get(opts.stellar))) {
+      // from the address, the gate shown, not gone through
       if (opts.fromHash) {
         const sys = U.byId.get(opts.sys);
         OPEN_SYS = sys.id; VIEW.sys = sys.id;
         await flyTo(systemView(sys), quick);
         VIEW.mode = 'system'; VIEW.stellar = null; VIEW.sel = { kind: 'stellar', id: opts.stellar };
-      } else await wormholeTrip(U.byId.get(opts.sys), U.stellars.get(opts.stellar), quick);
+      } else if (novaGateKind(U.stellars.get(opts.stellar)) === 'wormhole') await wormholeTrip(U.byId.get(opts.sys), U.stellars.get(opts.stellar), quick);
+      else await hypergateAsk(U.byId.get(opts.sys), U.stellars.get(opts.stellar), quick);
     } else if (mode === 'planet' && VIEW.mode !== 'planet') {
       const sys = U.byId.get(opts.sys), sp = U.stellars.get(opts.stellar);
       OPEN_SYS = sys.id;
@@ -1963,6 +2001,8 @@ function renderPanel() {
   if (!U) return;
   const el = $('panel');
   const sel = VIEW.sel;
+  // a hypergate's question ends once something else is chosen
+  if (GATE_PICK && !(sel && sel.kind === 'stellar' && sel.id === GATE_PICK.spob)) gatePickEnd();
   let html;
   if (sel && sel.kind === 'bit') html = bitPanel(sel.id);
   else if (sel && sel.kind === 'mission') html = missionPanel(sel.id);
@@ -2315,8 +2355,9 @@ function stellarPanel(sp) {
     <div class="sub">spöb ${sp.id}${typeName ? ' · ' + esc(typeName) : ''} · ${esc(govtName(sp.Govt))}</div>
     <div class="actions">
       ${VIEW.mode === 'planet' ? `<button data-go="system">Back to ${esc(U.byId.get(VIEW.sys).name)}</button>`
-        : sysHere !== undefined ? `<button data-land="${sp.id}" data-in="${sysHere}">${(f & 1) && !gate ? 'Land' : novaGateKind(sp) === 'wormhole' ? 'Go through' : 'Look closer'}</button>` : ''}
+        : sysHere !== undefined ? `<button data-land="${sp.id}" data-in="${sysHere}">${(f & 1) && !gate ? 'Land' : gate ? 'Go through' : 'Look closer'}</button>` : ''}
     </div>
+    ${GATE_PICK && GATE_PICK.spob === sp.id ? `<h3>${esc(gameText(340) || 'Hypergate destination')}</h3><div class="actions">${GATE_PICK.choices.map((c, i) => `<button data-gate-to="${i}">${esc(c.sys.name)}</button>`).join('')}<button data-gate-cancel>Cancel</button></div>` : ''}
     <table class="kv">
       ${kvRow('Services', esc(services || 'none'))}
       ${kvRow('Tech level', sp.TechLevel + (techs.length ? `; also exactly ${techs.join(', ')}` : ''))}
@@ -2551,7 +2592,7 @@ function tapAt(sx, sy, dbl) {
 
 function wirePanel() {
   const onClick = e => {
-    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story]');
+    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-gate-to],[data-gate-cancel]');
     if (!a) return;
     e.preventDefault();
     const d = a.dataset;
@@ -2563,6 +2604,8 @@ function wirePanel() {
     if (d.bitBack !== undefined) { VIEW.sel = VIEW.sel.back || null; renderPanel(); redraw(); return; }
     if (d.bitMap !== undefined) { bitOnMap(+d.bitMap); return; }
     if (d.ship !== undefined) { shipsShow(+d.ship); return; }
+    if (d.gateTo !== undefined) { hypergateGo(+d.gateTo); return; }
+    if (d.gateCancel !== undefined) { gatePickEnd(); renderPanel(); redraw(); return; }
     while (VIEW.sel && OVER_KINDS.has(VIEW.sel.kind)) VIEW.sel = VIEW.sel.back || null;
     if (d.routeFrom !== undefined) setRoute(+d.routeFrom, null);
     else if (d.routeTo !== undefined) setRoute(ROUTE.from, +d.routeTo);

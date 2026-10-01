@@ -337,6 +337,29 @@ function novaWormholeTrip(u, shown, spob, here, rand) {
   return pool.length ? { to: pool[rand(pool.length)] } : { refused: true };
 }
 
+/* Going into a hypergate from the system you are in, as Mac 1.1.1's
+   PlayerEnterHypergate does it (1.0.10's 0x192220): landing's checks
+   first, as for a wormhole, failing which { refused: true } and the
+   offline message (STR# 2002, 84 and 85); with every HyperLink unset,
+   { none: true }, and nothing happens. Otherwise the program shows its
+   system map ("Hypergate Destination:", 340) for a system to be picked and
+   goes to the first linked stellar, in slot order, whose arrival
+   (novaGateArrival) is that system, "Hypergate jump cancelled." (50) if
+   none is. So { choices: [{ sys, spob }] }, the systems a pick can reach,
+   each once, by its first slot. */
+function novaHypergateChoices(u, shown, spob, here) {
+  const home = novaStellarSystem(u, spob.id, shown);
+  if (novaGateKind(spob) !== 'hypergate' || !novaCanLand(spob) || !home || home.id !== here.id) return { refused: true };
+  const links = (spob.HyperLink || []).filter(t => t >= 128);
+  if (!links.length) return { none: true };
+  const choices = [], seen = new Set();
+  for (const t of links) {
+    const sys = u.stellars.has(t) && novaGateArrival(u, t, shown);
+    if (sys && !seen.has(sys.id)) { seen.add(sys.id); choices.push({ sys, spob: u.stellars.get(t) }); }
+  }
+  return { choices };
+}
+
 /* The gates on the map for the shown systems: `links`, each pair of shown
    systems once, with its kind (that of the gate it leaves from), whether
    it runs both ways, as novaShownLinks has it, and `gates`, the stellars at
@@ -347,13 +370,17 @@ function novaWormholeTrip(u, shown, spob, here, rand) {
    it, as { sys, spob, why }: 'offline' (novaCanLand fails), 'elsewhere'
    (it belongs to a system at another place), 'unlinked' (a hypergate with no
    HyperLink) or 'nowhere' (none it names is in a shown system). */
+// Where a hypergate's link arrives: its stellar's own system, or failing
+// one the first system listing it, as the version shown at its place.
+function novaGateArrival(u, id, shown) {
+  const own = novaStellarSystem(u, id, shown);
+  if (own) return own;
+  const any = (u.inSystems.get(id) || [])[0];
+  return any === undefined ? null : novaLinkTarget(u, any, shown);
+}
 function novaShownGates(u, shown) {
   const own = id => novaStellarSystem(u, id, shown);
-  // where a hypergate's or wormhole's link arrives
-  const arrive = id => own(id) || (() => {
-    const any = (u.inSystems.get(id) || [])[0];
-    return any === undefined ? null : novaLinkTarget(u, any, shown);
-  })();
+  const arrive = id => novaGateArrival(u, id, shown);
   const pairs = new Map(), ways = [], random = [], dead = [];
   for (const sp of u.stellars.values()) {
     const kind = novaGateKind(sp);

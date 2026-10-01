@@ -79,7 +79,8 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
 // three links or more meet a larger one ringed, as metro maps mark stations; 'none'
 // PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's asking, 30 September 2026):
 // one size, never made smaller to fit, semibold, white, outlined in the background's colour
-let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, SYS_STYLE = 'dots', PLAIN_NAMES = false;
+// NEB_STYLE: the nebulae as their pictures, as plain shapes (nebulaShape), or not at all; NEBULAE, drawn at all
+let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, NEB_STYLE = 'pictures', SYS_STYLE = 'dots', PLAIN_NAMES = false;
 function turbo(t) {
   t = Math.max(0, Math.min(1, t));
   const c = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -514,9 +515,46 @@ function drawNebulae(ctx) {
     if (x > CW || y > CH || x + w < 0 || y + h < 0) continue;
     const id = novaNebulaPict(U, n, CAM.s * r.w / n.w);
     const img = id !== null && pictImage(id);
-    if (img) ctx.drawImage(img, x, y, w, h);
+    if (NEB_STYLE === 'shapes') { ctx.globalCompositeOperation = 'source-over'; nebulaShape(ctx, n, img, x, y, w, h, a); ctx.globalCompositeOperation = 'screen'; }
+    else if (img) ctx.drawImage(img, x, y, w, h);
   }
   ctx.restore();
+}
+/* A nebula as a plain shape (the maintainer's asking, 30 September 2026: the pictures were hard to
+   see the lines over): a rounded patch in its picture's colour, the colour its pixels average to,
+   each weighted by its brightness and brought up to a steady brightness, faint enough for the lines
+   and stations over it to read, a lighter edge, and its name. */
+const NEB_TINT = new Map();
+function nebulaTint(n, img) {
+  if (NEB_TINT.has(n.id)) return NEB_TINT.get(n.id);
+  let t = [150, 160, 190];
+  if (img) {
+    const c = document.createElement('canvas'), k = 24;
+    c.width = c.height = k;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, k, k);
+    const px = g.getImageData(0, 0, k, k).data;
+    let r = 0, gr = 0, b = 0, wt = 0;
+    for (let i = 0; i < px.length; i += 4) { const l = px[i] + px[i + 1] + px[i + 2]; r += px[i] * l; gr += px[i + 1] * l; b += px[i + 2] * l; wt += l; }
+    if (wt > 0) { const m = Math.max(r, gr, b) / wt || 1; t = [r, gr, b].map(v => Math.round(v / wt * 220 / m)); }
+    NEB_TINT.set(n.id, t);
+  }
+  return t;
+}
+function nebulaShape(ctx, n, img, x, y, w, h, a) {
+  const [r, g, b] = nebulaTint(n, img), rad = 0.3 * Math.min(w, h);
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+  ctx.globalAlpha = 0.16 * a; ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fill();
+  ctx.globalAlpha = 0.45 * a; ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.8 * a; ctx.fillStyle = `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})`;
+  ctx.font = '600 13px ' + font(); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(n.name, x + w / 2, y + Math.min(8, h / 6));
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+  ctx.globalAlpha = a;
 }
 
 // An open system's disc, in its background colour, with a faint rim that
@@ -1192,6 +1230,18 @@ function drawSystemLabels(ctx) {
         if (w > fit && !PLAIN_NAMES) { size *= fit / w; ctx.font = size + 'px ' + font(); }
         ctx.textAlign = nm.align;
         ctx.globalAlpha = (dimOther && d.sys.govt !== VIEW.govt && !special ? 0.3 : 1) * (placeFaint(d.p) && !special ? FAINT : 1);
+        // a name the lines put more than three quarters of a grid step from its system has a thin line
+        // to it, as maps lead a name to its place (the maintainer found Arcturus's unreadable so far
+        // off, 30 September 2026)
+        {
+          const tw = ctx.measureText(d.sys.name).width, x0 = nm.align === 'left' ? sx : nm.align === 'right' ? sx - tw : sx - tw / 2;
+          const qx = clampNum(d.x, x0, x0 + tw), qy = clampNum(d.y, sy - size / 2, sy + size / 2), far = Math.hypot(qx - d.x, qy - d.y);
+          if (far > 0.75 * room / 0.72) {
+            const ux = (qx - d.x) / far, uy = (qy - d.y) / far, r0 = r + 2;
+            ctx.beginPath(); ctx.moveTo(d.x + ux * r0, d.y + uy * r0); ctx.lineTo(qx - ux * 3, qy - uy * 3);
+            ctx.strokeStyle = special ? 'rgba(255,255,255,0.7)' : 'rgba(210,218,230,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+          }
+        }
         nameText(ctx, d.sys.name, sx, sy, special);
         LABELS_DRAWN.systems++;
         ctx.textAlign = 'start';
@@ -2333,7 +2383,7 @@ function wireTools() {
   const fullChanged = () => { const on = isFull(); full.classList.toggle('on', on); full.title = on ? 'Leave full screen' : 'Full screen'; full.setAttribute('aria-label', full.title); };
   document.addEventListener('fullscreenchange', fullChanged);
   document.addEventListener('webkitfullscreenchange', fullChanged);
-  $('optNebulae').onchange = () => { NEBULAE = $('optNebulae').checked; redraw(); };
+  $('nebSel').onchange = () => { NEB_STYLE = $('nebSel').value; NEBULAE = NEB_STYLE !== 'none'; redraw(); };
   $('optPlainNames').onchange = () => { PLAIN_NAMES = $('optPlainNames').checked; redraw(); };
   $('sysSel').onchange = () => { SYS_STYLE = $('sysSel').value; redraw(); };
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };

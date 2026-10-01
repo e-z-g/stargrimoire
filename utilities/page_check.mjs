@@ -632,9 +632,9 @@ try {
           for (let i = 0; i < 50 && !FLIGHT.world; i++) await wait(100);
           if (!FLIGHT.world) return null;
           const live = () => FLIGHT.world.ships.filter(Boolean);
-          const at = live().map(s => s.x + ',' + s.y).join(' '), t = FLIGHT.world.t;
+          const at = live().map(s => s.x + ',' + s.y).join(' '), t = FLIGHT.world.t, moving = live().some(s => s.vx || s.vy || s.thrust);
           await wait(1000);
-          const out = { ships: live().length, steps: FLIGHT.world.t - t, moved: live().map(s => s.x + ',' + s.y).join(' ') !== at,
+          const out = { ships: live().length, steps: FLIGHT.world.t - t, moving, moved: live().map(s => s.x + ',' + s.y).join(' ') !== at,
                         panel: !!document.querySelector('#panel [data-flight=pause]') };
           document.querySelector('#panel [data-flight=pause]').click();
           const t2 = FLIGHT.world.t; await wait(500);
@@ -660,7 +660,7 @@ try {
     if (!o.back.on || o.back.id !== 154 || !o.back.canvas || o.back.hash !== '#ship=154') fail(`ships, ${dev.name}: Back from the map: ${JSON.stringify(o.back)}`);
     if (!o.yard || o.yard.on || o.yard.mode !== 'system' || !o.yard.sel || o.yard.sel.id !== o.yard.id) fail(`ships, ${dev.name}: a shipyard link: ${JSON.stringify(o.yard)}`);
     const fl = o.flight;
-    if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.ships && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
+    if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

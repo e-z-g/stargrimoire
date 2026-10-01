@@ -4,7 +4,9 @@
    The world is nova-flight.js's: set up as you arrive in a system, as the
    game sets one up when the player arrives, with a new seed each time, and
    dropped when you leave it, so that only the system you are in runs, as in
-   the game. It is stepped thirty times a second, as the game counts its
+   the game. Its ships come, go to its stellars and leave by their own AI,
+   and a ship's place is where the game has it, so one arriving, or leaving
+   from 1,000 out, may be off a small system's disc. It is stepped thirty times a second, as the game counts its
    time, or faster or slower by the panel's speed, and not while paused, on
    a landing page, or with the map hidden. Where the browser asks for
    reduced motion it starts paused. A hypergate a ship is coming out of
@@ -13,8 +15,10 @@
    Each ship is its base sprite at its heading's frame, as small as the
    system's scale makes it but never under MIN_SHIP pixels across, as a
    stellar is never under MIN_STELLAR. The sprites are the ships view's
-   (shipSprite, shipFrame), so the ships files are read on arriving in a
-   system (wantShipFiles), and the ships come once they are.
+   (shipSprite, shipFrame); the ships and sounds files are read after the
+   pictures in a background thread (page-open.js), or on arriving in a
+   system where there is none (wantShipFiles), and the ships come once they
+   are.
 
    The page's own script: DOM here. LOAD ORDER: after page-map.js and
    page-ships.js, whose drawing and sprites it uses; page-map.js calls
@@ -27,7 +31,8 @@ const FLIGHT = { on: true, data: null, world: null, sys: null, paused: false, sp
 // The ships' records, once the shäns are read (they are in the ships files).
 function flightData() {
   if (FLIGHT.data && FLIGHT.data.u === U) return FLIGHT.data;
-  if (!GAME || SHIP_FILES.length || PENDING.some(f => f.role === 'ships') || !GAME.list('shän').length) return null;
+  const shipFile = f => f && (f.role === 'ships' || f.role === 'sounds');
+  if (!GAME || SHIP_FILES.length || PENDING.some(shipFile) || shipFile(READING) || !GAME.list('shän').length) return null;
   return (FLIGHT.data = novaFlightData(U));
 }
 
@@ -61,11 +66,12 @@ function flightLoop(now) {
     stepped = true;
   }
   if (stepped) {
-    const was = FLIGHT.engaged;
-    FLIGHT.engaged = novaFlightEngaged(w);
+    FLIGHT.engaged = novaFlightEngaged(w, gateOpen);
     // a gate opening needs the stellars' clock running
     if (FLIGHT.engaged.size && !ANIM_TICK) { ANIM_LAST = 0; ANIM_TICK = requestAnimationFrame(stellarAnimLoop); }
-    if (was.size !== FLIGHT.engaged.size) renderPanel();
+    // the panel's list, when ships have come or gone
+    const here = w.ships.map(s => (s ? s.cls.id : 0)).join();
+    if (here !== FLIGHT.here) { FLIGHT.here = here; renderPanel(); }
     redraw();
   }
   FLIGHT.tick = requestAnimationFrame(flightLoop);
@@ -73,6 +79,11 @@ function flightLoop(now) {
 function flightRun() { if (!FLIGHT.tick && FLIGHT.world && !FLIGHT.paused) { FLIGHT.last = 0; FLIGHT.tick = requestAnimationFrame(flightLoop); } }
 
 function flightEngaged(id) { return FLIGHT.engaged.has(id); }
+// Whether a hypergate's animation is past its opening frames (novaGateTransition), which widens the reach of a ship bound for it.
+function gateOpen(id) {
+  const sp = U.stellars.get(id), a = STELLAR_ANIM.get(id), f = sp && spriteFrames(sp);
+  return !!(a && f && a.cur >= novaGateTransition(sp, f.count));
+}
 
 function drawFlight(ctx, d) {
   flightSync();

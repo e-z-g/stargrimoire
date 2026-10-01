@@ -7,7 +7,8 @@
    and titles files, read one at a time afterwards so the galaxy is up
    before the pictures are. The ships files, a hundred megabytes of
    sprites and pictures, are held back until the ships are first looked at
-   (wantShipFiles). The sounds file is not read: nothing shows it.
+   (wantShipFiles), and with them the sounds file, for the length of the
+   warp sound, which is how long a ship takes to jump out (nova-flight.js).
 
    Opening base data files starts a new game; opening only plug-ins adds
    them to the one that is open.
@@ -57,6 +58,7 @@ function showForget(on) { document.getElementById('forgetBtn').hidden = !on; }
 let GAME = null;
 const PENDING = [];
 let PUMPING = false;
+let READING = null;   // the file being read now, out of PENDING
 let OPENED_NAMES = [];
 let SHIP_FILES = [];
 
@@ -109,7 +111,7 @@ async function openGameFiles(picked, opts = {}) {
   }
   const now = found.filter(f => f.role === 'data' || f.plugin);
   const later = found.filter(f => f.role === 'graphics' || f.role === 'titles');
-  const ships = found.filter(f => f.role === 'ships');
+  const ships = found.filter(f => f.role === 'ships' || f.role === 'sounds');
   const fresh = found.some(f => f.role === 'data') || !GAME;
   if (!now.length && !later.length && !ships.length) {
     setStatus(refused.join('; ') || 'Nothing in those files is part of EV Nova', true);
@@ -228,10 +230,12 @@ async function pumpPending(refused) {
   let n = 0;
   while (PENDING.length) {
     const f = PENDING.shift();
+    READING = f;
     n++;
-    setStatus(`Reading ${f.role === 'ships' ? 'ships' : 'pictures'}: ${f.name} (${n} of ${n + PENDING.length})`);
+    setStatus(`Reading ${f.role === 'ships' ? 'ships' : f.role === 'sounds' ? 'sounds' : 'pictures'}: ${f.name} (${n} of ${n + PENDING.length})`);
     await nextPaint();
     try { GAME.add(f, await readFile(f)); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
+    READING = null;
     mapFilesChanged();
     shipsFilesChanged();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page

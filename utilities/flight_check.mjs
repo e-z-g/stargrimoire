@@ -11,13 +11,13 @@
 //   3. A fleet's escorts in formation behind the lead.
 //   4. Odds: a system's düdes and a düde's ship types drawn 200,000 times
 //      each, against Probs; a picker broken on purpose must fail the test.
-//   5. Every release: every system set up with three seeds and run for ten
-//      seconds, no ship lost to a number that is not one; the counts
+//   5. Every release: every system set up with three seeds and run for
+//      thirty seconds, no ship lost to a number that is not one; the counts
 //      printed.
 import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
 
 const S = site();
-const ROLES = new Set(['data', 'ships']);   // the records; the shäns are in the ships files
+const ROLES = new Set(['data', 'ships', 'sounds']);   // the records; the shäns are in the ships files, the warp sound in the sounds
 let fails = 0;
 const fail = m => { console.log('FAIL ' + m); fails++; };
 const near = (what, got, want, tol) => { if (!(Math.abs(got - want) <= tol)) fail(`${what}: ${got}, expected ${want} within ${tol}`); };
@@ -46,14 +46,20 @@ const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
 near('sin 90', S.NOVA_SIN[90], 1, 1e-6); near('cos 180', S.NOVA_COS[180], -1, 1e-6); near('sin 30', S.NOVA_SIN[30], 0.5, 1e-6);
 // The diagonals are a degree short: the table holds atan(1) x 57.2957795 = 44.99999..., truncated;
 // and a ratio is read in whole hundredths, so 577/1000 as 0.57, 29.68 degrees, 29.
-eq('headings toward the middle', [[0, 1000], [1000, 0], [-1000, 0], [0, -1000], [1000, 1000], [-1000, -1000], [1000, 577]].map(([x, y]) => S.novaHeadingFrom(x, y, 0, 0)), [0, 270, 90, 180, 314, 134, 299]);
+eq('headings toward the middle', [[0, 1000], [1000, 0], [-1000, 0], [0, -1000], [1000, 1000], [-1000, -1000], [1000, 577]].map(([x, y]) => S.novaBearing(x, y, 0, 0)), [0, 270, 90, 180, 314, 134, 299]);
 eq('angles apart', [[10, 350], [350, 10], [90, 270], [0, 179], [0, 181], [170, 190]].map(([a, b]) => S.novaAngleApart(a, b)), [20, 20, 180, 179, 179, 20]);
 
 // ---- 2. one ship, stepped ---------------------------------------------
-const cls = (o = {}) => Object.assign({ id: 999, accel: Math.fround(0.05), speed: 3, turn: 3, flags: 0, flags2: 0, shanFlags: 0, framesPer: 36, sets: 1, animDelay: 0, skillVar: 0 }, o);
-const ship = (c, o = {}) => Object.assign({ slot: 1, cls: c, govt: -1, leader: -1, follows: -1, x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: 0, want: 0,
-  thrust: 0, desired: 0, timer: 0, jump: 0, skill: 1, state: 0, mode: 0, gate: -1, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0 }, o);
-const world = () => { const w = { D: { govts: new Map() }, random: S.novaRandom(1), ships: new Array(64).fill(null) }; w.rand = n => w.random.rand(n); return w; };
+const cls = (o = {}) => Object.assign({ id: 999, accel: Math.fround(0.05), speed: 3, turn: 3, flags: 0, flags2: 0, flags3: 0, shanFlags: 0, framesPer: 36, sets: 1, animDelay: 0, skillVar: 0, fuel: 0, jumpPace: 1, ai: 1 }, o);
+const ship = (c, o = {}) => Object.assign({ slot: 1, cls: c, govt: -1, ai: 1, leader: -1, follows: -1, x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: 0, want: 0,
+  thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1, goal: -2, gate: -1, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0 }, o);
+const world = (stellars = []) => {
+  const st = new Map(stellars.map(sp => [sp.id, sp]));
+  const w = { D: { govts: new Map(), jumpTicks: 364, u: { stellars: st }, widths: new Map() }, si: { nav: stellars.map(sp => sp.id) }, random: S.novaRandom(1), ships: new Array(64).fill(null), t: 0, gone: [] };
+  w.rand = n => w.random.rand(n); return w;
+};
+// a step of one ship: its AI, then HandleShip, as novaFlightStep runs them
+const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s.slot]) S.novaHandleShip(w, s); w.t++; };
 {
   // Maneuver 30, 3 degrees a step: 0 to 90 in 30 steps, the last a snap; 10 to 350 the short way, left.
   const w = world(), s = ship(cls(), { want: 90 });
@@ -88,14 +94,41 @@ const world = () => { const w = { D: { govts: new Map() }, random: S.novaRandom(
   // An arrival: desired speed -50, less 1.165 a step, the velocity |desired| along the heading, until it is
   // the top speed (3): 41 steps, the last moving it 50 - 40 x 1.165 = 3.4; the ship then coasts at that.
   const w = world(), s = ship(cls(), { heading: 180, state: 8, jump: -1000 });
+  w.ships[1] = s;
   let steps = 0, y = 0, speeds = [];
   for (let k = 1; k <= 41; k++) speeds.push(50 - 1.165 * (k - 1));
-  while (s.state === 8 && steps < 100) { S.novaArriving(w, s); S.novaHandleShip(w, s); steps++; }
+  while (s.state === 8 && steps < 100) { step(w, s); steps++; }
   eq('arrival steps', steps, 41);
   for (let k = 0; k < 40; k++) y += speeds[k];
   near('arrival distance', s.y, y, 0.05);
   near('arrival leaves it at', Math.hypot(s.vx, s.vy), speeds[40], 1e-4);
   if (!(s.timer >= 30 && s.timer < 60)) fail(`after arriving, a coast of 30 to 59 steps: ${s.timer}`);
+}
+
+{
+  // A trader making for a stellar 2,000 to its right: turned, thrust to top speed, a quarter of it within 500,
+  // braking at 0.98 a step within (9 - 3) x 8 + 32 = 80, stopped, and waiting 300 to 499 steps, the stellar its last visit.
+  const sp = { id: 128, xPos: 2000, yPos: 0, Flags: 1, Flags2: 0, Govt: -1, Type: 0 };
+  const w = world([sp]), s = ship(cls(), { state: 1, sec: 128, heading: 0 });
+  w.ships[1] = s;
+  let n = 0, top = 0;
+  while (!(s.state === 0 && s.timer > 0) && n < 3000) { step(w, s); n++; top = Math.max(top, Math.hypot(s.vx, s.vy)); }
+  if (!(Math.abs(s.x - 2000) <= 80 && Math.abs(s.y) <= 80 && s.vx === 0 && s.vy === 0)) fail(`stellar arrival: stopped at ${s.x}, ${s.y} moving ${s.vx}, ${s.vy}`);
+  if (!(s.timer >= 299 && s.timer < 499) || s.goal !== 128) fail(`stellar arrival: timer ${s.timer}, last visit ${s.goal}`);
+  near('stellar arrival, top speed', top, 3, 0.11);
+  // Leaving, 3,000 out and still: the jump straight out, gone 364 sixtieths after it began, on the 183rd step; the run-up
+  // starts when (elapsed x pace / 3.64) passes 35 and moves it up to 50 a step.
+  const v = ship(cls({ fuel: 400 }), { x: 0, y: -3000, state: 2, heading: 0, want: 0, slot: 2 });
+  const w2 = world(); w2.ships[2] = v;
+  let k = 0;
+  const ys = [];
+  while (w2.ships[2] && k < 1000) { step(w2, v); ys.push(v.y); k++; }
+  eq('jump: steps to gone', k, 183);
+  const p = e => Math.min(50, e / 3.64 - 35);
+  let want = -3000;
+  // moved each step after the first, the clock at 2, 4 ... 362; at 364 it is gone before it moves
+  for (let e = 2; e <= 362; e += 2) if (p(e) > 0) want -= p(e);
+  near('jump: distance run', ys[ys.length - 2], want, 2);
 }
 
 // ---- 3. a fleet in formation ------------------------------------------
@@ -121,11 +154,11 @@ function oddsHold(counts, weights) {
 if (haveRelease('1.1.1')) {
   const game = openRelease(S, '1.1.1', ROLES), u = S.novaUniverse(game), D = S.novaFlightData(u);
   const sol = u.systems.find(s => s.name === 'Sol'), rec = sol.rec;
-  const w = { D, sys: sol, state: {}, random: S.novaRandom(7), ships: [] };
+  const w = { D, sys: sol, si: S.novaSysInfo(D, sol), state: {}, random: S.novaRandom(7), ships: [] };
   w.rand = n => w.random.rand(n); w.holds = () => true;
   const N = 200000, valid = i => rec.DudeTypes[i] >= 128 && D.dudes.has(rec.DudeTypes[i]);
   const counts = new Array(8).fill(0);
-  for (let i = 0; i < N; i++) counts[S.novaPickDude(w, rec)]++;
+  for (let i = 0; i < N; i++) counts[S.novaPickDude(w)]++;
   const weights = rec.DudeTypes.map((_, i) => valid(i) ? rec.Probs[i] : 0);
   if (!oddsHold(counts, weights)) fail(`Sol's düdes drawn ${counts.join(' ')} against Probs ${weights.join(' ')}`);
   const dude = D.dudes.get(rec.DudeTypes[counts.indexOf(Math.max(...counts))]);
@@ -144,7 +177,7 @@ if (haveRelease('1.1.1')) {
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }
   const game = openRelease(S, v, ROLES), u = S.novaUniverse(game), D = S.novaFlightData(u);
-  const t = { ships: 0, dude: 0, person: 0, fleet: 0, gate: 0, jump: 0 }, over = [];
+  const t = { ships: 0, dude: 0, person: 0, fleet: 0, gate: 0, jump: 0, jumped: 0, gated: 0, later: 0 }, over = [];
   for (const sys of u.systems) for (let seed = 1; seed <= 3; seed++) {
     let w;
     try { w = S.novaFlightWorld(D, sys, { bits: new Set() }, seed * 7919 + sys.id); }
@@ -156,11 +189,15 @@ for (const v of Object.keys(RELEASES)) {
       else if (s.fleet && s.leader === -1) { t.fleet++; if (s.state === 0x15) t.gate++; else t.jump++; }
     }
     if (singles > sys.rec.AvgShips) over.push(sys.id);
-    for (let i = 0; i < 300; i++) S.novaFlightStep(w);
+    const before = new Set(w.ships.filter(Boolean));
+    for (let i = 0; i < 900; i++) S.novaFlightStep(w);
+    for (const g of w.gone) t[g.how === 'jump' ? 'jumped' : 'gated']++;
+    t.later += w.ships.filter(x => x && !before.has(x)).length;
     for (const s of w.ships) if (s && ![s.x, s.y, s.vx, s.vy, s.heading].every(Number.isFinite)) { fail(`${v} ${sys.name}: ship ${s.slot} lost to ${[s.x, s.y, s.vx, s.vy, s.heading]}`); break; }
   }
   if (over.length) fail(`${v}: more düde ships than AvgShips in ${over.slice(0, 5).join(', ')}`);
-  console.log(`${v}: ${u.systems.length} systems x 3 seeds: ${t.ships} ships, ${t.dude} of düdes, ${t.person} persons, ${t.fleet} fleets (${t.jump} by hyperspace, ${t.gate} out of a hypergate)`);
+  console.log(`${v}: ${u.systems.length} systems x 3 seeds: ${t.ships} ships, ${t.dude} of düdes, ${t.person} persons, ${t.fleet} fleets (${t.jump} by hyperspace, ${t.gate} out of a hypergate);` +
+              ` in 30 seconds ${t.jumped} jumped out, ${t.gated} went into a gate, ${t.later} come since and still here`);
 }
 
 process.exit(fails ? 1 : 0);

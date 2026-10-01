@@ -189,7 +189,7 @@ function novaArm(w, s) {
   if (p && (p.Flags2 & 1)) s.fuel = 0;
   if (p) s.aggr = p.Aggress;
   Object.assign(s, { armed: true, death: 0, anger: 0, odds: -1, lastW: -1, lastGun: -1, latch: false, boost: false,
-                     patience: -1, targeted: 0, flash: 0, exits: [0, 0, 0, 0], podsLeft: c.podCount, mate: 0, harass: 0 });
+                     patience: -1, targeted: 0, flash: 0, exits: [0, 0, 0, 0], podsLeft: c.podCount, mate: -1, harass: 0 });
   if (s.aggr === undefined) s.aggr = 2;
   if (!F) return;
   novaSetDisabled(D, s);
@@ -595,7 +595,7 @@ function novaTraderFight(w, s, brave) {
    true when the handler stops there. */
 function novaHighTarget(w, s) {
   const D = w.D;
-  if (s.state === 0xb && !novaCanLeave(w, s)) { s.state = 5; s.primary = -1; s.sec = s.leader; }
+  if (s.ai === 5 && s.state === 0xb && !novaCanLeave(w, s)) { s.state = 5; s.primary = -1; s.sec = s.leader; }
   if (s.primary === -1 || (s.state !== 4 && s.state !== 0xd)) return false;
   const t = w.ships[s.primary];
   if (t && novaVisible(t, s)) { s.patience = -1; return false; }
@@ -619,7 +619,10 @@ function novaHighAttack(w, s) {
     else if (s.primary !== -1) {
       const t = w.ships[s.primary];
       const near = t && Math.abs((Math.trunc(f32(s.x - t.x)) << 16) >> 16) <= 250 && Math.abs((Math.trunc(f32(s.y - t.y)) << 16) >> 16) <= 250;
-      if (near && s.mode !== 4) { if (s.jump <= 0) s.mode = 5; }
+      if (near && s.mode !== 4) {
+        s.mode = 5;
+        if (s.govt !== -1 && s.leader !== 0 && novaGovtAllies(D, s.govt, t.govt) && t.leader !== 0) { Object.assign(s, { state: 0, mode: 0, primary: -1 }); return; }
+      }
       else if (f32(f32(s.x * s.x) + f32(s.y * s.y)) > 1e6) {
         if (novaCanLeave(w, s)) s.mode = s.cls.quickJump || (Math.abs(s.vx) < 0.35 && Math.abs(s.vy) < 0.35) ? 4 : 1;
         else s.mode = 3;
@@ -633,19 +636,7 @@ function novaHighAttack(w, s) {
       const t = w.ships[s.primary], stop = () => { Object.assign(s, { state: 0, mode: 0, primary: -1 }); return true; };
       const L = s.leader;
       if (t && s.govt !== -1 && L !== 0 && novaGovtAllies(D, s.govt, t.govt) && t.leader !== 0) { Object.assign(s, { state: 0, mode: 0 }); return; }
-      if (L !== -1) {
-        if (L === s.primary) { stop(); return; }
-        const T = t ? t.leader : -1;
-        if (T === L) { stop(); return; }
-        if (T !== -1 && w.ships[T]) {
-          const TT = w.ships[T].leader;
-          if (TT !== -1) {
-            if (TT === T) { stop(); return; }
-            const LL = w.ships[L] ? w.ships[L].leader : -1;
-            if (LL !== -1 && w.ships[LL] && w.ships[LL].leader === TT) { stop(); return; }
-          }
-        }
-      }
+      if (novaFleetMateTarget(w, s)) return;
       if (!t || novaDying(t)) { Object.assign(s, { primary: -1, anger: 0, state: 0 }); }
       else {
         const dx = Math.abs(f32(s.x - t.x)), dy = Math.abs(f32(s.y - t.y)), cf = novaClassFight(D, s.cls);
@@ -658,9 +649,32 @@ function novaHighAttack(w, s) {
           else if ((cf.flags2 & 1) && s.mate > 0 && s.mate !== s.leader) s.mode = 0x12;
           else if (s.mode !== 0x11) s.mode = 7;
         } else if (cf.flags2 & 2) s.mode = 5;
-        else if (s.mode !== 0x10 && s.mode !== 0x11) s.mode = 6;
+        else if (s.mode !== 0x10) s.mode = 6;
         if (!s.disabled) novaLaunchFighters(w, s);
       }
+    }
+  }
+  if (s.state === 0xd) {
+    s.jump = 0;
+    if (s.primary === -1 || s.timer > 0) s.state = 0;
+    else if (!novaFleetMateTarget(w, s)) {
+      const t = w.ships[s.primary];
+      if (!t) Object.assign(s, { primary: -1, sec: -1, anger: 0, state: 0 });
+      else if (!t.disabled) {
+        s.sec = -1;
+        if (Math.abs(f32(s.x - t.x)) > 165 || Math.abs(f32(s.y - t.y)) > 165) {
+          if (novaHopeless(w, s)) { if (s.ai < 3) { s.state = 3; s.mode = 5; } else s.mode = 0xe; }
+          else if (s.mode !== 0x11) s.mode = 7;
+        } else if (s.mode !== 0x10 && s.mode !== 0x11) s.mode = 6;
+      } else if (!t.boarded || s.timer > 0) {
+        // alongside to board: within (10 - turn) x 30 (four times that inertialess), else closing
+        s.sec = s.primary;
+        let r = (Math.trunc(f32((10 - s.cls.turn) * 30)) << 16) >> 16;
+        if (novaInertialess(s)) r = (r * 4 << 16) >> 16;
+        const ax = Math.abs(f32(s.x - t.x)), ay = Math.abs(f32(s.y - t.y));
+        if (ax > r || ay > r) s.mode = ax > r * 2 || ay > r * 2 ? 9 : 0xb;
+        else s.mode = 0xf;
+      } else Object.assign(s, { state: 0, mode: 0, primary: -1, sec: -1 });
     }
   }
   if (s.state === 0xe) {
@@ -696,13 +710,17 @@ function novaHopeless(w, s) {
    take the rest. */
 function novaLowAttack(w, s) {
   const D = w.D, ok = !s.disabled;
+  if (ok && s.mode === 0xf && s.sec !== -1 && w.ships[s.sec]) novaDocking(w, s, w.ships[s.sec]);
   if (!ok || s.primary === -1) return;
   const t = w.ships[s.primary];
   if (!t) return;
   const turn = novaShipTurn(s), apart = () => novaAngleApart(s.want, Math.trunc(s.heading));
   const dx = Math.abs(f32(s.x - t.x)), dy = Math.abs(f32(s.y - t.y));
   const ix = () => novaBearing(s.x, s.y, t.x, t.y);
+  // a swarm's ships keep formation on its lead, with its engine glow
+  const swarm = () => { if (s.mate > 0) { novaKeepFormation(w, s, false); const m = w.ships[s.mate] || w.last[s.mate]; if (m) s.glow = m.glow; } };
   if (s.mode === 5) {
+    swarm();
     s.want = novaBearing(t.x, t.y, s.x, s.y);
     if (apart() < turn + 20) { s.thrust = novaShipAccel(D, s); s.desired = 0; }
     if (s.state === 3 || s.state === 4) novaFireTurret(w, s);
@@ -744,6 +762,7 @@ function novaLowAttack(w, s) {
   }
   if (s.mode === 0x11) {
     s.thrust = f32(novaShipAccel(D, s) * 2.75); s.desired = f32(novaShipMaxSpeed(D, s) * 1.8); s.want = ix();
+    swarm();
     const ix2 = Math.trunc(f32(s.x - t.x)), iy2 = Math.trunc(f32(s.y - t.y));
     if (ix2 >= -164 && ix2 <= 164 && iy2 >= -164 && iy2 <= 164) { novaFireTurret(w, s); if (apart() < turn * 3) novaFireGun(w, s, false); }
     else if (apart() < turn * 3) novaFireMissile(w, s);
@@ -751,6 +770,7 @@ function novaLowAttack(w, s) {
     else if (w.rand(100) === 0) s.mode = 6;
   }
   if (s.mode === 7) {
+    swarm();
     s.want = s.lastGun !== -1 && s.lastW !== -1 ? novaLeadAngle(s, t, novaWeapOf(D, s.lastW), s) : ix();
     if (apart() < turn * 3) { novaFireGun(w, s, false); novaFireTurret(w, s); }
     if (apart() < turn * 4) { s.thrust = novaShipAccel(D, s); s.desired = 0; novaFireMissile(w, s); }
@@ -1281,7 +1301,7 @@ function novaDamageShip(w, t, src, impact, mass, energy, attacker, hit, aimed, n
   const D = w.D;
   if (!t) return;
   const A = attacker >= 1 && attacker <= 63 ? w.ships[attacker] : null;
-  if (A && A.primary === t.slot && (A.state === 0xd || (A.leader >= 1 && A.leader <= 63 && w.ships[A.leader] && w.ships[A.leader].state === 0xd))) noKill = true;
+  if (hit && A && A.primary === t.slot && (A.state === 0xd || (A.leader >= 1 && A.leader <= 63 && w.ships[A.leader] && w.ships[A.leader].state === 0xd))) noKill = true;
   const wasDisabled = t.disabled, c = novaClassFight(D, t.cls);
   if (impact !== 0 && src && t.jump <= 0 && !(impact < 0 && hit && A && (Math.abs(f32(A.x - t.x)) < 50 || Math.abs(f32(A.y - t.y)) < 50))) {
     const a = novaBearing(src.x, src.y, t.x, t.y);
@@ -1334,6 +1354,7 @@ function novaRetaliate(w, t, A, attacker, mass, energy, aimed) {
   if (al === tl && al >= 0 && al <= 63) ret = false;
   if (L >= 1 && L <= 63 && w.ships[L] && w.ships[L].jump > 0) return;
   if (!ret || !A) return;
+  if (t.mode === 0xf && attacker > 0 && t.slot > 0) return;
   const af = novaClassFight(D, A.cls), tf = novaClassFight(D, t.cls);
   if (af.escortType === 0 && tf.escortType !== 0 && t.primary !== -1 && t.state === 4) return;
   t.harass = 0;
@@ -1374,8 +1395,8 @@ function novaDeathThroes(w, s) {
       }
     }
     novaCreateExplosion(w, s.x, s.y, c.explode2, R, true);
+    s.leader = -1;
     novaGone(w, s, 'destroyed');
-    for (const o of w.ships) if (o && o.leader === s.slot) o.leader = -1;
     return;
   }
   const n = s.death < 20 ? 1 : s.death < 40 ? 2 : s.death >= 60 ? 8 : 4;
@@ -1655,4 +1676,353 @@ function novaLaunchFighter(w, s, i) {
   if (f.primary !== -1 && (f.primary === f.leader || (w.ships[f.primary] && w.ships[f.primary].leader === f.leader && f.leader !== -1))) f.primary = -1;
   Object.assign(f, { state: 0, mode: 0, goal: -2, cached: -1, mate: -1 });
   return true;
+}
+
+/* ---- fleets ----------------------------------------------------------------- */
+
+/* DoPlayGameWork 0x43e70, after the collisions: each escort whose lead is
+   gone or disabled finds a new one (AICheckParentExists); a lead with
+   escorts is marked to give them orders, a swarm's lead as one, and each
+   ship the one whose formation it keeps -- its swarm's lead while it
+   attacks, else its own lead. */
+function novaFleetBookkeeping(w) {
+  const prev = w.ships.map(s => s ? s.leader : -1);
+  for (const s of w.ships) if (s) { s.hasEscorts = false; s.mateLead = false; s.formLead = false; }
+  for (let i = 1; i < 64; i++) {
+    const s = w.ships[i];
+    if (!s || !(s.ai > 4)) continue;
+    if (s.leader >= 1) {
+      novaCheckParentExists(w, s, prev);
+      if (s.leader !== -1 && w.ships[s.leader]) w.ships[s.leader].hasEscorts = true;
+    }
+    if (i < s.mate && s.mate < 64 && w.ships[s.mate]) w.ships[s.mate].swarmLead = true;
+    if (s.ai < 5) s.follows = s.mate;
+    else {
+      s.follows = -1;
+      if (s.primary !== -1 && s.state === 4) s.follows = s.mate;
+      if (s.follows === -1) s.follows = s.leader;
+    }
+    if (s.follows >= 0 && s.follows < 64 && w.ships[s.follows]) w.ships[s.follows].formLead = true;
+  }
+}
+/* AICheckParentExists 0x8926a: with its lead gone or disabled, the
+   heaviest (class Mass) live ship that had the same lead, the first of
+   equals, leads instead; a fighter becomes a plain escort, and waits
+   (state 19) unless jumping. The new lead itself takes on its old lead's
+   target and states if they share a government, and with none left the
+   escort goes back to its own AI, waiting. */
+function novaCheckParentExists(w, s, prev) {
+  const D = w.D, L = s.leader;
+  if (L < 0 || L > 63) return;
+  if (w.ships[L] && !w.ships[L].disabled) return;
+  let best = -1, mass = 0;
+  for (let j = 1; j < 64; j++) {
+    const o = w.ships[j];
+    if (!o || prev[j] !== L || o.disabled) continue;
+    const m = novaClassFight(D, o.cls).mass;
+    if (best === -1 || m > mass) { best = j; mass = m; }
+  }
+  if (best === -1) { Object.assign(s, { leader: -1, state: 0x13, mode: 0, jump: -1, ai: s.cls.ai }); return; }
+  if (best !== s.slot) {
+    s.leader = best;
+    if (s.ai === 5) s.ai = 6;
+    if (s.jump < 0) s.state = 0x13;
+    return;
+  }
+  s.jump = -1; s.ai = s.cls.ai;
+  const old = w.ships[L] || w.last[L];
+  if (s.govt !== -1 && old && s.govt === old.govt) Object.assign(s, { primary: old.primary, sec: old.sec, state: old.state, mode: old.mode });
+  else if (s.state !== 5 && s.state !== 10 && s.state !== 0xc && s.state === 0xb) { s.state = 2; s.mode = 4; }
+  else if (s.state !== 5 && s.state !== 10 && s.state !== 0xc && s.primary !== -1 && s.state !== 7 && s.state !== 9) { s.state = 4; s.mode = 0; }
+  else { s.state = 0; s.mode = 0; }
+  s.leader = -1;
+}
+/* AIIssueEscortOrders 0x8986d, every eighth frame for a lead with escorts
+   (the frame's count modulo 8 against its slot over 8): an order for each
+   kind of escort (the class's escort type, 0 to 3) -- 0 fight, 1 stay
+   near and defend, 2 attack the nearest threat, 3 come back -- from its
+   shields and its fight. A trader: its fighters defend under two thirds
+   shields, else attack; its others defend. A warship: with shields at a
+   third or more, at two thirds or more its fighters attack (defend if it
+   can reach its target and that target is attacking it), its others
+   attack, its warships fight unless it is losing and the odds are over
+   half; under two thirds, or under a third, defend or attack as below.
+   Plundering a disabled target, or neither fighting, retreating nor
+   waiting, all come back; retreating while not jumping or braking,
+   fighters and others defend. Freighters always fight. */
+function novaIssueEscortOrders(w, s) {
+  const D = w.D, o = [-1, -1, -1, -1];
+  const sh = s.shield, cap = novaShieldCap(D, s);
+  const W1 = novaWeapOf(D, 1);
+  if (s.ai < 3) { o[0] = sh >= f32(cap) * 0.66 ? 2 : 1; o[1] = 1; o[2] = 1; }
+  else {
+    let hitsMe = false, canHit = false, dis = false, plunder = false;
+    if (s.primary !== -1) {
+      const T = w.ships[s.primary] || w.last[s.primary];
+      if (T && T.primary === s.slot && T.state === 4) { hitsMe = !!W1 && novaInGunRange(T, s, W1); canHit = !!W1 && novaInGunRange(s, T, W1); }
+      dis = !!T && T.disabled;
+      plunder = dis && s.state === 0xd;
+    }
+    if (plunder) { o[0] = o[1] = o[2] = 3; }
+    else if (sh >= f32(cap) * 0.33) {
+      if (sh >= f32(cap) * 0.66) {
+        o[0] = dis ? 2 : canHit ? 1 : 2; o[1] = 2;
+        o[2] = s.odds < 0 || s.odds >= 0.5 ? 0 : 2;
+      } else { o[0] = dis ? 2 : (!hitsMe || canHit) ? 1 : 2; o[1] = 2; o[2] = 1; }
+    } else if (!dis && (canHit || !hitsMe)) { o[0] = 1; o[1] = 1; o[2] = 1; }
+    else { o[0] = 2; o[1] = 2; o[2] = 1; }
+  }
+  o[3] = 0;
+  const st = s.state;
+  if (st !== 0xd && st !== 3 && st !== 4 && st !== 0x13) o.fill(3);
+  if (st === 3) { if (s.mode !== 4 && s.mode !== 1) { o[0] = 1; o[1] = 1; } else o.fill(3); }
+  else if (st === 2) o.fill(3);
+  for (let j = 1; j < 64; j++) {
+    const e = w.ships[j];
+    if (j === s.slot || !e || e.leader !== s.slot || !(e.ai > 4)) continue;
+    e.orders = o[novaClassFight(D, e.cls).escortType];
+    e.ordered = true;
+  }
+}
+/* IsShipANearbyThreatToParent 0x836a4: a live ship seen, not one of the
+   fleet, threatening the escort's lead (disabled only when the order is
+   to attack), within `range` of the lead if one is given: its square
+   distance to the escort, plus to the lead if a range is given, halved
+   for an escort of another type and halved again for a warship after a
+   fighter; 0 for none. FindNearestThreatToParent 0x83861: the least. */
+function novaNearbyThreat(w, c, s, range) {
+  const L = s.leader, lead = w.ships[L];
+  if (c === s || c.slot === c.leader || c.slot === L || c.leader === L || !novaVisible(c, s) || (c.disabled && s.orders !== 2)) return 0;
+  if (!lead || !novaThreatens(w, c, lead)) return 0;
+  const d2 = (a, b) => f32(f32(f32(a.x - b.x) ** 2) + f32(f32(a.y - b.y) ** 2));
+  const dl = d2(lead, c);
+  let f;
+  if (range < 1) f = d2(s, c);
+  else { if (range * range < Math.trunc(dl)) return 0; f = f32(Math.trunc(dl) + d2(s, c)); }
+  let v = Math.trunc(f);
+  const tc = novaClassFight(w.D, c.cls).escortType, ts = novaClassFight(w.D, s.cls).escortType;
+  if (tc !== ts) { v = Math.trunc(v / 2); if (ts === 2 && tc === 0) v = Math.trunc(v / 2); }
+  return v < 1 ? 1 : v;
+}
+function novaNearestThreatToParent(w, s, range) {
+  let best = -1, at = -1;
+  for (let i = 0; i < 64; i++) {
+    const c = w.ships[i];
+    if (!c) continue;
+    const v = novaNearbyThreat(w, c, s, range);
+    if (v > 0 && (v < best || best < 0)) { at = i; best = v; }
+  }
+  return at;
+}
+/* AIVerifySwarmLeader 0x7e2fe, AIFindSwarmLeader 0x7e39e: a ship of a
+   class that swarms (Flags2 0x0001) follows the first live swarming ship
+   in a slot below its own with the same target and the same government
+   or lead. */
+function novaSwarmMate(w, s, j) {
+  const o = w.ships[j];
+  return !!o && !!(o.cls.flags2 & 1) && o.primary === s.primary &&
+    ((o.govt === s.govt && o.govt !== -1) || (o.leader === s.leader && o.leader !== -1));
+}
+function novaSwarmLeader(w, s) {
+  if (!(s.cls.flags2 & 1) || (s.mate > 0 && s.mate < s.slot && novaSwarmMate(w, s, s.mate))) return;
+  s.mate = -1;
+  for (let j = 1; j < s.slot; j++) if (novaSwarmMate(w, s, j)) { s.mate = j; return; }
+}
+
+/* ---- plundering ------------------------------------------------------------- */
+
+const novaCargo = s => s.cargo.reduce((a, b) => a + Math.max(0, b), 0);
+/* PirateWarshipAI 0x8c2d2, for a government that plunders (Flags 0x1000),
+   in place of WarshipAI: with no target, the nearest disabled ship it may
+   board (novaFindShipToPlunder), else one to fight (SelectWarshipTarget),
+   else it leaves, or makes for a stellar; a trader with a crew it boards
+   (state 13), anything else it attacks (state 4). A ship already being
+   boarded it attacks, and if another is boarding it, waits four seconds
+   (state 22). No odds, no cowardice: a pirate retreats only with no
+   ammunition left at all. */
+function novaPirateWarshipAI(w, s) {
+  const D = w.D;
+  if (s.disabled || s.state === 0x16) return;
+  if (s.primary !== -1) { const t = w.ships[s.primary]; if (!t || novaDying(t)) { s.primary = -1; s.state = 0; } }
+  const crew = t => t.cls.rec.Crew;
+  const boardable = t => t.cls.ai < 3;   // its class's InherentAI below 3 (a computer ship's +0xc8de is always -1)
+  let go = true;
+  if (s.state !== 0) {
+    if (s.primary === -1) { if (s.state === 0xe) go = false; }
+    else go = false;
+  }
+  if (go) {
+    s.primary = -1;
+    novaFindShipToPlunder(w, s);
+    if (s.primary === -1) {
+      novaSelectTarget(w, s);
+      if (s.primary === -1) {
+        const at = !w.si.nav.some(n => n !== -1) || (s.goal !== -1 && w.si.nav.includes(s.goal));
+        if (at || s.sec !== -1) { if (novaCanLeave(w, s)) novaLeave(w, s); else s.state = 6; }
+        else {
+          s.sec = novaPickStellar(w, s, false, false);
+          if (s.sec === -1) { if (novaCanLeave(w, s)) novaLeave(w, s); else s.state = 6; }
+          else s.state = 1;
+        }
+      }
+    }
+    if (s.primary !== -1) {
+      const t = w.ships[s.primary];
+      s.state = t && boardable(t) && crew(t) !== 0 ? 0xd : 4;
+    }
+  }
+  if (s.primary !== -1 && (s.state === 0xd || s.state === 4)) {
+    const t = w.ships[s.primary];
+    if (t && boardable(t) && crew(t) > 0) {
+      if (!t.boarded) s.state = 0xd;
+      else {
+        s.state = 4;
+        for (let j = 1; j < 64; j++) {
+          const o = w.ships[j];
+          if (!o || j === s.slot || j === s.primary || o.leader === 0 || o.disabled) continue;
+          if (o.primary === s.primary && (o.state === 0xd || o.mode === 0xe)) {
+            Object.assign(s, { state: 0x16, mode: 0, primary: -1, sec: -1, anger: 0, timer: 120 });
+            break;
+          }
+        }
+      }
+    } else s.state = 4;
+  }
+  // boarded and the count run out: plunder it, and pull away (state 14)
+  if (s.state === 4 && s.mode === 0xf && s.sec !== -1 && s.timer <= 0) {
+    Object.assign(s, { timer: 100, state: 0xe, mode: 0 });
+    const t = w.ships[s.sec];
+    if (t) novaPlunder(w, s, t);
+    s.primary = -1; s.sec = -1;
+  }
+  if (s.state === 4 && s.primary !== -1) {
+    const t = w.ships[s.primary];
+    if (t && t.disabled && t.cls.ai > 2 && (!novaHasDestroying(w, s) || novaOutOfAmmo(w, s) === 2)) { s.state = 0; s.primary = -1; }
+  }
+  if ((s.state === 4 || s.state === 0xd) && novaOutOfAmmo(w, s) === 2) Object.assign(s, { state: 0, mode: 0, primary: -1, sec: -1 });
+  void D;
+}
+/* AIFindShipToPlunder 0x7fd10: the nearest live disabled ship, not its own
+   escort nor being boarded, with a crew, not of an allied government -- a
+   warship (InherentAI 3 or more, and flying as one) only when it has no
+   weapon that can destroy (the program's test). */
+function novaFindShipToPlunder(w, s) {
+  const D = w.D, destroys = novaHasDestroying(w, s);
+  let best = -1, bd = 0;
+  for (let j = 0; j < 64; j++) {
+    const o = w.ships[j];
+    if (j === s.slot || !o || o.leader === s.slot || o.boarded || !o.disabled) continue;
+    if (!(o.ai < 3) && o.cls.ai > 2 && !destroys) continue;
+    if (!(o.cls.rec.Crew > 0) || (o.leader !== 0 && novaGovtAllies(D, s.govt, o.govt))) continue;
+    const d = Math.trunc(f32(f32(f32(s.x - o.x) ** 2) + f32(f32(s.y - o.y) ** 2)));
+    if (best === -1 || d < bd) { best = j; bd = d; }
+  }
+  if (best !== -1) { s.primary = best; s.state = 0xd; s.mode = 0; }
+}
+/* AIPlunderShipContents 0x83fab: as much of the boarded ship's cargo as the
+   pirate has room for, a random kind of the six at a time; then the
+   capture: with a chance of (pirate Strength x 100 / (2 x the ship's
+   Strength), and the crew outfits, less 0 to 20, plus 10, held to 10 to
+   100) over 40, that chance over 2 in 100 the ship becomes the pirate's
+   escort, of its government, armour at two thirds. */
+function novaPlunder(w, s, t) {
+  const D = w.D;
+  if (novaDying(t)) return;
+  let room = s.cls.holds;
+  for (const c of s.cargo) if (c > 0) room -= c;
+  const tHolds = t.cls.holds;
+  let left = Math.min(novaCargo(t), tHolds);
+  const A = s.cls.board, T = t.cls.board;
+  const att = s.cls.rec.Strength + A.pos;
+  let def = t.cls.rec.Strength + T.pos;
+  if (def < 1) def = 1;
+  let ratio = (Math.trunc(f32(att) * 100 / f32(f32(def) + f32(def))) << 16) >> 16;
+  ratio = ((ratio - A.neg + T.neg) << 16) >> 16;
+  let chance = ratio - w.rand(0x15) + 10;
+  chance = chance < 10 ? 10 : chance > 100 ? 100 : chance;
+  let taken = 0;
+  while (left > 0 && room > 0) {
+    const k = w.rand(6), have = t.cargo[k];
+    if (have > 0) {
+      let n = Math.min(have, room);
+      if (tHolds < n + taken) n = tHolds - taken;
+      if (n < 0) n = 0;
+      t.cargo[k] = have - n; s.cargo[k] += n;
+      left -= n; room -= n; taken += n;
+    }
+  }
+  if (t.leader === -1 && t.mission !== undefined && t.mission !== -1) return;
+  if (chance > 40 && w.rand(0x65) <= chance * 0.5) {
+    Object.assign(t, { pers: null, ai: 6, leader: s.slot, state: 0, mode: 0, boarded: false, govt: s.govt, timer: 150, shield: 0 });
+    t.armor = f32(novaArmorCap(D, t) * 0.66);
+    novaSetDisabled(D, t);
+  }
+}
+
+/* The test HighLevelAIHandler makes of a target in states 4 and 13: one of
+   the ship's own fleet -- its lead, a ship with the same lead, or a lead
+   above the target's one shared with its own -- is let be (state 0). */
+function novaFleetMateTarget(w, s) {
+  const L = s.leader;
+  if (L === -1) return false;
+  const t = w.ships[s.primary] || w.last[s.primary];
+  const stop = () => { Object.assign(s, { state: 0, mode: 0, primary: -1 }); return true; };
+  if (L === s.primary) return stop();
+  const T = t ? t.leader : -1;
+  if (T === L) return stop();
+  const at = i => w.ships[i] || w.last[i];
+  if (T !== -1 && at(T)) {
+    const TT = at(T).leader;
+    if (TT !== -1) {
+      if (TT === T) return stop();
+      const LL = at(L) ? at(L).leader : -1;
+      if (LL !== -1 && at(LL) && at(LL).leader === TT) return stop();
+    }
+  }
+  return false;
+}
+/* LowLevelAIHandler, move 15: alongside a ship to board it -- the relative
+   velocity braked to within 0.525, then velocity and heading matched and
+   nudged a unit a step to within 3 of it; there the ship is marked as
+   being boarded and the boarding counts 100 to 179 steps, plundered (a
+   pirate in state 13) once under 100. */
+function novaDocking(w, s, t) {
+  const D = w.D;
+  const rx = f32(s.vx - t.vx), ry = f32(s.vy - t.vy);
+  if (Math.abs(rx) < 0.525 && Math.abs(ry) < 0.525) {
+    s.want = Math.trunc(t.heading); s.vx = t.vx; s.vy = t.vy;
+    if (Math.abs(f32(s.x - t.x)) > 3 || Math.abs(f32(s.y - t.y)) > 3) {
+      s.speed = 0;
+      const p = { x: s.x, y: s.y }; novaAccel(novaBearing(s.x, s.y, t.x, t.y), 1, p); s.x = p.x; s.y = p.y;
+    } else if (s.timer > 100 || s.timer <= 0) {
+      if (s.timer <= 0 && s.state !== 0xe) { t.boarded = true; s.timer = w.rand(0x50) + 100; s.vx = t.vx; s.vy = t.vy; }
+    } else if (s.state === 0xd) {
+      Object.assign(s, { timer: 100, state: 0xe, mode: 0 });
+      novaPlunder(w, s, t);
+      s.primary = -1; s.sec = -1;
+    }
+  } else if (!novaInertialess(s)) {
+    s.want = (novaBearing(0, 0, f32(rx * 100), f32(ry * 100)) + 180) % 360;
+    if (novaAngleApart(s.want, Math.trunc(s.heading)) < novaShipTurn(s) + 1) { s.thrust = novaShipAccel(D, s); s.desired = 0; }
+    if (!(Math.abs(rx) > 1.75 && Math.abs(ry) > 1.75)) { s.vx = f32(t.vx + f32(rx * 0.95)); s.vy = f32(t.vy + f32(ry * 0.95)); }
+  } else {
+    s.thrust = 0; s.desired = 0;
+    if (s.speed > 0) { s.speed = f32(s.speed - novaShipAccel(D, s)); if (s.speed < 0) s.speed = 0; }
+  }
+}
+
+/* AIAddFighterToParent 0x802a5: a fighter landed is one more in its
+   carrier's bay for its class (a bay empty till then starts its reload
+   over), and is gone. */
+function novaFighterAboard(w, f) {
+  const D = w.D, c = w.ships[f.leader];
+  if (c) for (const r of c.weap) {
+    const W = novaWeapOf(D, r.i);
+    if (!W || W.ammoType !== f.cls.id || W.guid !== 99 || !(r.count > 0)) continue;
+    if (r.ammo === 0 && r.reload < W.reload) r.reload = f32(W.reload);
+    r.ammo++;
+    f.leader = -1; f.ai = -1;
+    novaGone(w, f, 'landed');
+    return;
+  }
 }

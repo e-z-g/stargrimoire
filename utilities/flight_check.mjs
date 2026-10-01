@@ -55,7 +55,7 @@ const ship = (c, o = {}) => Object.assign({ slot: 1, cls: c, govt: -1, ai: 1, le
   thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1, goal: -2, gate: -1, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0 }, o);
 const world = (stellars = []) => {
   const st = new Map(stellars.map(sp => [sp.id, sp]));
-  const w = { D: { govts: new Map(), jumpTicks: 364, u: { stellars: st }, widths: new Map() }, si: { nav: stellars.map(sp => sp.id) }, random: S.novaRandom(1), ships: new Array(64).fill(null), t: 0, gone: [] };
+  const w = { D: { govts: new Map(), jumpTicks: 364, u: { stellars: st }, widths: new Map() }, si: { nav: stellars.map(sp => sp.id) }, random: S.novaRandom(1), ships: new Array(64).fill(null), last: new Array(64).fill(null), t: 0, gone: [] };
   w.rand = n => w.random.rand(n); return w;
 };
 // a step of one ship: its AI, then HandleShip, as novaFlightStep runs them
@@ -154,7 +154,7 @@ function oddsHold(counts, weights) {
 if (haveRelease('1.1.1')) {
   const game = openRelease(S, '1.1.1', ROLES), u = S.novaUniverse(game), D = S.novaFlightData(u);
   const sol = u.systems.find(s => s.name === 'Sol'), rec = sol.rec;
-  const w = { D, sys: sol, si: S.novaSysInfo(D, sol), state: {}, random: S.novaRandom(7), ships: [] };
+  const w = { D, sys: sol, si: S.novaSysInfo(D, sol), state: {}, random: S.novaRandom(7), ships: [], last: new Array(64).fill(null) };
   w.rand = n => w.random.rand(n); w.holds = () => true;
   const N = 200000, valid = i => rec.DudeTypes[i] >= 128 && D.dudes.has(rec.DudeTypes[i]);
   const counts = new Array(8).fill(0);

@@ -604,6 +604,46 @@ function linkJumps(l, m) {
   if (b !== undefined && (!l.oneWay || !l.forward)) j = Math.min(j, b + 1);
   return j;
 }
+/* The links as lines through stations, as metro maps draw them (the maintainer's asking, 30 September
+   2026): at each place the links shown paired as a line runs on through it (subwayPairs, as the subway
+   map pairs them, from where the places truly are), the pairs joined into lines, and each line one of
+   METRO_COLOURS, a different one from every line it meets where there is one. EV Nova has no lines;
+   these are made from the way the links run. */
+const METRO_COLOURS = ['#e8433a', '#3fa9f5', '#3cb44b', '#ffd23f', '#c45ec8', '#ff8c2a', '#f58fb5', '#2ec4b6', '#a6d64a', '#b98c5a', '#8fa6ff', '#e0e0e0'];
+let LINE_COLOURS = null;
+function lineColours() {
+  if (LINE_COLOURS && LINE_COLOURS.links === LINKS && LINE_COLOURS.places === PLACES) return LINE_COLOURS.map;
+  const pi = new Map(PLACES.map((p, i) => [p, i])), pos = PLACES.map(p => ({ x: p.tx, y: p.ty }));
+  const links = [], seen = new Map(), of = [];
+  for (const l of LINKS) {
+    const a = pi.get(PLACE_OF.get(l.from.id)), b = pi.get(PLACE_OF.get(l.to.id));
+    if (a === undefined || b === undefined || a === b) continue;
+    const k = Math.min(a, b) + ',' + Math.max(a, b);
+    if (!seen.has(k)) { seen.set(k, links.length); links.push([Math.min(a, b), Math.max(a, b)]); }
+    of.push([l, seen.get(k)]);
+  }
+  // the lines: links joined where a pair runs through a place
+  const up = links.map((_, e) => e), find = e => { while (up[e] !== e) e = up[e] = up[up[e]]; return e; };
+  for (const m of subwayPairs(pos, links)) for (const [e, f] of m) up[find(e)] = find(f);
+  const members = new Map();
+  links.forEach((_, e) => { const r = find(e); if (!members.has(r)) members.set(r, []); members.get(r).push(e); });
+  const placesOf = new Map([...members].map(([r, es]) => [r, new Set(es.flatMap(e => links[e]))]));
+  const at = PLACES.map(() => new Set());
+  for (const [r, ps] of placesOf) for (const p of ps) at[p].add(r);
+  // longest first, each the least used colour no line it meets has
+  const colour = new Map(), used = METRO_COLOURS.map(() => 0);
+  for (const r of [...members.keys()].sort((a, b) => members.get(b).length - members.get(a).length || a - b)) {
+    const taken = new Set();
+    for (const p of placesOf.get(r)) for (const o of at[p]) if (colour.has(o)) taken.add(colour.get(o));
+    let c = -1;
+    for (let q = 0; q < METRO_COLOURS.length; q++) if (!taken.has(q) && (c < 0 || used[q] < used[c])) c = q;
+    if (c < 0) c = used.indexOf(Math.min(...used));
+    colour.set(r, c); used[c]++;
+  }
+  const map = new Map(of.map(([l, e]) => [l, METRO_COLOURS[colour.get(find(e))]]));
+  LINE_COLOURS = { links: LINKS, places: PLACES, map };
+  return map;
+}
 function jumpColor(j) {
   if (j === Infinity) return 'rgba(125,145,180,0.18)';
   return turbo(jumpT(JUMPS.max > 1 ? (j - 1) / (JUMPS.max - 1) : 0));
@@ -761,7 +801,7 @@ function drawLinks(ctx) {
     const cut = trimPath(pts, a, b);
     if (cut) segs.push({ l, pts: cut });
   }
-  ctx.lineWidth = 1 + subMix() + (LINKS_BY === 'plain' ? 0 : 0.5);
+  ctx.lineWidth = 1 + subMix() + (LINKS_BY === 'plain' ? 0 : LINKS_BY === 'lines' ? 1.5 : 0.5);
   ctx.lineJoin = 'round';
   // corners rounded, as the maintainer asked: an arc of up to 0.7 of a grid step, never more
   // than half of either piece it joins, coming in as the subway map does
@@ -775,6 +815,10 @@ function drawLinks(ctx) {
         g.addColorStop(0, linkColor(s.l.from.govt)); g.addColorStop(1, linkColor(s.l.to.govt));
         ctx.strokeStyle = g; ctx.beginPath(); trace(s); ctx.stroke();
       }
+    } else if (LINKS_BY === 'lines') {
+      const cs = lineColours(), by = new Map();
+      for (const s of segs) { const c = cs.get(s.l) || 'rgba(125,145,180,0.55)'; if (!by.has(c)) by.set(c, []); by.get(c).push(s); }
+      for (const [c, list] of by) { ctx.strokeStyle = c; ctx.beginPath(); for (const s of list) trace(s); ctx.stroke(); }
     } else if (jumps) {
       const by = new Map();
       for (const s of segs) { const c = jumpColor(linkJumps(s.l, jumps)); if (!by.has(c)) by.set(c, []); by.get(c).push(s); }

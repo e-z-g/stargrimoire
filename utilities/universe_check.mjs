@@ -57,6 +57,27 @@ eq('gate open, the split between', frames(sp(0x1001, 1), 6, 10, true), [1, 2, 3,
 eq('gate closing', frames(sp(0x1000, 1), 6, 6, false, [], gate), [4, 5, 2, 1, 0, 0]);
 eq('landing picture',[S.novaLandingPict({ CustPicID: 11004, Type: 22 }), S.novaLandingPict({ CustPicID: -1, Type: 6 }), S.novaLandingPict({ CustPicID: 37, Type: 1 })], [11004, 10006, 10001]);
 
+// Wormholes in 1.0.10 (Mac 0x192a10), with every system shown but those named.
+if (haveRelease('1.0.10')) {
+  const g = openRelease(S, '1.0.10'), u = S.novaUniverse(g), all = S.novaShownSystems(u, null);
+  const at = (shown, id) => S.novaStellarSystem(u, id, shown);
+  const newGame = S.novaShownSystems(u, { bits: new Set() });
+  const randoms = [...u.stellars.values()].filter(S.novaRandomWormhole).filter(sp => at(newGame, sp.id) && at(newGame, sp.id).id !== 130);
+  // Sol's (465) has no HyperLink: the n-th of the others, in stellar order
+  const trip = S.novaWormholeTrip(u, newGame, u.stellars.get(465), u.byId.get(130), n => { eq('Sol\'s wormhole picks among', n, randoms.length); return 3; });
+  eq('Sol\'s wormhole at a new game', trip.to && [trip.to.spob.id, trip.to.sys.id], [randoms[3].id, at(newGame, randoms[3].id).id]);
+  // "Link" in S7evyn (514) names Obatta's (468), in Obatta (155)
+  const s7 = at(all, 514), link = S.novaWormholeTrip(u, all, u.stellars.get(514), s7, () => 0);
+  eq('Link to Obatta', link.to && [link.to.spob.id, link.to.sys.id], [468, 155]);
+  // wormhole 466 is Spica's, so from K-005, which lists it too, it refuses
+  const k005 = [...u.byId.values()].find(s => s.name === 'K-005' && s.stellars.includes(466));
+  eq('466 from K-005', k005 && !!S.novaWormholeTrip(u, all, u.stellars.get(466), k005, () => 0).refused, true);
+  // with no shown system listing a random wormhole but Sol's, nowhere to go
+  const others = new Set([...u.stellars.values()].filter(S.novaRandomWormhole).map(sp => sp.id).filter(id => id !== 465));
+  const alone = new Set([...newGame].filter(id => !u.byId.get(id).stellars.some(t => others.has(t))));
+  eq('Sol\'s wormhole alone', !!S.novaWormholeTrip(u, alone, u.stellars.get(465), u.byId.get(130), () => 0).refused, true);
+}
+
 // ---- every release ---------------------------------------------------------
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }

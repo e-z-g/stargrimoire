@@ -409,6 +409,19 @@ try {
             await new Promise(r => setTimeout(r, 300));
             return { frames: seen.size, onScreen, pocket, off: { seen: ANIM_SEEN.size, ticking: ANIM_TICK !== null, still: (STELLAR_ANIM.get(465) || {}).cur === before } };
           })()`);
+          // Going in on Sol's wormhole: through it, out of a random wormhole elsewhere, the system
+          // you are in that one's, with it chosen; and from the address, Sol's shown, not gone through.
+          out.trip = await p.evaluate(`(async () => {
+            const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
+            await show('system', { sys: 130 }); await idle();
+            await show('planet', { sys: 130, stellar: 465 }); await idle();
+            const sp = VIEW.sel && U.stellars.get(VIEW.sel.id);
+            const went = { mode: VIEW.mode, sys: VIEW.sys, kind: sp && novaGateKind(sp), own: sp && (novaStellarSystem(U, sp.id, SHOWN) || {}).id, page: $('planet').classList.contains('on'), hash: location.hash, fade: $('fade').style.opacity };
+            history.replaceState(null, '', '#stellar=465&system=130'); applyHash(); await new Promise(r => setTimeout(r, 100)); await idle();
+            const hash = { mode: VIEW.mode, sys: VIEW.sys, sel: VIEW.sel, page: $('planet').classList.contains('on') };
+            await show('galaxy', {}, true); await idle();
+            return { went, hash };
+          })()`);
           // Stellars as you zoom in, off: Sol stays a dot however near, opens when gone to, and
           // closes again when zoomed out of; and the details hidden and shown.
           out.stellars = await p.evaluate(`(async () => {
@@ -499,6 +512,11 @@ try {
       const an = o.anim;
       if (!(an.frames >= 10) || !an.onScreen || an.pocket !== 1.16 || an.off.seen || an.off.ticking || !an.off.still) fail(`${dev.name}: Sol's wormhole animating: ${JSON.stringify(an)}`);
       console.log(`${dev.name}: Sol's wormhole in its pocket in Sol's first view, ${an.frames} frames in 1.5 s, and stopped off the screen`);
+      const tr = o.trip;
+      if (tr.went.mode !== 'system' || tr.went.sys === 130 || tr.went.kind !== 'wormhole' || tr.went.own !== tr.went.sys || tr.went.page || !new RegExp('system=' + tr.went.sys).test(tr.went.hash) || tr.went.fade !== '0')
+        fail(`${dev.name}: through Sol's wormhole: ${JSON.stringify(tr.went)}`);
+      if (tr.hash.mode !== 'system' || tr.hash.sys !== 130 || !tr.hash.sel || tr.hash.sel.id !== 465 || tr.hash.page) fail(`${dev.name}: Sol's wormhole from the address: ${JSON.stringify(tr.hash)}`);
+      console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through`);
       const st = o.stellars;
       if (st.near.most !== 0 || st.near.mode !== 'galaxy') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
       if (st.went.mode !== 'system' || st.went.sys !== 130 || st.went.open !== 1) fail(`${dev.name}: without the stellars, going to Sol: ${JSON.stringify(st.went)}`);

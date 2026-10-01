@@ -318,6 +318,25 @@ function novaGateKind(spob) { return spob.Flags2 & 0x2000 ? 'wormhole' : spob.Fl
 function novaGateTargets(spob) { return (spob.HyperLink || []).filter(h => h >= 128); }
 function novaRandomWormhole(spob) { return !!(spob.Flags2 & 0x2000) && novaGateTargets(spob).length === 0; }
 
+/* Going through a wormhole from the system you are in, `here`, with the
+   systems `shown`, as the program does it: { to: { sys, spob } }, or
+   { refused: true } where it gives the radiation message (STR# 2002, 84
+   and 86). Landing's checks come first (0x1932c0): the wormhole can be
+   landed on (novaCanLand) and is the system's own. Then 0x192a10: one with
+   a HyperLink set tries its slots at random until one names a stellar in a
+   shown system, which is a pick among those slots, a stellar named twice
+   counting twice; one with none set picks among the wormholes with none
+   set that belong to a shown system other than `here`, whether or not they
+   can themselves be entered. `rand(n)` is a whole number from 0 to n - 1. */
+function novaWormholeTrip(u, shown, spob, here, rand) {
+  const own = id => novaStellarSystem(u, id, shown), home = own(spob.id);
+  if (novaGateKind(spob) !== 'wormhole' || !novaCanLand(spob) || !home || home.id !== here.id) return { refused: true };
+  const pool = novaGateTargets(spob).length
+    ? (spob.HyperLink || []).filter(t => t >= 128 && u.stellars.has(t) && own(t)).map(t => ({ sys: own(t), spob: u.stellars.get(t) }))
+    : [...u.stellars.values()].filter(novaRandomWormhole).map(sp => ({ sys: own(sp.id), spob: sp })).filter(x => x.sys && x.sys.id !== here.id);
+  return pool.length ? { to: pool[rand(pool.length)] } : { refused: true };
+}
+
 /* The gates on the map for the shown systems: `links`, each pair of shown
    systems once, with its kind (that of the gate it leaves from), whether
    it runs both ways, as novaShownLinks has it, and `gates`, the stellars at

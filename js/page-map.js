@@ -1688,6 +1688,41 @@ async function rise(quick) {
   fadeTo(0);
 }
 
+/* Going in on a wormhole is going through it (novaWormholeTrip): the fall
+   into it, and the rise out of the wormhole it leads to, in that system, as
+   the maintainer asked (1 October 2026). Where the program would refuse,
+   its message, over the map. */
+async function wormholeTrip(sys, sp, quick) {
+  OPEN_SYS = sys.id;
+  if (VIEW.mode !== 'system' || VIEW.sys !== sys.id) { VIEW.sys = sys.id; await flyTo(systemView(sys), quick); }
+  VIEW.mode = 'system'; VIEW.sys = sys.id; VIEW.sel = { kind: 'stellar', id: sp.id };
+  const trip = novaWormholeTrip(U, SHOWN, sp, sys, n => Math.floor(Math.random() * n));
+  if (!trip.to) {
+    const l = novaStrings(GAME, 2002);
+    mapNote(l[83] && l[85] ? `${l[83]} ${l[85]}` : 'This wormhole cannot be entered.');
+    return;
+  }
+  if (!quick) { const f = fallView(sys, sp); await zoomVia(f.x, f.y, f, TUNE.animMs, 'in', fadeTo); }
+  const to = trip.to.sys, back = systemView(to);
+  OPEN_SYS = to.id; VIEW.sys = to.id; VIEW.sel = { kind: 'stellar', id: trip.to.spob.id };
+  if (!quick) {
+    const f = fallView(to, trip.to.spob);
+    Object.assign(CAM, f);
+    fadeTo(1);
+    await zoomVia(f.x, f.y, back, TUNE.animMs, 'out', e => fadeTo(1 - e));
+  }
+  Object.assign(CAM, back);
+  fadeTo(0);
+}
+// A message over the map for a few seconds.
+let NOTE_TIMER = null;
+function mapNote(text) {
+  const n = $('mapNote');
+  n.textContent = text; n.hidden = false;
+  clearTimeout(NOTE_TIMER);
+  NOTE_TIMER = setTimeout(() => { n.hidden = true; }, 4000);
+}
+
 let MOVING = false;
 async function show(mode, opts, instant) {
   if (MOVING) return;
@@ -1717,6 +1752,14 @@ async function show(mode, opts, instant) {
         await flyTo(to, quick);
       }
       VIEW.mode = 'system'; VIEW.sys = sys.id; VIEW.stellar = null;
+    } else if (mode === 'planet' && VIEW.mode !== 'planet' && novaGateKind(U.stellars.get(opts.stellar)) === 'wormhole') {
+      // from the address, the wormhole shown, not gone through
+      if (opts.fromHash) {
+        const sys = U.byId.get(opts.sys);
+        OPEN_SYS = sys.id; VIEW.sys = sys.id;
+        await flyTo(systemView(sys), quick);
+        VIEW.mode = 'system'; VIEW.stellar = null; VIEW.sel = { kind: 'stellar', id: opts.stellar };
+      } else await wormholeTrip(U.byId.get(opts.sys), U.stellars.get(opts.stellar), quick);
     } else if (mode === 'planet' && VIEW.mode !== 'planet') {
       const sys = U.byId.get(opts.sys), sp = U.stellars.get(opts.stellar);
       OPEN_SYS = sys.id;
@@ -2272,7 +2315,7 @@ function stellarPanel(sp) {
     <div class="sub">spöb ${sp.id}${typeName ? ' · ' + esc(typeName) : ''} · ${esc(govtName(sp.Govt))}</div>
     <div class="actions">
       ${VIEW.mode === 'planet' ? `<button data-go="system">Back to ${esc(U.byId.get(VIEW.sys).name)}</button>`
-        : sysHere !== undefined ? `<button data-land="${sp.id}" data-in="${sysHere}">${(f & 1) && !gate ? 'Land' : 'Look closer'}</button>` : ''}
+        : sysHere !== undefined ? `<button data-land="${sp.id}" data-in="${sysHere}">${(f & 1) && !gate ? 'Land' : novaGateKind(sp) === 'wormhole' ? 'Go through' : 'Look closer'}</button>` : ''}
     </div>
     <table class="kv">
       ${kvRow('Services', esc(services || 'none'))}

@@ -96,8 +96,8 @@ const SUBWAY_STORE = 'stargrimoire-subway';
    degrees only where needed (mixed) brings 22.5 degrees with it; busy
    stations as points, not bars (dots), means something only with
    headings kept, and is dropped without. */
-const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'heading', dots: 'dots' };
-function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading)) || (k === 'fine' && on.mixed)).join('-') || '45'; }
+const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'heading', dots: 'dots', side: 'side' };
+function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading) && (k !== 'side' || (on.heading && on.names))) || (k === 'fine' && on.mixed)).join('-') || '45'; }
 function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(SUBWAY_WORDS).filter(k => f[k]).map(k => SUBWAY_WORDS[k]).join(','); }
 function subwayFromAddress(text) { const w = (text || '').split(','); return subwayKind(Object.fromEntries(Object.entries(SUBWAY_WORDS).map(([k, v]) => [k, w.includes(v)]))); }
 
@@ -1523,10 +1523,11 @@ function useSub(sub) {
 // The switches as a kind of map says: the one wanted, which may be on its way.
 function syncOpts(kind = LAYOUT.want) {
   $('optSubway').checked = !!kind;
-  if (kind) { const f = subwayFlags(kind); $('optFine').checked = f.fine; $('optMixed').checked = f.mixed; $('optRoom').checked = f.names; $('optHeading').checked = f.heading; $('optBars').checked = !f.dots; }
+  if (kind) { const f = subwayFlags(kind); $('optFine').checked = f.fine; $('optMixed').checked = f.mixed; $('optRoom').checked = f.names; $('optHeading').checked = f.heading; $('optBars').checked = !f.dots; $('optSide').checked = f.side; }
   $('optFine').disabled = $('optRoom').disabled = $('optHeading').disabled = !kind;
   $('optMixed').disabled = !kind || !$('optFine').checked;
   $('optBars').disabled = !kind || !$('optHeading').checked;
+  $('optSide').disabled = !kind || !$('optHeading').checked || !$('optRoom').checked;
 }
 // At once, as when the address asks for a map, once it is ready; kind null
 // is the true positions.
@@ -2302,8 +2303,8 @@ function wireTools() {
   document.addEventListener('pointerdown', e => { if (!opts.hidden && !opts.contains(e.target) && e.target !== btn) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !opts.hidden) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   // only where needed is a way of having 22.5 degrees, and goes with them
-  const chosen = () => ($('optSubway').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked }) : null);
-  for (const id of ['optSubway', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars']) $(id).onchange = () => setLayout(chosen());
+  const chosen = () => ($('optSubway').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null);
+  for (const id of ['optSubway', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide']) $(id).onchange = () => setLayout(chosen());
   $('optStellars').onchange = () => {
     STELLARS = $('optStellars').checked;
     OPEN_SYS = VIEW.mode !== 'galaxy' ? VIEW.sys : null;

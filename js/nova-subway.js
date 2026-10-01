@@ -150,10 +150,11 @@ function subwayModule() {
      first, `through` times a bend's cost, so that of two ways equally short the one that runs
      on from its neighbour is taken. */
   const SUBWAY_LINES = { apart: 2 * Math.PI / 3, turn: [0, 1, 1.5, 2, 3] };
-  // A kind of map is its switches joined by '-', in this order: names, fine, mixed, heading, dots; '45'
-  // is none. mixed is the 22.5-degree map with 22.5 degrees only where needed, and brings fine with it;
+  // A kind of map is its switches joined by '-', in this order: names, fine, mixed, heading, dots, side;
+  // '45' is none. side, on the map that keeps each link's heading with room for names, puts no name
+  // across a line from its own place (subwayLabels). mixed is the 22.5-degree map with 22.5 degrees only where needed, and brings fine with it;
   // dots, on the map that keeps each link's heading, draws every place as a point, no bars (subwayBars).
-  const subwayFlags = kind => { const f = String(kind || '45').split('-'); return { names: f.includes('names'), fine: f.includes('fine') || f.includes('mixed'), mixed: f.includes('mixed'), heading: f.includes('heading'), dots: f.includes('dots') }; };
+  const subwayFlags = kind => { const f = String(kind || '45').split('-'); return { names: f.includes('names'), fine: f.includes('fine') || f.includes('mixed'), mixed: f.includes('mixed'), heading: f.includes('heading'), dots: f.includes('dots'), side: f.includes('side') }; };
   // How far apart two directions are, 0 to pi.
   const subwayAngDiff = (a, b) => { const d = Math.abs(a - b) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d; };
   // Whether (dx, dy), along link e from its first end towards its second, keeps the link's heading.
@@ -1161,7 +1162,7 @@ function subwayModule() {
     else if (side) out.push({ ...subwayLabelSpot(x, y, (Math.abs(side) - 0.4) * Math.sign(side), 0, side > 0 ? 'left' : 'right', 'middle', Math.abs(side) - 0.4 + (side > 0 ? 0 : 0.05) - 0.5, tw, size), kept: true });
     return out.sort((a, b) => a.cost - b.cost);
   }
-  function subwayLabels(at, lines, textW, side, links, bars) {
+  function subwayLabels(at, lines, textW, side, links, bars, keepSide) {
     const { Math, Infinity } = globalThis; // looked up once: in node:vm, where the checks run, a global is a slow lookup
     const L = SUBWAY_LABEL, grow = (b, c) => ({ x0: b.x0 - c, x1: b.x1 + c, y0: b.y0 - c, y1: b.y1 + c });
     const hit = (a, o) => a.x0 < o.x1 && o.x0 < a.x1 && a.y0 < o.y1 && o.y0 < a.y1;
@@ -1191,6 +1192,18 @@ function subwayModule() {
       for (const w of placeAt.near(bp)) { const p = at[w]; if (w !== v && p.x > bp.x0 && p.x < bp.x1 && p.y > bp.y0 && p.y < bp.y1 && ++m >= stop) return m; }
       return m;
     };
+    // whether a line runs between v and its name's box, from v to the nearest point of the box: the
+    // maintainer disliked Nova's Hannaford and Canopus with their names across a line (30 September
+    // 2026), and with keepSide no name is put so where it can be put otherwise
+    const across = (v, b) => {
+      const p = at[v], q = { x: Math.max(b.x0, Math.min(b.x1, p.x)), y: Math.max(b.y0, Math.min(b.y1, p.y)) };
+      if (q.x === p.x && q.y === p.y) return false;
+      for (const i of segAt.near({ x0: Math.min(p.x, q.x), x1: Math.max(p.x, q.x), y0: Math.min(p.y, q.y), y1: Math.max(p.y, q.y) })) {
+        const [a, c] = segs[i];
+        if (subwayCross(p.x, p.y, q.x, q.y, a.x, a.y, c.x, c.y)) return true;
+      }
+      return false;
+    };
     // whether a name's box is as near another place as its own
     const toBox = (p, b) => Math.hypot(Math.max(b.x0 - p.x, 0, p.x - b.x1), Math.max(b.y0 - p.y, 0, p.y - b.y1));
     const unclear = (v, b) => { const own = Math.min(...ptsOf(v).map(p => toBox(p, b))) + L.near; for (const w of placeAt.near(grow(b, own))) if (w !== v && Math.min(...ptsOf(w).map(p => toBox(p, b))) < own) return true; return false; };
@@ -1198,7 +1211,8 @@ function subwayModule() {
     // places and nearer its own place than any other; a smaller name costs more
     const SIZE_PRICE = { 1: 0, 0.8: 4, 0.65: 8 };
     const spots = at.map((p, v) => [1, 0.8, 0.65].flatMap(size => subwayLabelSpots(p.x, p.y, textW[v], size, side ? side[v] : 0))
-      .map(sp => ({ ...sp, price: sp.cost + SIZE_PRICE[sp.size], ok: !fixed(v, sp.box, 1) && !unclear(v, sp.box) })).sort((a, b) => a.price - b.price));
+      .map(sp => ({ ...sp, price: sp.cost + SIZE_PRICE[sp.size], ok: !fixed(v, sp.box, 1) && !unclear(v, sp.box) })).sort((a, b) => a.price - b.price))
+      .map((list, v) => { if (!keepSide) return list; const mine = list.filter(sp => !across(v, sp.box)); return mine.length ? mine : list; });
     // the names out: v's spot, and how it stands -- 'ok', 'unclear' (as near another place), or
     // 'meets' (a line, a place or a name), each dearer than the last
     const out = new Array(at.length).fill(null), how = new Array(at.length).fill(null);
@@ -1236,7 +1250,7 @@ function subwayModule() {
       if (!better) break;
     }
     const count = f => out.filter((o, v) => f(o, how[v])).length;
-    return { labels: out, unnamed: count((o, h) => h === 'meets'), smaller: count(o => o.size < 1), unclear: count((o, h) => h === 'unclear'), kept: count(o => o.kept) };
+    return { labels: out, unnamed: count((o, h) => h === 'meets'), smaller: count(o => o.size < 1), unclear: count((o, h) => h === 'unclear'), kept: count(o => o.kept), across: out.filter((o, v) => across(v, o.box)).length };
   }
 
   /* The box a place's name takes, in grid steps, with the place at (x, y):
@@ -1629,8 +1643,8 @@ function subwayModule() {
     }
     // the links drawn with a piece that does not keep their heading (a 22.5-degree piece is held
     // within eps of its angle)
-    const labels = late ? subwayLabels(at, lines, names.map(c => c * T.charW), placed.side, links, bars) : null;
-    if (labels) Object.assign(stats, { unnamed: labels.unnamed, smaller: labels.smaller, unclear: labels.unclear, kept: labels.kept });
+    const labels = late ? subwayLabels(at, lines, names.map(c => c * T.charW), placed.side, links, bars, F.side) : null;
+    if (labels) Object.assign(stats, { unnamed: labels.unnamed, smaller: labels.smaller, unclear: labels.unclear, kept: labels.kept, across: labels.across });
     if (heading) stats.astray = lines.filter((l, e) => l && l.some((p, i) => i + 1 < l.length && !subwayHeadingOk(heading, e, l[i + 1].x - p.x, l[i + 1].y - p.y, F.fine ? SUBWAY_FINE.eps : 0))).length;
     // into the true bounding box, one scale both ways so the angles stay
     const box = ps => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const p of ps) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); } return { x0, y0, x1, y1 }; };

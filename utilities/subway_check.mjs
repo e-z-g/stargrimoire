@@ -467,6 +467,11 @@ for (const [kind, name] of KINDS.slice()) {
   const F = S.subwayFlags(kind), slack = F.fine ? S.SUBWAY_FINE.eps : 0, test = F.fine ? problemsFine : problems;
   KINDS.push([kind === '45' ? 'heading' : kind + '-heading', name + ', keeping headings', m => test(m).concat(problemsHeading(m, slack), F.names ? problemsLabels(m) : [], F.mixed ? problemsMixed(m) : [])]);
 }
+// names never across a line from their place (side): the map with every switch on, and no name so
+{
+  const all = KINDS.find(([k]) => k === 'names-fine-mixed-heading');
+  KINDS.push(['names-fine-mixed-heading-side', all[1] + ', no name across a line from its place', m => all[2](m).concat(m.layout.stats.across ? [`${m.layout.stats.across} names across a line from their places`] : [])]);
+}
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }
   const u = S.novaUniverse(openRelease(S, v));

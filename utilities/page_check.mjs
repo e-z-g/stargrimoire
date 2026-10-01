@@ -543,7 +543,20 @@ try {
         await wait(500);
         // Light in the ship's box, at one frame with the engines off and on.
         const lit = "(() => { const c = document.getElementById('shipCanvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0, sum = 0; for (let i = 0; i < d.length; i += 4) { const v = d[i] + d[i + 1] + d[i + 2]; if (v > 40) n++; sum += v; } return { n, sum }; })()";
-        out.list = await p.evaluate("({ rows: document.querySelectorAll('.shipRow').length, drawn: document.querySelectorAll('canvas.thumb.done').length, ships: GAME.list('shïp').length, on: (document.querySelector('.shipRow.on') || { dataset: {} }).dataset.ship })");
+        // one row a look, the Aurora Cruiser's open with it marked, shut and opened again by its row
+        out.list = await p.evaluate(`(() => {
+          const q = s => document.querySelectorAll(s).length;
+          const looks = new Set(GAME.list('shïp').map(e => { const l = shipLookOf(e.id); return l === null ? 's' + e.id : 'l' + l; })).size;
+          const out = { rows: q('.shipRow:not(.sub)'), looks, thumbs: q('canvas.thumb'), drawn: q('canvas.thumb.done'), ships: GAME.list('shïp').length,
+                        on: (document.querySelector('.shipRow.on') || { dataset: {} }).dataset.ship, count: document.getElementById('shipCount').textContent };
+          const head = document.querySelector('[data-look="l' + shipLookOf(154) + '"]');
+          out.open = !!head && head.getAttribute('aria-expanded') === 'true' && q('.shipRow.sub[data-ship="154"]') === 1;
+          if (head) head.click();
+          out.shut = q('.shipRow.sub[data-ship="154"]') === 0 && document.querySelector('[data-look="l' + shipLookOf(154) + '"]').getAttribute('aria-expanded') === 'false';
+          document.querySelector('[data-look="l' + shipLookOf(154) + '"]').click();
+          out.again = q('.shipRow.sub.on[data-ship="154"]') === 1;
+          return out;
+        })()`);
         out.turn = await p.evaluate("(async () => { const a = SHIP_ANIM.heading; await new Promise(r => setTimeout(r, 600)); return { a, b: SHIP_ANIM.heading, spin: SHIP_ANIM.spin }; })()");
         await shot('ship');
         await p.evaluate("SHIP_ANIM.spin = false; SHIP_ANIM.heading = 16; drawShip(SHIP_ANIM, document.getElementById('shipCanvas'))");
@@ -582,7 +595,8 @@ try {
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
     if (!r.met) { fail(`ships, ${dev.name}: the ships files did not finish opening`); continue; }
     const o = r.more;
-    if (o.list.rows !== o.list.ships || o.list.drawn !== o.list.rows || o.list.on !== '154') fail(`ships, ${dev.name}: the list: ${JSON.stringify(o.list)}`);
+    if (o.list.rows !== o.list.looks || !(o.list.looks < o.list.ships) || o.list.thumbs !== o.list.rows || o.list.drawn !== o.list.thumbs || o.list.on !== '154' || !o.list.open || !o.list.shut || !o.list.again)
+      fail(`ships, ${dev.name}: the list: ${JSON.stringify(o.list)}`);
     if (!o.turn.spin || o.turn.a === o.turn.b) fail(`ships, ${dev.name}: the Aurora Cruiser does not turn: ${JSON.stringify(o.turn)}`);
     if (o.off.n < 500) fail(`ships, ${dev.name}: the Aurora Cruiser is not drawn: ${o.off.n} lit pixels`);
     if (!(o.on.sum > o.off.sum)) fail(`ships, ${dev.name}: the engines add no light: ${o.off.sum} off, ${o.on.sum} on`);
@@ -592,7 +606,7 @@ try {
     if (!o.map.app || o.map.ships || !/^#galaxy/.test(o.map.hash)) fail(`ships, ${dev.name}: the Map switch: ${JSON.stringify(o.map)}`);
     if (!o.back.on || o.back.id !== 154 || !o.back.canvas || o.back.hash !== '#ship=154') fail(`ships, ${dev.name}: Back from the map: ${JSON.stringify(o.back)}`);
     if (!o.yard || o.yard.on || o.yard.mode !== 'system' || !o.yard.sel || o.yard.sel.id !== o.yard.id) fail(`ships, ${dev.name}: a shipyard link: ${JSON.stringify(o.yard)}`);
-    console.log(`ships, ${dev.name}: ${o.list.rows} ship classes listed and drawn; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
+    console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}`);
   }

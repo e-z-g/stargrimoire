@@ -25,7 +25,7 @@
    helpers (esc, resName, govtName, pictImage, asCanvas, fieldsTable,
    testLine, goStellar) it uses; page-map calls shipsFromHash at run time. */
 
-const SHIPS = { on: false, id: null, sort: 'yard', q: '', rows: null };
+const SHIPS = { on: false, id: null, sort: 'yard', q: '', rows: null, open: new Set(), shut: new Set() };
 const SHIP_SPRITES = new Map();   // image id -> novaShipSprite
 const SHIP_FRAMES = new Map();    // 'id:frame' -> canvas, the most recent few hundred
 const SHIP_FRAME_LIMIT = 600;
@@ -126,7 +126,7 @@ function shipsFilesChanged() {
   SHIP_LOOKS = null;
   for (const [k, v] of SHIP_SPRITES) if (v.kind === 'missing' || v.kind === 'pict') SHIP_SPRITES.delete(k);
   if (!SHIPS.on) return;
-  fillThumbs();
+  renderShipList();
   if (SHIPS.id === null) { renderShip(); return; }
   // Drawn again whole only while its sprites were missing; otherwise the
   // pictures, so a ship being turned is not reset.
@@ -140,6 +140,9 @@ function shipsReset() {
   SHIP_FRAMES.clear();
   SHIP_LOOKS = null;
   SHIPS.rows = null;
+  SHIPS.open.clear();
+  SHIPS.shut.clear();
+  SHIP_MARKED = null;
   stopShipAnim();
 }
 
@@ -155,24 +158,73 @@ function shipRowsData() {
   return out;
 }
 
+/* The ship classes that share a base sprite (shipLooks) are one row, which
+   opens to list them; the maintainer found the list long with the same
+   picture many times over (1 October 2026). 1.1.1's 288 classes have 65
+   base sprites, 16 classes on the Abomination's. Until the ships files are
+   read there are no sprites to go by, and every class is a row. A look's
+   row is named for its classes' names, and a search opens every look with
+   a class that matches. */
+function shipLookOf(id) {
+  const b = GAME.get('shän', id);
+  return b && b.bytes.length >= 2 ? i16be(b.bytes, 0) : null;
+}
 function renderShipList() {
   SHIPS.rows = shipRowsData();
   const q = SHIPS.q.trim().toLowerCase();
-  let rows = SHIPS.rows.filter(r => !q || String(r.id) === q || [r.name, r.sub, r.note || ''].some(t => t.toLowerCase().includes(q)));
-  if (SHIPS.sort === 'yard') rows = rows.slice().sort((a, b) => b.weight - a.weight || a.id - b.id);
-  $('shipCount').textContent = rows.length === SHIPS.rows.length ? `${rows.length} ship classes` : `${rows.length} of ${SHIPS.rows.length}`;
-  $('shipRows').innerHTML = rows.map(r =>
-    `<a class="shipRow" data-ship="${r.id}"><canvas class="thumb" width="44" height="44"></canvas>` +
+  const match = r => !q || String(r.id) === q || [r.name, r.sub, r.note || ''].some(t => t.toLowerCase().includes(q));
+  let all = SHIPS.rows;
+  if (SHIPS.sort === 'yard') all = all.slice().sort((a, b) => b.weight - a.weight || a.id - b.id);
+  const groups = new Map();
+  for (const r of all) {
+    const look = shipLookOf(r.id), k = look === null ? 's' + r.id : 'l' + look;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  const shown = all.filter(match).length;
+  const looks = [...groups.values()].filter(g => g.some(match)).length;
+  $('shipCount').textContent = (shown === all.length ? `${shown} ship classes` : `${shown} of ${all.length}`) +
+    (looks < shown ? `, ${looks} looks` : '');
+  const row = (r, sub) =>
+    `<a class="shipRow${sub ? ' sub' : ''}" data-ship="${r.id}">${sub ? '' : '<canvas class="thumb" width="44" height="44"></canvas>'}` +
     `<span class="nm">${esc(r.name)}${r.sub || r.note !== null ? `<small>${esc(r.sub)}${r.note !== null ? `<i>${r.sub ? ' ' : ''};${esc(r.note)}</i>` : ''}</small>` : ''}</span>` +
-    `<span class="id">${r.id}</span></a>`).join('');
+    `<span class="id">${r.id}</span></a>`;
+  let html = '';
+  for (const [k, g] of groups) {
+    const members = g.filter(match);
+    if (!members.length) continue;
+    if (g.length === 1) { html += row(g[0], false); continue; }
+    const open = !!q || SHIPS.open.has(k), names = [...new Set(g.map(r => r.name))];
+    html += `<a class="shipRow look" data-look="${k}" data-thumb="${g[0].id}" aria-expanded="${open}"><canvas class="thumb" width="44" height="44"></canvas>` +
+      `<span class="nm">${esc(names.join(' / '))}<small>${g.length} ship classes</small></span>` +
+      `<span class="count">${open ? '▾' : '▸'}</span></a>`;
+    if (open) html += members.map(r => row(r, true)).join('');
+  }
+  const top = $('shipRows').scrollTop;
+  $('shipRows').innerHTML = html;
+  $('shipRows').scrollTop = top;
   markShipRow();
   fillThumbs();
 }
 
+// The chosen ship's row marked, and scrolled to when the choice is new. Its
+// look is opened whenever the row is hidden in it, unless that look was
+// shut by hand since the ship was chosen: the ships files arrive in parts,
+// and a look gains its classes as they do.
+let SHIP_MARKED = null, SHIP_SCROLL = false;
 function markShipRow() {
   for (const a of $('shipRows').querySelectorAll('.shipRow.on')) a.classList.remove('on');
-  const a = SHIPS.id !== null && $('shipRows').querySelector(`[data-ship="${SHIPS.id}"]`);
-  if (a) { a.classList.add('on'); a.scrollIntoView({ block: 'nearest' }); }
+  if (SHIPS.id === null) { SHIP_MARKED = null; return; }
+  const look = shipLookOf(SHIPS.id), k = look === null ? null : 'l' + look;
+  if (SHIPS.id !== SHIP_MARKED) { SHIP_MARKED = SHIPS.id; SHIP_SCROLL = true; if (k) SHIPS.shut.delete(k); }
+  const a = $('shipRows').querySelector(`[data-ship="${SHIPS.id}"]`);
+  if (a) {
+    a.classList.add('on');
+    if (SHIP_SCROLL) { SHIP_SCROLL = false; a.scrollIntoView({ block: 'nearest' }); }
+  } else if (k && !SHIPS.open.has(k) && !SHIPS.shut.has(k)) {
+    SHIPS.open.add(k);
+    renderShipList();
+  }
 }
 
 /* Each row's picture is the first frame of its base sprite, drawn a few
@@ -186,7 +238,7 @@ function fillThumbs() {
     const t0 = performance.now();
     while (todo.length && performance.now() - t0 < 12) {
       const c = todo.shift();
-      const id = +c.parentNode.dataset.ship;
+      const id = +(c.parentNode.dataset.thumb || c.parentNode.dataset.ship);
       const b = GAME.get('shän', id);
       if (!b) continue;
       const spr = shipSprite(i16be(b.bytes, 0));
@@ -530,6 +582,15 @@ function wireShips() {
     else if (a.dataset.view === 'map' && SHIPS.on) shipsLeave();
   });
   const onClick = e => {
+    const look = e.target.closest('[data-look]');
+    if (look && SHIPS.on) {
+      e.preventDefault();
+      const k = look.dataset.look;
+      if (SHIPS.open.delete(k)) SHIPS.shut.add(k);
+      else { SHIPS.open.add(k); SHIPS.shut.delete(k); }
+      renderShipList();
+      return;
+    }
     const a = e.target.closest('[data-ship],[data-ships],[data-stellar]');
     if (!a || !SHIPS.on) return;
     e.preventDefault();

@@ -24,6 +24,7 @@ const CHECKS = [
   ['bits', 'every control-bit test and set read as Drydock reads it'],
   ['missions', 'storylines from Ambrosia\'s notes, place codes, and the wiki as a check'],
   ['ships', 'the Bible\'s rules for ships, and every release\'s ships through them'],
+  ['flight', 'ships in flight: worked figures from Mac 1.1.1\'s code, and the records\' odds'],
   ['subway', 'the subway maps: 45 and 22.5 degrees, room for names, the same map twice'],
   ['labels', 'names placed once for every zoom: none goes, moves or meets another'],
   ['page', 'index.html in headless Chrome'],

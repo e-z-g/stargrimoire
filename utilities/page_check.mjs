@@ -53,8 +53,10 @@
 //     row and a drawn picture for every ship class, the ship turns and is
 //     drawn, turning the engines on adds light, its three pictures are
 //     drawn, the Map switch goes to the map and Back returns to the ship,
-//     and a shipyard in its list goes to that stellar on the map -- on both
-//     screens, and on the phone the list gives way to the ship and back.
+//     and a shipyard in its list goes to that stellar on the map, where
+//     the system's ships fly about thirty steps a second and Pause stops
+//     them -- on both screens, and on the phone the list gives way to the
+//     ship and back.
 // SHOTS=<dir> keeps a screenshot of each view.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -624,6 +626,23 @@ try {
           for (let i = 0; i < 60 && MOVING; i++) await new Promise(r => setTimeout(r, 100));
           return { id, sel: VIEW.sel, mode: VIEW.mode, on: SHIPS.on, hash: location.hash };
         })()`);
+        // Ships in the system that link went to: set up, stepped, drawn, and the panel's clock.
+        out.flight = await p.evaluate(`(async () => {
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          for (let i = 0; i < 50 && !FLIGHT.world; i++) await wait(100);
+          if (!FLIGHT.world) return null;
+          const live = () => FLIGHT.world.ships.filter(Boolean);
+          const at = live().map(s => s.x + ',' + s.y).join(' '), t = FLIGHT.world.t;
+          await wait(1000);
+          const out = { ships: live().length, steps: FLIGHT.world.t - t, moved: live().map(s => s.x + ',' + s.y).join(' ') !== at,
+                        panel: !!document.querySelector('#panel [data-flight=pause]') };
+          document.querySelector('#panel [data-flight=pause]').click();
+          const t2 = FLIGHT.world.t; await wait(500);
+          out.paused = FLIGHT.world.t === t2;
+          document.querySelector('#panel [data-flight=pause]').click();
+          return out;
+        })()`);
+        await shot('flight');
         return out;
       } });
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
@@ -640,9 +659,11 @@ try {
     if (!o.map.app || o.map.ships || !/^#galaxy/.test(o.map.hash)) fail(`ships, ${dev.name}: the Map switch: ${JSON.stringify(o.map)}`);
     if (!o.back.on || o.back.id !== 154 || !o.back.canvas || o.back.hash !== '#ship=154') fail(`ships, ${dev.name}: Back from the map: ${JSON.stringify(o.back)}`);
     if (!o.yard || o.yard.on || o.yard.mode !== 'system' || !o.yard.sel || o.yard.sel.id !== o.yard.id) fail(`ships, ${dev.name}: a shipyard link: ${JSON.stringify(o.yard)}`);
+    const fl = o.flight;
+    if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.ships && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
-                ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}`);
+                ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);
   }
 
   // The Community Edition's zip of .rez files, and a plug-in chosen out of

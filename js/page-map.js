@@ -210,7 +210,7 @@ function stellarImage(sp, img) {
   if (!f) return img;
   let a = STELLAR_ANIM.get(sp.id);
   if (!a) STELLAR_ANIM.set(sp.id, a = novaStellarAnimState());
-  if ((sp.Flags2 & 0x1000) && a.cur === 0 && !ENGAGED.has(sp.id)) return img;
+  if ((sp.Flags2 & 0x1000) && a.cur === 0 && !ENGAGED.has(sp.id) && !flightEngaged(sp.id)) return img;
   ANIM_SEEN.add(sp.id);
   const n = a.cur;
   if (n === 0) return img;
@@ -234,7 +234,7 @@ function stellarAnimLoop(now) {
   for (; ANIM_DUE >= 1; ANIM_DUE--) {
     for (const id of ANIM_SEEN) {
       const sp = U.stellars.get(id), f = sp && spriteFrames(sp), a = STELLAR_ANIM.get(id);
-      if (f && a && novaStellarAnimStep(sp, a, f.count, 1, ENGAGED.has(id), rand)) changed = true;
+      if (f && a && novaStellarAnimStep(sp, a, f.count, 1, ENGAGED.has(id) || flightEngaged(id), rand)) changed = true;
     }
   }
   if (changed) redraw();
@@ -261,6 +261,7 @@ function mapStart(fresh) {
   NEB_SUB.clear();
   if (kind) setLayoutNow(kind);
   shipsReset();
+  flightReset();
   $('start').hidden = true;
   $('views').hidden = false;
   if (!SHIPS.on) $('app').hidden = false;
@@ -547,6 +548,7 @@ function draw() {
   drawGates(ctx);
   drawDots(ctx);
   for (const d of DRAWN) if (d.t > 0) drawStellars(ctx, d, d.p === cur);
+  drawFlight(ctx, cur && DRAWN.find(d => d.p === cur));
   drawSystemLabels(ctx);
   drawNebulaNames(ctx);
   drawSelection(ctx);
@@ -2318,6 +2320,7 @@ function systemPanel(sys) {
       ${kvRow('People', pers.join('<br>'))}
       ${kvRow('Reinforcements', r.ReinfFleet >= 128 ? `${esc(resName('flët', r.ReinfFleet))}, after ${(r.ReinfTime / 30).toFixed(1)} s, again after ${r.ReinfIntrval} day${r.ReinfIntrval === 1 ? '' : 's'}` : '')}
     </table>
+    ${flightPanel(sys)}
     <h3>Space</h3>
     <table class="kv">
       ${kvRow('Asteroids', r.Asteroids ? `${r.Asteroids}${roids.length ? ': ' + roids.join(', ') : ''}` : 'none')}
@@ -2592,7 +2595,7 @@ function tapAt(sx, sy, dbl) {
 
 function wirePanel() {
   const onClick = e => {
-    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-gate-to],[data-gate-cancel]');
+    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-gate-to],[data-gate-cancel],[data-flight]');
     if (!a) return;
     e.preventDefault();
     const d = a.dataset;
@@ -2606,6 +2609,7 @@ function wirePanel() {
     if (d.ship !== undefined) { shipsShow(+d.ship); return; }
     if (d.gateTo !== undefined) { hypergateGo(+d.gateTo); return; }
     if (d.gateCancel !== undefined) { gatePickEnd(); renderPanel(); redraw(); return; }
+    if (d.flight !== undefined) { flightControl(d.flight); return; }
     while (VIEW.sel && OVER_KINDS.has(VIEW.sel.kind)) VIEW.sel = VIEW.sel.back || null;
     if (d.routeFrom !== undefined) setRoute(+d.routeFrom, null);
     else if (d.routeTo !== undefined) setRoute(ROUTE.from, +d.routeTo);
@@ -2665,6 +2669,7 @@ function wireTools() {
     OPEN_SYS = VIEW.mode !== 'galaxy' ? VIEW.sys : null;
     redraw();
   };
+  $('optShips').onchange = () => flightSwitch($('optShips').checked);
   $('linkSel').onchange = () => { LINKS_BY = $('linkSel').value; JUMPS = { from: null }; renderLegend(); redraw(); };
   $('optNames').onchange = () => { NAMES = $('optNames').checked; redraw(); };
   // The corner: the details beside the map (below it on a phone) hidden or shown, and full screen

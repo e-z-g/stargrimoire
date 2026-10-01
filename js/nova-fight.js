@@ -1144,10 +1144,9 @@ function novaSpawnShot(w, owner, target, i, isSub) {
   if (fromShip) {
     sh.x = s.x; sh.y = s.y; sh.vx = s.vx; sh.vy = s.vy; hd = Math.trunc(s.heading);
     if ((g === 4 || g === 7 || g === 8) && t) { hd = novaBearing(s.x, s.y, t.x, t.y); turret = true; }
-    if (g === 5) { sh.vx = f32(sh.vx * 0.8); sh.vy = f32(sh.vy * 0.8); }
   }
   if (s && owner > 0 && !sh.dis && t && !t.disabled && (s.state === 0xd || (s.state === 4 && s.mode === 0xf)) && s.primary === target) sh.dis = true;
-  if (fromShip) sh.dodge = g === 4 || g === 9 ? w.rand(novaClassFight(D, s.cls).dodge) + 1 : -1;
+  if (fromShip) { const dg = novaClassFight(D, s.cls).dodge; sh.dodge = g === 4 || g === 9 ? (dg < 1 ? w.rand(100) : w.rand(dg)) + 1 : -1; }
   sh.frame = (W.flags & 4) ? 0 : w.rand(36);
   if (s && owner > 0 && s.state === 0xd) sh.dis = true;
   sh.heading = hd;
@@ -1214,7 +1213,8 @@ function novaHandleShot(w, sh) {
     if (W.decay > 0) { sh.decayAcc = f32(sh.decayAcc + 1); if (sh.decayAcc > W.decay) { sh.decays++; sh.decayAcc = 0; } }
     return;
   }
-  if (sh.life > -32000) {
+  // an end not by a hit (a hit shot is no longer seen): its submunitions, and its blast or explod
+  if (sh.life > -32000 && !sh.hit) {
     if (!(W.flags2 & 0x20) && W.subCount > 0) novaSubmunitions(w, sh, sh.target);
     if (W.flags & 0x8000) {
       novaCreateExplosion(w, sh.x, sh.y, W.explod, W.blast, true);
@@ -1360,8 +1360,8 @@ function novaShipHit(w, sh, t, sub) {
       novaDamageShip(w, o, sh, W.impact, W.mass, W.energy, sh.owner, false, false, sh.dis, false, !!(W.flags & 0x20));
   }
   if (sub && W.subCount > 0) novaSubmunitions(w, sh, t.slot);
-  sh.life = -1;
-  w.shots[sh.slot] = null;
+  // spent, and unseen: its slot stays taken till HandleShot frees it
+  sh.life = -1; sh.hit = true;
 }
 
 /* ---- damage ------------------------------------------------------------------ */
@@ -1599,7 +1599,8 @@ function novaSpawnBeam(w, owner, target, i, exit, pd) {
     if (s.exits[b.et] > 3) s.exits[b.et] = w.rand(4);
     const t = target >= 0 ? w.ships[target] : null;
     if ((W.flags3 & 0x10) && t && pd !== 1) {
-      b.exit = novaClosestExit(w, s, b.et, t);
+      // (SpawnBeam measures them at the ship's heading, not its sprite's frame)
+      b.exit = novaClosestExit(w, s, b.et, t, Math.trunc(s.heading));
       if (s.exits[b.et] > 3) s.exits[b.et] = w.rand(4);
     } else b.exit = s.exits[b.et];
     s.exits[b.et] = (s.exits[b.et] + 1) % 4;
@@ -1611,17 +1612,17 @@ function novaSpawnBeam(w, owner, target, i, exit, pd) {
   w.beams[slot] = b;
 }
 // The exit point nearest a target (SelectClosestShotStartPosition 0x7254).
-function novaClosestExit(w, s, et, t) {
+function novaClosestExit(w, s, et, t, rot) {
   let best = -1, bd = 0;
   for (let idx = 0; idx < 4; idx++) {
-    const p = novaExitPoint(w, s, et, idx), d = novaDist2(p.x, p.y, t.x, t.y);
+    const p = novaExitPoint(w, s, et, idx, rot), d = novaDist2(p.x, p.y, t.x, t.y);
     if (best === -1 || d < bd) { best = idx; bd = d; }
   }
   return best;
 }
 // Where an exit point is, turned with the ship's frame and compressed (ModifyShotStartPosition2 0x706e).
-function novaExitPoint(w, s, et, idx) {
-  const c = novaClassFight(w.D, s.cls), fp = c.framesPer, rot = Math.trunc(((s.frame || 0) % fp) * (360 / fp));
+function novaExitPoint(w, s, et, idx, at) {
+  const c = novaClassFight(w.D, s.cls), fp = c.framesPer, rot = at !== undefined ? at : Math.trunc(((s.frame || 0) % fp) * (360 / fp));
   const p = { x: s.x, y: s.y };
   if (et < 0 || et > 3 || idx < 0 || idx > 3) return p;
   const k = idx + 4 * et, off = { x: 0, y: 0 };
@@ -2289,8 +2290,7 @@ function novaAsteroidHit(w, sh, a) {
     novaAdjustedAccel(Math.trunc(sh.heading), f32(W.impact / t.mass), 2, v);
     a.vx = Math.min(2, Math.max(-2, v.x)); a.vy = Math.min(2, Math.max(-2, v.y));
   }
-  sh.life = -1;
-  w.shots[sh.slot] = null;
+  sh.life = -1; sh.hit = true;
 }
 /* DestroyAsteroid 0xadc9: its yield as boxes (YieldQty x 0.5 to 1.5 of
    them), a spray of particles, its explosion, and FragCount / 2 to

@@ -1344,7 +1344,8 @@ function drawStellars(ctx, d, cur) {
       ctx.lineWidth = 1;
     }
     const special = b.sp.id === selId || b.sp.id === hoverId;
-    const a = special ? d.t : z >= plan.get(b.sp.id) ? clampNum((d.t - 0.6) / 0.4, 0, 1) : 0;
+    // a name fades with its stellar, as the system's ships do
+    const a = special || z >= plan.get(b.sp.id) ? d.t : 0;
     if (a <= 0) continue;
     ctx.globalAlpha = a;
     ctx.fillStyle = special ? '#fff' : 'rgba(210,218,230,0.85)';

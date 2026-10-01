@@ -62,7 +62,11 @@ let STELLARS = true, OPEN_SYS = null;
    between the two, so switching slides one into the other. The layout is
    worked out the first time it is wanted, and kept in the browser's
    storage for the next visit with the same files. */
-const LAYOUT = { kind: null, want: null, mix: 0, sub: null, subs: {}, pending: {} };
+// base: what LAYOUT.mix 0 is, the true positions (null) or, sliding from one subway map to another, the one left
+const LAYOUT = { kind: null, want: null, mix: 0, sub: null, base: null, subs: {}, pending: {} };
+// How much of a subway map is drawn, for the lines' width and their rounded corners: all of one
+// the whole way from one to another.
+const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
 /* How the links are coloured (LINKS_BY: 'plain', 'govt' -- from one end's
    government colour to the other's -- or 'jumps', by how many jumps they
    are from the selected system), and whether the systems' names are drawn
@@ -237,8 +241,8 @@ function buildPlaces() {
     const key = s.x + ',' + s.y;
     let p = by.get(key);
     if (!p) {
-      const at = LAYOUT.sub && LAYOUT.sub.at(s.x, s.y);
-      by.set(key, p = { x: s.x, y: s.y, ids: [], rho: 0, tx: s.x, ty: s.y, sx: at ? at.x : s.x, sy: at ? at.y : s.y });
+      const at = LAYOUT.sub && LAYOUT.sub.at(s.x, s.y), bt = LAYOUT.base && LAYOUT.base.at(s.x, s.y);
+      by.set(key, p = { x: s.x, y: s.y, ids: [], rho: 0, tx: s.x, ty: s.y, sx: at ? at.x : s.x, sy: at ? at.y : s.y, bx: bt ? bt.x : s.x, by: bt ? bt.y : s.y });
     }
     if (!p.ids.includes(s.id)) p.ids.push(s.id);
   };
@@ -246,12 +250,13 @@ function buildPlaces() {
   if (EXTRA_SYS !== null && U.byId.has(EXTRA_SYS)) add(U.byId.get(EXTRA_SYS));
   PLACES = [...by.values()];
   for (const p of PLACES) {
-    let nt = TUNE.roomCap, ns = TUNE.roomCap;
+    let nt = TUNE.roomCap, ns = TUNE.roomCap, nb = TUNE.roomCap;
     for (const q of PLACES) if (q !== p) {
       nt = Math.min(nt, Math.hypot(p.tx - q.tx, p.ty - q.ty));
       ns = Math.min(ns, Math.hypot(p.sx - q.sx, p.sy - q.sy));
+      nb = Math.min(nb, Math.hypot(p.bx - q.bx, p.by - q.by));
     }
-    p.rhoT = TUNE.room * nt; p.rhoS = TUNE.room * ns;
+    p.rhoT = TUNE.room * nt; p.rhoS = TUNE.room * ns; p.rhoB = TUNE.room * nb;
   }
   PLACE_OF = new Map();
   for (const p of PLACES) for (const id of p.ids) PLACE_OF.set(id, p);
@@ -283,20 +288,25 @@ function nebulaBrights() {
     return b;
   });
 }
+const NEB_BASE = new Map();
+function subRect(sub, cache, n) {
+  let r = cache.get(n.id);
+  if (!r) { const bs = nebulaBrights(); r = sub.rect(n, bs); if (bs.every(b => b)) cache.set(n.id, r); }
+  return r;
+}
 function nebRect(n) {
-  if (!LAYOUT.mix || !LAYOUT.sub) return n;
-  let r = NEB_SUB.get(n.id);
-  if (!r) { const bs = nebulaBrights(); r = LAYOUT.sub.rect(n, bs); if (bs.every(b => b)) NEB_SUB.set(n.id, r); }
-  const m = LAYOUT.mix, at = (a, b) => a + (b - a) * m;
-  return { x: at(n.x, r.x), y: at(n.y, r.y), w: at(n.w, r.w), h: at(n.h, r.h) };
+  const from = LAYOUT.base ? subRect(LAYOUT.base, NEB_BASE, n) : n;
+  if (!LAYOUT.mix || !LAYOUT.sub) return from;
+  const r = subRect(LAYOUT.sub, NEB_SUB, n), m = LAYOUT.mix, at = (a, b) => a + (b - a) * m;
+  return { x: at(from.x, r.x), y: at(from.y, r.y), w: at(from.w, r.w), h: at(from.h, r.h) };
 }
 
 // Each place where LAYOUT.mix puts it, and its disc's size there.
 function mixPlaces() {
   const m = LAYOUT.mix;
   for (const p of PLACES) {
-    p.x = p.tx + (p.sx - p.tx) * m; p.y = p.ty + (p.sy - p.ty) * m;
-    p.rho = p.rhoT + (p.rhoS - p.rhoT) * m;
+    p.x = p.bx + (p.sx - p.bx) * m; p.y = p.by + (p.sy - p.by) * m;
+    p.rho = p.rhoB + (p.rhoS - p.rhoB) * m;
   }
   let kMin = Infinity;
   for (const p of PLACES) for (const id of p.ids) kMin = Math.min(kMin, p.rho / sysGeo(U.byId.get(id)).R);
@@ -504,15 +514,20 @@ function drawDiscs(ctx) {
 // subway path, each bend on the way from the point as far along the
 // straight line as it is along the path.
 function linkPoints(l, pa, pb) {
-  const line = LAYOUT.mix > 0 && LAYOUT.sub && LAYOUT.sub.line(l.from, l.to);
-  if (!line) return [{ x: pa.x, y: pa.y }, { x: pb.x, y: pb.y }];
-  const m = LAYOUT.mix, cum = [0];
-  for (let i = 1; i < line.length; i++) cum.push(cum[i - 1] + Math.hypot(line[i].x - line[i - 1].x, line[i].y - line[i - 1].y));
-  const total = cum[cum.length - 1] || 1;
-  return line.map((q, i) => {
-    const f = cum[i] / total, tx = pa.tx + (pb.tx - pa.tx) * f, ty = pa.ty + (pb.ty - pa.ty) * f;
-    return { x: tx + (q.x - tx) * m, y: ty + (q.y - ty) * m };
-  });
+  const m = LAYOUT.mix, line = m > 0 && LAYOUT.sub && LAYOUT.sub.line(l.from, l.to), base = LAYOUT.base && LAYOUT.base.line(l.from, l.to);
+  if (!line && !base) return [{ x: pa.x, y: pa.y }, { x: pb.x, y: pb.y }];
+  // the link at each end of the slide, the true one straight, matched by how far along it a point
+  // is; drawn through the corners of both, so that each end is drawn as it is
+  const A = base || [{ x: pa.tx, y: pa.ty }, { x: pb.tx, y: pb.ty }], B = line || A;
+  const frac = L => { const c = [0]; for (let i = 1; i < L.length; i++) c.push(c[i - 1] + Math.hypot(L[i].x - L[i - 1].x, L[i].y - L[i - 1].y)); const t = c[c.length - 1] || 1; return c.map(x => x / t); };
+  const along = (L, F, f) => {
+    let i = 1;
+    while (i < L.length - 1 && F[i] < f) i++;
+    const t = F[i] > F[i - 1] ? Math.min(1, Math.max(0, (f - F[i - 1]) / (F[i] - F[i - 1]))) : 0;
+    return { x: L[i - 1].x + (L[i].x - L[i - 1].x) * t, y: L[i - 1].y + (L[i].y - L[i - 1].y) * t };
+  };
+  const FA = frac(A), FB = frac(B), fs = [...new Set(FA.concat(FB))].sort((a, b) => a - b);
+  return fs.map(f => { const a = along(A, FA, f), b = along(B, FB, f); return { x: a.x + (b.x - a.x) * m, y: a.y + (b.y - a.y) * m }; });
 }
 // A path with a length cut from each end, or null when nothing is left.
 function trimPath(pts, a, b) {
@@ -739,11 +754,11 @@ function drawLinks(ctx) {
     const cut = trimPath(pts, a, b);
     if (cut) segs.push({ l, pts: cut });
   }
-  ctx.lineWidth = 1 + LAYOUT.mix + (LINKS_BY === 'plain' ? 0 : 0.5);
+  ctx.lineWidth = 1 + subMix() + (LINKS_BY === 'plain' ? 0 : 0.5);
   ctx.lineJoin = 'round';
   // corners rounded, as the maintainer asked: an arc of up to 0.7 of a grid step, never more
   // than half of either piece it joins, coming in as the subway map does
-  const R = LAYOUT.sub ? 0.7 * LAYOUT.sub.layout.step * CAM.s * LAYOUT.mix : 0;
+  const R = LAYOUT.sub ? 0.7 * (LAYOUT.base ? LAYOUT.base.layout.step + (LAYOUT.sub.layout.step - LAYOUT.base.layout.step) * LAYOUT.mix : LAYOUT.sub.layout.step * LAYOUT.mix) * CAM.s : 0;
   const trace = s => roundedPath(ctx, s.pts, R);
   const jumps = LINKS_BY === 'jumps' ? jumpMap() : null;
   const paint = segs => {
@@ -771,7 +786,7 @@ function drawLinks(ctx) {
   // the route, over everything
   const route = routeLinks();
   if (route.size) {
-    ctx.lineWidth = 3 + 1.5 * LAYOUT.mix; ctx.strokeStyle = '#ffcf4a'; ctx.beginPath();
+    ctx.lineWidth = 3 + 1.5 * subMix(); ctx.strokeStyle = '#ffcf4a'; ctx.beginPath();
     for (const s of segs) if (route.has(s.l.from.id + '-' + s.l.to.id)) trace(s);
     ctx.stroke();
   }
@@ -838,7 +853,7 @@ function drawGates(ctx) {
     GATES_DRAWN.random++;
     ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); ctx.stroke();
   }
-  ctx.setLineDash([7, 4]); ctx.lineWidth = 1.5 + 0.5 * LAYOUT.mix;
+  ctx.setLineDash([7, 4]); ctx.lineWidth = 1.5 + 0.5 * subMix();
   const route = routeLinks(), onRouteWays = [];
   for (const l of GATES.links) {
     const pa = PLACE_OF.get(l.from.id), pb = PLACE_OF.get(l.to.id);
@@ -853,7 +868,7 @@ function drawGates(ctx) {
   }
   // the route's gate steps, in the route's gold
   if (onRouteWays.length) {
-    ctx.setLineDash([7, 4]); ctx.globalAlpha = 1; ctx.lineWidth = 3 + 1.5 * LAYOUT.mix; ctx.strokeStyle = '#ffcf4a';
+    ctx.setLineDash([7, 4]); ctx.globalAlpha = 1; ctx.lineWidth = 3 + 1.5 * subMix(); ctx.strokeStyle = '#ffcf4a';
     ctx.beginPath(); for (const pts of onRouteWays) { ctx.moveTo(pts[0].x, pts[0].y); ctx.lineTo(pts[1].x, pts[1].y); } ctx.stroke();
   }
   ctx.restore();
@@ -874,12 +889,14 @@ function drawGateMarks(ctx, d, r) {
 
 /* A place the subway map draws as a bar, where many of its lines leave one
    way (nova-subway.js, subwayBars): its two ends on the screen, slid out of
-   its dot as LAYOUT.mix goes to 1; null for a dot. */
+   its dot as LAYOUT.mix goes to 1, or from one map's bar to another's; null for a dot. */
 function barEnds(p) {
-  const b = LAYOUT.mix > 0 && LAYOUT.sub && LAYOUT.sub.bar(p.tx, p.ty);
-  if (!b) return null;
-  const m = LAYOUT.mix, end = q => toScreen(p.x + (q.x - p.sx) * m, p.y + (q.y - p.sy) * m);
-  const [x0, y0] = end(b.a), [x1, y1] = end(b.b);
+  const m = LAYOUT.mix, b = m > 0 && LAYOUT.sub && LAYOUT.sub.bar(p.tx, p.ty), o = LAYOUT.base && LAYOUT.base.bar(p.tx, p.ty);
+  if (!b && !o) return null;
+  // each end as far from the place as the map sliding in has it, and the one sliding out
+  const end = k => toScreen(p.x + (b ? (b[k].x - p.sx) * m : 0) + (o ? (o[k].x - p.bx) * (1 - m) : 0),
+                            p.y + (b ? (b[k].y - p.sy) * m : 0) + (o ? (o[k].y - p.by) * (1 - m) : 0));
+  const [x0, y0] = end('a'), [x1, y1] = end('b');
   return { x0, y0, x1, y1 };
 }
 // A place's mark as a path: a dot of radius r, or its bar as a capsule r across its half.
@@ -1400,14 +1417,16 @@ async function setLayoutNow(kind) {
   if (kind) { try { await subwayGet(kind); } catch (e) { return; } }
   while (MOVING) await new Promise(r => requestAnimationFrame(r));
   if (LAYOUT.want !== kind) return;
-  LAYOUT.kind = kind; LAYOUT.mix = kind ? 1 : 0;
+  LAYOUT.kind = kind; LAYOUT.mix = kind ? 1 : 0; LAYOUT.base = null;
   if (kind) useSub(LAYOUT.subs[kind]);
   buildPlaces();
   writeHash(true);
   redraw();
 }
 // Sliding from one to the other once it is ready, and from one subway map
-// to another by way of the true positions. The system nearest the middle of
+// straight to another, so that the two can be compared (the maintainer's
+// asking, 30 September 2026: by way of the true positions, the map lost its
+// form between them). The system nearest the middle of
 // the screen stays where it is on the screen, and in a system its disc stays
 // the size it was. It waits for any move under way, and asked for another
 // meanwhile, it goes on to that.
@@ -1424,12 +1443,14 @@ async function setLayout(kind) {
   if (!anchor) { let bd = Infinity; for (const p of PLACES) { const [x, y] = toScreen(p.x, p.y), d = Math.hypot(x - CW / 2, y - CH / 2); if (d < bd) { bd = d; anchor = p; } } }
   const id = repOf(anchor), [ax, ay] = toScreen(anchor.x, anchor.y), s0 = CAM.s, r0 = anchor.rho;
   const legs = [];
-  if (from) legs.push({ sub: LAYOUT.subs[from], m1: 0 });
-  if (kind) legs.push({ sub: LAYOUT.subs[kind], m1: 1 });
+  if (from && kind) legs.push({ sub: LAYOUT.subs[kind], m1: 1, base: LAYOUT.subs[from] });
+  else if (from) legs.push({ sub: LAYOUT.subs[from], m1: 0 });
+  else if (kind) legs.push({ sub: LAYOUT.subs[kind], m1: 1 });
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   MOVING = true;
   try {
     for (const leg of legs) {
+      if (leg.base) { LAYOUT.base = leg.base; NEB_BASE.clear(); LAYOUT.sub = null; LAYOUT.mix = 0; }
       useSub(leg.sub);
       const m0 = LAYOUT.mix;
       const step = e => {
@@ -1441,7 +1462,11 @@ async function setLayout(kind) {
       };
       if (reduced) { step(1); draw(); } else await animate(TUNE.animMs / legs.length, step);
     }
-  } finally { MOVING = false; }
+  } finally {
+    MOVING = false;
+    // the slide over, mix 1 is the map arrived at whatever it started from
+    if (LAYOUT.base) { LAYOUT.base = null; NEB_BASE.clear(); buildPlaces(); }
+  }
   writeHash(true);
   redraw();
   if (LAYOUT.want !== LAYOUT.kind) setLayout(LAYOUT.want);

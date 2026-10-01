@@ -1843,7 +1843,7 @@ function subwayModule() {
 
   return {
     SUBWAY_DIRS, subwayTurn, SUBWAY_NAMES, SUBWAY_TUNE, SUBWAY_HEADING, subwayFlags, subwayAngDiff, subwayHeadingOk, subwayGridStray,
-    subwayBarPorts, subwayPortFit, subwayBars, subwayBarOff, subwayBarCells, subwayPairs, subwayAdjacency, subwayEven, subwayCross,
+    subwayBarPorts, subwayPortFit, subwayBars, subwayBarOff, subwayBarCells, subwayAdjacency, subwayEven, subwayCross,
     subwayNameCells, SUBWAY_NEEDY, subwayShape, subwayAwkward, subwayNeedy, SUBWAY_LABEL, subwayLabelSpots, subwayLabels, subwayPlace, subwayRoute, SUBWAY_FINE, FINE_STEP, fineUnit, fineClass,
     fineAngErr, nearSegment, runAlong, subwayNameBox, subwaySegmentInBox, subwayFine, subwayFineOnce,
     subwayLayout, subwayRect, subwayBrightness, subwayBrightAt, SUBWAY_NEBULA_GAP, subwayRects, subwayTuneFor, subwayInput,

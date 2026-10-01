@@ -393,30 +393,21 @@ try {
             await setLayoutNow(null);
             return out;
           })()`);
-          // Sol's wormhole (spöb 465, AnimDelay 2) turning through its frames while on the screen, and
-          // still once the stellars are off the screen. On the desktop only, with the details hidden:
-          // the wormhole is 10,000 units out, 4.4 times the radius of Sol's disc, and only that
-          // screen holds it with Sol still the system you are in.
-          if (!dev.mobile) out.anim = await p.evaluate(`(async () => {
+          // Sol's wormhole (spöb 465, AnimDelay 2), 10,000 units out, in its pocket on Sol's disc in
+          // Sol's first view, turning through its frames, and still once the stellars are off the screen.
+          out.anim = await p.evaluate(`(async () => {
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
             await show('system', { sys: 130 }); await idle();
-            $('panelBtn').click(); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-            // the view that keeps Sol the system you are in with the wormhole 60 px in from the right
-            const sol = U.byId.get(130), worm = U.stellars.get(465), [x, y] = stellarWorld(sol, worm), p = PLACE_OF.get(130);
-            for (let s = CAM.s; s > CAM.s / 20; s *= 0.95) {
-              const cx = x - (CW / 2 - 60) / s, D = 2 * p.rho * s;
-              if (D >= 0.4 * Math.min(CW, CH) && Math.hypot(cx - p.x, y - p.y) * s <= D / 2) { Object.assign(CAM, { x: cx, y, s }); break; }
-            }
-            redraw();
+            const sol = U.byId.get(130), [x, y] = stellarWorld(sol, U.stellars.get(465)), q = PLACE_OF.get(130);
+            const pocket = +(Math.hypot(x - q.x, y - q.y) / q.rho).toFixed(2);
             const seen = new Set(), t0 = performance.now();
             while (performance.now() - t0 < 1500) { await new Promise(r => setTimeout(r, 30)); const a = STELLAR_ANIM.get(465); if (a) seen.add(a.cur); }
             const onScreen = ANIM_SEEN.has(465) && VIEW.sys === 130;
-            $('panelBtn').click();
             await show('galaxy', {}, true); await idle();
             await new Promise(r => setTimeout(r, 200));
             const before = (STELLAR_ANIM.get(465) || {}).cur;
             await new Promise(r => setTimeout(r, 300));
-            return { frames: seen.size, onScreen, off: { seen: ANIM_SEEN.size, ticking: ANIM_TICK !== null, still: (STELLAR_ANIM.get(465) || {}).cur === before } };
+            return { frames: seen.size, onScreen, pocket, off: { seen: ANIM_SEEN.size, ticking: ANIM_TICK !== null, still: (STELLAR_ANIM.get(465) || {}).cur === before } };
           })()`);
           // Stellars as you zoom in, off: Sol stays a dot however near, opens when gone to, and
           // closes again when zoomed out of; and the details hidden and shown.
@@ -506,8 +497,8 @@ try {
       if (nh.kind !== 'names-heading' || !/&subway=names,heading$/.test(decodeURIComponent(nh.hash)) || nh.sel !== 'true,false,true,true' || nh.stats.failed || !(nh.stats.unnamed < 8) || !nh.room || !nh.sol)
         fail(`${dev.name}: room for names keeping headings, from the address: ${JSON.stringify(nh)}`);
       const an = o.anim;
-      if (an && (!(an.frames >= 10) || !an.onScreen || an.off.seen || an.off.ticking || !an.off.still)) fail(`${dev.name}: Sol's wormhole animating: ${JSON.stringify(an)}`);
-      if (an) console.log(`${dev.name}: Sol's wormhole showed ${an.frames} frames in 1.5 s, and stopped off the screen`);
+      if (!(an.frames >= 10) || !an.onScreen || an.pocket !== 1.16 || an.off.seen || an.off.ticking || !an.off.still) fail(`${dev.name}: Sol's wormhole animating: ${JSON.stringify(an)}`);
+      console.log(`${dev.name}: Sol's wormhole in its pocket in Sol's first view, ${an.frames} frames in 1.5 s, and stopped off the screen`);
       const st = o.stellars;
       if (st.near.most !== 0 || st.near.mode !== 'galaxy') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
       if (st.went.mode !== 'system' || st.went.sys !== 130 || st.went.open !== 1) fail(`${dev.name}: without the stellars, going to Sol: ${JSON.stringify(st.went)}`);

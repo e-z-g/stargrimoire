@@ -289,11 +289,16 @@ function applyShowMode() {
   SHOWN = novaShownSystems(U, SHOW_MODE === 'all' ? null : STATE);
   LINKS = novaShownLinks(U, SHOWN);
   GATES = novaShownGates(U, SHOWN);
+  // each system's gates, and the kind each is marked with: one that leads somewhere over one that does not
   GATE_SYS = new Map();
-  const mark = (id, k) => { if (!GATE_SYS.has(id)) GATE_SYS.set(id, new Set()); GATE_SYS.get(id).add(k); };
-  for (const w of GATES.ways) mark(w.from.id, novaGateKind(w.gate));
-  for (const r of GATES.random) mark(r.sys.id, r.enter ? 'wormhole' : 'wormhole-dead');
-  for (const d of GATES.dead) mark(d.sys.id, novaGateKind(d.spob) + '-dead');
+  const mark = (id, spob, k) => {
+    if (!GATE_SYS.has(id)) GATE_SYS.set(id, new Map());
+    const m = GATE_SYS.get(id);
+    if (!m.has(spob) || m.get(spob).endsWith('-dead')) m.set(spob, k);
+  };
+  for (const w of GATES.ways) mark(w.from.id, w.gate, novaGateKind(w.gate));
+  for (const r of GATES.random) mark(r.sys.id, r.spob, r.enter ? 'wormhole' : 'wormhole-dead');
+  for (const d of GATES.dead) mark(d.sys.id, d.spob, novaGateKind(d.spob) + '-dead');
   buildPlaces();
   redraw();
   renderPanel();
@@ -399,8 +404,7 @@ function curPlace() { return VIEW.sys !== null && VIEW.mode !== 'galaxy' ? PLACE
    fitted to them shows the planets as dots; so, walking outwards, a
    stellar more than three times as far out as the one before, or than
    1000 when the one before is nearer, ends the fit, and it and those
-   beyond are drawn only in the system you are in, and marked at the edge
-   when they are off the screen. */
+   beyond are drawn in pockets (stellarPos). */
 function nearStellars(sys) {
   const list = sys.stellars.map(id => U.stellars.get(id)).map(sp => ({ sp, d: Math.hypot(sp.xPos, sp.yPos) })).sort((a, b) => a.d - b.d);
   let k = list.length;
@@ -423,7 +427,24 @@ function sysGeo(sys) {
 }
 // Galaxy units to one unit of the system's own.
 function kOf(sys) { return placeOf(sys.id).rho / sysGeo(sys).R; }
-function stellarWorld(sys, sp) { const p = placeOf(sys.id), k = kOf(sys); return [p.x + k * sp.xPos, p.y + k * sp.yPos]; }
+/* Where a stellar is drawn, in its system's own units: where it is, or, for
+   one beyond the near ones -- in the shipped game 18 wormholes, each 4,000
+   to 12,000 units out, past the neighbouring systems -- in a pocket, a
+   small circle on the rim of the disc in the stellar's own direction, the
+   maintainer's idea (1 October 2026), so that it is on the screen with its
+   system. The galaxy's mark for a gate is put the same way (drawGateMarks). */
+const POCKET = { at: 1.16, r: 0.24 };   // the pocket's centre and radius, in the disc's radius
+function stellarPos(sys, sp) {
+  const g = sysGeo(sys);
+  if (g.near.has(sp.id)) return [sp.xPos, sp.yPos];
+  const a = Math.atan2(sp.yPos, sp.xPos);
+  return [Math.cos(a) * POCKET.at * g.R, Math.sin(a) * POCKET.at * g.R];
+}
+function systemPockets(sys) {
+  const g = sysGeo(sys);
+  return sys.stellars.filter(id => !g.near.has(id)).map(id => stellarPos(sys, U.stellars.get(id)));
+}
+function stellarWorld(sys, sp) { const p = placeOf(sys.id), k = kOf(sys), [x, y] = stellarPos(sys, sp); return [p.x + k * x, p.y + k * y]; }
 
 /* ---- the canvas and the view -------------------------------------------- */
 
@@ -473,10 +494,11 @@ function galaxyView() {
   if (!xs.length) return { ...CAM };
   return boxView(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 30);
 }
-// A system's first view: its near stellars and (0, 0), 300 units each way
-// at the least, fitted with 70 pixels to spare.
+// A system's first view: its near stellars, its pockets and (0, 0), 300
+// units each way at the least, fitted with 70 pixels to spare.
 function systemView(sys) {
-  const pts = nearStellars(sys).map(sp => [sp.xPos, sp.yPos]);
+  const pts = nearStellars(sys).map(sp => [sp.xPos, sp.yPos]), pr = POCKET.r * sysGeo(sys).R;
+  for (const [x, y] of systemPockets(sys)) pts.push([x - pr, y - pr], [x + pr, y + pr]);
   pts.push([0, 0]);
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), half = 300;
   const v = boxView(Math.min(...xs, -half), Math.min(...ys, -half), Math.max(...xs, half), Math.max(...ys, half), 70);
@@ -739,12 +761,19 @@ function drawDiscs(ctx) {
   ctx.lineWidth = 1;
   for (const d of DRAWN) {
     if (d.t <= 0) continue;
-    const bg = d.sys.rec.BkgndColor & 0xFFFFFF;
-    ctx.beginPath(); ctx.arc(d.x, d.y, d.D / 2, 0, Math.PI * 2);
+    const bg = d.sys.rec.BkgndColor & 0xFFFFFF, R = d.D / 2, q = R / sysGeo(d.sys).R, pr = POCKET.r * R;
+    const pk = systemPockets(d.sys).map(([x, y]) => [d.x + x * q, d.y + y * q]);
+    // the disc and its pockets as one shape, outlined round the outside of it
+    const circle = (x, y, r) => { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); };
+    ctx.beginPath(); circle(d.x, d.y, R);
+    for (const [x, y] of pk) circle(x, y, pr);
     if (bg) { ctx.globalAlpha = d.t; ctx.fillStyle = '#' + bg.toString(16).padStart(6, '0'); ctx.fill(); }
     ctx.globalAlpha = d.t * 0.5 * clampNum((1.6 * m - d.D) / (0.8 * m), 0, 1);
     ctx.strokeStyle = 'rgba(120,135,160,0.35)';
-    ctx.stroke();
+    if (!pk.length) { ctx.beginPath(); circle(d.x, d.y, R); ctx.stroke(); continue; }
+    const outside = holes => { ctx.beginPath(); ctx.rect(0, 0, CW, CH); for (const [x, y, r] of holes) circle(x, y, r); ctx.clip('evenodd'); };
+    ctx.save(); outside(pk.map(([x, y]) => [x, y, pr])); ctx.beginPath(); circle(d.x, d.y, R); ctx.stroke(); ctx.restore();
+    ctx.save(); outside([[d.x, d.y, R]]); ctx.beginPath(); for (const [x, y] of pk) circle(x, y, pr); ctx.stroke(); ctx.restore();
   }
   ctx.globalAlpha = 1;
 }
@@ -1162,14 +1191,26 @@ function drawGates(ctx) {
   ctx.restore();
 }
 // The marks beside a system's dot for the gates in it, above it to the left.
+// A place's gates, each a small dot beside the system's in the gate's own
+// direction within its system, as its pocket is (stellarPos): filled where
+// it leads somewhere, a ring where it does not. Dots less than 0.45
+// radians apart are spread.
 function drawGateMarks(ctx, d, r) {
-  const kinds = new Set();
-  for (const id of d.p.ids) for (const k of GATE_SYS.get(id) || []) kinds.add(k);
-  if (!kinds.size) return;
-  let i = 0;
-  for (const k of ['hypergate', 'wormhole', 'hypergate-dead', 'wormhole-dead']) {
-    if (!kinds.has(k)) continue;
-    const a = -Math.PI * (0.62 + 0.2 * i++), R = r + 3.5, c = GATE_COLOR[k.replace('-dead', '')];
+  const seen = new Map();
+  for (const id of d.p.ids) {
+    const sys = U.byId.get(id);
+    for (const [spob, k] of GATE_SYS.get(id) || []) {
+      if (seen.has(spob.id) && !seen.get(spob.id).k.endsWith('-dead')) continue;
+      const [x, y] = stellarPos(sys, spob);
+      seen.set(spob.id, { k, a: x || y ? Math.atan2(y, x) : -Math.PI / 2 });
+    }
+  }
+  if (!seen.size) return;
+  const marks = [...seen.values()].sort((m, n) => m.a - n.a), gap = 0.45;
+  for (let i = 1; i < marks.length; i++) if (marks[i].a - marks[i - 1].a < gap) marks[i].a = marks[i - 1].a + gap;
+  const R = r + 3.5;
+  for (const { k, a } of marks) {
+    const c = GATE_COLOR[k.replace('-dead', '')];
     ctx.beginPath(); ctx.arc(d.x + R * Math.cos(a), d.y + R * Math.sin(a), 2, 0, Math.PI * 2);
     if (k.endsWith('-dead')) { ctx.strokeStyle = c; ctx.stroke(); } else { ctx.fillStyle = c; ctx.fill(); }
   }
@@ -1259,17 +1300,17 @@ function drawDots(ctx) {
   ctx.globalAlpha = 1;
 }
 
-// A place's stellars on the screen: the near ones, and in the system you
-// are in all of them.
-function stellarBoxes(d, cur) {
+// A place's stellars on the screen, those in pockets no wider than 1.7
+// times the pocket's radius.
+function stellarBoxes(d) {
   const sys = d.sys, k = kOf(sys), g = sysGeo(sys), min = Math.min(MIN_STELLAR, d.D / 6), out = [];
   for (const id of sys.stellars) {
-    if (!cur && !g.near.has(id)) continue;
     const sp = U.stellars.get(id), img = stellarSprite(sp);
     const w0 = img ? img.width : 80, h0 = img ? img.height : 80;
     let w = w0 * k * CAM.s, h = h0 * k * CAM.s;
+    if (!g.near.has(id)) { const cap = 1.7 * POCKET.r * g.R * k * CAM.s; if (Math.max(w, h) > cap) { const q = cap / Math.max(w, h); w *= q; h *= q; } }
     if (Math.max(w, h) < min) { const q = min / Math.max(w, h); w *= q; h *= q; }
-    const [x, y] = toScreen(d.p.x + k * sp.xPos, d.p.y + k * sp.yPos);
+    const [px, py] = stellarPos(sys, sp), [x, y] = toScreen(d.p.x + k * px, d.p.y + k * py);
     out.push({ sp, img, x, y, w, h });
   }
   return out;
@@ -1282,7 +1323,7 @@ function drawStellars(ctx, d, cur) {
   ctx.font = '12px ' + font();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  for (const b of stellarBoxes(d, cur)) {
+  for (const b of stellarBoxes(d)) {
     if (b.x + b.w / 2 < -60 || b.y + b.h / 2 < -30 || b.x - b.w / 2 > CW + 60 || b.y - b.h / 2 > CH + 30) continue;
     ctx.globalAlpha = d.t;
     if (b.img) {
@@ -1354,10 +1395,11 @@ function stellarNamePlan(sys) {
   // a stellar's size on the screen at system zoom z, as stellarBoxes draws it, and where that changes course
   const size = (it, z) => { const min = Math.min(MIN_STELLAR, R * z / 3); let w = it.w0 * z, h = it.h0 * z; if (Math.max(w, h) < min) { const q = min / Math.max(w, h); w *= q; h *= q; } return [w, h]; };
   const breaksOf = it => [3 * MIN_STELLAR / R, MIN_STELLAR / Math.max(it.w0, it.h0)];
-  const items = list.map(it => ({ at: { x: it.sp.xPos, y: it.sp.yPos }, near: Infinity, breaks: breaksOf(it),
-    sides: [z => { const h = size(it, z)[1], x = it.sp.xPos * z, y = it.sp.yPos * z + h / 2 + 4; return { x0: x - it.tw / 2 - 1, x1: x + it.tw / 2 + 1, y0: y, y1: y + 14 }; }] }));
-  const marks = list.map((it, i) => ({ owner: i, at: { x: it.sp.xPos, y: it.sp.yPos }, near: Infinity, breaks: breaksOf(it),
-    box: z => { const [w, h] = size(it, z), x = it.sp.xPos * z, y = it.sp.yPos * z; return { x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 }; } }));
+  for (const it of list) [it.x, it.y] = stellarPos(sys, it.sp);
+  const items = list.map(it => ({ at: { x: it.x, y: it.y }, near: Infinity, breaks: breaksOf(it),
+    sides: [z => { const h = size(it, z)[1], x = it.x * z, y = it.y * z + h / 2 + 4; return { x0: x - it.tw / 2 - 1, x1: x + it.tw / 2 + 1, y0: y, y1: y + 14 }; }] }));
+  const marks = list.map((it, i) => ({ owner: i, at: { x: it.x, y: it.y }, near: Infinity, breaks: breaksOf(it),
+    box: z => { const [w, h] = size(it, z), x = it.x * z, y = it.y * z; return { x0: x - w / 2, x1: x + w / 2, y0: y - h / 2, y1: y + h / 2 }; } }));
   const got = labelRanges(items, marks), plan = new Map(list.map((it, i) => [it.sp.id, got[i].from]));
   STELLAR_NAMES.set(sys.id, plan);
   return plan;
@@ -1463,7 +1505,7 @@ function safeTest(text) { try { return ncbTest(text, STATE); } catch (e) { retur
 function edgeMarks(d) {
   const out = [], pad = 16, k = kOf(d.sys), vx = (CAM.x - d.p.x) / k, vy = (CAM.y - d.p.y) / k;
   for (const id of d.sys.stellars) {
-    const sp = U.stellars.get(id), [x, y] = toScreen(d.p.x + k * sp.xPos, d.p.y + k * sp.yPos);
+    const sp = U.stellars.get(id), [px, py] = stellarPos(d.sys, sp), [x, y] = toScreen(d.p.x + k * px, d.p.y + k * py);
     if (x >= 0 && y >= 0 && x <= CW && y <= CH) continue;
     const cx = CW / 2, cy = CH / 2, dx = x - cx, dy = y - cy;
     const q = Math.min((cx - pad) / Math.abs(dx || 1e-9), (cy - pad) / Math.abs(dy || 1e-9));
@@ -1499,7 +1541,7 @@ function stellarAt(sx, sy) {
   let best = null, bd = Infinity;
   for (const d of DRAWN) {
     if (d.t < 0.5) continue;
-    for (const b of stellarBoxes(d, d.p === cur)) {
+    for (const b of stellarBoxes(d)) {
       const rx = Math.max(b.w / 2, 12), ry = Math.max(b.h / 2, 12);
       if (Math.abs(sx - b.x) > rx || Math.abs(sy - b.y) > ry) continue;
       const dd = (sx - b.x) ** 2 + (sy - b.y) ** 2;

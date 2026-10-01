@@ -75,7 +75,9 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
    2026), red at one jump to blue at the furthest: turbo (Mikhailov, 2019),
    d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every colour
    is at least 3:1 against the black of the map. */
-let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, DOTS = true;
+// SYS_STYLE: how a system is marked: 'dots', coloured as DOTS_BY says; 'metro', a white stop, or where
+// three links or more meet a larger one ringed, as metro maps mark stations; 'none'
+let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, SYS_STYLE = 'dots';
 function turbo(t) {
   t = Math.max(0, Math.min(1, t));
   const c = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -901,6 +903,8 @@ function drawGateMarks(ctx, d, r) {
 // maintainer found Age of the Council's Kelin a bar with two links shown, its other three hidden
 // (30 September 2026). Drawn as a dot, its lines run on from the bar's points into the dot.
 let BAR_KEPT = null;
+// how many places the links shown at p go to
+function placeLinks(p) { barKept(p); return BAR_KEPT.ways.has(p) ? BAR_KEPT.ways.get(p).size : 0; }
 function barKept(p) {
   if (!BAR_KEPT || BAR_KEPT.places !== PLACES || BAR_KEPT.links !== LINKS) {
     const ways = new Map();
@@ -914,7 +918,7 @@ function barKept(p) {
       const A = [...m.values()].sort((x, y) => x - y);
       if (A.length >= 4 && !subwayPortFit(A, subwayBarPorts(0, 1), Math.PI / 4)) kept.add(q);
     }
-    BAR_KEPT = { places: PLACES, links: LINKS, kept };
+    BAR_KEPT = { places: PLACES, links: LINKS, kept, ways };
   }
   return BAR_KEPT.kept.has(p);
 }
@@ -944,14 +948,22 @@ function drawDots(ctx) {
   for (const d of DRAWN) {
     if (d.t >= 1) continue;
     ctx.globalAlpha = (1 - d.t) * (dimOther && d.sys.govt !== VIEW.govt ? 0.25 : 1) * (placeFaint(d.p) ? FAINT : 1);
-    // the dot itself, unless Dots is off (the maintainer found them in the way of the lines on a
-    // big galaxy zoomed out, 30 September 2026); the rings round it are drawn either way
-    if (DOTS) {
+    // the mark itself, unless the systems are drawn not at all (the maintainer found the dots in the
+    // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings round it are drawn
+    // either way. As metro stations (the maintainer's asking, the same day): white, a small stop on a
+    // line, and where three links or more meet a larger one in a ring the colour of the background,
+    // so that the lines stop short of it
+    if (SYS_STYLE === 'dots') {
       markPath(ctx, d, r);
       ctx.fillStyle = dotFill(d.sys);
       ctx.fill();
       ctx.strokeStyle = 'rgba(225,232,242,0.75)';
       ctx.stroke();
+    } else if (SYS_STYLE === 'metro') {
+      const busy = placeLinks(d.p) >= 3;
+      markPath(ctx, d, busy ? r + 0.5 : Math.max(2, 0.6 * r));
+      ctx.fillStyle = '#f2f4f8'; ctx.fill();
+      ctx.strokeStyle = '#04060a'; ctx.lineWidth = busy ? 2.5 : 1.5; ctx.stroke(); ctx.lineWidth = 1;
     }
     // a system on the route ringed in the route's gold
     if (onRoute(d.p)) { markPath(ctx, d, r + 2.5); ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
@@ -2243,7 +2255,7 @@ function wireTools() {
   document.addEventListener('fullscreenchange', fullChanged);
   document.addEventListener('webkitfullscreenchange', fullChanged);
   $('optNebulae').onchange = () => { NEBULAE = $('optNebulae').checked; redraw(); };
-  $('optDots').onchange = () => { DOTS = $('optDots').checked; redraw(); };
+  $('sysSel').onchange = () => { SYS_STYLE = $('sysSel').value; redraw(); };
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };

@@ -291,7 +291,11 @@ details.inline .list { margin-top: 4px; }
       <label class="under2"><input type="checkbox" id="optBars" checked> Busy stations as bars</label>
       <label><input type="checkbox" id="optStellars" checked> Stellars as you zoom in</label>
       <label><input type="checkbox" id="optNames" checked> Names</label>
-      <label><input type="checkbox" id="optDots" checked> System dots</label>
+      <label>Systems drawn <select id="sysSel" title="How each system is marked on the map">
+        <option value="dots">as coloured dots</option>
+        <option value="metro">as metro stations</option>
+        <option value="none">not at all</option>
+      </select></label>
       <label><input type="checkbox" id="optNebulae" checked> Nebulae</label>
       <label><input type="checkbox" id="optGates" checked> Hypergates and wormholes</label>
       <label>Systems coloured <select id="dotSel" title="How the systems' dots are coloured">

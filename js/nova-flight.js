@@ -319,7 +319,9 @@ function novaShipAccel(D, ship) {
   const g = D.govts.get(ship.govt);
   let a = f32(c.accel * ship.skill);
   if (g) a = f32(a * g.skill);
-  return Math.max(0, f32(a + a));
+  // doubled, but held by another ship's tractor beam a third
+  const held = ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot;
+  return Math.max(0, held ? f32(a * 0.333) : f32(a + a));
 }
 function novaShipMaxSpeed(D, ship) {
   const c = ship.cls;
@@ -327,6 +329,7 @@ function novaShipMaxSpeed(D, ship) {
   const g = D.govts.get(ship.govt);
   let s = f32(c.speed * ship.skill);
   if (g) s = f32(s * g.skill);
+  if (ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot) s = f32(s * 0.333);
   return Math.max(0, s);
 }
 function novaShipTurn(ship) {

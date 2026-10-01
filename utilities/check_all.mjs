@@ -16,6 +16,7 @@ import { ROOT } from './load.mjs';
 
 const CHECKS = [
   ['copies', 'js/mac-*.js are grimoire\'s, byte for byte'],
+  ['stamp', 'every script index.html loads tagged with its contents\' hash, so no visitor gets an old one'],
   ['records', 'record tables against Ambrosia\'s templates and the ConText dump'],
   ['rez', 'the .rez reader against the workbench\'s rez.py'],
   ['sprite', 'rlëD and rlë8 against ResForge, pixel for pixel'],

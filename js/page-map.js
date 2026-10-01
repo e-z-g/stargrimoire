@@ -77,7 +77,9 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
    is at least 3:1 against the black of the map. */
 // SYS_STYLE: how a system is marked: 'dots', coloured as DOTS_BY says; 'metro', a white stop, or where
 // three links or more meet a larger one ringed, as metro maps mark stations; 'none'
-let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, SYS_STYLE = 'dots';
+// PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's asking, 30 September 2026):
+// one size, never made smaller to fit, semibold, white, outlined in the background's colour
+let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, SYS_STYLE = 'dots', PLAIN_NAMES = false;
 function turbo(t) {
   t = Math.max(0, Math.min(1, t));
   const c = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -184,7 +186,7 @@ function mapStart(fresh) {
   setTimeout(() => { if (!BITS && GAME) { bitCatalog(); renderPanel(); } }, 300);
   // other files: the subway map is worked out again, the true positions shown meanwhile
   const kind = LAYOUT.want;
-  Object.assign(LAYOUT, { kind: null, mix: 0, sub: null, subs: {}, pending: {} });
+  Object.assign(LAYOUT, { kind: null, mix: 0, sub: null, base: null, subs: {}, pending: {} });
   NEB_SUB.clear();
   if (kind) setLayoutNow(kind);
   shipsReset();
@@ -373,6 +375,28 @@ function sMin() { return GALAXY_HOME ? GALAXY_HOME.s * 0.5 : 0.05; }
 function boxView(x0, y0, x1, y1, pad) {
   const w = Math.max(x1 - x0, 1), h = Math.max(y1 - y0, 1);
   return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, s: Math.min(Math.max(CW - pad * 2, 20) / w, Math.max(CH - pad * 2, 20) / h) };
+}
+/* The whole map at once, framed as Fit frames it, drawn into ctx at w by h map pixels, for saving it
+   large (the maintainer's asking, 30 September 2026). The stellars are left closed, so that every
+   system is its mark however near; the screen's own context, size and view are put back after. */
+function drawWholeMap(ctx, w, h) {
+  const keep = { CTX, CW, CH, cam: { ...CAM }, STELLARS, OPEN_SYS, MOVING, hover: VIEW.hover, scale: $('scale').textContent };
+  try {
+    CTX = ctx; CW = w; CH = h; STELLARS = false; OPEN_SYS = null; MOVING = true; VIEW.hover = null;
+    Object.assign(CAM, galaxyView());
+    draw();
+  } finally {
+    CTX = keep.CTX; CW = keep.CW; CH = keep.CH; Object.assign(CAM, keep.cam);
+    STELLARS = keep.STELLARS; OPEN_SYS = keep.OPEN_SYS; MOVING = keep.MOVING; VIEW.hover = keep.hover;
+    draw();
+    $('scale').textContent = keep.scale;
+  }
+}
+// Its size: the galaxy's shape, 2000 map pixels along its longer side.
+function wholeMapSize() {
+  const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y);
+  const gw = Math.max(...xs) - Math.min(...xs) || 1, gh = Math.max(...ys) - Math.min(...ys) || 1, L = 2000, pad = 60;
+  return gw >= gh ? [L, Math.round((L - pad) * gh / gw) + pad] : [Math.round((L - pad) * gw / gh) + pad, L];
 }
 function galaxyView() {
   const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y);
@@ -1129,12 +1153,23 @@ function stellarNamePlan(sys) {
 // Names: each from the zoom namePlan gives it, on its side of the dot and
 // pushed out with the disc as the system opens; the selected and hovered at
 // any zoom; none for the system you are in, which the bar names.
+// A system's name at (x, y), outlined first where names are in metro style.
+function nameText(ctx, text, x, y, special) {
+  if (PLAIN_NAMES) {
+    ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.strokeStyle = '#04060a';
+    ctx.strokeText(text, x, y);
+    ctx.lineWidth = 1;
+  }
+  ctx.fillStyle = special || PLAIN_NAMES ? '#ffffff' : 'rgba(210,218,230,0.85)';
+  ctx.fillText(text, x, y);
+}
 function drawSystemLabels(ctx) {
   const r = systemRadius(), dimOther = VIEW.govt !== null, cur = curPlace(), plan = namePlan();
+  const weight = PLAIN_NAMES ? '600 ' : '';
   const selId = VIEW.sel && VIEW.sel.kind === 'system' ? VIEW.sel.id : null;
   const hoverId = VIEW.hover && VIEW.hover.kind === 'system' ? VIEW.hover.id : null;
   const isSel = d => d.p.ids.includes(selId), isHover = d => d.p.ids.includes(hoverId);
-  ctx.font = '11.5px ' + font();
+  ctx.font = weight + '11.5px ' + font();
   ctx.textBaseline = 'middle';
   const order = DRAWN.slice().sort((a, b) => isSel(b) - isSel(a) || isHover(b) - isHover(a));
   // On the map with room for names, each in its room, its letters 0.72 of a grid step high,
@@ -1149,18 +1184,18 @@ function drawSystemLabels(ctx) {
       const nm = LAYOUT.sub.name(d.p.tx, d.p.ty);
       if (nm) {
         const [sx, sy] = toScreen(nm.x, nm.y), fit = nm.w * CAM.s;
-        // a name the lines left little room is smaller (nova-subway.js, subwayLabels)
-        let size = room * (nm.size || 1);
-        ctx.font = size + 'px ' + font();
+        // a name the lines left little room is smaller (nova-subway.js, subwayLabels), but for names
+        // in metro style, which are one size
+        let size = room * (PLAIN_NAMES ? 1 : nm.size || 1);
+        ctx.font = weight + size + 'px ' + font();
         const w = ctx.measureText(d.sys.name).width;
-        if (w > fit) { size *= fit / w; ctx.font = size + 'px ' + font(); }
+        if (w > fit && !PLAIN_NAMES) { size *= fit / w; ctx.font = size + 'px ' + font(); }
         ctx.textAlign = nm.align;
         ctx.globalAlpha = (dimOther && d.sys.govt !== VIEW.govt && !special ? 0.3 : 1) * (placeFaint(d.p) && !special ? FAINT : 1);
-        ctx.fillStyle = special ? '#ffffff' : 'rgba(210,218,230,0.85)';
-        ctx.fillText(d.sys.name, sx, sy);
+        nameText(ctx, d.sys.name, sx, sy, special);
         LABELS_DRAWN.systems++;
         ctx.textAlign = 'start';
-        ctx.font = '11.5px ' + font();
+        ctx.font = weight + '11.5px ' + font();
         continue;
       }
     }
@@ -1171,8 +1206,7 @@ function drawSystemLabels(ctx) {
     const k = plan.side.get(d.p) || 0, o = NAME_SIDES(r, w)[k], out = Math.max(0, d.t * d.D / 2 - r);
     const x = d.x + o.x + (k === 0 ? out : k === 1 ? -out : 0), y = d.y + o.y + (k === 2 ? -out : k === 3 ? out : 0);
     ctx.globalAlpha = (dimOther && d.sys.govt !== VIEW.govt && !special ? 0.3 : 1) * (placeFaint(d.p) && !special ? FAINT : 1);
-    ctx.fillStyle = special ? '#ffffff' : 'rgba(210,218,230,0.85)';
-    ctx.fillText(name, x, y + 7);
+    nameText(ctx, name, x, y + 7, special);
     LABELS_DRAWN.systems++;
     LABELS_DRAWN.boxes.push({ id: d.sys.id, side: k, special, x, y, w: w + 2, h: 14 });
   }
@@ -2299,11 +2333,29 @@ function wireTools() {
   document.addEventListener('fullscreenchange', fullChanged);
   document.addEventListener('webkitfullscreenchange', fullChanged);
   $('optNebulae').onchange = () => { NEBULAE = $('optNebulae').checked; redraw(); };
+  $('optPlainNames').onchange = () => { PLAIN_NAMES = $('optPlainNames').checked; redraw(); };
   $('sysSel').onchange = () => { SYS_STYLE = $('sysSel').value; redraw(); };
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
+  // the whole map, large: a PNG four times as sharp as the map's own pixels, kept within 32 million
+  // of them so that a phone can make it, and the same as a drawing, an SVG (wholeMap)
+  const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
+  $('saveWhole').onclick = () => {
+    const [w, h] = wholeMapSize(), k = Math.min(4, Math.sqrt(32e6 / (w * h)));
+    const c = document.createElement('canvas');
+    c.width = Math.round(w * k); c.height = Math.round(h * k);
+    const ctx = c.getContext('2d');
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    drawWholeMap(ctx, w, h);
+    c.toBlob(b => { if (b) dlBlob(b, wholeName('png')); else alert('This browser could not make a picture that large.'); }, 'image/png');
+  };
+  $('saveSvg').onclick = () => {
+    const [w, h] = wholeMapSize(), ctx = svgContext(w, h);
+    drawWholeMap(ctx, w, h);
+    dlBlob(new Blob([ctx.toSVG()], { type: 'image/svg+xml' }), wholeName('svg'));
+  };
   // the map as it is on the screen, at the screen's own pixels, as a PNG
   $('saveImg').onclick = () => {
     draw();

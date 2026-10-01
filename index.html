@@ -291,6 +291,7 @@ details.inline .list { margin-top: 4px; }
       <label class="under2"><input type="checkbox" id="optBars" checked> Busy stations as bars</label>
       <label><input type="checkbox" id="optStellars" checked> Stellars as you zoom in</label>
       <label><input type="checkbox" id="optNames" checked> Names</label>
+      <label class="under"><input type="checkbox" id="optPlainNames"> in metro style: one size, bolder, outlined</label>
       <label>Systems drawn <select id="sysSel" title="How each system is marked on the map">
         <option value="dots">as coloured dots</option>
         <option value="metro">as metro stations</option>
@@ -325,6 +326,8 @@ details.inline .list { margin-top: 4px; }
         <option value="govtOne">each in one government's colour</option>
       </select></label>
       <button id="saveImg" type="button">Save the map as a picture</button>
+      <button id="saveWhole" type="button">Save the whole map, large</button>
+      <button id="saveSvg" type="button">Save the whole map as a drawing (SVG)</button>
     </div>
     <div id="corner">
       <button id="panelBtn" aria-pressed="true" aria-label="Details" title="Hide the details"><svg viewBox="0 0 16 16" aria-hidden="true"><rect class="side" x="10" y="2.5" width="4.5" height="11"/><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M10 2.5v11"/></svg></button>
@@ -340,27 +343,28 @@ details.inline .list { margin-top: 4px; }
   <aside id="panel"></aside>
 </main>
 
-<script src="js/mac-bytes.js"></script>
-<script src="js/mac-containers.js"></script>
-<script src="js/mac-media.js"></script>
-<script src="js/mac-resfork.js"></script>
-<script src="js/mac-rsrc-types.js"></script>
-<script src="js/mac-export.js"></script>
-<script src="js/mac-stuffit.js"></script>
-<script src="js/mac-vise.js"></script>
-<script src="js/mac-zip.js"></script>
-<script src="js/nova-files.js"></script>
-<script src="js/nova-records.js"></script>
-<script src="js/nova-ncb.js"></script>
-<script src="js/nova-sprites.js"></script>
-<script src="js/nova-universe.js"></script>
-<script src="js/nova-bits.js"></script>
-<script src="js/nova-missions.js"></script>
-<script src="js/nova-subway.js"></script>
-<script src="js/nova-labels.js"></script>
-<script src="js/nova-ships.js"></script>
-<script src="js/page-open.js"></script>
-<script src="js/page-map.js"></script>
-<script src="js/page-ships.js"></script>
+<script src="js/mac-bytes.js?v=8dbd3a37"></script>
+<script src="js/mac-containers.js?v=06e24231"></script>
+<script src="js/mac-media.js?v=cc69833e"></script>
+<script src="js/mac-resfork.js?v=def0e4c5"></script>
+<script src="js/mac-rsrc-types.js?v=245eda1a"></script>
+<script src="js/mac-export.js?v=407aa5ea"></script>
+<script src="js/mac-stuffit.js?v=dacdb7f2"></script>
+<script src="js/mac-vise.js?v=fcf4feff"></script>
+<script src="js/mac-zip.js?v=fdd7da63"></script>
+<script src="js/nova-files.js?v=18cffe8f"></script>
+<script src="js/nova-records.js?v=f1a02609"></script>
+<script src="js/nova-ncb.js?v=e8a20c19"></script>
+<script src="js/nova-sprites.js?v=944def6a"></script>
+<script src="js/nova-universe.js?v=414fd3f4"></script>
+<script src="js/nova-bits.js?v=76c791b3"></script>
+<script src="js/nova-missions.js?v=fddff99c"></script>
+<script src="js/nova-subway.js?v=f8eda884"></script>
+<script src="js/nova-labels.js?v=7d212c2c"></script>
+<script src="js/nova-ships.js?v=44513e72"></script>
+<script src="js/page-open.js?v=da5be3fe"></script>
+<script src="js/page-svg.js?v=137e1963"></script>
+<script src="js/page-map.js?v=221d9ba2"></script>
+<script src="js/page-ships.js?v=bab59baa"></script>
 </body>
 </html>

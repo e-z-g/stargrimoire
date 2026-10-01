@@ -23,7 +23,7 @@ export function pageScripts() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   return [...html.matchAll(/<script\b([^>]*)>/g)]
     .map(m => /\bsrc="([^"]+)"/.exec(m[1]))
-    .filter(Boolean).map(m => m[1]);
+    .filter(Boolean).map(m => m[1].split('?')[0]);
 }
 
 function stubCanvas() {

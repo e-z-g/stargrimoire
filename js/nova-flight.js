@@ -313,6 +313,7 @@ function novaFlightWorld(D, sys, state, seed, view) {
               roids: Array.from({ length: 16 }, () => ({ active: false })), view: view || { x: 0, y: 0, hw: 320, hh: 240 } };
   w.shots = new Array(128).fill(null);
   w.booms = new Array(32).fill(null);
+  w.beams = new Array(64).fill(null);
   w.rand = n => w.random.rand(n);
   w.holds = tree => { try { return ncbEval(tree, w.state); } catch (e) { return true; } };
   novaSetupShips(w);
@@ -687,6 +688,7 @@ function novaFlightStep(w) {
   }
   novaHandleExplods(w);
   novaHandleAsteroids(w);
+  novaHandleBeams(w);
   w.t++;
 }
 // A ship leaves the system (it jumped, or went into a gate).

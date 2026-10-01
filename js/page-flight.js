@@ -176,6 +176,19 @@ function drawWorld(ctx, d, w) {
     const [x, y] = toScreen(d.p.x + k * sh.x, d.p.y + k * sh.y);
     sprite(id, novaShotFrame(W, sh, info), x, y, MIN_SHOT);
   }
+  // beams: a line in BeamColor over a wider one in CoronaColor, BeamWidth across, never under a pixel
+  const hex = c => '#' + ((c >>> 0) & 0xffffff).toString(16).padStart(6, '0');
+  if (w.beams) for (const b of w.beams) {
+    if (!b || b.life < 0) continue;
+    const W = w.D.fight.weaps[b.w];
+    const [x0, y0] = toScreen(d.p.x + k * b.x0, d.p.y + k * b.y0), [x1, y1] = toScreen(d.p.x + k * b.x1, d.p.y + k * b.y1);
+    const bw = Math.max(1, (W.beamWidth || 1) * z);
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = d.t * 0.45; ctx.strokeStyle = hex(W.coronaColor); ctx.lineWidth = bw * 3;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.globalAlpha = d.t; ctx.strokeStyle = hex(W.beamColor); ctx.lineWidth = bw;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
   if (w.booms) for (const b of w.booms) {
     const B = b && w.D.fight.booms[b.boom];
     if (!B || b.delay > 0) continue;
@@ -243,7 +256,7 @@ function battleFight() {
   const w = FLIGHT.world;
   if (!w) return;
   for (let i = 0; i < 64; i++) w.ships[i] = null;
-  w.shots.fill(null); w.booms.fill(null);
+  w.shots.fill(null); w.booms.fill(null); w.beams.fill(null);
   w.noArrivals = true;
   BATTLE.placed = []; BATTLE.sys = FLIGHT.sys;
   for (let i = 0; i < 2; i++) {

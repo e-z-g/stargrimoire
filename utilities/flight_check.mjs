@@ -193,6 +193,75 @@ if (haveRelease('1.1.1')) {
   if (!fails) console.log(`asteroids: ${sys.name}'s ${n} round the screen, after a minute and after it moved`);
 }
 
+// ---- 4c. fighting --------------------------------------------------------
+// Worked from Mac 1.1.1's DamageShip, IsDisabled, SelectWarshipTarget, WarshipAI and HandleShipDisplay
+// (evnova-workbench/doc/fighting.md), on 1.0.10's ships in an empty Sol: damage to shields then armour,
+// the shield floor, a disable-only weapon's last point, the disable threshold, turning on an aimed
+// attacker and not on one's own government, the nearest enemy picked and one too strong passed over,
+// the death throes' length, the out-of-ammunition retreat with its flag and without it, and a battle
+// that ends.
+if (haveRelease('1.0.10')) {
+  const game = openRelease(S, '1.0.10', new Set(['data', 'graphics', 'ships', 'sounds'])), u = S.novaUniverse(game), D = S.novaFlightData(u);
+  const empty = seed => { const w = S.novaFlightWorld(D, u.byId.get(130), {}, seed); w.ships.fill(null); w.noArrivals = true; return w; };
+  const FED = 128, AUR = 129, DESTROYER = 141, CRUISER = 154, VIPER = 335;
+  let w = empty(1);
+  const a = S.novaPlaceShip(w, DESTROYER, FED, 0, 0, 3), b = S.novaPlaceShip(w, CRUISER, AUR, 300, 0, 3);
+  const cap = S.novaShieldCap(D, a), acap = S.novaArmorCap(D, a);
+  a.shield = 10; a.armor = 100;
+  S.novaDamageShip(w, a, null, 0, 30, 20, -1, false, false, false, false, false);
+  eq('energy 20 then mass 30 on 10 shields and 100 armour', [a.shield, a.armor], [-10, 70]);
+  S.novaDamageShip(w, a, null, 0, 0, 1000, -1, false, false, false, false, false);
+  eq('the shield floor, a tenth of the capacity below 0', a.shield, Math.fround(-cap * 0.1));
+  a.shield = 0; a.armor = 5;
+  S.novaDamageShip(w, a, null, 0, 10, 0, -1, false, false, true, false, false);
+  eq('a disable-only weapon leaves one point', a.armor, 1);
+  const third = acap * ((S.novaClassFight(D, a.cls).flags & 0x10) ? 10 : 33.333) / 100;   // class Flags 0x0010: at a tenth
+  a.armor = Math.ceil(third) + 1; S.novaSetDisabled(D, a); const up = a.disabled;
+  a.armor = Math.floor(third) - 1; S.novaSetDisabled(D, a); const down = a.disabled;
+  eq(`disabled under ${Math.floor(third)} of ${acap} armour`, [up, down], [false, true]);
+  a.shield = cap; a.armor = acap; S.novaSetDisabled(D, a); a.primary = -1; a.anger = 0;
+  S.novaDamageShip(w, a, b, 0, 5, 5, b.slot, true, true, false, false, false);
+  eq('an aimed hit from an enemy: turned on, angered by the damage', [a.primary, a.anger], [b.slot, 10]);
+  const c = S.novaPlaceShip(w, DESTROYER, FED, 0, 200, 3);
+  c.primary = -1;
+  S.novaDamageShip(w, c, a, 0, 5, 5, a.slot, true, true, false, false, false);
+  eq('a hit from its own government: not turned on', c.primary, -1);
+  // targets: the nearer of two enemies; then a ship too strong for its MaxOdds passed over
+  w = empty(2);
+  const v = S.novaPlaceShip(w, VIPER, AUR, 0, 0, 3), close = S.novaPlaceShip(w, VIPER, FED, 400, 0, 3), far = S.novaPlaceShip(w, VIPER, FED, 900, 0, 3);
+  v.primary = -1; S.novaSelectTarget(w, v);
+  eq('the nearer of two enemies', v.primary, close.slot);
+  w.ships[close.slot] = null; w.ships[far.slot] = null;
+  const big = S.novaPlaceShip(w, CRUISER, FED, 400, 0, 3);
+  v.primary = -1; S.novaSelectTarget(w, v);
+  if (v.primary === big.slot) fail(`a Viper picked a cruiser of Strength ${S.novaClassFight(D, big.cls).strength} over its own odds`);
+  // the death throes: DeathDelay steps from the first, then gone
+  w = empty(3);
+  const d = S.novaPlaceShip(w, DESTROYER, FED, 0, 0, 3), delay = S.novaClassFight(D, d.cls).deathDelay;
+  d.shield = 0; d.armor = 0; S.novaSetDisabled(D, d);
+  let steps = 0;
+  while (w.ships[d.slot] === d && steps < 1000) { S.novaFlightStep(w); steps++; }
+  near('a destroyer dies in its DeathDelay steps', steps, delay, 2);
+  // out of ammunition: Raven Rockets spent, a Viper (Flags2 0x0080) runs; without the flag it fights on
+  const spent = flag => {
+    const w2 = empty(4), s = S.novaPlaceShip(w2, VIPER, AUR, 0, 0, 3), t = S.novaPlaceShip(w2, DESTROYER, FED, 300, 0, 3);
+    if (!flag) S.novaClassFight(D, s.cls).flags2 &= ~0x80;
+    for (const r of s.weap) if (D.fight.weaps[r.i].ammoType >= 0) r.ammo = 0;
+    s.primary = t.slot; s.state = 4;
+    S.novaFlightStep(w2);
+    S.novaClassFight(D, s.cls).flags2 |= 0x80;
+    return s.state;
+  };
+  eq('out of rockets, with Flags2 0x0080 and without', [spent(true), spent(false)], [3, 4]);
+  // a battle that ends: three destroyers against two cruisers
+  w = empty(5);
+  const sides = [[DESTROYER, DESTROYER, DESTROYER], [CRUISER, CRUISER]].map((l, k) => l.map((id, j) => S.novaPlaceShip(w, id, k ? AUR : FED, k ? 450 : -450, j * 140, 3)));
+  let t = 0;
+  for (; t < 30 * 180 && !sides.some(l => l.every(s => w.ships[s.slot] !== s)); t++) S.novaFlightStep(w);
+  if (t >= 30 * 180) fail('three destroyers and two cruisers still fighting after three minutes');
+  if (!fails) console.log(`fighting: damage, the shield floor, disable-only, the disable threshold at ${Math.floor(third)} of ${acap}, turning on an attacker, targets, death in ${steps} steps, the out-of-ammunition retreat, a battle over in ${t} steps`);
+}
+
 // ---- 5. every release ----------------------------------------------------
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }

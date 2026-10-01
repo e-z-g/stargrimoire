@@ -103,6 +103,9 @@ function drawFlight(ctx, d) {
   if (!d || !w || d.sys.id !== FLIGHT.sys || d.t <= 0) return;
   if (VIEW.mode === 'system') flightRun();
   const k = kOf(d.sys), z = k * CAM.s;
+  // only what is within the system's circle
+  ctx.save();
+  ctx.beginPath(); ctx.arc(d.x, d.y, d.D / 2, 0, Math.PI * 2); ctx.clip();
   ctx.globalAlpha = d.t;
   for (const a of w.roids) {
     if (!a.active) continue;
@@ -132,7 +135,7 @@ function drawFlight(ctx, d) {
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 // The panel's part: how many ships, and the clock.

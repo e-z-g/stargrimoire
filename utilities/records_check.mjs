@@ -117,7 +117,9 @@ const ALIAS = { Visiblility: 'Visibility', spobType: 'Type', MinCoolness: 'MinSt
                 DefaultItems2: 'DefaultItms2', AvailShipType: 'AvailShipTyp', HailPICT: 'HailPict',
                 EscortShipType: 'EscortType', EscortMin: 'Min', EscortMax: 'Max' };
 // Names the dump gives one type's field that another type uses for its own.
-const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' } };
+const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' },
+  röid: { spinRate: 'SpinRate', yieldType: 'YieldType', yieldQty: 'YieldQty', partCount: 'PartCount', partColor: 'PartColor',
+          fragType1: 'FragType1', fragType2: 'FragType2', fragCount: 'FragCount', ExplodeType: 'ExplodType' } };
 // The dump writes a quotation mark as \q and CR and LF as \r and \n, and a
 // backslash as itself, so a ShortName's own two characters \n (the Bible's
 // line break in the shipyard) read back as LF. Our value is escaped the

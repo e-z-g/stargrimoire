@@ -173,6 +173,26 @@ if (haveRelease('1.1.1')) {
   if (!fails) console.log(`odds: Sol's düdes ${counts.filter(Boolean).join('/')} of ${N} for Probs ${weights.filter(Boolean).join('/')}; düde ${dude.id}'s ships by its Probs`);
 }
 
+// ---- 4b. asteroids ---------------------------------------------------------
+// Round a screen 800 x 600 at (1000, -500) in a system with asteroids: as many as it has, from the start and
+// after a minute; every one within the screen and its margins (half + 128 out, a corner's 0.7 x 1.5 at most,
+// and gone 32 past an edge beyond its width); and moving the screen, all of them gone and come in again round it.
+if (haveRelease('1.1.1')) {
+  const game = openRelease(S, '1.1.1', new Set(['data', 'graphics', 'ships', 'sounds'])), u = S.novaUniverse(game), D = S.novaFlightData(u);
+  const sys = u.systems.find(x => x.rec.Asteroids >= 5 && x.rec.AstTypes), view = { x: 1000, y: -500, hw: 400, hh: 300 };
+  const w = S.novaFlightWorld(D, sys, {}, 11, view), n = sys.rec.Asteroids;
+  const live = () => w.roids.filter(a => a.active);
+  const inside = v => live().every(a => Math.abs(a.x - v.x) <= 1.05 * (v.hw + 128) + 100 && Math.abs(a.y - v.y) <= 1.05 * (v.hw + 128) + 100);
+  if (live().length !== n) fail(`asteroids on arriving in ${sys.name}: ${live().length}, it has ${n}`);
+  for (let i = 0; i < 1800; i++) S.novaFlightStep(w);
+  if (live().length !== n || !inside(view)) fail(`asteroids after a minute: ${live().length} of ${n}, ${JSON.stringify(live().map(a => [Math.round(a.x), Math.round(a.y)]))}`);
+  w.view = { x: 20000, y: 20000, hw: 400, hh: 300 };
+  const before = new Set(live());
+  for (let i = 0; i < 60; i++) S.novaFlightStep(w);
+  if (live().some(a => before.has(a) && Math.abs(a.x) < 5000) || !inside(w.view)) fail('asteroids did not follow the screen');
+  if (!fails) console.log(`asteroids: ${sys.name}'s ${n} round the screen, after a minute and after it moved`);
+}
+
 // ---- 5. every release ----------------------------------------------------
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }

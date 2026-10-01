@@ -208,6 +208,11 @@ const NOVA_RECORDS = {
     ['Govt', 'i16'], ['LinkSyst', 'i16'], ['ActivateOn', 'str', 256], ['Quote', 'i16'],
     ['Flags', 'h16'], ['Unused', 'pad', 16],
   ],
+  'röid': [
+    ['Strength', 'i16'], ['SpinRate', 'i16'], ['YieldType', 'i16'], ['YieldQty', 'i16'],
+    ['PartCount', 'i16'], ['PartColor', 'rgb'], ['FragType1', 'i16'], ['FragType2', 'i16'],
+    ['FragCount', 'i16'], ['ExplodType', 'i16'], ['Mass', 'i16'], ['Unused', 'pad', 16],
+  ],
   'jünk': [
     ['SoldAt', 'i16', 8], ['BoughtAt', 'i16', 8], ['BasePrice', 'i16'], ['Flags', 'h16'],
     ['ScanMask', 'h16'], ['LCName', 'str', 64], ['Abbrev', 'str', 64],

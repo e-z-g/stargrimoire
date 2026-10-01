@@ -160,7 +160,22 @@ function novaFlightData(u) {
   const persons = new Map(novaAll(game, 'përs').map(p => [p.id, Object.assign(p, { activateOn: test(p.ActivateOn) })]));
   const govts = new Map([...u.govts.values()].map(g => [g.id, { id: g.id, flags: g.Flags, flags2: g.Flags2,
     classes: g.Classes, allies: g.Allies, enemies: g.Enemies, skill: g.SkillMult > 0 ? f32(g.SkillMult * 0.01) : 1 }]));
-  return { u, classes, dudes, fleets, persons, govts, jumpTicks: novaJumpTicks(game), systems: new Map(), widths: new Map() };
+  return { u, classes, dudes, fleets, persons, govts, roids: novaFlightRoids(game), jumpTicks: novaJumpTicks(game), systems: new Map(), widths: new Map() };
+}
+/* röid n (from 128) and its sprite, spïn 800 + (n - 128) (LoadSprites
+   0x2097f): Strength at least 1, SpinRate / 100 frames a step. Read again
+   when the graphics files arrive, as they may after the rest. */
+function novaFlightRoids(game) {
+  const roids = [];
+  for (let t = 0; t < 16; t++) {
+    const r = novaGet(game, 'röid', 128 + t), spin = novaGet(game, 'spïn', 800 + t);
+    const spr = spin && (game.get('rlëD', spin.SpritesID) || game.get('rlë8', spin.SpritesID));
+    let ix = null;
+    if (spr) try { ix = novaRleIndex(spr.bytes).header; } catch (e) { ix = null; }
+    roids.push({ type: t, name: r ? novaNameParts(r.name).name : '', strength: r ? Math.max(1, r.Strength) : 1, spin: f32((r ? r.SpinRate : 0) * 0.01),
+                 sprite: spin ? spin.SpritesID : 0, w: ix ? ix.width : 32, h: ix ? ix.height : 32, frames: ix ? ix.frames : 1 });
+  }
+  return roids;
 }
 
 /* How long a jump takes, in 60ths of a second (LoadSounds 0x1c03b): snd
@@ -293,11 +308,13 @@ const novaJumping = s => (s.state === 2 || s.state === 0xb || s.state === 3) && 
 /* A system's world after you arrive: { D, sys, state, random, ships, t }.
    `state` is the control bits the map holds (nova-ncb.js); `seed` starts
    the random numbers, so the same seed gives the same ships. */
-function novaFlightWorld(D, sys, state, seed) {
-  const w = { D, sys, si: novaSysInfo(D, sys), state: state || {}, random: novaRandom(seed), ships: new Array(64).fill(null), t: 0, gone: [] };
+function novaFlightWorld(D, sys, state, seed, view) {
+  const w = { D, sys, si: novaSysInfo(D, sys), state: state || {}, random: novaRandom(seed), ships: new Array(64).fill(null), t: 0, gone: [],
+              roids: Array.from({ length: 16 }, () => ({ active: false })), view: view || { x: 0, y: 0, hw: 320, hh: 240 } };
   w.rand = n => w.random.rand(n);
   w.holds = tree => { try { return ncbEval(tree, w.state); } catch (e) { return true; } };
   novaSetupShips(w);
+  novaCreateAsteroids(w);
   return w;
 }
 const novaNow = w => 2 * w.t;   // TickCount, in 60ths
@@ -648,8 +665,11 @@ function novaHyperShipSpawn(w) {
    arrivals, each ship's AI, each ship's move. */
 function novaFlightStep(w) {
   novaEnterMoreShips(w);
+  novaSpawnAsteroid(w, true);
+  w.miners = false;
   for (const s of w.ships) if (s && w.ships[s.slot] === s) novaAI(w, s);
   for (const s of w.ships) if (s && w.ships[s.slot] === s) novaHandleShip(w, s);
+  novaHandleAsteroids(w);
   w.t++;
 }
 // A ship leaves the system (it jumped, or went into a gate).
@@ -659,6 +679,7 @@ function novaGone(w, s, how) { w.ships[s.slot] = null; w.gone.push({ slot: s.slo
    frame (aiComplexity 1, set by HandleTimeAdjustment); slower frames
    spread the thinking over two to sixteen. */
 function novaAI(w, s) {
+  if ((s.cls.flags3 & 3) && s.leader === -1) w.miners = true;
   if (s.formLead) novaFormation(w, s, false);
   if (s.disabled && s.jump > 0) s.jump = -1;
   if (s.jump < -900) { s.state = 8; s.mode = 10; }
@@ -969,6 +990,85 @@ function novaLowLevel(w, s) {
   }
   // 10: arriving
   if (s.mode === 10) { if (s.desired >= 0) s.desired = -50; s.thrust = f32(-1.165); }
+}
+
+/* ---- asteroids ------------------------------------------------------------ */
+
+/* The asteroids are the player's: the program keeps up to the system's
+   Asteroids of them, of the röid types its AstTypes names, in a pool of 16,
+   on and just off the player's screen. Here the map's view stands in for
+   that screen: w.view is its middle in the system's units and its half
+   width and height (screenCenter), set by the page; a node check sets its
+   own.
+
+   CreateAsteroids 0x3fa05, on arriving: as many as the system has, then
+   all 16 places scattered over the middle of the screen, (half + 128) wide
+   and high, drifting up to 2 a step either way. */
+function novaCreateAsteroids(w) {
+  const n = w.sys.rec.Asteroids;
+  w.noRoids = !(n > 0);
+  if (w.noRoids) return;
+  for (let i = 0; i < n; i++) novaSpawnAsteroid(w, false);
+  const v = w.view, W = Math.trunc(v.hw) + 128, H = Math.trunc(v.hh) + 128;
+  for (const a of w.roids) {
+    a.x = f32(f32(v.x + w.rand(W)) + W * -0.5); a.y = f32(f32(v.y + w.rand(H)) + H * -0.5);
+    a.vx = f32((w.rand(400) - 200) * 0.01); a.vy = f32((w.rand(400) - 200) * 0.01);
+  }
+}
+/* SpawnAsteroid 0x3a233, each step (`edge`) and on arriving: while fewer
+   are about than the system's Asteroids, one more in the first free
+   place, off a corner of the screen -- 0.7 of the larger of (half + 128)
+   out, and up to half that again, each way, drifting in at up to 2 a step
+   -- or, on arriving, anywhere in the middle; of a type the system names,
+   on a random frame, turning at 80 to 120% of its röid's SpinRate either
+   way. */
+function novaSpawnAsteroid(w, edge) {
+  const rec = w.sys.rec, n = rec.Asteroids, types = rec.AstTypes & 0xffff;
+  if (!(n > 0) || !types) return;
+  if (n <= w.roids.filter(a => a.active).length) return;
+  const a = w.roids.find(r => !r.active);
+  if (!a) return;
+  a.active = true;
+  const v = w.view, W = Math.trunc(v.hw) + 128, H = Math.trunc(v.hh) + 128;
+  if (edge) {
+    const r = Math.max(2, f32(Math.max(W, H) * 0.7)), far = () => w.rand(Math.trunc(f32(r * 0.5)));
+    if (w.rand(2) === 0) { a.x = f32(f32(r + v.x) + far()); a.vx = f32(w.rand(200) * -0.01); }
+    else { a.x = f32(f32(v.x - r) - far()); a.vx = f32(w.rand(200) * 0.01); }
+    if (w.rand(2) === 0) { a.y = f32(f32(r + v.y) + far()); a.vy = f32(w.rand(200) * -0.01); }
+    else { a.y = f32(f32(v.y - r) - far()); a.vy = f32(w.rand(200) * 0.01); }
+  } else {
+    a.x = f32(f32(v.x + w.rand(W)) + W * -0.5); a.y = f32(f32(v.y + w.rand(H)) + H * -0.5);
+    a.vx = f32((w.rand(400) - 200) * 0.01); a.vy = f32((w.rand(400) - 200) * 0.01);
+  }
+  do a.type = w.rand(16); while (!((types >> a.type) & 1));
+  const t = w.D.roids[a.type];
+  a.frame = w.rand(t.frames);
+  a.spin = f32(f32(t.spin * (w.rand(41) + 80)) * 0.01);
+  if (w.rand(2) === 0) a.spin = -a.spin;
+  a.strength = t.strength;
+}
+/* HandleAsteroids 0x361ac: with a miner about, the first asteroid kept in
+   the first place, its target; each moved and turned, and gone once more
+   than 32 pixels off the screen past its own width -- the program puts it
+   back on the far side first, but takes it away all the same, and one
+   comes in again at a corner. */
+function novaHandleAsteroids(w) {
+  const R = w.roids, D = w.D;
+  if (w.miners && !R[0].active) { const i = R.findIndex(a => a.active); if (i > 0) { Object.assign(R[0], R[i]); R[i] = { active: false }; } }
+  if (w.noRoids) { for (const a of R) a.active = false; return; }
+  const v = w.view;
+  for (const a of R) {
+    if (!a.active) continue;
+    if (!(a.strength > -32000)) { a.active = false; continue; }
+    const t = D.roids[a.type];
+    a.x = f32(a.x + a.vx); a.y = f32(a.y + a.vy); a.frame = f32(a.frame + a.spin);
+    if (a.frame < 0) a.frame = f32(a.frame + t.frames);
+    if (a.frame >= t.frames) a.frame = f32(a.frame - t.frames);
+    if (!(a.frame >= 0 && a.frame < t.frames)) a.frame = 0;   // the sprite arrived after the asteroid did
+    const left = Math.trunc(f32(a.x - v.x)) + Math.trunc(v.hw) - Math.trunc(t.w / 2);
+    const top = Math.trunc(f32(a.y - v.y)) + Math.trunc(v.hh) - Math.trunc(t.h / 2);
+    if (left > 2 * Math.trunc(v.hw) + 32 || left < -2 * t.w - 32 || top > 2 * Math.trunc(v.hh) + 32 || top < -2 * t.h - 32) a.active = false;
+  }
 }
 
 /* ---- how they move ------------------------------------------------------ */

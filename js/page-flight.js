@@ -12,6 +12,10 @@
    reduced motion it starts paused. A hypergate a ship is coming out of
    opens (flightEngaged).
 
+   The asteroids are the player's in the game, kept on and just off the
+   player's screen; the map's view stands in for it (flightView), so they
+   gather round what you are looking at and come in at its corners.
+
    Each ship is its base sprite at its heading's frame, as small as the
    system's scale makes it but never under MIN_SHIP pixels across, as a
    stellar is never under MIN_STELLAR. The sprites are the ships view's
@@ -46,11 +50,18 @@ function flightSync() {
   wantShipFiles();
   const D = flightData();
   if (!D) return;
-  FLIGHT.world = novaFlightWorld(D, U.byId.get(here), STATE, Math.floor(Math.random() * 0x7fffffff));
+  FLIGHT.world = novaFlightWorld(D, U.byId.get(here), STATE, Math.floor(Math.random() * 0x7fffffff), flightView(here));
   for (const s of FLIGHT.world.ships) if (s) s.frame = novaShipFrame(s);
   FLIGHT.paused = FLIGHT.paused || reducedMotion();
   FLIGHT.due = 0;
   renderPanel();
+}
+
+/* The player's screen, for the asteroids: the map's view in the system's
+   own units, its middle and half its width and height. */
+function flightView(id) {
+  const sys = U.byId.get(id), p = placeOf(id), k = kOf(sys), z = CAM.s * k;
+  return { x: (CAM.x - p.x) / k, y: (CAM.y - p.y) / k, hw: CW / 2 / z, hh: CH / 2 / z };
 }
 
 function flightLoop(now) {
@@ -61,6 +72,7 @@ function flightLoop(now) {
   FLIGHT.last = now;
   let stepped = false;
   for (; FLIGHT.due >= 1; FLIGHT.due--) {
+    w.view = flightView(FLIGHT.sys);
     novaFlightStep(w);
     for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
     stepped = true;
@@ -92,6 +104,18 @@ function drawFlight(ctx, d) {
   if (VIEW.mode === 'system') flightRun();
   const k = kOf(d.sys), z = k * CAM.s;
   ctx.globalAlpha = d.t;
+  for (const a of w.roids) {
+    if (!a.active) continue;
+    const t = w.D.roids[a.type], spr = shipSprite(t.sprite), img = spr && spr.kind === 'rle' ? shipFrame(spr, Math.trunc(a.frame) % spr.count) : null;
+    if (!img) continue;
+    const [x, y] = toScreen(d.p.x + k * a.x, d.p.y + k * a.y);
+    let wd = img.width * z, ht = img.height * z;
+    const m = Math.max(wd, ht);
+    if (m < MIN_SHIP) { wd *= MIN_SHIP / m; ht *= MIN_SHIP / m; }
+    if (x + wd < 0 || y + ht < 0 || x - wd > CW || y - ht > CH) continue;
+    ctx.imageSmoothingEnabled = wd < img.width;
+    ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
+  }
   for (const s of w.ships) {
     if (!s) continue;
     const [x, y] = toScreen(d.p.x + k * s.x, d.p.y + k * s.y);
@@ -136,5 +160,7 @@ function flightSwitch(on) {
   renderPanel();
   redraw();
 }
+// More files read: the asteroids' sprites may be among them.
+function flightFilesChanged() { if (FLIGHT.data) FLIGHT.data.roids = novaFlightRoids(GAME); }
 // Other files: the records are read again, and the world set up again.
 function flightReset() { FLIGHT.data = null; FLIGHT.world = null; FLIGHT.sys = null; FLIGHT.engaged = new Set(); }

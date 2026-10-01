@@ -281,6 +281,7 @@ function mapFilesChanged() {
   for (const [k, v] of SPRITE_CACHE) if (!v) SPRITE_CACHE.delete(k);
   for (const [k, v] of FRAME_CACHE) if (!v) FRAME_CACHE.delete(k);
   STELLAR_NAMES.clear();
+  flightFilesChanged();
   redraw();
   if (VIEW.mode === 'planet') renderPlanet();
 }

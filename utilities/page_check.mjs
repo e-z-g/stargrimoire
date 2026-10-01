@@ -631,6 +631,9 @@ try {
           const wait = ms => new Promise(r => setTimeout(r, ms));
           for (let i = 0; i < 50 && !FLIGHT.world; i++) await wait(100);
           if (!FLIGHT.world) return null;
+          // the link selected the stellar; the system's panel has the clock
+          VIEW.sel = { kind: 'system', id: VIEW.sys }; renderPanel();
+          if (!document.querySelector('#panel [data-flight=pause]')) return { panel: false };
           const live = () => FLIGHT.world.ships.filter(Boolean);
           const at = live().map(s => s.x + ',' + s.y).join(' '), t = FLIGHT.world.t, moving = live().some(s => s.vx || s.vy || s.thrust);
           await wait(1000);

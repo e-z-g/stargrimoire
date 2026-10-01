@@ -169,6 +169,75 @@ function novaNebulaPict(u, neb, scale) {
 function novaStellarSpin(spob) { return 1000 + spob.Type; }
 function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID : 10000 + spob.Type; }
 
+/* ANIMATION, read from Mac 1.1.1's HandleStellarSprites (the Intel half,
+   0x2e6f1), which has its function names; the Bible's spöb section says
+   the same in fewer words, and evnova-decomp's NovaStellar_AdvanceAnimationFrame
+   is the Community Edition's. A stellar whose sprite has two frames or more
+   animates while it is not destroyed, or, with Flags2 0x0080, only while it
+   is. Otherwise it shows its first frame.
+     Time is counted in 30ths of a second. Once AnimDelay of them have
+   passed, or AnimDelay times Frame0Bias on the first frame when that is
+   above 1, the count starts again and the frame moves on. The program
+   keeps the frame shown and the one to show next (`cur`, `next`): the next
+   becomes the shown one, and a new next is the one after it, or with Flags2
+   0x0002 one at random that is not the one now shown. With 0x0001 the first
+   frame comes between every two others, and the random pick is never it.
+     A hypergate (Flags2 0x1000) has two parts, split at CustPicID when that
+   is from 1 to two short of the frame count, and in half otherwise
+   (novaGateTransition). It opens through the first part while a ship is near
+   it or bound for it (`engaged`) and then loops the second as above, the
+   frame at the split standing for the first frame; with no ship near it
+   steps back to frame 0. `rand(n)` is a whole number from 0 to n - 1.
+   Returns whether the frame shown changed. */
+function novaStellarAnimates(spob, destroyed = false) { return destroyed === !!(spob.Flags2 & 0x0080); }
+function novaGateTransition(spob, count) {
+  const t = spob.CustPicID;
+  return t >= 1 && t < count - 1 ? t : Math.trunc(count / 2);
+}
+function novaStellarAnimState() { return { cur: 0, next: 0, acc: 0 }; }
+function novaStellarAnimStep(spob, a, count, ticks, engaged, rand) {
+  if (count < 2) { const was = a.cur; a.cur = 0; return was !== 0; }
+  const was = a.cur, delay = spob.AnimDelay, bias = spob.Frame0Bias;
+  const once = spob.Flags2 & 0x0001, random = spob.Flags2 & 0x0002;
+  a.acc += ticks;
+  if (!(spob.Flags2 & 0x1000)) {
+    if (a.acc < (a.cur === 0 && bias > 1 ? delay * bias : delay)) return false;
+    a.acc = 0;
+    if (!once) {
+      a.cur = a.next;
+      if (random) do a.next = rand(count); while (a.next === a.cur);
+      else a.next = (a.next + 1) % count;
+    } else if (a.cur === 0) {
+      a.cur = a.next;
+      if (random) do a.next = rand(count); while (a.next === 0 || a.next === a.cur);
+      else { a.next = (a.next + 1) % count; if (a.next === 0) a.next = 1; }
+    } else a.cur = 0;
+    return a.cur !== was;
+  }
+  const t = novaGateTransition(spob, count);
+  if (!engaged) {
+    if (a.acc < delay) return false;
+    a.acc = 0;
+    if (a.cur < t) { if (a.cur > 0) a.cur--; }
+    else if (!random && a.cur < count - 1) a.cur++;
+    else a.cur = t - 1;
+    return a.cur !== was;
+  }
+  if (a.acc < (a.cur === t && bias > 1 ? delay * bias : delay)) return false;
+  a.acc = 0;
+  if (a.cur < t) { a.cur++; a.next = a.cur; }
+  else if (!once) {
+    a.cur = a.next;
+    if (random) do a.next = t + rand(count - t); while (a.next === a.cur);
+    else { a.next = (a.next + 1) % count; if (a.next < t) a.next = t; }
+  } else if (a.cur === t) {
+    a.cur = a.next;
+    if (random) do a.next = t + rand(count - t); while (a.next === t || a.next === a.cur);
+    else { a.next = (a.next + 1) % count; if (a.next <= t) a.next = t + 1; }
+  } else a.cur = t;
+  return a.cur !== was;
+}
+
 /* Descriptions: dësc with the stellar's own id for the spaceport, the Bible's
    128-2175; and 9872 + id for the bar, as ResForge's spöb template has it. */
 function novaStellarDescId(spob) { return spob.id; }

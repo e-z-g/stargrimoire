@@ -173,12 +173,80 @@ function stellarSprite(sp) {
   return c;
 }
 
+/* Animated stellars (nova-universe.js, novaStellarAnimStep). A sprite's
+   frames are drawn one at a time as each is first shown, and kept. The
+   animations are stepped thirty times a second, as the game counts its
+   time, while one is on the screen, and not at all where the browser asks
+   for reduced motion. The map takes no stellar as destroyed, as everywhere
+   else on it. A hypergate stays shut, as it does with no ship near; a
+   sprite in a PICT sheet (none shipped) keeps its first frame. */
+const FRAME_CACHE = new Map();    // spïn id -> { bytes, index, count, frames } or null
+const STELLAR_ANIM = new Map();   // stellar id -> novaStellarAnimState()
+let ANIM_SEEN = new Set(), ANIM_TICK = null, ANIM_LAST = 0, ANIM_DUE = 0;
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function spriteFrames(sp) {
+  const spinId = novaStellarSpin(sp);
+  if (FRAME_CACHE.has(spinId)) return FRAME_CACHE.get(spinId);
+  const spin = novaGet(GAME, 'spïn', spinId);
+  const r = spin && (GAME.get('rlëD', spin.SpritesID) || GAME.get('rlë8', spin.SpritesID));
+  let f = null;
+  if (r) {
+    try {
+      const index = novaRleIndex(r.bytes);
+      if (index.header.frames > 1) f = { bytes: r.bytes, index, count: index.header.frames, frames: [] };
+    } catch (e) { f = null; }
+  }
+  FRAME_CACHE.set(spinId, f);
+  return f;
+}
+
+// What to draw for a stellar now: the frame it is on, `img` (its first) if it does not animate.
+function stellarImage(sp, img) {
+  if (!img || reducedMotion() || !novaStellarAnimates(sp)) return img;
+  const f = spriteFrames(sp);
+  if (!f) return img;
+  let a = STELLAR_ANIM.get(sp.id);
+  if (!a) STELLAR_ANIM.set(sp.id, a = novaStellarAnimState());
+  if ((sp.Flags2 & 0x1000) && a.cur === 0) return img;
+  ANIM_SEEN.add(sp.id);
+  const n = a.cur;
+  if (n === 0) return img;
+  if (!f.frames[n]) {
+    const h = f.index.header, c = document.createElement('canvas');
+    c.width = h.width; c.height = h.height;
+    try { c.getContext('2d').putImageData(new ImageData(novaDecodeRleFrame(f.bytes, f.index, n), h.width, h.height), 0, 0); }
+    catch (e) { return img; }
+    f.frames[n] = c;
+  }
+  return f.frames[n];
+}
+
+function stellarAnimLoop(now) {
+  ANIM_TICK = null;
+  if (!ANIM_SEEN.size || $('app').hidden || reducedMotion()) { ANIM_LAST = 0; return; }
+  if (ANIM_LAST) ANIM_DUE = Math.min(ANIM_DUE + (now - ANIM_LAST) * 0.03, 4);
+  ANIM_LAST = now;
+  const rand = n => Math.floor(Math.random() * n);
+  let changed = false;
+  for (; ANIM_DUE >= 1; ANIM_DUE--) {
+    for (const id of ANIM_SEEN) {
+      const sp = U.stellars.get(id), f = sp && spriteFrames(sp), a = STELLAR_ANIM.get(id);
+      if (f && a && novaStellarAnimStep(sp, a, f.count, 1, false, rand)) changed = true;
+    }
+  }
+  if (changed) redraw();
+  ANIM_TICK = requestAnimationFrame(stellarAnimLoop);
+}
+
 /* ---- starting, and more files ------------------------------------------ */
 
 function mapStart(fresh) {
   U = novaUniverse(GAME);
   PICT_CACHE.clear();
   SPRITE_CACHE.clear();
+  FRAME_CACHE.clear();
+  STELLAR_ANIM.clear();
   GEO.clear();
   STELLAR_NAMES.clear();
   NEB_BRIGHT.clear();
@@ -208,6 +276,7 @@ function mapStart(fresh) {
 function mapFilesChanged() {
   for (const [k, v] of PICT_CACHE) if (!v || v === 'failed') PICT_CACHE.delete(k);
   for (const [k, v] of SPRITE_CACHE) if (!v) SPRITE_CACHE.delete(k);
+  for (const [k, v] of FRAME_CACHE) if (!v) FRAME_CACHE.delete(k);
   STELLAR_NAMES.clear();
   redraw();
   if (VIEW.mode === 'planet') renderPlanet();
@@ -437,6 +506,7 @@ function draw() {
   const ctx = CTX, cur = curPlace();
   DRAWN = [];
   LABELS_DRAWN = { systems: 0, stellars: 0, boxes: [] };
+  ANIM_SEEN = new Set();
   NAME_BOXES = []; NEB_NAMES = [];
   for (const p of PLACES) {
     const [x, y] = toScreen(p.x, p.y), D = 2 * p.rho * CAM.s, r = Math.max(D / 2, 12);
@@ -459,6 +529,7 @@ function draw() {
   const cd = cur && DRAWN.find(d => d.p === cur);
   if (cd) drawEdgeMarks(ctx, cd);
   ctx.restore();
+  if (ANIM_SEEN.size && !ANIM_TICK) { ANIM_LAST = 0; ANIM_TICK = requestAnimationFrame(stellarAnimLoop); }
   $('scale').textContent = cd ? `system at ${Math.round(CAM.s * kOf(cd.sys) * 100)}%` : `map at ${Math.round(CAM.s * 100)}%`;
   if (!MOVING) settle();
   // without the stellars, the system you went to closes for good once you have zoomed out of it
@@ -1216,7 +1287,7 @@ function drawStellars(ctx, d, cur) {
     ctx.globalAlpha = d.t;
     if (b.img) {
       ctx.imageSmoothingEnabled = b.w < b.img.width;
-      ctx.drawImage(b.img, b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+      ctx.drawImage(stellarImage(b.sp, b.img), b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
     } else {
       ctx.beginPath(); ctx.arc(b.x, b.y, b.w / 2, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();

@@ -35,7 +35,27 @@ eq('dësc negated', S.novaDescText('{!b2 "yes"}', st([])), 'yes');
 eq('dësc gender', [S.novaDescText('a {G "man" "woman"}', { male: true }), S.novaDescText('a {G "man" "woman"}', {})], ['a man', 'a woman']);
 // Mac 0x1b4300: Flags 0x01, and destroyed exactly when Flags 0x80 is set.
 eq('can land', [S.novaCanLand({ Flags: 1 }), S.novaCanLand({ Flags: 0x81 }), S.novaCanLand({ Flags: 0x81 }, true), S.novaCanLand({ Flags: 1 }, true), S.novaCanLand({ Flags: 0 })], [true, false, true, false, false]);
-eq('landing picture', [S.novaLandingPict({ CustPicID: 11004, Type: 22 }), S.novaLandingPict({ CustPicID: -1, Type: 6 }), S.novaLandingPict({ CustPicID: 37, Type: 1 })], [11004, 10006, 10001]);
+// Stellar animation, Mac 1.1.1 HandleStellarSprites (Intel 0x2e6f1): the frame shown after each 30th of a second.
+const frames = (spob, count, n, engaged = false, script = [], a = S.novaStellarAnimState()) => {
+  const rand = k => { const r = script.length ? script.shift() : 0; if (r >= k) throw new Error(`rand(${k}) scripted ${r}`); return r; };
+  const out = [];
+  for (let i = 0; i < n; i++) { S.novaStellarAnimStep(spob, a, count, 1, engaged, rand); out.push(a.cur); }
+  return out;
+};
+const sp = (Flags2, AnimDelay, Frame0Bias = 0, CustPicID = 0) => ({ Flags2, AnimDelay, Frame0Bias, CustPicID });
+eq('animates', [S.novaStellarAnimates(sp(0)), S.novaStellarAnimates(sp(0), true), S.novaStellarAnimates(sp(0x80)), S.novaStellarAnimates(sp(0x80), true)], [true, false, false, true]);
+eq('in turn, AnimDelay 2', frames(sp(0, 2), 4, 10), [0, 0, 0, 1, 1, 2, 2, 3, 3, 0]);
+eq('Frame0Bias 3', frames(sp(0, 1, 3), 3, 11), [0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 1]);
+eq('first frame between', frames(sp(0x0001, 1), 4, 8), [0, 1, 0, 2, 0, 3, 0, 1]);
+eq('at random, never twice', frames(sp(0x0002, 1), 4, 3, false, [0, 2, 2, 1, 3]), [0, 2, 1]);
+eq('at random between, never the first', frames(sp(0x0003, 1), 4, 4, false, [0, 2, 3, 2]), [0, 2, 0, 3]);
+eq('gate split', [S.novaGateTransition(sp(0x1000, 1, 0, 2), 6), S.novaGateTransition(sp(0x1000, 1, 0, 5), 6), S.novaGateTransition(sp(0x1000, 1, 0, -1), 6)], [2, 3, 3]);
+eq('gate shut with no ship', frames(sp(0x1000, 1), 6, 4), [0, 0, 0, 0]);
+const gate = S.novaStellarAnimState();
+eq('gate opening and open', frames(sp(0x1000, 1), 6, 7, true, [], gate), [1, 2, 3, 3, 4, 5, 3]);
+eq('gate open, the split between', frames(sp(0x1001, 1), 6, 10, true), [1, 2, 3, 3, 4, 3, 5, 3, 4, 3]);
+eq('gate closing', frames(sp(0x1000, 1), 6, 6, false, [], gate), [4, 5, 2, 1, 0, 0]);
+eq('landing picture',[S.novaLandingPict({ CustPicID: 11004, Type: 22 }), S.novaLandingPict({ CustPicID: -1, Type: 6 }), S.novaLandingPict({ CustPicID: 37, Type: 1 })], [11004, 10006, 10001]);
 
 // ---- every release ---------------------------------------------------------
 for (const v of Object.keys(RELEASES)) {

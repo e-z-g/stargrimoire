@@ -539,34 +539,92 @@ function nebulaTint(n, img) {
     g.drawImage(img, 0, 0, k, k);
     const px = g.getImageData(0, 0, k, k).data;
     let r = 0, gr = 0, b = 0, wt = 0;
-    for (let i = 0; i < px.length; i += 4) { const l = px[i] + px[i + 1] + px[i + 2]; r += px[i] * l; gr += px[i + 1] * l; b += px[i + 2] * l; wt += l; }
+    // weighted by how bright and how coloured each pixel is, so that black and white lettering count for nothing
+    for (let i = 0; i < px.length; i += 4) { const mx = Math.max(px[i], px[i + 1], px[i + 2]), mn = Math.min(px[i], px[i + 1], px[i + 2]), l = mx * (mx ? (mx - mn) / mx : 0); r += px[i] * l; gr += px[i + 1] * l; b += px[i + 2] * l; wt += l; }
     if (wt > 0) { const m = Math.max(r, gr, b) / wt || 1; t = [r, gr, b].map(v => Math.round(v / wt * 220 / m)); }
     NEB_TINT.set(n.id, t);
   }
   return t;
 }
+// The part of a nebula's picture that is the nebula: its coloured pixels, bright as its coloured
+// pixels go, so that the black of space and the nearly colourless name lettered on it are left out, each in its own colour
+// brought up to full brightness (the maintainer found one colour for a nebula, its average, muddy),
+// its alpha how much so; on a 48 by 48 grid, softened, drawn stretched. And the box, in fractions
+// of the picture, of what is clearly cloud.
+const NEB_MASK = new Map();
+function nebulaMask(n, img) {
+  if (NEB_MASK.has(n.id)) return NEB_MASK.get(n.id);
+  if (!img) return null;
+  const k = 48, c = document.createElement('canvas');
+  c.width = c.height = k;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, k, k);
+  const d = g.getImageData(0, 0, k, k), px = d.data;
+  // each pixel its own colour brought up to full brightness, premultiplied by how much it is cloud
+  const pm = new Float32Array(k * k * 4);
+  // brightness judged against the picture's coloured pixels' own, their 90th centile: the lettering
+  // is its brightest (up to 241 in the Rochak Dust Field, whose dust is 41 to 56), and is nearly
+  // colourless (30 September 2026, measured over the four nebulae of the stock game)
+  const sat = i => { const mx = Math.max(px[4 * i], px[4 * i + 1], px[4 * i + 2]), mn = Math.min(px[4 * i], px[4 * i + 1], px[4 * i + 2]); return mx ? (mx - mn) / mx : 0; };
+  const coloured = []; for (let i = 0; i < k * k; i++) if (sat(i) >= 0.3) coloured.push(Math.max(px[4 * i], px[4 * i + 1], px[4 * i + 2]));
+  coloured.sort((a, b) => a - b);
+  const P = Math.max(30, coloured.length ? coloured[Math.floor(0.9 * (coloured.length - 1))] : 0);
+  let x0 = k, y0 = k, x1 = -1, y1 = -1;
+  for (let i = 0; i < k * k; i++) {
+    const r = px[4 * i], gr = px[4 * i + 1], b = px[4 * i + 2], mx = Math.max(r, gr, b), mn = Math.min(r, gr, b);
+    // cloud: coloured, and bright as the picture's coloured pixels go
+    const wgt = clampNum((mx - 0.25 * P) / (0.6 * P), 0, 1) * clampNum((sat(i) - 0.15) / 0.2, 0, 1), up = mx ? 255 / mx : 0;
+    pm[4 * i] = r * up * wgt; pm[4 * i + 1] = gr * up * wgt; pm[4 * i + 2] = b * up * wgt; pm[4 * i + 3] = 255 * wgt;
+    if (wgt > 0.25) { const x = i % k, y = (i / k) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  }
+  // softened, a three by three average twice, so that the grid does not show when stretched
+  for (let pass = 0; pass < 2; pass++) {
+    const src = pm.slice();
+    for (let y = 0; y < k; y++) for (let x = 0; x < k; x++) for (let ch = 0; ch < 4; ch++) {
+      let sum = 0, cnt = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < k && yy < k) { sum += src[4 * (yy * k + xx) + ch]; cnt++; } }
+      pm[4 * (y * k + x) + ch] = sum / cnt;
+    }
+  }
+  for (let i = 0; i < k * k; i++) { const al = pm[4 * i + 3]; px[4 * i + 3] = Math.round(al); for (let ch = 0; ch < 3; ch++) px[4 * i + ch] = al > 0 ? Math.min(255, Math.round(pm[4 * i + ch] * 255 / al)) : 0; }
+  g.putImageData(d, 0, 0);
+  const out = { canvas: c, box: x1 < 0 ? null : { x0: x0 / k, y0: y0 / k, x1: (x1 + 1) / k, y1: (y1 + 1) / k } };
+  NEB_MASK.set(n.id, out);
+  return out;
+}
 function nebulaShape(ctx, n, img, x, y, w, h, a) {
-  const [r, g, b] = nebulaTint(n, img), rad = 0.3 * Math.min(w, h);
-  ctx.beginPath();
-  ctx.moveTo(x + rad, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad);
-  ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad);
-  ctx.closePath();
-  ctx.globalAlpha = 0.16 * a; ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fill();
-  ctx.globalAlpha = 0.45 * a; ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1;
+  const [r, g, b] = nebulaTint(n, img), m = nebulaMask(n, img);
+  if (m) {
+    // the cloud the picture shows (the maintainer found systems caught in a whole rectangle)
+    ctx.globalAlpha = 0.4 * a; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(m.canvas, x, y, w, h);
+  } else {
+    const rad = 0.3 * Math.min(w, h);
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad); ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad); ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+    ctx.globalAlpha = 0.16 * a; ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fill();
+  }
   ctx.globalAlpha = a;
-  NEB_NAMES.push({ n, x, y, w, h, a, colour: `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})` });
+  // its name goes by the cloud, where there is one
+  const bx = m && m.box ? { x: x + w * m.box.x0, y: y + h * m.box.y0, w: w * (m.box.x1 - m.box.x0), h: h * (m.box.y1 - m.box.y0) } : { x, y, w, h };
+  NEB_NAMES.push({ n, ...bx, a, colour: `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})` });
 }
 /* The names of the nebulae drawn as plain shapes, after the systems' (the maintainer's asking, 30
    September 2026: they ran into them): each at the first of its spots -- along the top of its
-   shape, in the middle, at the left, at the right, then along the bottom, then just outside it above
-   and below, along what of it is on the screen -- that is on the screen and meets no system's name, no
-   system's mark and no nebula's name already put, at
+   cloud, in the middle, at the left, at the right, then along the bottom, then just outside it above
+   and below, along what of it is on the screen, then beside it -- that is on the screen, comes
+   within 5 pixels of no system's name, no system's mark and no nebula's name already put, and has
+   the most room round it of those, the earlier a little preferred, at
    13 pixels or else 11; where none is clear it is left off, and is in the panel still. */
 function drawNebulaNames(ctx) {
   if (!NEB_NAMES.length) return;
   const r = systemRadius() + 2, marks = DRAWN.filter(d => d.t < 1).map(d => ({ x0: d.x - r, x1: d.x + r, y0: d.y - r, y1: d.y + r }));
-  const hit = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+  // kept a little off them, not only clear of them (the maintainer found L-1551's crowding the
+  // systems' names round it)
+  const M = 5, hit = (a, b) => a.x0 < b.x1 + M && b.x0 < a.x1 + M && a.y0 < b.y1 + M && b.y0 < a.y1 + M;
   const placed = [];
   ctx.save();
   ctx.textBaseline = 'middle';
@@ -578,12 +636,19 @@ function drawNebulaNames(ctx) {
       // where the shape runs off the screen, along what of it is on it
       const vx0 = Math.max(x, 0), vx1 = Math.min(x + w, CW), xs = [(vx0 + vx1) / 2 - tw / 2, vx0 + pad, vx1 - pad - tw];
       const vy0 = Math.max(y, 0), vy1 = Math.min(y + h, CH), ys = [vy0 + pad + hh, vy1 - pad - hh, y - hh - 2, y + h + hh + 2];
-      for (const ty of ys) for (const tx of xs) {
+      // and beside it, left and right, half way down
+      const cands = ys.flatMap(ty => xs.map(tx => [tx, ty])).concat([[x - tw - 8, (vy0 + vy1) / 2], [x + w + 8, (vy0 + vy1) / 2]]);
+      // of the clear spots, the one with most room round it, the earlier a little preferred
+      const gap = (a, b) => Math.hypot(Math.max(0, b.x0 - a.x1, a.x0 - b.x1), Math.max(0, b.y0 - a.y1, a.y0 - b.y1));
+      let best = -Infinity;
+      cands.forEach(([tx, ty], q) => {
         const box = { x0: tx - 2, x1: tx + tw + 2, y0: ty - hh, y1: ty + hh };
-        if (box.x0 < 0 || box.y0 < 0 || box.x1 > CW || box.y1 > CH) continue;
-        if (NAME_BOXES.some(b => hit(box, b)) || marks.some(b => hit(box, b)) || placed.some(b => hit(box, b))) continue;
-        spot = { tx, ty, box, size }; break;
-      }
+        if (box.x0 < 0 || box.y0 < 0 || box.x1 > CW || box.y1 > CH) return;
+        const others = NAME_BOXES.concat(marks, placed);
+        if (others.some(b => hit(box, b))) return;
+        const room = Math.min(40, ...others.map(b => gap(box, b))) - 2 * q;
+        if (room > best) { best = room; spot = { tx, ty, box, size }; }
+      });
       if (spot) break;
     }
     if (!spot) continue;

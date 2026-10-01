@@ -350,9 +350,9 @@ try {
             const jumps = { max: JUMPS.max, reached: JUMPS.map ? JUMPS.map.size : 0, shown: SHOWN.size, legend: $('legend').textContent, hidden: $('legend').hidden };
             $('optNames').checked = false; $('optNames').onchange(); await frame();
             $('optNames').checked = true; $('optNames').onchange();
-            $('optNebulae').checked = false; $('optNebulae').onchange(); await frame();
+            $('nebSel').value = 'none'; $('nebSel').onchange(); await frame();
             const nebulaHidden = nebulaAt(...toScreen(U.nebulae[0].x + U.nebulae[0].w / 2, U.nebulae[0].y + U.nebulae[0].h / 2)) === null;
-            $('optNebulae').checked = true; $('optNebulae').onchange();
+            $('nebSel').value = 'pictures'; $('nebSel').onchange();
             $('linkSel').value = 'plain'; $('linkSel').onchange();
             const legendAfter = $('legend').hidden;
             await setLayoutNow('45');

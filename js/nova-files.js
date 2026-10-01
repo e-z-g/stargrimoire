@@ -115,7 +115,8 @@ function novaOpenFork(bytes) {
    Community Edition's `Nova.rez` is its dialogs and menus). A file counts
    when it has a resource fork, or is a `.rez` or `.ndat`, whose data fork
    is one. Each comes back with `folder`, the path it sits in, and
-   `read()`, which decompresses it when called. */
+   `read()`, which decompresses it when called, and `unpack`, what a
+   background thread needs to do the same (page-open.js). */
 function novaArchiveFiles(bytes) {
   const zip = looksLikeZip(bytes);
   const cat = zip ? parseZipArchive(bytes) : parseStuffItArchive(bytes);
@@ -147,7 +148,8 @@ function novaArchiveFiles(bytes) {
     const which = hasRsrc ? 'rsrc' : 'data';
     out.push({ name: name.replace(/\.(ndat|rez)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
                role: plugin ? null : (novaFileRole(name) || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
-               read: () => zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which) });
+               read: () => zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which),
+               unpack: { archive: bytes, entry: e, which, zip } });
   }
   return out;
 }

@@ -159,6 +159,61 @@ function choosePlugins(list) {
   });
 }
 
+/* UNPACKING IN THE BACKGROUND. A file from an archive is decompressed when
+   it is read, half a second for each ships file of 1.0.10, which on the
+   page's own thread stops the map that long each time. So the files read
+   after the galaxy is up are decompressed in a background thread made of
+   the page's own mac-bytes, mac-containers, mac-vise, mac-stuffit and
+   mac-zip, unchanged, which keeps a copy of each archive until nothing is
+   left to read. Where a thread cannot load them (a page opened from a
+   file:// address) the page reads as before. */
+let UNPACKER = null;   // { worker, ready: Promise<boolean>, sent: Map(archive -> id), waiting: Map(n -> callbacks), n }
+function unpacker() {
+  if (UNPACKER) return UNPACKER;
+  const urls = [...document.scripts].map(s => s.src).filter(src => /\/js\/mac-(bytes|containers|vise|stuffit|zip)\.js/.test(src));
+  const src = `try { importScripts(${urls.map(u => JSON.stringify(u)).join(', ')}); postMessage({ ready: true }); } catch (e) { postMessage({ ready: false }); }
+const ARCHIVES = new Map();
+onmessage = e => {
+  const m = e.data;
+  if (m.archive) { ARCHIVES.set(m.id, m.archive); return; }
+  try {
+    const a = ARCHIVES.get(m.id), f = m.zip ? zipFork(a, m.entry, m.which) : stuffItFork(a, m.entry, m.which);
+    const out = f.byteOffset || f.buffer.byteLength !== f.length ? f.slice() : f;
+    postMessage({ n: m.n, fork: out }, [out.buffer]);
+  } catch (err) { postMessage({ n: m.n, error: String(err && err.message || err) }); }
+};`;
+  const u = { worker: null, sent: new Map(), waiting: new Map(), n: 0 };
+  u.ready = new Promise(res => {
+    try { u.worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' }))); } catch (e) { res(false); return; }
+    u.worker.onerror = () => res(false);
+    u.worker.onmessage = e => {
+      const m = e.data;
+      if (m.ready !== undefined) { res(m.ready); return; }
+      const w = u.waiting.get(m.n);
+      u.waiting.delete(m.n);
+      if (w) { if (m.error) w.no(new Error(m.error)); else w.yes(m.fork); }
+    };
+    setTimeout(() => res(false), 5000);
+  });
+  return (UNPACKER = u);
+}
+// A file's fork, decompressed in the background where that works, else here.
+async function readFile(f) {
+  if (!f.unpack) return f.read();
+  const u = unpacker();
+  if (!(await u.ready)) return f.read();
+  const { archive, entry, which, zip } = f.unpack;
+  if (!u.sent.has(archive)) { u.sent.set(archive, u.sent.size + 1); u.worker.postMessage({ id: u.sent.get(archive), archive }); }
+  const n = ++u.n;
+  try { return await new Promise((yes, no) => { u.waiting.set(n, { yes, no }); u.worker.postMessage({ n, id: u.sent.get(archive), entry, which, zip }); }); }
+  catch (e) { return f.read(); }
+}
+// Nothing left to read: the thread and its copies of the archives go.
+function unpackerDone() {
+  if (UNPACKER && UNPACKER.worker && !UNPACKER.waiting.size) UNPACKER.worker.terminate();
+  UNPACKER = null;
+}
+
 /* The ships files, read now, ahead of any pictures still waiting. */
 function wantShipFiles() {
   if (!SHIP_FILES.length) return;
@@ -176,10 +231,13 @@ async function pumpPending(refused) {
     n++;
     setStatus(`Reading ${f.role === 'ships' ? 'ships' : 'pictures'}: ${f.name} (${n} of ${n + PENDING.length})`);
     await nextPaint();
-    try { GAME.add(f, f.read()); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
+    try { GAME.add(f, await readFile(f)); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
     mapFilesChanged();
     shipsFilesChanged();
+    // the ships fly on the map, so their files follow the pictures, unless that would stop the page
+    if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }
+  if (!SHIP_FILES.length) unpackerDone();
   PUMPING = false;
   if (refused && refused.length) setStatus(refused.join('; '), true);
   else setStatus(GAME.files.length + ' files open');

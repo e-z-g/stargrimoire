@@ -196,12 +196,74 @@ function flightPanel(sys) {
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-flight="speed:${v}" aria-pressed="${FLIGHT.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   return `<h3>Ships here now</h3>
     <p>${ships.length ? `${ships.length}: ${list}` : 'none'}</p>
-    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
+    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>
+    ${battlePanel(w)}`;
+}
+
+/* The battle simulator: two sides, each a government and ships of any
+   class, put in the system you are in in place of its ships, with no
+   more arriving, to fight by the game's rules. Ships fight only when
+   their governments are enemies, as in the game. */
+const BATTLE = { govt: [null, null], cls: [null, null], n: [1, 1], sides: [[], []], placed: [] };
+function battlePanel(w) {
+  const D = w.D, govts = [...U.govts.values()].filter(g => D.govts.has(g.id)).sort((a, b) => a.id - b.id);
+  if (!govts.length) return '';
+  const classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0).sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
+  const named = new Map();
+  for (const c of classes) named.set(c.name, (named.get(c.name) || 0) + 1);
+  for (let i = 0; i < 2; i++) {
+    if (BATTLE.govt[i] === null || !D.govts.has(BATTLE.govt[i])) BATTLE.govt[i] = govts[Math.min(i, govts.length - 1)].id;
+    if (BATTLE.cls[i] === null || !D.classes.has(BATTLE.cls[i])) BATTLE.cls[i] = classes[0].id;
+  }
+  const side = i => {
+    const g = govts.map(x => `<option value="${x.id}"${x.id === BATTLE.govt[i] ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+    const c = classes.map(x => `<option value="${x.id}"${x.id === BATTLE.cls[i] ? ' selected' : ''}>${esc(x.name)}${named.get(x.name) > 1 ? ` (${x.id})` : ''}</option>`).join('');
+    const n = [1, 2, 3, 4, 5, 6, 7, 8].map(k => `<option${k === BATTLE.n[i] ? ' selected' : ''}>${k}</option>`).join('');
+    const list = BATTLE.sides[i].map((e, j) => `${esc(D.classes.get(e.cls).name)}${e.n > 1 ? ` × ${e.n}` : ''} <a data-flight="del:${i}:${j}" title="Take off">✕</a>`).join(', ');
+    const placed = BATTLE.placed.filter(p => p.side === i), left = placed.filter(p => w.ships[p.slot] === p.ship).length;
+    return `<div class="battle-side"><div class="battle-row"><b>Side ${i + 1}</b> <select data-battle="govt:${i}" aria-label="Side ${i + 1}'s government">${g}</select></div>
+      <div class="battle-row"><select data-battle="cls:${i}" aria-label="Ship">${c}</select> <select data-battle="n:${i}" aria-label="How many">${n}</select> <button data-flight="add:${i}">Add</button></div>
+      <p>${list || '<span class="note">no ships yet</span>'}${placed.length && FLIGHT.sys === BATTLE.sys ? ` <span class="note">· ${left} of ${placed.length} left</span>` : ''}</p></div>`;
+  };
+  const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) || [0, 1].some(i => { const g = D.govts.get(BATTLE.govt[i]); return g && (g.flags & 1) && !novaGovtAllies(D, BATTLE.govt[0], BATTLE.govt[1]); });
+  return `<h3>Battle</h3>${side(0)}${side(1)}
+    ${foes ? '' : '<p class="note">These governments are not enemies, so their ships will not fight.</p>'}
+    <div class="actions"><button data-flight="fight"${BATTLE.sides[0].length && BATTLE.sides[1].length ? '' : ' disabled'}>Fight</button><button data-flight="clearb">Clear</button></div>`;
+}
+function battleChange(e) {
+  const t = e.target.closest('[data-battle]');
+  if (!t) return;
+  const [k, i] = t.dataset.battle.split(':');
+  BATTLE[k][+i] = +t.value;
+  if (k === 'govt') renderPanel();
+}
+document.addEventListener('change', battleChange);
+// Each side's ships put in the system, in a column 900 units apart, facing anywhere, as warships.
+function battleFight() {
+  const w = FLIGHT.world;
+  if (!w) return;
+  for (let i = 0; i < 64; i++) w.ships[i] = null;
+  w.shots.fill(null); w.booms.fill(null);
+  w.noArrivals = true;
+  BATTLE.placed = []; BATTLE.sys = FLIGHT.sys;
+  for (let i = 0; i < 2; i++) {
+    const all = BATTLE.sides[i].flatMap(e => Array(e.n).fill(e.cls));
+    all.forEach((cls, j) => {
+      const s = novaPlaceShip(w, cls, BATTLE.govt[i], i ? 450 : -450, (j - (all.length - 1) / 2) * 140, 3);
+      if (s) BATTLE.placed.push({ side: i, slot: s.slot, ship: s });
+    });
+  }
+  FLIGHT.paused = false;
+  flightRun();
 }
 function flightControl(what) {
   if (what === 'pause') { FLIGHT.paused = !FLIGHT.paused; flightRun(); }
   else if (what === 'again') { FLIGHT.worlds.delete(FLIGHT.sys); flightSync(); redraw(); }
   else if (what.startsWith('speed:')) FLIGHT.speed = +what.slice(6);
+  else if (what.startsWith('add:')) { const i = +what.slice(4); BATTLE.sides[i].push({ cls: BATTLE.cls[i], n: BATTLE.n[i] }); }
+  else if (what.startsWith('del:')) { const [, i, j] = what.split(':'); BATTLE.sides[+i].splice(+j, 1); }
+  else if (what === 'clearb') { BATTLE.sides = [[], []]; BATTLE.placed = []; }
+  else if (what === 'fight') battleFight();
   renderPanel();
 }
 function flightSwitch(on) {

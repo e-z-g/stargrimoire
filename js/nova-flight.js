@@ -628,6 +628,7 @@ function novaSetupShips(w) {
    ship. The defence fleets launch only once their stellar has been set
    off, which comes with fighting. */
 function novaEnterMoreShips(w) {
+  if (w.noArrivals) return;
   const here = w.ships.filter(s => s && s.leader !== 0).length;
   if (w.sys.rec.AvgShips <= here) return;
   const r = w.rand(500);
@@ -668,6 +669,7 @@ function novaHyperShipSpawn(w) {
    arrivals, each ship's AI, each ship's move. */
 function novaFlightStep(w) {
   novaShotHits(w);
+  novaTargetedDamage(w);
   novaEnterMoreShips(w);
   novaSpawnAsteroid(w, true);
   w.miners = false;

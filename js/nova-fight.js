@@ -676,7 +676,12 @@ function novaHopeless(w, s) {
   if (Math.abs(rx) <= 0.35 && Math.abs(ry) < 0.35) return false;
   const d = novaBearing(0, 0, rx, ry) - novaBearing(t.x, t.y, s.x, s.y);
   if (d >= -89 && d <= 89) return false;
-  // with no homing missiles in this stage, the missile branch never holds
+  const d2 = Math.abs(f32(f32((s.x - t.x) ** 2) + f32((s.y - t.y) ** 2))) * 0.8;
+  for (const r of s.weap) {
+    const W = novaWeapOf(w.D, r.i);
+    if (r.count <= 0 || !(r.ammo > 0 || r.ammo === -1) || W.guid !== 1 || !novaSuitableMissile(W, t) || !novaHasAmmo(w, s, r.i)) continue;
+    if (f32(W.range * W.range) >= d2) return s.cls.speed < t.cls.speed;
+  }
   return !(s.cls.speed > t.cls.speed);
 }
 
@@ -834,8 +839,144 @@ function novaFireTurret(w, s) {
   const c = t.shield >= 0 ? pick[1] : pick[0];
   if (c !== -1) { s.lastW = c; s.latch = true; }
 }
-// AIFireMissile 0x8115d: homing missiles come with their guidance, a later part of stage 4.
-function novaFireMissile() { }
+/* AIFireMissile 0x8115d: the first homing missile suited to the target
+   (SuitableMissileType) whose reach is more than the distance (less a
+   twentieth), unless enough missiles are already on their way to it
+   (SufficentTargetedDamage: their damage over 1.05 times its shields
+   and armour). */
+function novaFireMissile(w, s) {
+  const D = w.D, t = s.primary !== -1 ? w.ships[s.primary] : null;
+  if (!t || ((novaClassFight(D, t.cls).flags2 & 4))) return;
+  if (t.targeted >= f32(t.shield + t.armor) * 1.05) return;
+  const d2 = Math.abs(f32(f32((s.x - t.x) ** 2) + f32((s.y - t.y) ** 2))) * 0.95;
+  for (const r of s.weap) {
+    const W = novaWeapOf(D, r.i);
+    if (r.count <= 0 || W.guid !== 1 || !novaSuitableMissile(W, t) || !novaSameHide(D, t, W) || !novaHasAmmo(w, s, r.i)) continue;
+    if (f32(W.range * W.range) >= d2) { if (r.reload <= 0) { s.lastW = r.i; s.latch = true; } return; }
+  }
+}
+// SuitableMissileType 0x34df: one for slow ships (Flags 0x0008) only at a target turning 3 or less; else one turning faster than 2, or any at such a target.
+function novaSuitableMissile(W, t) {
+  const turn = Math.trunc(novaShipTurn(t));
+  if ((W.flags & 8) && turn > 3) return false;
+  return W.guidedTurn > 2 || turn <= 3;
+}
+/* CalculateTargetedDamage 0x3a153, at the start of each step: the damage
+   on its way to each ship in homing missiles locked on it. */
+function novaTargetedDamage(w) {
+  for (const s of w.ships) if (s) s.targeted = 0;
+  for (const sh of w.shots) {
+    if (!sh || !(sh.life > 0) || sh.lost || sh.target < 0 || sh.target > 63) continue;
+    const t = w.ships[sh.target], W = novaWeapOf(w.D, sh.w);
+    if (t) t.targeted = Math.trunc(t.targeted + (W.mass + W.energy) * 0.5);
+  }
+}
+/* ShipECM 0x3b05: a ship's jamming of type k, kept once worked out: its
+   class's government's InhJam, and the default outfits of ModType 33 to
+   36, halved for a government with Flags 0x0080, between 0 and 100;
+   none while disabled. */
+function novaECM(w, s, k) {
+  if (s.disabled) return 0;
+  if (!s.ecm) s.ecm = [-1, -1, -1, -1];
+  if (s.ecm[k] >= 0) return s.ecm[k];
+  const D = w.D, r = s.cls.rec, g = D.u.govts.get(r.InherentGovt);
+  let v = g && g.InhJam ? g.InhJam[k] || 0 : 0;
+  const items = [...(r.DefaultItems || []), ...(r.DefaultItms2 || [])], counts = [...(r.ItemCount || []), ...(r.ItemCount2 || [])];
+  items.forEach((id, i) => {
+    if (!(counts[i] > 0)) return;
+    const o = novaGet(D.u.game, 'oütf', id);
+    if (!o) return;
+    [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]].forEach(([t, val]) => { if (t === 33 + k) v += val || 0; });
+  });
+  const og = D.govts.get(s.govt);
+  if (og && (og.flags & 0x80)) v = Math.trunc(v / 2);
+  return (s.ecm[k] = Math.min(100, Math.max(0, v)));
+}
+
+/* HandleShotGuidance 0x320dd: a homing missile turned toward its target
+   at GuidedTurn a step once 15 steps old -- jammed (turning not at all,
+   or away, Seeker 0x0010) when the target's ECM beats the missile's roll,
+   a target it cannot see given up, one passed by lost (Seeker 0x4000),
+   an asteroid it passes taking it (Seeker 0x0002); a missile confused by
+   the system's interference spiralling; its velocity its Speed along its
+   heading. A rocket eases its velocity onto its heading; a bomb turns to
+   its velocity. */
+function novaShotGuidance(w, sh) {
+  const D = w.D, W = novaWeapOf(D, sh.w), g = W.guid;
+  if (g === 9) return;
+  const age = W.count - sh.life, fresh = () => { const v = { x: 0, y: 0 }; novaAccel(Math.trunc(sh.heading), W.speed, v); sh.vx = Math.min(W.speed, Math.max(-W.speed, v.x)); sh.vy = Math.min(W.speed, Math.max(-W.speed, v.y)); };
+  const wrap = () => { if (sh.heading >= 360) sh.heading = f32(sh.heading - 360); if (sh.heading < 0) sh.heading = f32(sh.heading + 360); };
+  const turnTo = (a, rate) => {
+    if (Math.abs(novaAngleApart(a, Math.trunc(sh.heading))) > Math.abs(Math.trunc(rate))) {
+      let d = a - Math.trunc(sh.heading);
+      if (d >= 360) d -= 360;
+      if (d <= -1) d += 360;
+      sh.heading = d > 180 ? f32(sh.heading - rate) : f32(sh.heading + rate);
+    }
+  };
+  if (!sh.lost && g === 1) {
+    const t = sh.target >= 0 && sh.target <= 63 ? w.ships[sh.target] : null;
+    let a = Math.trunc(sh.heading), rate = W.guidedTurn;
+    if (sh.target !== -1 && !t) { sh.target = -1; }
+    if (t) a = novaBearing(sh.x, sh.y, t.x, t.y);
+    if (age > 15) {
+      if (t) for (let k = 0; k < 4; k++) {
+        if (!(sh.jam[k] > 0) || novaECM(w, t, k) <= 100 - sh.jam[k]) continue;
+        if (rate > 0) rate = (W.seeker & 0x10) ? -rate : 0;
+        if ((W.seeker & 0x8000) && w.rand(500) === 0 && sh.owner >= 0 && sh.owner <= 63) { sh.target = sh.owner; sh.owner = -1; }
+        break;
+      }
+      const o = sh.owner >= 0 && sh.owner <= 63 ? w.ships[sh.owner] : null;
+      if (t && o && !novaVisible(t, o)) {
+        if ((W.seeker & 0x8000) && w.rand(1000) === 0 && sh.owner !== -1) { sh.target = sh.owner; sh.owner = -1; }
+        rate = 0;
+      }
+      if ((W.seeker & 0x4000) && t) {
+        const dx = Math.trunc(f32(t.x - sh.x)), dy = Math.trunc(f32(t.y - sh.y));
+        if (dx >= -249 && dx <= 249 && dy >= -249 && dy <= 249 && Math.abs(Math.trunc(f32(novaBearing(sh.x, sh.y, t.x, t.y) - sh.heading))) % 360 > 45) sh.target = -1;
+      }
+      turnTo(a, rate);
+    }
+    wrap(); fresh();
+    if (W.seeker & 2) {
+      if (w.rand(10) === 0) for (let i = 0; i < 16; i++) {
+        const r = w.roids[i];
+        if (!r.active) continue;
+        const dx = Math.trunc(f32(r.x - sh.x)), dy = Math.trunc(f32(r.y - sh.y));
+        if (dx < -199 || dx > 199 || dy < -199 || dy > 199) continue;
+        if (Math.abs(Math.trunc(f32(novaBearing(sh.x, sh.y, r.x, r.y) - sh.heading))) % 360 <= 15) { sh.lost = 1; sh.target = i; break; }
+      }
+    }
+  } else if (sh.lost === 999) {
+    if (age > 15) sh.heading = (w.t * 2) % 300 <= 149 ? f32(sh.heading - W.guidedTurn) : f32(sh.heading + W.guidedTurn);
+    wrap(); fresh();
+    if ((W.seeker & 0x8000) && w.rand(1000) === 0 && sh.owner >= 0 && sh.owner <= 63) { sh.lost = 0; sh.target = sh.owner; sh.owner = -1; }
+  } else if (sh.lost === 1) {
+    const r = sh.target >= 0 && sh.target < 16 ? w.roids[sh.target] : null;
+    let a = Math.trunc(sh.heading);
+    if (r && r.active) a = novaBearing(sh.x, sh.y, r.x, r.y); else sh.target = -1;
+    if (age > 15 && Math.abs(novaAngleApart(a, Math.trunc(sh.heading))) > W.guidedTurn) {
+      let d = Math.trunc(f32(a - sh.heading));
+      if (d >= 360) d -= 360;
+      if (d <= -1) d += 360;
+      sh.heading = d > 180 ? f32(sh.heading - W.guidedTurn) : f32(W.guidedTurn + sh.heading);
+    }
+    wrap(); fresh();
+  }
+  if (g === 6) {
+    const v = { x: 0, y: 0 }; novaAccel(Math.trunc(sh.heading), W.speed, v);
+    sh.vx = f32(f32(f32(sh.vx * 95) + f32(v.x * 5)) * 0.01); sh.vy = f32(f32(f32(sh.vy * 95) + f32(v.y * 5)) * 0.01);
+  }
+  if (g === 5) {
+    const a = novaBearing(0, 0, f32(sh.vx * 1000), f32(sh.vy * 1000));
+    if (novaAngleApart(a, Math.trunc(sh.heading)) > 0) {
+      let d = Math.trunc(f32(a - sh.heading));
+      if (d >= 360) d -= 360;
+      if (d <= -1) d += 360;
+      sh.heading = d > 180 ? f32(sh.heading - 1) : f32(sh.heading + 1);
+    }
+  }
+}
 // AIEscortFireUnprovoked 0x80e53: an escort's turrets at its target while it lives.
 function novaEscortFireUnprovoked(w, s) {
   if (s.ai <= 4 || s.primary === -1) return;
@@ -875,6 +1016,7 @@ function novaFireShipWeapon(w, s) {
       }
     }
     if (!t && g === 7) { novaSpawnShot(w, s.slot, -1, i, false); fired++; }
+    if (t && g === 1) { novaSpawnShot(w, s.slot, s.primary, i, false); fired++; }
     if (g === -1 || g === 6) { novaSpawnShot(w, s.slot, s.primary, i, false); fired++; }
     else if (g === 0) fired++;   // a beam: drawn and hurting with HandleBeams, a later part
     const A = W.ammoType;
@@ -959,6 +1101,7 @@ function novaSpawnShot(w, owner, target, i, isSub) {
   sh.frame = (W.flags & 4) ? 0 : w.rand(36);
   if (s && owner > 0 && s.state === 0xd) sh.dis = true;
   sh.heading = hd;
+  if (g === 1 && (W.seeker & 8) && w.rand(100) + 1 <= (w.sys.rec.Interference || 0)) sh.lost = 999;
   let side = 0;
   if (fromShip) {
     const exit = novaShotStart(w, s, sh, W, t ? { x: t.x, y: t.y } : null);
@@ -993,6 +1136,7 @@ function novaHandleShot(w, sh) {
     else if (!sh.lost && !w.ships[sh.target]) { sh.lost = 998; sh.target = -1; }
     sh.life = f32(sh.life - 1);
     if (sh.life <= 0) sh.life = -1;
+    novaShotGuidance(w, sh);
     sh.x = f32(sh.x + sh.vx); sh.y = f32(sh.y + sh.vy);
     // the frame: stepped (Flags 0x0001) or by heading
     if (W.flags & 1) {

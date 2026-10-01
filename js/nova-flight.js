@@ -791,25 +791,34 @@ function novaMinerAI(w, s) {
   if (s.sec !== -1 && s.state !== 2 && s.state !== 3) { s.state = 1; s.goal = s.sec; return; }
   if (novaCanJump(s)) novaLeave(w, s); else s.state = 6;
 }
-/* EscortAI 0x838d2, for a fleet's escorts (an NPC lead): without a lead,
-   back to its class's own AI; with a lead leaving -- jumping (mode 4 or
-   13), braking to leave (state 2, mode 1) or with its jump timer running
-   -- it makes ready to go with it (state 11), or, inertialess, leaves on
-   its own; otherwise it keeps station (state 10, following the lead). */
+/* EscortAI 0x838d2, for a fleet's escorts and a carrier's fighters: with
+   no lead, or a dying one, back to its class's own AI; with a lead leaving
+   -- jumping (mode 4 or 13), braking to leave (state 2, mode 1) or with
+   its jump timer running -- it makes ready to go with it (state 11), or,
+   inertialess, leaves on its own; otherwise it keeps station (state 10),
+   shooting at a ship that threatens its lead when it is in reach. The
+   orders an escort can be given (defend, attack, return) are the
+   player's alone: a computer's escorts never have any. */
 function novaEscortAI(w, s) {
   if (s.state === 0x16) return;
   if (s.leader !== 0 && (s.state === 9 || s.state === 0xf)) return;
   const lead = s.leader >= 0 ? w.ships[s.leader] : null;
-  if (!lead) { Object.assign(s, { leader: -1, follows: -1, ai: s.cls.ai, state: 0, mode: 0, jump: -1 }); return; }
+  if (!lead || novaDying(lead)) { Object.assign(s, { leader: -1, follows: -1, ai: s.cls.ai, state: 0, mode: 0, jump: -1 }); return; }
   const release = () => { Object.assign(s, { leader: -1, follows: -1, ai: s.cls.ai, state: 2, mode: 4, jump: 0 }); };
   if (lead.mode === 4 || lead.mode === 0xd || (lead.state === 2 && lead.mode === 1) || lead.jump > 0) {
     s.primary = -1; s.sec = lead.sec;
     if (novaInertialess(s)) { release(); return; }
     s.state = 0xb;
   }
+  if (s.primary !== -1) { const t = w.ships[s.primary]; if (!t || t.disabled) s.primary = -1; }
   if (s.state === 0xb) { s.primary = -1; if (novaInertialess(s)) release(); return; }
   s.jump = -1; s.timer = -1;
+  if (s.primary === -1) novaFightThreatToParent(w, s);
+  else if (!novaInGunRangeAny(w, s, w.ships[s.primary])) { s.primary = -1; novaFightThreatToParent(w, s); }
   s.state = 10; s.sec = lead.slot;
+  if (s.primary === s.leader) s.primary = -1;
+  if (s.primary === -1) return;
+  novaFireGun(w, s, false); novaFireTurret(w, s);
 }
 
 /* HighLevelAIHandler 0x8d453: the states that need no enemy, in the
@@ -919,6 +928,7 @@ function novaLowLevel(w, s) {
         else { s.thrust = f32(novaShipAccel(D, s) * 0.5); s.vx = f32(s.vx * 0.94); s.vy = f32(s.vy * 0.94); s.speed = f32(s.speed * 0.94); }
       } else if (s.state === 9) { s.vx = f32(s.vx * 0.94); s.vy = f32(s.vy * 0.94); s.speed = f32(s.speed * 0.94); }
     }
+    novaEscortFireUnprovoked(w, s);
   }
   // 2: to a stellar: thrust once lined up within 5 degrees past the turn rate, at a quarter of top speed within 500
   if (s.mode === 2 && s.sec >= 128 && ok) {
@@ -982,6 +992,7 @@ function novaLowLevel(w, s) {
         s.desired = s.mode === 0xb && Math.abs(f32(s.x - t.x)) <= 100 && Math.abs(f32(s.y - t.y)) <= 100 ? f32(novaShipMaxSpeed(D, s) * 0.5) : 0;
       }
     }
+    novaEscortFireUnprovoked(w, s);
   }
   // 12: velocity matched to the lead, turning onto its heading a degree a step within 25 / skill, and keeping formation; else braking on the difference
   if (s.mode === 0xc && s.sec !== -1 && ok) {
@@ -1005,6 +1016,7 @@ function novaLowLevel(w, s) {
         if (Math.abs(rx) <= 1.75 || Math.abs(ry) <= 1.75) { s.vx = f32(t.vx + f32(rx * 0.95)); s.vy = f32(t.vy + f32(ry * 0.95)); }
       }
     }
+    novaEscortFireUnprovoked(w, s);
   }
   // 10: arriving
   if (s.mode === 10) { if (s.desired >= 0) s.desired = -50; s.thrust = f32(-1.165); }

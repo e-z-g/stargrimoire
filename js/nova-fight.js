@@ -659,6 +659,7 @@ function novaHighAttack(w, s) {
           else if (s.mode !== 0x11) s.mode = 7;
         } else if (cf.flags2 & 2) s.mode = 5;
         else if (s.mode !== 0x10 && s.mode !== 0x11) s.mode = 6;
+        if (!s.disabled) novaLaunchFighters(w, s);
       }
     }
   }
@@ -768,6 +769,7 @@ function novaLowAttack(w, s) {
       if (apart() < turn * 3) { novaFireGun(w, s, false); novaFireMissile(w, s); }
       novaFireTurret(w, s);
     }
+    novaLaunchFighters(w, s);
   }
 }
 /* CalcLeadAngle 0x2b025: where to aim a gun so that its shot meets the
@@ -1584,4 +1586,73 @@ function novaHandleBeams(w) {
     const e = { x: o.x, y: o.y }; novaAccel(ang, len, e);
     b.x1 = e.x; b.y1 = e.y;
   }
+}
+
+/* ---- fighters --------------------------------------------------------------- */
+
+/* AIFightThreatToParent 0x81de6: a ship that threatens the escort's lead,
+   drawn at random among them, attacked; none, no target. */
+function novaFightThreatToParent(w, s) {
+  const lead = w.ships[s.leader];
+  const ok = i => i !== s.slot && i !== s.leader && w.ships[i] && !w.ships[i].disabled && lead && novaThreatens(w, w.ships[i], lead);
+  let n = 0;
+  for (let i = 0; i < 64; i++) if (ok(i)) n++;
+  if (n < 1) { s.primary = -1; return; }
+  for (;;) {
+    const r = w.rand(0x40);
+    if (r === s.slot || r === s.leader || !w.ships[r] || w.ships[r].disabled) continue;
+    if (novaThreatens(w, w.ships[r], lead)) { s.sec = -1; s.primary = r; s.state = 4; return; }
+  }
+}
+// AIInGunRange with no weapon named (0x7f9d5): any of the class's weapons up to guidance 8 reaching the target.
+function novaInGunRangeAny(w, s, t) {
+  if (!t) return false;
+  const c = novaClassFight(w.D, s.cls);
+  for (let i = 0; i < 256; i++) {
+    const W = novaWeapOf(w.D, i);
+    if (W && W.guid <= 8 && c.count[i] > 0 && novaInGunRange(s, t, W)) return true;
+  }
+  return false;
+}
+/* AILaunchFighter 0x81372: with a target in the system, the first loaded
+   fighter bay (guidance 99) launches when ready, then reloads (Reload over
+   its count). */
+function novaLaunchFighters(w, s) {
+  const D = w.D, t = s.primary !== -1 ? w.ships[s.primary] : null;
+  if (!t) return;
+  for (const r of s.weap) {
+    const W = novaWeapOf(D, r.i);
+    if (!(r.count > 0 && r.ammo > 0 && W.guid === 99 && !(W.flags2 & 0x0100))) continue;
+    if (r.reload > 0) return;
+    s.lastW = r.i;
+    if (!novaLaunchFighter(w, s, r.i)) return;
+    r.ammo--;
+    r.reload = f32(W.reload / r.count);
+    if (W.flags3 & 0x20) for (const q of s.weap) if (q !== r && f32(r.reload + 2) > q.reload) q.reload = f32(r.reload + 2);
+    return;
+  }
+}
+/* LaunchFighter 0x3d62d: a ship made as a spawner makes one, of the class
+   the bay's AmmoType names, at the carrier, moving with it and pushed out
+   along its heading (give or take the bay's Inaccuracy) at the bay's
+   Speed; AI type 5, of the carrier's government, its escort, coasting
+   the bay's Count steps, with the carrier's target unless that is a
+   squad-mate. */
+function novaLaunchFighter(w, s, i) {
+  const D = w.D, W = novaWeapOf(D, i), cls = D.classes.get(W.ammoType);
+  if (!cls) return false;
+  const f = novaSpawnBlank(w);
+  if (!f) return false;
+  Object.assign(f, { cls, x: s.x, y: s.y, vx: s.vx, vy: s.vy, speed: s.speed, ai: 5, govt: s.govt, jump: 0, state: 0, mode: 0, anger: 0, goal: -2,
+                     timer: f32(W.count), leader: s.slot, follows: -1, heading: s.heading, pers: null, dude: null });
+  w.rand(2);
+  novaSpriteDraws(w, f, cls);
+  f.primary = s.primary;
+  if (W.inacc > 0) f.heading = f32(f.heading + (w.rand(2 * W.inacc) - W.inacc));
+  const v = { x: f.vx, y: f.vy }; novaAdjustedAccel(Math.trunc(f.heading), W.speed, novaShipMaxSpeed(D, f), v); f.vx = v.x; f.vy = v.y;
+  novaArm(w, f);
+  f.shield = novaShieldCap(D, f); f.armor = novaArmorCap(D, f); novaSetDisabled(D, f);
+  if (f.primary !== -1 && (f.primary === f.leader || (w.ships[f.primary] && w.ships[f.primary].leader === f.leader && f.leader !== -1))) f.primary = -1;
+  Object.assign(f, { state: 0, mode: 0, goal: -2, cached: -1, mate: -1 });
+  return true;
 }

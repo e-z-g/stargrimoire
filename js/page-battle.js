@@ -1,26 +1,39 @@
 /* page-battle.js -- the battle simulator, a view of its own.
    =========================================================================
 
-   Two sides, each a government and ships of any class, put in a system of
-   the player's choosing (its asteroids and interference are the system's)
-   with no other ship arriving, to fight by the game's rules as
-   nova-flight.js and nova-fight.js have them. Ships fight only when their
-   governments are enemies, as in the game. The view follows the fight,
-   zooming to keep every ship on the screen, until it is zoomed or dragged
-   by hand; Follow takes it back.
+   An arena and a hangar (the maintainer's asking, 1 October 2026: the
+   ships and the battle together, by drag and drop). The hangar lists every
+   ship class that can fly, as the Ships view does, each with its picture;
+   a ship is dragged from it onto the arena (with a finger, first
+   sideways, so that the list still scrolls), or tapped and then the arena
+   tapped where it goes, as many at a time as Drop says. The arena's left
+   half is side 1's and its right half side 2's, each a government chosen
+   above the hangar; a ship dropped is that half's, facing the other. Until
+   the fight, ships on the arena are dragged to move them -- across the
+   middle to change sides -- and off it to take them away. Fight puts them
+   in the chosen system (its asteroids are there) with no other ship
+   arriving, to fight by the game's rules as nova-flight.js and
+   nova-fight.js have them; a ship dropped during the fight joins it at
+   once. Ships fight only when their governments are enemies, as in the
+   game. Set up again goes back to the arena as it was set.
 
-   The bar's Battle, and the address #battle (the maintainer's asking, 1
-   October 2026: it was a part of a system's panel on the map).
+   The view follows the ships, zoomed to keep them all on the screen,
+   until it is zoomed or dragged by hand; Follow takes it back. The bar's
+   Battle, and the address #battle.
 
-   The page's own script: DOM here. LOAD ORDER: after page-flight.js, whose
-   flightData and drawFlightThings it uses. */
+   The page's own script: DOM here. LOAD ORDER: after page-flight.js and
+   page-ships.js, whose flightData, drawFlightThings, shipSprite and
+   shipFrame it uses. */
 
 const BATTLE = {
-  on: false, sys: null, govt: [null, null], cls: [null, null], n: [1, 1], sides: [[], []],
-  w: null, placed: [], paused: false, speed: 1, due: 0, last: 0, tick: null,
+  on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
+  paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
+  q: '', many: 1, armed: null, hangar: null,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
+const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
+const BATTLE_GAP = 120;            // between ships dropped together, in a column
 
 /* ---- in and out of the view -------------------------------------------- */
 
@@ -29,8 +42,8 @@ function battleFromHash() {
   battleShow({ fromHash: true });
   return true;
 }
-// Other files: the battle's world goes with the records it was made of.
-function battleReset() { BATTLE.w = null; BATTLE.placed = []; if (BATTLE.on) battlePanel(); }
+// Other files: the battle goes with the records it was made of.
+function battleReset() { BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
 // More files read: the ships may have come.
 function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
@@ -59,61 +72,128 @@ function battleLeave(fromHash) {
   redraw();
 }
 
-/* ---- the sides ------------------------------------------------------------ */
+/* ---- the panel: the sides and controls, then the hangar ------------------ */
 
 function battlePanel() {
-  const el = $('battleSide');
-  const D = flightData();
+  const top = $('battleTop'), D = flightData();
   if (!D) {
-    el.innerHTML = `<h3>Battle</h3><p class="note">${SHIP_FILES.length || PENDING.some(f => f.role === 'ships') ? 'Reading the ships…' : 'No ships files are open.'}</p>`;
+    top.innerHTML = `<p class="note">${SHIP_FILES.length || PENDING.some(f => f.role === 'ships') ? 'Reading the ships…' : 'No ships files are open.'}</p>`;
+    $('battleRows').innerHTML = '';
+    BATTLE.hangar = null;
     return;
   }
   const govts = [...U.govts.values()].filter(g => D.govts.has(g.id)).sort((a, b) => a.id - b.id);
-  const classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0).sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
   const systems = [...U.byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
-  if (!govts.length || !classes.length || !systems.length) { el.innerHTML = '<h3>Battle</h3><p class="note">The files have no ships to fight.</p>'; return; }
-  if (BATTLE.sys === null || !U.byId.has(BATTLE.sys)) BATTLE.sys = VIEW.sys !== null && U.byId.has(VIEW.sys) ? VIEW.sys : U.byId.has(130) ? 130 : systems[0].id;
-  const named = new Map();
-  for (const c of classes) named.set(c.name, (named.get(c.name) || 0) + 1);
-  for (let i = 0; i < 2; i++) {
-    if (BATTLE.govt[i] === null || !D.govts.has(BATTLE.govt[i])) BATTLE.govt[i] = govts[Math.min(i, govts.length - 1)].id;
-    if (BATTLE.cls[i] === null || !D.classes.has(BATTLE.cls[i])) BATTLE.cls[i] = classes[0].id;
-  }
+  if (!govts.length || !systems.length) { top.innerHTML = '<p class="note">The files have no ships to fight.</p>'; return; }
+  if (BATTLE.sys === null || !U.byId.has(BATTLE.sys)) BATTLE.sys = U.byId.has(130) ? 130 : systems[0].id;
+  for (let i = 0; i < 2; i++) if (BATTLE.govt[i] === null || !D.govts.has(BATTLE.govt[i])) BATTLE.govt[i] = govts[Math.min(i, govts.length - 1)].id;
   const w = BATTLE.w;
   const side = i => {
     const g = govts.map(x => `<option value="${x.id}"${x.id === BATTLE.govt[i] ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
-    const c = classes.map(x => `<option value="${x.id}"${x.id === BATTLE.cls[i] ? ' selected' : ''}>${esc(x.name)}${named.get(x.name) > 1 ? ` (${x.id})` : ''}</option>`).join('');
-    const n = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16].map(k => `<option${k === BATTLE.n[i] ? ' selected' : ''}>${k}</option>`).join('');
-    const list = BATTLE.sides[i].map((e, j) => `<li>${esc(D.classes.get(e.cls).name)}${e.n > 1 ? ` × ${e.n}` : ''} <a data-battle-do="del:${i}:${j}" title="Take off">✕</a></li>`).join('');
     return `<div class="battle-side" style="--side:${BATTLE_COLOURS[i]}">
-      <div class="battle-row"><b>Side ${i + 1}</b> <select data-battle="govt:${i}" aria-label="Side ${i + 1}'s government">${g}</select></div>
-      <div class="battle-row"><select data-battle="cls:${i}" aria-label="Ship">${c}</select> <select data-battle="n:${i}" aria-label="How many">${n}</select> <button data-battle-do="add:${i}">Add</button></div>
-      ${list ? `<ul>${list}</ul>` : '<p class="note">No ships yet.</p>'}
+      <div class="battle-row"><b>${i ? 'Right' : 'Left'}</b> <select data-battle="govt:${i}" aria-label="The ${i ? 'right' : 'left'} side's government">${g}</select></div>
       <div class="battle-left" id="battleLeft${i}"></div></div>`;
   };
   const sysOpts = systems.map(x => `<option value="${x.id}"${x.id === BATTLE.sys ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
   const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) || [0, 1].some(i => { const g = D.govts.get(BATTLE.govt[i]); return g && (g.flags & 1) && !novaGovtAllies(D, BATTLE.govt[0], BATTLE.govt[1]); });
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-battle-do="speed:${v}" aria-pressed="${BATTLE.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
-  el.innerHTML = `<h3>Battle</h3>
+  const sides = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
+  top.innerHTML = `
     <div class="battle-row"><span class="note">In</span> <select data-battle="sys" aria-label="The system">${sysOpts}</select></div>
     ${side(0)}${side(1)}
     ${foes ? '' : '<p class="note">These governments are not enemies, so their ships will not fight.</p>'}
-    <div class="actions"><button data-battle-do="fight"${BATTLE.sides[0].length && BATTLE.sides[1].length ? '' : ' disabled'}>${w ? 'Fight again' : 'Fight'}</button><button data-battle-do="clear">Clear</button></div>
+    <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
     <p class="note" id="battleResult"></p>`;
   battleStatus(true);
+  battleHangar(D);
 }
-// How each side is doing: its ships left, disabled and gone; and who has won.
+
+/* The hangar: every class that can fly, heaviest first as a shipyard lists
+   them, each a row with its picture, that drags, or taps to be the ship
+   the arena's next tap puts down; its number links to it in the Ships
+   view. Classes that share a look are one row, as in the Ships view,
+   which drags the first of them and opens on a tap to list them all; a
+   search opens every look with a match. */
+function battleHangar(D) {
+  if (BATTLE.hangar !== D) {
+    BATTLE.hangar = D;
+    BATTLE.open = new Set();
+    BATTLE.classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0)
+      .sort((a, b) => (b.rec.DispWeight || 0) - (a.rec.DispWeight || 0) || a.id - b.id);
+  }
+  battleFilter();
+}
+function battleFilter() {
+  const all = BATTLE.classes || [], q = BATTLE.q.trim().toLowerCase();
+  const match = c => !q || String(c.id) === q || (c.name + ' ' + (c.rec.Subtitle || '')).toLowerCase().includes(q);
+  const groups = new Map();
+  for (const c of all) { if (!groups.has(c.sprite)) groups.set(c.sprite, []); groups.get(c.sprite).push(c); }
+  const row = (c, sub) => `<div class="shipRow battleShip${sub ? ' sub' : ''}" data-bcls="${c.id}">${sub ? '' : '<canvas class="thumb" width="44" height="44"></canvas>'}` +
+    `<span class="nm">${esc(c.name)}${c.rec.Subtitle ? `<small>${esc(c.rec.Subtitle)}</small>` : ''}</span>` +
+    `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
+  let html = '', n = 0;
+  for (const [k, g] of groups) {
+    const m = g.filter(match);
+    if (!m.length) continue;
+    n += m.length;
+    if (g.length === 1) { html += row(g[0], false); continue; }
+    const open = !!q || BATTLE.open.has(k), names = [...new Set(g.map(c => c.name))];
+    html += `<div class="shipRow battleShip look" data-bcls="${g[0].id}" data-blook="${k}" aria-expanded="${open}"><canvas class="thumb" width="44" height="44"></canvas>` +
+      `<span class="nm">${esc(names.join(' / '))}<small>${g.length} ship classes</small></span><span class="count">${open ? '▾' : '▸'}</span></div>`;
+    if (open) html += m.map(c => row(c, true)).join('');
+  }
+  const el = $('battleRows'), top = el.scrollTop;
+  el.innerHTML = html;
+  el.scrollTop = top;
+  $('battleCount').textContent = `${n} ship${n === 1 ? '' : 's'}`;
+  battleArmMark();
+  battleThumbs(BATTLE.hangar);
+}
+function battleArmMark() {
+  for (const r of $('battleRows').children) r.classList.toggle('on', +r.dataset.bcls === BATTLE.armed && !r.dataset.blook);
+}
+// Each row's picture, the class's base sprite at the frame facing right, a few rows at a time.
+let BATTLE_THUMBS = 0;
+function battleThumbs(D) {
+  const job = ++BATTLE_THUMBS, todo = [...$('battleRows').querySelectorAll('canvas.thumb')];
+  const step = () => {
+    if (job !== BATTLE_THUMBS) return;
+    const t0 = performance.now();
+    while (todo.length && performance.now() - t0 < 12) {
+      const c = todo.shift(), cls = D.classes.get(+c.parentNode.dataset.bcls);
+      const img = cls && battleShipImage(cls, 90);
+      if (!img) continue;
+      const k = Math.min(c.width / img.width, c.height / img.height, 1.5), ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.imageSmoothingEnabled = k < 1;
+      ctx.drawImage(img, (c.width - img.width * k) / 2, (c.height - img.height * k) / 2, img.width * k, img.height * k);
+    }
+    if (todo.length) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+// A class's base sprite at a heading (its first set).
+function battleShipImage(cls, heading) {
+  const spr = shipSprite(cls.sprite);
+  if (!spr || spr.kind !== 'rle') return null;
+  return shipFrame(spr, Math.trunc(heading * cls.framesPer / 360) % spr.count);
+}
+
+// How each side is doing: before the fight its ships; in it, those fighting, disabled, destroyed and gone, and who has won.
 function battleStatus(force) {
   const w = BATTLE.w;
-  if (!w) return;
+  if (!w) {
+    [0, 1].forEach(i => { const el = $('battleLeft' + i); if (el) { const n = BATTLE.setup.filter(e => e.side === i).length; el.textContent = n ? `${n} ship${n === 1 ? '' : 's'}` : `Drop ships on the ${i ? 'right' : 'left'}.`; } });
+    return;
+  }
   const rows = [0, 1].map(i => {
     const placed = BATTLE.placed.filter(p => p.side === i);
     const here = placed.filter(p => w.ships[p.slot] === p.ship), up = here.filter(p => !p.ship.disabled);
     const gone = placed.filter(p => w.ships[p.slot] !== p.ship), dead = gone.filter(p => w.gone.some(g => g.ship === p.ship && g.how === 'destroyed')).length;
     return { placed, here, up, dead, fled: gone.length - dead };
   });
-  const key = rows.map(r => `${r.up.length}/${r.here.length}/${r.dead}`).join(' ');
+  const key = rows.map(r => `${r.placed.length}/${r.up.length}/${r.here.length}/${r.dead}`).join(' ');
   if (!force && key === BATTLE.shown) return;
   BATTLE.shown = key;
   rows.forEach((r, i) => {
@@ -126,13 +206,14 @@ function battleStatus(force) {
     el.textContent = bits.join(', ');
   });
   const res = $('battleResult');
-  if (res) res.textContent = rows[0].up.length && !rows[1].up.length ? 'Side 1 has the field.' : rows[1].up.length && !rows[0].up.length ? 'Side 2 has the field.' : !rows[0].up.length && !rows[1].up.length ? 'Neither side has a ship left fighting.' : '';
+  if (res) res.textContent = rows[0].up.length && !rows[1].up.length ? 'The left side has the field.' : rows[1].up.length && !rows[0].up.length ? 'The right side has the field.' : !rows[0].up.length && !rows[1].up.length ? 'Neither side has a ship left fighting.' : '';
 }
 function battleChange(e) {
   const t = e.target.closest('[data-battle]');
   if (!t || !BATTLE.on) return;
   const [k, i] = t.dataset.battle.split(':');
   if (k === 'sys') BATTLE.sys = +t.value;
+  else if (k === 'many') BATTLE.many = +t.value;
   else BATTLE[k][+i] = +t.value;
   if (k === 'govt') battlePanel();
 }
@@ -140,16 +221,31 @@ function battleDo(what) {
   if (what === 'pause') { BATTLE.paused = !BATTLE.paused; battleRun(); }
   else if (what === 'follow') BATTLE.follow = !BATTLE.follow;
   else if (what.startsWith('speed:')) BATTLE.speed = +what.slice(6);
-  else if (what.startsWith('add:')) { const i = +what.slice(4); BATTLE.sides[i].push({ cls: BATTLE.cls[i], n: BATTLE.n[i] }); }
-  else if (what.startsWith('del:')) { const [, i, j] = what.split(':'); BATTLE.sides[+i].splice(+j, 1); }
-  else if (what === 'clear') { BATTLE.sides = [[], []]; BATTLE.placed = []; BATTLE.w = null; }
+  else if (what === 'clear') { BATTLE.setup = []; BATTLE.placed = []; BATTLE.w = null; }
+  else if (what === 'setup') { BATTLE.w = null; BATTLE.placed = []; BATTLE.follow = true; }
   else if (what === 'fight') battleFight();
   battlePanel();
   battleDraw();
 }
 
-/* Each side's ships put in the system, in a column 140 apart, 900 units
-   from the other side, as warships, and nothing else there. */
+/* ---- the arena ------------------------------------------------------------ */
+
+// `n` ships of a class put down at (x, y) in the arena's units, in a column: before the fight on the arena, in it into the fight.
+function battleDrop(clsId, x, y, n) {
+  const side = x < 0 ? 0 : 1;
+  for (let k = 0; k < n; k++) {
+    const yy = y + (k - (n - 1) / 2) * BATTLE_GAP;
+    if (!BATTLE.w) BATTLE.setup.push({ cls: clsId, side, x, y: yy });
+    else {
+      const s = novaPlaceShip(BATTLE.w, clsId, BATTLE.govt[side], x, yy, 3, BATTLE_FACING[side]);
+      if (s) { s.frame = novaShipFrame(s); BATTLE.placed.push({ side, slot: s.slot, ship: s }); }
+    }
+  }
+  if (!BATTLE.w) battlePanel(); else battleStatus(true);
+  battleDraw();
+}
+/* The arena's ships put in the system, each where it was set and facing
+   the other side, as warships, and nothing else there. */
 function battleFight() {
   const D = flightData(), sys = U.byId.get(BATTLE.sys);
   if (!D || !sys) return;
@@ -157,19 +253,30 @@ function battleFight() {
   for (let i = 0; i < 64; i++) w.ships[i] = null;
   w.noArrivals = true;
   BATTLE.w = w; BATTLE.placed = []; BATTLE.shown = '';
-  for (let i = 0; i < 2; i++) {
-    const all = BATTLE.sides[i].flatMap(e => Array(e.n).fill(e.cls));
-    all.forEach((cls, j) => {
-      const s = novaPlaceShip(w, cls, BATTLE.govt[i], i ? 450 : -450, (j - (all.length - 1) / 2) * 140, 3);
-      if (s) BATTLE.placed.push({ side: i, slot: s.slot, ship: s });
-    });
+  for (const e of BATTLE.setup) {
+    const s = novaPlaceShip(w, e.cls, BATTLE.govt[e.side], e.x, e.y, 3, BATTLE_FACING[e.side]);
+    if (s) BATTLE.placed.push({ side: e.side, slot: s.slot, ship: s });
   }
   for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
   BATTLE.follow = true;
   BATTLE.paused = false;
-  battleAim(true);
   battleRun();
 }
+// The arena's ship at a point on the screen, before the fight.
+function battleSetupAt(px, py) {
+  const D = flightData();
+  if (!D || BATTLE.w) return -1;
+  const c = BATTLE.cam;
+  for (let i = BATTLE.setup.length - 1; i >= 0; i--) {
+    const e = BATTLE.setup[i], cls = D.classes.get(e.cls), img = cls && battleShipImage(cls, BATTLE_FACING[e.side]);
+    const r = Math.max(MIN_SHIP, (img ? Math.max(img.width, img.height) : 32) * c.s) / 2 + 4;
+    const [x, y] = battleToScreen(e.x, e.y);
+    if (Math.abs(px - x) <= r && Math.abs(py - y) <= r) return i;
+  }
+  return -1;
+}
+const battleToScreen = (x, y) => [(x - BATTLE.cam.x) * BATTLE.cam.s + BATTLE.cw / 2, (y - BATTLE.cam.y) * BATTLE.cam.s + BATTLE.ch / 2];
+const battleFromScreen = (px, py) => [(px - BATTLE.cw / 2) / BATTLE.cam.s + BATTLE.cam.x, (py - BATTLE.ch / 2) / BATTLE.cam.s + BATTLE.cam.y];
 
 /* ---- running and drawing ------------------------------------------------ */
 
@@ -180,28 +287,33 @@ function battleView() {
 }
 function battleLoop(now) {
   BATTLE.tick = null;
-  if (!BATTLE.on || !BATTLE.w || BATTLE.paused) { BATTLE.last = 0; battleDraw(); return; }
-  if (BATTLE.last) BATTLE.due = Math.min(BATTLE.due + (now - BATTLE.last) * 0.03 * BATTLE.speed, 4 * BATTLE.speed);
-  BATTLE.last = now;
-  for (; BATTLE.due >= 1; BATTLE.due--) {
-    BATTLE.w.view = battleView();
-    novaFlightStep(BATTLE.w);
-  }
+  if (!BATTLE.on) return;
+  if (BATTLE.w && !BATTLE.paused) {
+    if (BATTLE.last) BATTLE.due = Math.min(BATTLE.due + (now - BATTLE.last) * 0.03 * BATTLE.speed, 4 * BATTLE.speed);
+    BATTLE.last = now;
+    for (; BATTLE.due >= 1; BATTLE.due--) {
+      BATTLE.w.view = battleView();
+      novaFlightStep(BATTLE.w);
+    }
+    battleStatus(false);
+  } else BATTLE.last = 0;
   battleAim(false);
   battleDraw();
-  battleStatus(false);
   BATTLE.tick = requestAnimationFrame(battleLoop);
 }
 function battleRun() { if (BATTLE.on && !BATTLE.tick) { BATTLE.last = 0; BATTLE.tick = requestAnimationFrame(battleLoop); } }
 
-// Following: the middle of the ships, zoomed to keep them all on the screen, eased toward.
+// Following: the middle of the ships (or the arena's, with fewer than two), zoomed to keep them on the screen, eased toward.
 function battleAim(at) {
-  const w = BATTLE.w;
-  if (!w || !BATTLE.follow) return;
-  const ships = w.ships.filter(Boolean);
-  if (!ships.length) return;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const s of ships) { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); }
+  if (!BATTLE.follow || BATTLE.drag) return;
+  const pts = BATTLE.w ? BATTLE.w.ships.filter(Boolean) : BATTLE.setup;
+  let x0 = -700, y0 = -450, x1 = 700, y1 = 450;
+  if (pts.length > 1 || BATTLE.w) {
+    if (!pts.length) return;
+    x0 = Infinity; y0 = Infinity; x1 = -Infinity; y1 = -Infinity;
+    for (const s of pts) { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); }
+    if (!BATTLE.w) { x0 = Math.min(x0, -700); x1 = Math.max(x1, 700); y0 = Math.min(y0, -450); y1 = Math.max(y1, 450); }
+  }
   const pad = 160, s = Math.min(1.5, Math.max(0.05, Math.min(BATTLE.cw / (x1 - x0 + 2 * pad), BATTLE.ch / (y1 - y0 + 2 * pad))));
   const c = BATTLE.cam, k = at ? 1 : 0.08;
   c.x += ((x0 + x1) / 2 - c.x) * k; c.y += ((y0 + y1) / 2 - c.y) * k;
@@ -212,15 +324,23 @@ function battleResize() {
   BATTLE.cw = Math.max(1, Math.round(r.width)); BATTLE.ch = Math.max(1, Math.round(r.height));
   cv.width = Math.round(BATTLE.cw * dpr); cv.height = Math.round(BATTLE.ch * dpr);
   cv.style.width = BATTLE.cw + 'px'; cv.style.height = BATTLE.ch + 'px';
+  battleAim(true);
   battleDraw();
 }
 function battleDraw() {
   const cv = $('battleCanvas');
   if (!cv || !BATTLE.on) return;
-  const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, W = BATTLE.cw, H = BATTLE.ch, c = BATTLE.cam;
+  const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, W = BATTLE.cw, H = BATTLE.ch, c = BATTLE.cam, D = flightData();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  const at = (x, y) => [(x - c.x) * c.s + W / 2, (y - c.y) * c.s + H / 2];
+  const [mx] = battleToScreen(0, 0), w = BATTLE.w;
+  // before the fight, each side's half faintly in its colour, and the middle
+  if (!w) {
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = BATTLE_COLOURS[0]; ctx.fillRect(0, 0, Math.max(0, Math.min(W, mx)), H);
+    ctx.fillStyle = BATTLE_COLOURS[1]; ctx.fillRect(Math.max(0, mx), 0, W, H);
+    ctx.globalAlpha = 1;
+  }
   // a faint grid every 500 units, for a sense of motion
   const g = 500 * c.s;
   if (g > 24) {
@@ -229,28 +349,38 @@ function battleDraw() {
     for (let y = ((H / 2 - c.y * c.s) % g + g) % g; y < H; y += g) { ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(W, Math.round(y) + 0.5); }
     ctx.stroke();
   }
-  const w = BATTLE.w;
+  const ring = (x, y, size, i, faint) => {
+    ctx.save(); ctx.globalAlpha = faint ? 0.3 : 0.75; ctx.strokeStyle = BATTLE_COLOURS[i]; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, size * 0.62 + 2, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  };
   if (!w) {
-    ctx.fillStyle = '#5b6a82'; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('Give each side some ships, then Fight.', W / 2, H / 2);
+    if (mx > 0 && mx < W) { ctx.strokeStyle = '#2a3446'; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(Math.round(mx) + 0.5, 0); ctx.lineTo(Math.round(mx) + 0.5, H); ctx.stroke(); ctx.setLineDash([]); }
+    if (D) for (const e of BATTLE.setup) {
+      const cls = D.classes.get(e.cls), img = cls && battleShipImage(cls, BATTLE_FACING[e.side]);
+      const [x, y] = battleToScreen(e.x, e.y);
+      let wd = (img ? img.width : 32) * c.s, ht = (img ? img.height : 32) * c.s;
+      const m = Math.max(wd, ht);
+      if (m < MIN_SHIP) { wd *= MIN_SHIP / m; ht *= MIN_SHIP / m; }
+      ring(x, y, Math.max(wd, ht), e.side, false);
+      if (img) { ctx.imageSmoothingEnabled = wd < img.width; ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht); }
+    }
+    if (!BATTLE.setup.length) {
+      ctx.fillStyle = '#5b6a82'; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Drag ships here from the hangar: the left side, the right side.', W / 2, H / 2);
+    }
     return;
   }
   const side = new Map(BATTLE.placed.map(p => [p.ship, p.side]));
-  // each ship of a side ringed in its colour, faintly when disabled; a ship that joined (a fighter, a capture) ringed for its lead's side
+  // each ship of a side ringed in its colour, faintly when disabled; one that joined (a fighter, a capture) its lead's
   const mark = (ctx2, s, x, y, size) => {
     let i = side.get(s);
     if (i === undefined) { const l = s.leader >= 0 ? w.ships[s.leader] : null; i = l ? side.get(l) : undefined; }
-    if (i === undefined) return;
-    ctx2.save();
-    ctx2.globalAlpha = s.disabled ? 0.3 : 0.75;
-    ctx2.strokeStyle = BATTLE_COLOURS[i]; ctx2.lineWidth = 1.5;
-    ctx2.beginPath(); ctx2.arc(x, y, size * 0.62 + 2, 0, Math.PI * 2); ctx2.stroke();
-    ctx2.restore();
+    if (i !== undefined) ring(x, y, size, i, s.disabled);
   };
-  drawFlightThings(ctx, w, at, c.s, 1, mark, W, H);
+  drawFlightThings(ctx, w, battleToScreen, c.s, 1, mark, W, H);
 }
 
-/* ---- zoom and drag by hand ---------------------------------------------- */
+/* ---- dragging, tapping, zooming ------------------------------------------ */
 
 function wireBattle() {
   $('views').addEventListener('click', e => {
@@ -260,14 +390,14 @@ function wireBattle() {
     else if (BATTLE.on) { e.preventDefault(); battleLeave(); }
   }, true);
   document.addEventListener('change', battleChange);
-  $('battleSide').addEventListener('click', e => {
+  $('battleTop').addEventListener('click', e => {
     const b = e.target.closest('[data-battle-do]');
-    if (!b) return;
-    e.preventDefault();
-    battleDo(b.dataset.battleDo);
+    if (b) { e.preventDefault(); battleDo(b.dataset.battleDo); }
   });
+  $('battleSearch').addEventListener('input', e => { BATTLE.q = e.target.value; battleFilter(); });
+
   const cv = $('battleCanvas'), pts = new Map();
-  let pinch = null;
+  let pinch = null, ghost = null, press = null;
   const hand = () => { if (BATTLE.follow) { BATTLE.follow = false; battlePanel(); } };
   const zoomAt = (px, py, f) => {
     const c = BATTLE.cam, r = cv.getBoundingClientRect(), x = px - r.left - BATTLE.cw / 2, y = py - r.top - BATTLE.ch / 2;
@@ -275,14 +405,87 @@ function wireBattle() {
     c.x += x / c.s - x / s; c.y += y / c.s - y / s; c.s = s;
     battleDraw();
   };
+  const onArena = (cx, cy) => { const r = cv.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom ? [cx - r.left, cy - r.top] : null; };
+  const showGhost = (clsId, cx, cy) => {
+    if (!ghost) { ghost = document.createElement('canvas'); ghost.className = 'battleGhost'; document.body.appendChild(ghost); }
+    const D = flightData(), cls = D && D.classes.get(clsId), img = cls && battleShipImage(cls, 90);
+    if (img && ghost.dataset.cls !== String(clsId)) {
+      const k = Math.min(1, 72 / Math.max(img.width, img.height));
+      ghost.width = Math.max(1, Math.round(img.width * k)); ghost.height = Math.max(1, Math.round(img.height * k));
+      ghost.getContext('2d').drawImage(img, 0, 0, ghost.width, ghost.height);
+      ghost.dataset.cls = String(clsId);
+    }
+    ghost.style.left = (cx - ghost.width / 2) + 'px'; ghost.style.top = (cy - ghost.height / 2) + 'px';
+  };
+  const dropGhost = () => { if (ghost) { ghost.remove(); ghost = null; } };
+
+  // From the hangar: a drag (any way with a mouse, sideways with a finger, so that the list still scrolls), or a tap to choose the ship for the arena's next tap.
+  $('battleRows').addEventListener('pointerdown', e => {
+    const row = e.target.closest('[data-bcls]');
+    if (!row || e.target.closest('[data-binfo]')) return;
+    press = { id: e.pointerId, cls: +row.dataset.bcls, look: row.dataset.blook !== undefined ? +row.dataset.blook : undefined, x: e.clientX, y: e.clientY, dragging: false, mouse: e.pointerType === 'mouse' };
+  });
+  window.addEventListener('pointermove', e => {
+    if (!press || press.id !== e.pointerId) return;
+    const dx = e.clientX - press.x, dy = e.clientY - press.y;
+    if (!press.dragging) {
+      if (Math.abs(dx) + Math.abs(dy) < 8) return;
+      if (!press.mouse && Math.abs(dx) < Math.abs(dy)) { press = null; return; }   // a scroll of the list
+      press.dragging = true;
+      BATTLE.drag = true;
+      try { $('battleRows').setPointerCapture(e.pointerId); } catch (_) { /* gone */ }
+    }
+    e.preventDefault();
+    showGhost(press.cls, e.clientX, e.clientY);
+  }, { passive: false });
+  const endPress = e => {
+    if (!press || press.id !== e.pointerId) return;
+    const p = press;
+    press = null; BATTLE.drag = false;
+    dropGhost();
+    if (!p.dragging) {
+      if (e.type === 'pointerup') {
+        if (p.look !== undefined) { if (!BATTLE.open.delete(p.look)) BATTLE.open.add(p.look); battleFilter(); }
+        else { BATTLE.armed = BATTLE.armed === p.cls ? null : p.cls; battleArmMark(); }
+      }
+      return;
+    }
+    const at = e.type === 'pointerup' && onArena(e.clientX, e.clientY);
+    if (at) { const [x, y] = battleFromScreen(at[0], at[1]); battleDrop(p.cls, x, y, BATTLE.many); }
+  };
+  window.addEventListener('pointerup', endPress);
+  window.addEventListener('pointercancel', endPress);
+  $('battleRows').addEventListener('click', e => {
+    const i = e.target.closest('[data-binfo]');
+    if (i) { e.preventDefault(); battleLeave(); shipsShow(+i.dataset.binfo); }
+  });
+
+  // On the arena: before the fight a ship drags to move, off the arena to go; a tap puts down the chosen ship; else a drag pans and two fingers zoom.
+  let moving = null, tapAt = null;
   cv.addEventListener('wheel', e => { e.preventDefault(); hand(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
-  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); pinch = null; });
+  cv.addEventListener('pointerdown', e => {
+    try { cv.setPointerCapture(e.pointerId); } catch (_) { /* a pointer the browser does not know */ }
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    pinch = null;
+    const r = cv.getBoundingClientRect(), i = pts.size === 1 ? battleSetupAt(e.clientX - r.left, e.clientY - r.top) : -1;
+    moving = i >= 0 ? { i, id: e.pointerId } : null;
+    if (moving) BATTLE.drag = true;
+    tapAt = pts.size === 1 ? { x: e.clientX, y: e.clientY } : null;
+  });
   cv.addEventListener('pointermove', e => {
     const p = pts.get(e.pointerId);
     if (!p) return;
+    if (tapAt && Math.abs(e.clientX - tapAt.x) + Math.abs(e.clientY - tapAt.y) > 6) tapAt = null;
+    if (moving && moving.id === e.pointerId) {
+      const r = cv.getBoundingClientRect(), at = onArena(e.clientX, e.clientY), en = BATTLE.setup[moving.i];
+      if (at) { const [x, y] = battleFromScreen(e.clientX - r.left, e.clientY - r.top); en.x = x; en.y = y; en.side = x < 0 ? 0 : 1; dropGhost(); }
+      else showGhost(en.cls, e.clientX, e.clientY);
+      battleDraw();
+      return;
+    }
     if (pts.size === 1) {
       const c = BATTLE.cam;
-      if (Math.abs(e.clientX - p.x) + Math.abs(e.clientY - p.y) > 0) hand();
+      if (!tapAt) hand();
       c.x -= (e.clientX - p.x) / c.s; c.y -= (e.clientY - p.y) / c.s;
       p.x = e.clientX; p.y = e.clientY;
       battleDraw();
@@ -293,7 +496,21 @@ function wireBattle() {
       pinch = d;
     }
   });
-  const up = e => { pts.delete(e.pointerId); pinch = null; };
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId); pinch = null;
+    if (moving && moving.id === e.pointerId) {
+      if (e.type !== 'pointerup' || !onArena(e.clientX, e.clientY)) BATTLE.setup.splice(moving.i, 1);
+      moving = null; BATTLE.drag = false; dropGhost();
+      battlePanel(); battleDraw();
+      return;
+    }
+    if (tapAt && e.type === 'pointerup' && BATTLE.armed !== null) {
+      const r = cv.getBoundingClientRect(), [x, y] = battleFromScreen(e.clientX - r.left, e.clientY - r.top);
+      battleDrop(BATTLE.armed, x, y, BATTLE.many);
+    }
+    tapAt = null;
+  };
   cv.addEventListener('pointerup', up);
   cv.addEventListener('pointercancel', up);
   window.addEventListener('resize', () => { if (BATTLE.on) battleResize(); });

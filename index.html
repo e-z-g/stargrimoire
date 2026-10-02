@@ -157,8 +157,15 @@ details summary { cursor: pointer; color: var(--dim); }
 
 /* ---- the battle ---- */
 #battle { flex: 1; display: flex; min-height: 0; }
-#battleSide { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 12px 14px 30px; }
-#battleSide h3 { margin-top: 0; }
+#battleSide { width: 320px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+#battleTop { padding: 10px 14px 4px; flex: none; }
+#battleHangar { flex: 1; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--line); }
+#battleHangar .listTools { display: flex; gap: 8px; padding: 8px 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+#battleSearch { flex: 1; min-width: 110px; }
+#battleRows { overflow: auto; flex: 1; touch-action: pan-y; }
+.battleShip { cursor: grab; user-select: none; -webkit-user-select: none; }
+.battleShip .id { color: var(--faint); font-size: 12px; }
+.battleGhost { position: fixed; pointer-events: none; z-index: 50; opacity: 0.85; }
 #battleStage { flex: 1; position: relative; min-width: 0; min-height: 0; }
 #battleCanvas { position: absolute; inset: 0; touch-action: none; cursor: grab; display: block; }
 .battle-side { margin: 10px 0; padding-left: 9px; border-left: 3px solid var(--side); }
@@ -227,8 +234,10 @@ details.inline .list { margin-top: 4px; }
   #brand { display: none; }
   #ships { flex-direction: column; }
   #battle { flex-direction: column-reverse; }
-  #battleStage { flex: 1 1 55%; }
-  #battleSide { width: auto; flex: 1 1 45%; border-right: 0; border-top: 1px solid var(--line); }
+  #battleSide { width: auto; flex: 1 1 50%; border-right: 0; border-top: 1px solid var(--line); overflow: auto; display: block; }
+  #battleHangar { display: block; }
+  #battleRows { overflow: visible; }
+  #battleStage { flex: 1 1 50%; }
   #shipList { width: auto; flex: 1; border-right: 0; }
   #ships.picked #shipList { display: none; }
   #ships:not(.picked) #shipView { display: none; }
@@ -271,7 +280,17 @@ details.inline .list { margin-top: 4px; }
 <div id="choose" hidden><div class="box"></div></div>
 
 <main id="battle" hidden>
-  <aside id="battleSide"></aside>
+  <aside id="battleSide">
+    <div id="battleTop"></div>
+    <div id="battleHangar">
+      <div class="listTools">
+        <input type="search" id="battleSearch" placeholder="Find a ship" autocomplete="off">
+        <label class="note">Drop <select data-battle="many" aria-label="How many to drop at a time"><option>1</option><option>2</option><option>3</option><option>5</option><option>8</option></select></label>
+        <span id="battleCount" class="note"></span>
+      </div>
+      <div id="battleRows"></div>
+    </div>
+  </aside>
   <div id="battleStage"><canvas id="battleCanvas"></canvas></div>
 </main>
 
@@ -394,12 +413,12 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-labels.js?v=7d212c2c"></script>
 <script src="js/nova-ships.js?v=44513e72"></script>
 <script src="js/nova-flight.js?v=610e90eb"></script>
-<script src="js/nova-fight.js?v=e0ea7e59"></script>
+<script src="js/nova-fight.js?v=0686e962"></script>
 <script src="js/page-open.js?v=62257206"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
 <script src="js/page-map.js?v=c01944d1"></script>
 <script src="js/page-ships.js?v=5ff78155"></script>
 <script src="js/page-flight.js?v=d75fe52c"></script>
-<script src="js/page-battle.js?v=5d2820cd"></script>
+<script src="js/page-battle.js?v=60e6f98a"></script>
 </body>
 </html>

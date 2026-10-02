@@ -1569,13 +1569,13 @@ function novaShipFire(w, s) {
 
 /* A ship of class `clsId` for government `govt` put at (x, y), as a
    spawner would make it (its skill, aggression and sprite drawn), with
-   the class's AI type or `ai`. Null with no room. */
-function novaPlaceShip(w, clsId, govt, x, y, ai) {
+   the class's AI type or `ai`, facing `heading` if given. Null with no room. */
+function novaPlaceShip(w, clsId, govt, x, y, ai, heading) {
   const cls = w.D.classes.get(clsId), slot = novaFreeSlot(w, 0);
   if (!cls || slot < 0) return null;
   const s = novaFreshShip(w, slot);
   Object.assign(s, { cls, govt, ai: ai > 0 ? ai : cls.ai > 0 ? cls.ai : 3, x: f32(x), y: f32(y) });
-  s.heading = w.rand(360);
+  s.heading = heading !== undefined ? heading : w.rand(360);
   s.skill = novaSkill(w, cls);
   s.aggr = w.rand(3) ^ 2;
   novaSpriteDraws(w, s, cls);

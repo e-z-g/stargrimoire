@@ -651,18 +651,32 @@ try {
         await wait(400);
         out.battle = await p.evaluate(`(async () => {
           const wait = ms => new Promise(r => setTimeout(r, ms));
-          const side = document.getElementById('battleSide');
-          const set = (k, v) => { const el = side.querySelector('[data-battle="' + k + '"]'); el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); };
+          const side = document.getElementById('battleSide'), cv = document.getElementById('battleCanvas');
           if (!side.querySelector('[data-battle="govt:0"]')) return { panel: false, hash: location.hash };
-          set('govt:0', 129); set('cls:0', 154); side.querySelector('[data-battle-do="add:0"]').click();
-          set('govt:1', 128); set('cls:1', 141); set('n:1', 2); side.querySelector('[data-battle-do="add:1"]').click();
+          const set = (k, v) => { const el = side.querySelector('[data-battle="' + k + '"]'); el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); };
+          set('govt:0', 129); set('govt:1', 128);
+          const ev = (el, type, x, y, id) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: id, pointerType: 'mouse', isPrimary: true }));
+          const r = cv.getBoundingClientRect(), row = id => document.querySelector('#battleRows [data-bcls="' + id + '"]:not([data-blook])') || document.querySelector('#battleRows [data-bcls="' + id + '"]');
+          // an Aurora Cruiser dragged onto the left half
+          const a = row(154).getBoundingClientRect();
+          ev(row(154), 'pointerdown', a.left + 20, a.top + 10, 7);
+          ev(window, 'pointermove', a.left + 60, a.top + 10, 7);
+          ev(window, 'pointermove', r.left + r.width * 0.25, r.top + r.height * 0.5, 7);
+          ev(window, 'pointerup', r.left + r.width * 0.25, r.top + r.height * 0.5, 7);
+          // two Fed Destroyers, found by a search (they share a look): tapped in the hangar, then the right half tapped
+          set('many', 2);
+          const q = document.getElementById('battleSearch'); q.value = 'fed destroyer'; q.dispatchEvent(new Event('input', { bubbles: true }));
+          const b = row(141).getBoundingClientRect();
+          ev(row(141), 'pointerdown', b.left + 20, b.top + 10, 8); ev(window, 'pointerup', b.left + 20, b.top + 10, 8);
+          ev(cv, 'pointerdown', r.left + r.width * 0.75, r.top + r.height * 0.5, 9); ev(cv, 'pointerup', r.left + r.width * 0.75, r.top + r.height * 0.5, 9);
+          const setup = BATTLE.setup.map(e => e.cls + ':' + e.side).join(' ');
           side.querySelector('[data-battle-do="fight"]').click();
           const t = BATTLE.w ? BATTLE.w.t : -1;
           await wait(1500);
-          const cv = document.getElementById('battleCanvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+          const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
           let lit = 0;
           for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 120) lit++;
-          return { panel: true, hash: location.hash, ships: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, steps: BATTLE.w ? BATTLE.w.t - t : 0, lit,
+          return { panel: true, hash: location.hash, setup, rows: (BATTLE.classes || []).length, ships: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, steps: BATTLE.w ? BATTLE.w.t - t : 0, lit,
                    app: !document.getElementById('app').hidden, status: (document.getElementById('battleLeft0') || {}).textContent };
         })()`);
         await shot('battle');
@@ -688,9 +702,9 @@ try {
     const fl = o.flight;
     if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     const bt = o.battle;
-    if (!bt || !bt.panel || bt.hash !== '#battle' || bt.app || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
+    if (!bt || !bt.panel || bt.hash !== '#battle' || bt.app || bt.setup !== '154:0 141:1 141:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
-    else console.log(`battle, ${dev.name}: ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; an Aurora Cruiser dragged to the left, two Fed Destroyers tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

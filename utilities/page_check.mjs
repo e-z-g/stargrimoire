@@ -646,6 +646,29 @@ try {
           return out;
         })()`);
         await shot('flight');
+        // The battle tab: an Aurora Cruiser against two Fed Destroyers, fought, drawn, and back to the map.
+        await p.evaluate("document.querySelector('#views [data-view=battle]').click()");
+        await wait(400);
+        out.battle = await p.evaluate(`(async () => {
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          const side = document.getElementById('battleSide');
+          const set = (k, v) => { const el = side.querySelector('[data-battle="' + k + '"]'); el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); };
+          if (!side.querySelector('[data-battle="govt:0"]')) return { panel: false, hash: location.hash };
+          set('govt:0', 129); set('cls:0', 154); side.querySelector('[data-battle-do="add:0"]').click();
+          set('govt:1', 128); set('cls:1', 141); set('n:1', 2); side.querySelector('[data-battle-do="add:1"]').click();
+          side.querySelector('[data-battle-do="fight"]').click();
+          const t = BATTLE.w ? BATTLE.w.t : -1;
+          await wait(1500);
+          const cv = document.getElementById('battleCanvas'), d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+          let lit = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 120) lit++;
+          return { panel: true, hash: location.hash, ships: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, steps: BATTLE.w ? BATTLE.w.t - t : 0, lit,
+                   app: !document.getElementById('app').hidden, status: (document.getElementById('battleLeft0') || {}).textContent };
+        })()`);
+        await shot('battle');
+        await p.evaluate("document.querySelector('#views [data-view=map]').click()");
+        await wait(300);
+        out.battleOut = await p.evaluate("({ app: !document.getElementById('app').hidden, battle: !document.getElementById('battle').hidden, on: BATTLE.on })");
         return out;
       } });
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
@@ -664,6 +687,10 @@ try {
     if (!o.yard || o.yard.on || o.yard.mode !== 'system' || !o.yard.sel || o.yard.sel.id !== o.yard.id) fail(`ships, ${dev.name}: a shipyard link: ${JSON.stringify(o.yard)}`);
     const fl = o.flight;
     if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
+    const bt = o.battle;
+    if (!bt || !bt.panel || bt.hash !== '#battle' || bt.app || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
+      fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
+    else console.log(`battle, ${dev.name}: ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

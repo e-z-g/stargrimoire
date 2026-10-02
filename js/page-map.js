@@ -262,6 +262,7 @@ function mapStart(fresh) {
   if (kind) setLayoutNow(kind);
   shipsReset();
   flightReset();
+  battleReset();
   $('start').hidden = true;
   $('views').hidden = false;
   if (!SHIPS.on) $('app').hidden = false;
@@ -273,6 +274,7 @@ function mapStart(fresh) {
   }
   // An address in the ships (#ship=128) opens them over the galaxy.
   if (/(^#|&)(ships|ship=)/.test(location.hash)) { show('galaxy', { fromHash: true }, true); shipsFromHash(); }
+  else if (/(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
   else if (!applyHash()) show('galaxy', {}, true);
 }
 
@@ -391,6 +393,7 @@ function mixPlaces() {
     p.x = p.bx + (p.sx - p.bx) * m; p.y = p.by + (p.sy - p.by) * m;
     p.rho = p.rhoB + (p.rhoS - p.rhoB) * m;
   }
+  RHO_REF = PLACES.reduce((m, p) => Math.max(m, p.rho), 1);
   let kMin = Infinity;
   for (const p of PLACES) for (const id of p.ids) kMin = Math.min(kMin, p.rho / sysGeo(U.byId.get(id)).R);
   S_MAX = Math.max(40, 12 / kMin);
@@ -517,10 +520,14 @@ function redraw() {
   requestAnimationFrame(() => { DRAW_QUEUED = false; draw(); });
 }
 
-// How far a place's stellars have replaced its dot, 0 to 1.
+/* How far a place's stellars have replaced its dot, 0 to 1: the same for
+   every place at a zoom (the maintainer's asking, 1 October 2026), as for
+   the largest disc, RHO_REF -- so that whichever system fills the screen
+   is open. */
+let RHO_REF = 1;
 function openness(p) {
   if (!STELLARS && !p.ids.includes(OPEN_SYS)) return 0;
-  return clampNum((2 * p.rho * CAM.s - TUNE.fadeFrom) / (TUNE.fadeTo - TUNE.fadeFrom), 0, 1);
+  return clampNum((2 * RHO_REF * CAM.s - TUNE.fadeFrom) / (TUNE.fadeTo - TUNE.fadeFrom), 0, 1);
 }
 
 let DRAWN = [];   // the places on the screen at the last draw
@@ -2782,7 +2789,7 @@ function wireTools() {
       else if (VIEW.mode === 'system' && VIEW.sel.kind === 'stellar') show('planet', { sys: VIEW.sys, stellar: VIEW.sel.id });
     }
   });
-  window.addEventListener('popstate', () => { if (U && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); } });
+  window.addEventListener('popstate', () => { if (U && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); } });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
 }
 

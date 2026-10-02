@@ -758,7 +758,7 @@ function novaFlightStep(w) {
   w.t++;
 }
 // A ship leaves the system (it jumped, or went into a gate).
-function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gone.push({ slot: s.slot, cls: s.cls.id, how, t: w.t }); }
+function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gone.push({ slot: s.slot, cls: s.cls.id, how, t: w.t, ship: s }); }
 
 /* AIDispatch 0x8fb52. At thirty frames a second every ship thinks every
    frame (aiComplexity 1, set by HandleTimeAdjustment); slower frames

@@ -124,31 +124,40 @@ function drawFlight(ctx) {
   }
 }
 function drawWorld(ctx, d, w) {
-  const k = kOf(d.sys), z = k * CAM.s;
+  const k = kOf(d.sys);
   // only what is within the system's circle
   ctx.save();
   ctx.beginPath(); ctx.arc(d.x, d.y, d.D / 2, 0, Math.PI * 2); ctx.clip();
   ctx.globalAlpha = d.t;
+  drawFlightThings(ctx, w, (x, y) => toScreen(d.p.x + k * x, d.p.y + k * y), k * CAM.s, d.t);
+  ctx.restore();
+}
+/* A world's asteroids, ships, shots, beams, particles and explosions, on
+   the screen by `at` (system units to pixels) at `z` pixels to the unit,
+   at `alpha`, on a canvas cw by ch; `mark`, if given, draws beneath
+   each ship (the battle's sides). */
+function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
   for (const a of w.roids) {
     if (!a.active) continue;
     const t = w.D.roids[a.type], spr = shipSprite(t.sprite), img = spr && spr.kind === 'rle' ? shipFrame(spr, Math.trunc(a.frame) % spr.count) : null;
     if (!img) continue;
-    const [x, y] = toScreen(d.p.x + k * a.x, d.p.y + k * a.y);
+    const [x, y] = at(a.x, a.y);
     let wd = img.width * z, ht = img.height * z;
     const m = Math.max(wd, ht);
     if (m < MIN_SHIP) { wd *= MIN_SHIP / m; ht *= MIN_SHIP / m; }
-    if (x + wd < 0 || y + ht < 0 || x - wd > CW || y - ht > CH) continue;
+    if (x + wd < 0 || y + ht < 0 || x - wd > cw || y - ht > ch) continue;
     ctx.imageSmoothingEnabled = wd < img.width;
     ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
   }
   for (const s of w.ships) {
     if (!s) continue;
-    const [x, y] = toScreen(d.p.x + k * s.x, d.p.y + k * s.y);
+    const [x, y] = at(s.x, s.y);
     const spr = shipSprite(s.cls.sprite), img = spr && spr.kind === 'rle' ? shipFrame(spr, s.frame % spr.count) : null;
     let wd = (img ? img.width : 32) * z, ht = (img ? img.height : 32) * z;
     const m = Math.max(wd, ht);
     if (m < MIN_SHIP) { wd *= MIN_SHIP / m; ht *= MIN_SHIP / m; }
-    if (x + wd < 0 || y + ht < 0 || x - wd > CW || y - ht > CH) continue;
+    if (x + wd < 0 || y + ht < 0 || x - wd > cw || y - ht > ch) continue;
+    if (mark) mark(ctx, s, x, y, Math.max(wd, ht));
     if (img) {
       ctx.imageSmoothingEnabled = wd < img.width;
       ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
@@ -164,7 +173,7 @@ function drawWorld(ctx, d, w) {
     let wd = img.width * z, ht = img.height * z;
     const m = Math.max(wd, ht);
     if (m < min) { wd *= min / m; ht *= min / m; }
-    if (x + wd < 0 || y + ht < 0 || x - wd > CW || y - ht > CH) return;
+    if (x + wd < 0 || y + ht < 0 || x - wd > cw || y - ht > ch) return;
     ctx.imageSmoothingEnabled = wd < img.width;
     ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
   };
@@ -172,7 +181,7 @@ function drawWorld(ctx, d, w) {
     if (!sh || !(sh.life > 0)) continue;
     const W = w.D.fight.weaps[sh.w], id = W && novaSpinSprite(w.D, W.spin), info = id && novaFightSprite(w.D, id);
     if (!info) continue;
-    const [x, y] = toScreen(d.p.x + k * sh.x, d.p.y + k * sh.y);
+    const [x, y] = at(sh.x, sh.y);
     sprite(id, novaShotFrame(W, sh, info), x, y, MIN_SHOT);
   }
   // beams: a line in BeamColor over a wider one in CoronaColor, BeamWidth across, never under a pixel
@@ -180,20 +189,20 @@ function drawWorld(ctx, d, w) {
   if (w.beams) for (const b of w.beams) {
     if (!b || b.life < 0) continue;
     const W = w.D.fight.weaps[b.w];
-    const [x0, y0] = toScreen(d.p.x + k * b.x0, d.p.y + k * b.y0), [x1, y1] = toScreen(d.p.x + k * b.x1, d.p.y + k * b.y1);
+    const [x0, y0] = at(b.x0, b.y0), [x1, y1] = at(b.x1, b.y1);
     const bw = Math.max(1, (W.beamWidth || 1) * z);
     ctx.lineCap = 'round';
-    ctx.globalAlpha = d.t * 0.45; ctx.strokeStyle = hex(W.coronaColor); ctx.lineWidth = bw * 3;
+    ctx.globalAlpha = alpha * 0.45; ctx.strokeStyle = hex(W.coronaColor); ctx.lineWidth = bw * 3;
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-    ctx.globalAlpha = d.t; ctx.strokeStyle = hex(W.beamColor); ctx.lineWidth = bw;
+    ctx.globalAlpha = alpha; ctx.strokeStyle = hex(W.beamColor); ctx.lineWidth = bw;
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
   }
   // particles: a dot each, a pixel of the system at least a screen pixel
   if (w.parts && w.parts.length) {
     const r = Math.max(1, z);
     for (const p of w.parts) {
-      const [x, y] = toScreen(d.p.x + k * p.x / 256, d.p.y + k * p.y / 256);
-      if (x < 0 || y < 0 || x > CW || y > CH) continue;
+      const [x, y] = at(p.x / 256, p.y / 256);
+      if (x < 0 || y < 0 || x > cw || y > ch) continue;
       ctx.fillStyle = hex(p.color);
       ctx.fillRect(x - r / 2, y - r / 2, r, r);
     }
@@ -201,10 +210,9 @@ function drawWorld(ctx, d, w) {
   if (w.booms) for (const b of w.booms) {
     const B = b && w.D.fight.booms[b.boom];
     if (!B || b.delay > 0) continue;
-    const [x, y] = toScreen(d.p.x + k * b.x, d.p.y + k * b.y);
+    const [x, y] = at(b.x, b.y);
     sprite(novaSpinSprite(w.D, B.spin), Math.trunc(b.frame), x, y, MIN_SHIP);
   }
-  ctx.restore();
 }
 
 // The panel's part: how many ships, and the clock.
@@ -212,80 +220,20 @@ function flightPanel(sys) {
   if (!FLIGHT.on || VIEW.mode !== 'system' || FLIGHT.sys !== sys.id) return '';
   const w = FLIGHT.world;
   if (!w) return flightData() ? '' : `<h3>Ships here now</h3><p class="note">${SHIP_FILES.length || PENDING.some(f => f.role === 'ships') ? 'Reading the ships…' : 'No ships files are open.'}</p>`;
-  const ships = w.ships.filter(Boolean), kinds = new Map();
+  // only those within the system's circle (the maintainer's asking, 1 October 2026)
+  const R = sysGeo(sys).R, ships = w.ships.filter(s => s && Math.hypot(s.x, s.y) <= R), kinds = new Map();
   for (const s of ships) kinds.set(s.cls.id, (kinds.get(s.cls.id) || 0) + 1);
   const list = [...kinds].map(([id, n]) => `<a data-ship="${id}">${esc(w.D.classes.get(id).name)}</a>${n > 1 ? ` <span class="note">× ${n}</span>` : ''}`).join(', ');
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-flight="speed:${v}" aria-pressed="${FLIGHT.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   return `<h3>Ships here now</h3>
     <p>${ships.length ? `${ships.length}: ${list}` : 'none'}</p>
-    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>
-    ${battlePanel(w)}`;
+    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
 }
 
-/* The battle simulator: two sides, each a government and ships of any
-   class, put in the system you are in in place of its ships, with no
-   more arriving, to fight by the game's rules. Ships fight only when
-   their governments are enemies, as in the game. */
-const BATTLE = { govt: [null, null], cls: [null, null], n: [1, 1], sides: [[], []], placed: [] };
-function battlePanel(w) {
-  const D = w.D, govts = [...U.govts.values()].filter(g => D.govts.has(g.id)).sort((a, b) => a.id - b.id);
-  if (!govts.length) return '';
-  const classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0).sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
-  const named = new Map();
-  for (const c of classes) named.set(c.name, (named.get(c.name) || 0) + 1);
-  for (let i = 0; i < 2; i++) {
-    if (BATTLE.govt[i] === null || !D.govts.has(BATTLE.govt[i])) BATTLE.govt[i] = govts[Math.min(i, govts.length - 1)].id;
-    if (BATTLE.cls[i] === null || !D.classes.has(BATTLE.cls[i])) BATTLE.cls[i] = classes[0].id;
-  }
-  const side = i => {
-    const g = govts.map(x => `<option value="${x.id}"${x.id === BATTLE.govt[i] ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
-    const c = classes.map(x => `<option value="${x.id}"${x.id === BATTLE.cls[i] ? ' selected' : ''}>${esc(x.name)}${named.get(x.name) > 1 ? ` (${x.id})` : ''}</option>`).join('');
-    const n = [1, 2, 3, 4, 5, 6, 7, 8].map(k => `<option${k === BATTLE.n[i] ? ' selected' : ''}>${k}</option>`).join('');
-    const list = BATTLE.sides[i].map((e, j) => `${esc(D.classes.get(e.cls).name)}${e.n > 1 ? ` × ${e.n}` : ''} <a data-flight="del:${i}:${j}" title="Take off">✕</a>`).join(', ');
-    const placed = BATTLE.placed.filter(p => p.side === i), left = placed.filter(p => w.ships[p.slot] === p.ship).length;
-    return `<div class="battle-side"><div class="battle-row"><b>Side ${i + 1}</b> <select data-battle="govt:${i}" aria-label="Side ${i + 1}'s government">${g}</select></div>
-      <div class="battle-row"><select data-battle="cls:${i}" aria-label="Ship">${c}</select> <select data-battle="n:${i}" aria-label="How many">${n}</select> <button data-flight="add:${i}">Add</button></div>
-      <p>${list || '<span class="note">no ships yet</span>'}${placed.length && FLIGHT.sys === BATTLE.sys ? ` <span class="note">· ${left} of ${placed.length} left</span>` : ''}</p></div>`;
-  };
-  const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) || [0, 1].some(i => { const g = D.govts.get(BATTLE.govt[i]); return g && (g.flags & 1) && !novaGovtAllies(D, BATTLE.govt[0], BATTLE.govt[1]); });
-  return `<h3>Battle</h3>${side(0)}${side(1)}
-    ${foes ? '' : '<p class="note">These governments are not enemies, so their ships will not fight.</p>'}
-    <div class="actions"><button data-flight="fight"${BATTLE.sides[0].length && BATTLE.sides[1].length ? '' : ' disabled'}>Fight</button><button data-flight="clearb">Clear</button></div>`;
-}
-function battleChange(e) {
-  const t = e.target.closest('[data-battle]');
-  if (!t) return;
-  const [k, i] = t.dataset.battle.split(':');
-  BATTLE[k][+i] = +t.value;
-  if (k === 'govt') renderPanel();
-}
-document.addEventListener('change', battleChange);
-// Each side's ships put in the system, in a column 900 units apart, facing anywhere, as warships.
-function battleFight() {
-  const w = FLIGHT.world;
-  if (!w) return;
-  for (let i = 0; i < 64; i++) w.ships[i] = null;
-  w.shots.fill(null); w.booms.fill(null); w.beams.fill(null); w.parts = [];
-  w.noArrivals = true;
-  BATTLE.placed = []; BATTLE.sys = FLIGHT.sys;
-  for (let i = 0; i < 2; i++) {
-    const all = BATTLE.sides[i].flatMap(e => Array(e.n).fill(e.cls));
-    all.forEach((cls, j) => {
-      const s = novaPlaceShip(w, cls, BATTLE.govt[i], i ? 450 : -450, (j - (all.length - 1) / 2) * 140, 3);
-      if (s) BATTLE.placed.push({ side: i, slot: s.slot, ship: s });
-    });
-  }
-  FLIGHT.paused = false;
-  flightRun();
-}
 function flightControl(what) {
   if (what === 'pause') { FLIGHT.paused = !FLIGHT.paused; flightRun(); }
   else if (what === 'again') { FLIGHT.worlds.delete(FLIGHT.sys); flightSync(); redraw(); }
   else if (what.startsWith('speed:')) FLIGHT.speed = +what.slice(6);
-  else if (what.startsWith('add:')) { const i = +what.slice(4); BATTLE.sides[i].push({ cls: BATTLE.cls[i], n: BATTLE.n[i] }); }
-  else if (what.startsWith('del:')) { const [, i, j] = what.split(':'); BATTLE.sides[+i].splice(+j, 1); }
-  else if (what === 'clearb') { BATTLE.sides = [[], []]; BATTLE.placed = []; }
-  else if (what === 'fight') battleFight();
   renderPanel();
 }
 function flightSwitch(on) {

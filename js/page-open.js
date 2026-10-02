@@ -238,6 +238,7 @@ async function pumpPending(refused) {
     READING = null;
     mapFilesChanged();
     shipsFilesChanged();
+    battleFilesChanged();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page
     if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }

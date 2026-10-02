@@ -7,7 +7,10 @@
    its ships fade in and out with them. The game runs only the player's
    system; here each open one runs as if the player were there. Their
    ships come, go to the stellars and leave by their own AI, and only what
-   is within a system's circle is drawn. They are stepped thirty times a
+   is within a system's circle is drawn, but for the system you are in,
+   whose ships beyond it are drawn faded (OUTSIDE_ALPHA), off the other
+   systems' circles, so a fight past the edge can be followed (the
+   maintainer's asking, 1 October 2026). They are stepped thirty times a
    second, as the game counts its time, or faster or slower by the panel's
    speed, all together, and not while paused, on a landing page, or with
    the map hidden. Where the browser asks for reduced motion they start
@@ -29,7 +32,7 @@
    page-ships.js, whose drawing and sprites it uses; page-map.js calls
    drawFlight, flightEngaged and flightPanel. */
 
-const MIN_SHIP = 12, MIN_SHOT = 3;
+const MIN_SHIP = 12, MIN_SHOT = 3, OUTSIDE_ALPHA = 0.35;
 const FLIGHT_SPEEDS = [0.5, 1, 2, 4];
 const FLIGHT = { on: true, data: null, worlds: new Map(), sys: null, paused: false, started: false, speed: 1, due: 0, last: 0, tick: null, engaged: new Set(),
                  // the world of the system you are in, whose ships the panel lists
@@ -124,12 +127,22 @@ function drawFlight(ctx) {
   }
 }
 function drawWorld(ctx, d, w) {
-  const k = kOf(d.sys);
+  const k = kOf(d.sys), at = (x, y) => toScreen(d.p.x + k * x, d.p.y + k * y);
+  // the system you are in: what is beyond its circle, faded, and not over another open system's
+  if (d.sys.id === FLIGHT.sys) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, CW, CH);
+    for (const o of DRAWN) if (o.t > 0) { ctx.moveTo(o.x + o.D / 2, o.y); ctx.arc(o.x, o.y, o.D / 2, 0, Math.PI * 2); }
+    ctx.clip('evenodd');
+    ctx.globalAlpha = d.t * OUTSIDE_ALPHA;
+    drawFlightThings(ctx, w, at, k * CAM.s, d.t * OUTSIDE_ALPHA);
+    ctx.restore();
+  }
   // only what is within the system's circle
   ctx.save();
   ctx.beginPath(); ctx.arc(d.x, d.y, d.D / 2, 0, Math.PI * 2); ctx.clip();
   ctx.globalAlpha = d.t;
-  drawFlightThings(ctx, w, (x, y) => toScreen(d.p.x + k * x, d.p.y + k * y), k * CAM.s, d.t);
+  drawFlightThings(ctx, w, at, k * CAM.s, d.t);
   ctx.restore();
 }
 /* A world's asteroids, ships, shots, beams, particles and explosions, on

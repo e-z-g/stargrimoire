@@ -34,7 +34,7 @@
 
 const MIN_SHIP = 12, MIN_SHOT = 3;
 // beyond the circle: as strong as `alpha` at its edge, and gone `reach` of its radius further out
-const OUTSIDE = { alpha: 0.5, reach: 0.15 };
+const OUTSIDE = { alpha: 0.5, reach: 0.08 };
 let OUTSIDE_CANVAS = null;
 const FLIGHT_SPEEDS = [0.5, 1, 2, 4];
 const FLIGHT = { on: true, data: null, worlds: new Map(), sys: null, paused: false, started: false, speed: 1, due: 0, last: 0, tick: null, engaged: new Set(),

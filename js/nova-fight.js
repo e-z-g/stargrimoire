@@ -862,7 +862,9 @@ function novaFireGun(w, s, homing) {
    and reaches it. */
 function novaFireTurret(w, s) {
   const D = w.D;
-  if (s.disabled || s.primary === -1) return;
+  if (s.disabled) return;
+  novaPointDefense(w, s);
+  if (s.primary === -1) return;
   const t = w.ships[s.primary];
   if (!t || (novaClassFight(D, t.cls).flags2 & 4) || !novaVisible(t, s)) return;
   const best = [0, 0], pick = [-1, -1];
@@ -883,6 +885,95 @@ function novaFireTurret(w, s) {
   }
   const c = t.shield >= 0 ? pick[1] : pick[0];
   if (c !== -1) { s.lastW = c; s.latch = true; }
+}
+/* HandleShipPointDefense 0x392c4, for a ship not jumping: its first point
+   defence weapon (guidance 9, a shot, or 10, a beam) that is loaded,
+   ready and not hidden by a cloak (Flags2 0x4000 fires cloaked) fires at
+   the nearest homing shot aimed at the ship or its lead (not one lost,
+   nor of Flags 0x0080) within its reach and outside the ship's blind
+   spots; with none, at the nearest ship of a class with Flags2 0x0008 that
+   attacks the ship or its lead. The reach is 1.5 times a shot's range, a
+   beam's BeamLength. A shot at a ship is moved among the ordinary shots,
+   to hit ships; one at a shot stays among the point defence, to hit
+   homing shots. Then the reload, the ammunition and the burst, as
+   FireAIShipWeapon counts them. */
+function novaPointDefense(w, s) {
+  const D = w.D;
+  if (s.jump > 0) return;
+  let i = -1, W = null, r = null;
+  for (let k = 0; k < 256; k++) {
+    const q = s.wi.get(k), V = novaWeapOf(D, k);
+    if (!q || !V || (V.guid !== 9 && V.guid !== 10) || q.count <= 0 || q.reload > 0) continue;
+    if (!(V.flags2 & 0x4000) && novaCloaked(s)) continue;
+    if (!novaHasAmmo(w, s, k)) continue;
+    i = k; W = V; r = q; break;
+  }
+  if (i === -1) return;
+  const R = W.guid === 9 ? Math.trunc(Math.trunc(W.range) * 1.5) : W.beamLength;
+  let pick = -1, kind = -1, ang = 0, best = 0;
+  for (let k = 0; k < 128; k++) {
+    const sh = w.shots[k];
+    if (!sh || !(sh.life > 0)) continue;
+    const V = novaWeapOf(D, sh.w);
+    if (V.guid !== 1 || sh.lost !== 0 || (V.flags & 0x0080)) continue;
+    if (sh.target !== s.slot && (s.leader === -1 || sh.target !== s.leader)) continue;
+    const d = Math.trunc(novaDist2(sh.x, sh.y, s.x, s.y));
+    if (d > R * R || !(d < best || pick === -1)) continue;
+    const a = novaBearing(s.x, s.y, sh.x, sh.y);
+    if (!novaBlindSpot(D, s, a, W)) { pick = k; kind = 0; ang = a; best = d; }
+  }
+  // the player's ship, slot 0, is in none of it (ExtendedIsThreatToPlayer)
+  if (pick === -1) {
+    for (let j = 1; j < 64; j++) {
+      const o = w.ships[j];
+      if (!o || j === s.slot || !(novaClassFight(D, o.cls).flags2 & 8) || j === s.leader || o.disabled || !novaVisible(o, s)) continue;
+      const d = Math.trunc(novaDist2(o.x, o.y, s.x, s.y));
+      if (d > R * R || !(d < best || pick === -1)) continue;
+      const a = novaBearing(s.x, s.y, o.x, o.y);
+      if (novaBlindSpot(D, s, a, W)) continue;
+      const fights = x => !!x && o.primary === x.slot && o.state === 4;
+      if (fights(s) || (s.leader !== -1 && fights(w.ships[s.leader]))) { pick = j; kind = 1; ang = a; best = d; }
+    }
+    if (pick === -1) return;
+  }
+  if (W.guid === 9) {
+    const k = novaSpawnShot(w, s.slot, -1, i, false);
+    if (k === -1) return;
+    const sh = w.shots[k];
+    sh.x = s.x; sh.y = s.y; sh.vx = s.vx; sh.vy = s.vy;
+    // where it leaves the ship is measured to the shot in the place of that number, even when the target is a ship
+    const at = w.shots[pick];
+    novaShotStart(w, s, sh, W, at ? { x: at.x, y: at.y } : null);
+    let h = kind === 0 ? novaBearing(sh.x, sh.y, w.shots[pick].x, w.shots[pick].y) : novaLeadAngle(s, w.ships[pick], W, sh);
+    if (W.inacc > 0) h = f32(h + (w.rand(2 * W.inacc) - W.inacc));
+    if (h < 0) h = f32(h + 360);
+    if (h >= 360) h = f32(h - 360);
+    sh.heading = h;
+    const v = { x: sh.vx, y: sh.vy };
+    novaAccel(Math.trunc(h), W.speed, v);
+    sh.vx = v.x; sh.vy = v.y;
+    if (kind === 1) novaPutInLayer(w, 'h', k, 'shot');
+  } else novaSpawnBeam(w, s.slot, pick, i, -1, kind === 0 ? 1 : -1);
+  r.reload = f32(r.reload + f32(W.reload / r.count));
+  const A = W.ammoType;
+  if (A < -999) { s.fuel = f32(s.fuel + (Math.abs(A) - 1000) * -0.1); if (s.fuel < 0) s.fuel = 0; }
+  else if (A >= 0 && !(W.flags3 & 1)) { r.ammo--; if (r.ammo < 0) r.ammo = 0; }
+  if (W.burstCount < 1) return;
+  r.burst++;
+  if (r.burst < ((W.flags & 0x40) ? W.burstCount : W.burstCount * r.count)) return;
+  r.burst = 0;
+  r.reload = f32(W.burstReload);
+  if ((W.flags3 & 1) && A >= 0 && A <= 255) r.ammo--;
+}
+/* What a point defence shot or beam does to a homing shot
+   (PointDefenseCollisionHandler 0x37776, and HandleBeams): one of no
+   Durability left is gone, and an explosion left where the point defence
+   shot was or the homing shot is, of the type numbered as the firer's
+   place among the ships (as written); else its Durability less the
+   point defence's MassDmg and half its EnergyDmg. */
+function novaPointDefenseHit(w, W, sh, x, y, owner) {
+  if (sh.dur < 1) { sh.life = 0; sh.hit = true; novaSpawnExplod(w, x, y, owner, 0); }
+  else sh.dur = ((sh.dur - (W.mass + Math.trunc(W.energy / 2))) << 16) >> 16;
 }
 /* AIFireMissile 0x8115d: the first homing missile suited to the target
    (SuitableMissileType) whose reach is more than the distance (less a
@@ -1323,6 +1414,36 @@ function novaShotHits(w) {
       }
     }
   }
+  // the point defence shots: against the asteroids as any shot, then against the homing shots by their boxes alone
+  for (let ai = 0; ai < 16; ai++) {
+    const a = w.roids[ai];
+    if (!a.active) continue;
+    for (const si of L.pd) {
+      const sh = w.shots[si];
+      if (!sh || !(sh.life > 0)) continue;
+      const W = novaWeapOf(D, sh.w);
+      if (!(W.seeker & 1) && novaRoidShotHit(D, a, sh, W)) novaAsteroidHit(w, sh, a);
+      if (!a.active) break;
+    }
+  }
+  for (const pi of L.pd) {
+    const p = w.shots[pi];
+    // (a point defence shot hidden by a hit goes on through the homing shots it overlaps in the same pass, as the program's loop does)
+    if (!p || p.hit) continue;
+    const PW = novaWeapOf(D, p.w), ps = novaFightSprite(D, novaSpinSprite(D, PW.spin));
+    if (!ps) continue;
+    for (const gi of L.guided) {
+      const g = w.shots[gi];
+      if (!g || g.hit) continue;
+      const gs = novaFightSprite(D, novaSpinSprite(D, novaWeapOf(D, g.w).spin));
+      if (!gs) continue;
+      const pl = Math.trunc(p.x) - Math.trunc(ps.w / 2), pt = Math.trunc(p.y) - Math.trunc(ps.w / 2);
+      const gl = Math.trunc(g.x) - Math.trunc(gs.w / 2), gt = Math.trunc(g.y) - Math.trunc(gs.w / 2);
+      if (!(pt < gt + gs.h && gt < pt + ps.h && pl < gl + gs.w && gl < pl + ps.w)) continue;
+      p.life = 0; p.hit = true;
+      novaPointDefenseHit(w, PW, g, p.x, p.y, p.owner);
+    }
+  }
   for (const sh of w.shots) {
     if (!sh || !(sh.life >= 0)) continue;
     const W = novaWeapOf(D, sh.w);
@@ -1651,6 +1772,16 @@ function novaHandleBeams(w) {
     const c = novaClassFight(D, s.cls), fp = c.framesPer, rot = Math.trunc(((s.frame || 0) % fp) * (360 / fp));
     let ang = rot;
     const o = novaExitPoint(w, s, b.et, b.exit);
+    // a point defence beam at a homing shot: held on it while it lasts, wearing it down each step, and hitting nothing else
+    if (W.guid === 10 && b.pd === 1) {
+      const sh = b.target !== -1 ? w.shots[b.target] : null;
+      if (!sh || sh.life < 0) { b.life = -1; b.target = -1; }
+      else ang = novaBearing(o.x, o.y, sh.x, sh.y);
+      b.x0 = o.x; b.y0 = o.y;
+      if (b.life >= 0 && sh) { novaPointDefenseHit(w, W, sh, sh.x, sh.y, b.owner); b.x1 = sh.x; b.y1 = sh.y; }
+      else { const e = { x: o.x, y: o.y }; novaAccel(ang, W.beamLength, e); b.x1 = e.x; b.y1 = e.y; }
+      continue;
+    }
     if (b.target !== -1 && W.guid !== 0) {
       const t = w.ships[b.target];
       if (t) ang = novaBearing(o.x, o.y, t.x, t.y); else b.life = -1;

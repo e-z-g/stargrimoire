@@ -29,7 +29,7 @@ const BATTLE = {
   on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -43,7 +43,7 @@ function battleFromHash() {
   return true;
 }
 // Other files: the battle goes with the records it was made of.
-function battleReset() { BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
+function battleReset() { BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
 // More files read: the ships may have come.
 function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
@@ -104,8 +104,10 @@ function battlePanel() {
     ${foes ? '' : '<p class="note">These governments are not enemies, so their ships will not fight.</p>'}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
-    <p class="note" id="battleResult"></p>`;
+    <p class="note" id="battleResult"></p>
+    ${w ? '<div id="battleInspect"></div>' : ''}`;
   battleStatus(true);
+  battleInspect(true);
   battleHangar(D);
 }
 
@@ -221,8 +223,9 @@ function battleDo(what) {
   if (what === 'pause') { BATTLE.paused = !BATTLE.paused; battleRun(); }
   else if (what === 'follow') BATTLE.follow = !BATTLE.follow;
   else if (what.startsWith('speed:')) BATTLE.speed = +what.slice(6);
-  else if (what === 'clear') { BATTLE.setup = []; BATTLE.placed = []; BATTLE.w = null; }
-  else if (what === 'setup') { BATTLE.w = null; BATTLE.placed = []; BATTLE.follow = true; }
+  else if (what === 'unpick') BATTLE.pick = null;
+  else if (what === 'clear') { BATTLE.pick = null; BATTLE.setup = []; BATTLE.placed = []; BATTLE.w = null; }
+  else if (what === 'setup') { BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.follow = true; }
   else if (what === 'fight') battleFight();
   battlePanel();
   battleDraw();
@@ -278,6 +281,54 @@ function battleSetupAt(px, py) {
 const battleToScreen = (x, y) => [(x - BATTLE.cam.x) * BATTLE.cam.s + BATTLE.cw / 2, (y - BATTLE.cam.y) * BATTLE.cam.s + BATTLE.ch / 2];
 const battleFromScreen = (px, py) => [(px - BATTLE.cw / 2) / BATTLE.cam.s + BATTLE.cam.x, (py - BATTLE.ch / 2) / BATTLE.cam.s + BATTLE.cam.y];
 
+/* ---- the ship inspector ---------------------------------------------------- */
+
+/* A ship tapped in the fight: its shields, armour, fuel, what it is doing
+   and to whom, and each weapon's count, ammunition and reload, kept up to
+   date about ten times a second. The states named are those the
+   program's own routines name (IsShipAttacking, AIShipIsPlundering,
+   AIShipIsAttackingAsteroid); the rest are given by number. */
+const BATTLE_STATES = { 4: 'attacking', 0xd: 'plundering', 0x10: 'attacking an asteroid' };
+// The fight's ship at a point on the screen, the nearest within its ring.
+function battleShipAt(px, py) {
+  const w = BATTLE.w, D = flightData();
+  if (!w || !D) return null;
+  let best = null, bd = Infinity;
+  for (const s of w.ships) {
+    if (!s) continue;
+    const spr = shipSprite(s.cls.sprite), m = Math.max(MIN_SHIP, (spr && spr.width ? Math.max(spr.width, spr.height) : 32) * BATTLE.cam.s);
+    const [x, y] = battleToScreen(s.x, s.y), d = Math.hypot(px - x, py - y);
+    if (d <= m * 0.62 + 12 && d < bd) { best = s; bd = d; }
+  }
+  return best;
+}
+function battleInspect(force) {
+  const el = $('battleInspect'), w = BATTLE.w;
+  if (!el) return;
+  const s = BATTLE.pick;
+  if (!force && performance.now() - BATTLE.pickShown < 100) return;
+  BATTLE.pickShown = performance.now();
+  if (!s || !w) { el.innerHTML = w ? '<p class="note">Tap a ship to see inside it.</p>' : ''; return; }
+  const D = w.D, here = w.ships[s.slot] === s;
+  const name = x => `${esc(x.cls.name)} <span class="id">#${x.cls.id}</span>`;
+  const bar = (v, cap) => cap > 0 ? `${Math.max(0, Math.round(v))} of ${cap}` : '—';
+  const gone = here ? '' : (w.gone.find(g => g.ship === s) || {}).how || 'gone';
+  const t = s.primary >= 0 ? w.ships[s.primary] : null;
+  const doing = !here ? esc(gone) : s.disabled ? 'disabled' : (BATTLE_STATES[s.state] || `AI state ${s.state}`) + (t ? ` ${name(t)}` : '');
+  const wr = s.weap.filter(r => r.count > 0).map(r => {
+    const W = novaWeapOf(D, r.i);
+    if (!W) return '';
+    const A = W.ammoType, ammo = W.guid === 99 || (A >= 0 && A <= 255) ? r.ammo : '';
+    return `<tr><td>${esc(W.name)}${r.count > 1 ? ` ×${r.count}` : ''}</td><td>${ammo}</td><td>${r.reload > 0 ? Math.ceil(r.reload) : 'ready'}</td></tr>`;
+  }).join('');
+  el.innerHTML = `<div class="battle-inspect"><div class="battle-row"><b>${name(s)}</b> <button data-battle-do="unpick" aria-label="Close">×</button></div>
+    <table class="kv"><tr><td>Doing</td><td>${doing}</td></tr>
+    <tr><td>Shields</td><td>${bar(s.shield, novaShieldCap(D, s))}</td></tr>
+    <tr><td>Armour</td><td>${bar(s.armor, novaArmorCap(D, s))}</td></tr>
+    <tr><td>Fuel</td><td>${Math.round(s.fuel)}</td></tr></table>
+    ${wr ? `<table class="kv"><tr><td>Weapon</td><td>Ammo</td><td>Reload</td></tr>${wr}</table>` : '<p class="note">No weapons.</p>'}</div>`;
+}
+
 /* ---- running and drawing ------------------------------------------------ */
 
 // The battle's screen in system units, for the asteroids, which gather round it.
@@ -296,6 +347,7 @@ function battleLoop(now) {
       novaFlightStep(BATTLE.w);
     }
     battleStatus(false);
+    battleInspect(false);
   } else BATTLE.last = 0;
   battleAim(false);
   battleDraw();
@@ -378,6 +430,16 @@ function battleDraw() {
     if (i !== undefined) ring(x, y, size, i, s.disabled);
   };
   drawFlightThings(ctx, w, battleToScreen, c.s, 1, mark, W, H);
+  // the inspected ship ringed in white, and a line to its target
+  const p = BATTLE.pick;
+  if (p && w.ships[p.slot] === p) {
+    const [x, y] = battleToScreen(p.x, p.y), spr = shipSprite(p.cls.sprite), m = Math.max(MIN_SHIP, (spr && spr.width ? Math.max(spr.width, spr.height) : 32) * c.s);
+    ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, m * 0.62 + 6, 0, Math.PI * 2); ctx.stroke();
+    const t = p.primary >= 0 ? w.ships[p.primary] : null;
+    if (t) { const [tx, ty] = battleToScreen(t.x, t.y); ctx.globalAlpha = 0.4; ctx.setLineDash([4, 6]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx, ty); ctx.stroke(); }
+    ctx.restore();
+  }
 }
 
 /* ---- dragging, tapping, zooming ------------------------------------------ */
@@ -508,6 +570,10 @@ function wireBattle() {
     if (tapAt && e.type === 'pointerup' && BATTLE.armed !== null) {
       const r = cv.getBoundingClientRect(), [x, y] = battleFromScreen(e.clientX - r.left, e.clientY - r.top);
       battleDrop(BATTLE.armed, x, y, BATTLE.many);
+    } else if (tapAt && e.type === 'pointerup' && BATTLE.w) {
+      const r = cv.getBoundingClientRect();
+      BATTLE.pick = battleShipAt(e.clientX - r.left, e.clientY - r.top);
+      battleInspect(true); battleDraw();
     }
     tapAt = null;
   };

@@ -97,7 +97,7 @@ function parseZipArchive(bytes) {
   if (disk !== 0 || cdDisk !== 0) throw new Error('a zip split across several files');
   if (count === 0xFFFF || cdLen === 0xFFFFFFFF || cdOff === 0xFFFFFFFF)
     throw new Error('a Zip64 archive, which this page does not read');
-  if (cdOff + cdLen > end) throw new Error('the central directory runs past its own end record');
+  if (cdOff + cdLen > end) throw new Error('the central directory runs past the end record');
 
   const all = [];
   let p = cdOff;

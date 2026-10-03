@@ -141,7 +141,7 @@ function decodeTileSheetResource(data){
   const used=new Set(strip); const anim=[...used].filter(v=>v>=0xE0&&v<=0xFB).sort((a,b)=>a-b);
   return { canvas:tagIndexed(c,g.W,g.H,g.image,PAL_RGB), indices:strip,
     text:'A Delver tile sheet: sixteen 32×32 tiles stored as one 32×512 column, '+
-      'shown as the 4×4 grid.\n'+used.size+' colours from the game’s palette'+
+      'shown as the 4×4 grid.\n'+used.size+' colors from the game’s palette'+
       (anim.length?'; '+anim.length+' in the animated range ('+
         anim.map(v=>'0x'+v.toString(16).toUpperCase()).join(', ')+')':'')+'.' };
 }
@@ -174,7 +174,7 @@ function decodeTxCl(data){
     ctx.fillStyle='rgb('+col[0]+','+col[1]+','+col[2]+')';
     ctx.fillRect(i*16,0,16,16);
   }
-  return { canvas:c, text:'Colours by palette index: '+
+  return { canvas:c, text:'Colors by palette index: '+
     Array.from(data,v=>'0x'+v.toString(16).toUpperCase().padStart(2,'0')).join(', ') };
 }
 
@@ -317,7 +317,7 @@ function decodeLINF(data){
   const s=[]; for(let i=0;i<12;i+=2) s.push(u16be(data,i));
   const sg=v=>v>0x7fff?v-0x10000:v;
   return `Six shorts: ${s.map(sg).join(', ')}.\n`+
-         `The first two read as a size, ${s[0]} by ${s[1]}. What the record is for has not been worked out.`;
+         `The first two read as a size, ${s[0]} by ${s[1]}. Nobody has worked out what the record is for.`;
 }
 
 /* The colour cycles, as the editor holds them.
@@ -340,9 +340,9 @@ function decodeCycleTable(data){
     rows.push({start:data[p], count:data[p+1], flag:data[p+2]});
   }
   if(rows.length<2) return null;
-  return rows.length+' colour cycles, as (first index, length, flag):\n'+
+  return rows.length+' color cycles, as (first index, length, flag):\n'+
     rows.map(r=>`  0x${r.start.toString(16).toUpperCase().padStart(2,'0')}  ${r.count} entries  flag ${r.flag}`).join('\n')+
-    '\n\nThe starting indices here are 16 lower than the ones the game animates; why they differ by 16 has not been worked out.';
+    '\n\nThe starting indices here are 16 lower than the ones the game animates; nobody has worked out why they differ by 16.';
 }
 
 // A resource that is entirely zero is read, not unread, and saying which it is
@@ -370,7 +370,7 @@ function exportArtifacts(fork, type, entry, data){
   else if(type==='TxSt'){
     const s=decodeTxSt(data);
     if(s) txt(s.text);
-    else { const c=decodeTxCl(data); if(c){ cvs(c.canvas,'colours'); txt(c.text); } }
+    else { const c=decodeTxCl(data); if(c){ cvs(c.canvas,'colors'); txt(c.text); } }
   }
   else if(type==='RMAP'){ const r=decodeRMAP(data); if(r) txt(r); }
   else if(type==='Audt'){ const a=decodeAudt(data); if(a) txt(a); }
@@ -439,9 +439,9 @@ const TYPE_BADGES={
   'MENU':'menu','WIND':'window','ALRT':'alert','DLOG':'dialog','MBAR':'menu bar',
   'CNTL':'control','FREF':'file reference','BNDL':'bundle','SIZE':'memory sizes',
   'TMPL':'template','nrct':'rectangles','styl':'text styles','snd ':'audio',
-  'CURS':'cursor','crsr':'colour cursor','acur':'animated cursor control',
+  'CURS':'cursor','crsr':'color cursor','acur':'animated cursor control',
   'ICN#':'image','ics#':'image','icl4':'image','icl8':'image','ics4':'image','ics8':'image',
-  'ICON':'image','SICN':'small icons','cicn':'colour image','PICT':'image',
+  'ICON':'image','SICN':'small icons','cicn':'color image','PICT':'image',
   'ppat':'pattern','PAT ':'pattern','PAT#':'patterns','pltt':'palette',
   'sfnt':'font','NFNT':'bitmap font','FONT':'bitmap font','FOND':'font family',
   'cfrg':'code fragments','CODE':'68K code','CDEF':'68K code','WDEF':'68K code',
@@ -601,7 +601,7 @@ function decodeCrsr(data){
   //   14 crsrXValid 2 | 16 crsrXHandle 4 | 20 crsr1Data 32 | 52 crsrMask 32
   //   84 crsrHotSpot 4 | 88 crsrXTable 4 | 92 crsrID 4 | then PixMap, pixels, clut
   const crsrType=u16be(data,0);
-  if(crsrType!==0x8001&&crsrType!==0x8000) throw new Error('Not a colour cursor (crsrType 0x'+crsrType.toString(16)+')');
+  if(crsrType!==0x8001&&crsrType!==0x8000) throw new Error('Not a color cursor (crsrType 0x'+crsrType.toString(16)+')');
   const mapOff=u32be(data,2), pixOff0=u32be(data,6);
   const hotY=s16(data,84), hotX=s16(data,86);
   const mask=data.slice(52,84);
@@ -684,7 +684,7 @@ function decodePpat(data){
     if(W>0&&H>0&&rowBytes>0&&pixelSize>0&&pixelSize<=8&&ctOff+8<=data.length){
       const ct=readColorTable(data,ctOff);
       const c=renderIndexedPixels(data,pixOff,rowBytes,W,H,pixelSize,ct.palette);
-      c.info=`${W}×${H} colour pattern, ${pixelSize}-bit, ${ct.palette.filter(Boolean).length} colours`;
+      c.info=`${W}×${H} color pattern, ${pixelSize}-bit, ${ct.palette.filter(Boolean).length} colors`;
       return c;
     }
   }
@@ -692,7 +692,7 @@ function decodePpat(data){
   // screens. It is at offset 20, not 0.
   const c=decodePAT(data.slice(20,28));
   c.info = patType===0 ? '8×8 monochrome pattern (patType 0)'
-                       : `patType ${patType}: colour pixels unreadable, showing the 1-bit equivalent`;
+                       : `patType ${patType}: color pixels unreadable, showing the 1-bit equivalent`;
   return c;
 }
 // cicn, crsr and ppat all finish with the same loop: indexed pixels through a
@@ -1719,7 +1719,7 @@ function decodeStyl(data){
     const rgb=[u16be(data,p+14)>>8,u16be(data,p+16)>>8,u16be(data,p+18)>>8];
     const faces=FACE_BITS.filter(([b])=>face&b).map(([,n])=>n);
     out.push(`[${i+1}] from character ${start}: font ${font}, ${size} pt${faces.length?', '+faces.join('+'):''}`);
-    out.push(`     height ${height}, ascent ${ascent}, colour rgb(${rgb.join(',')})`);
+    out.push(`     height ${height}, ascent ${ascent}, color rgb(${rgb.join(',')})`);
   }
   return out.join('\n');
 }
@@ -2335,9 +2335,9 @@ function rsrcHexDump(bytes, limit){
 
 // dctb/actb/mctb/cctb/wctb/fctb are all plain ColorTables on disk, the same
 // layout clut uses, so one decoder covers the family.
-const COLOR_TABLE_TYPES={'clut':'colour table','dctb':'dialog colour table','actb':'alert colour table',
-  'mctb':'menu colour table','cctb':'control colour table','wctb':'window colour table',
-  'fctb':'finder icon colour table'};
+const COLOR_TABLE_TYPES={'clut':'color table','dctb':'dialog color table','actb':'alert color table',
+  'mctb':'menu color table','cctb':'control color table','wctb':'window color table',
+  'fctb':'finder icon color table'};
 
 // ============================================================
 //  Cursor gallery: one tile per cursor, PNG 1x/4x, animated GIF

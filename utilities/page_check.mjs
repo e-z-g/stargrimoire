@@ -687,6 +687,17 @@ try {
         await p.evaluate(`BATTLE.setup = []; BATTLE.govt = [128, 129]; BATTLE.kills = 0; location.hash = ${JSON.stringify(out.battle.hash || '')}`);
         await wait(400);
         out.battleBack = await p.evaluate("({ on: BATTLE.on, fought: !!BATTLE.w, kills: BATTLE.kills, govt: BATTLE.govt.join(' '), setup: BATTLE.setup.map(e => e.cls + ':' + e.side + ':' + e.ai).join(' '), hash: location.hash })");
+        // a random battle of 20 a side, fought
+        out.battleRandom = await p.evaluate(`(async () => {
+          const side = document.getElementById('battleSide'), el = side.querySelector('[data-battle="side"]');
+          el.value = '20'; el.dispatchEvent(new Event('change', { bubbles: true }));
+          side.querySelector('[data-battle-do="random"]').click();
+          const D = flightData(), n = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
+          const foes = battleFoes(D, BATTLE.govt[0], BATTLE.govt[1]);
+          side.querySelector('[data-battle-do="fight"]').click();
+          await new Promise(r => setTimeout(r, 1000));
+          return { n, foes, govt: BATTLE.govt.map(g => U.govts.get(g).name), placed: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, hash: location.hash.length };
+        })()`);
         return out;
       } });
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
@@ -710,7 +721,9 @@ try {
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
     else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '129 128' || o.battleBack.kills !== 1600 || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
       fail(`ships, ${dev.name}: the battle's address opened again: ${JSON.stringify(o.battleBack)} from ${bt.hash}`);
-    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}`);
+    else if (o.battleRandom.n.join() !== '20,20' || !o.battleRandom.foes || o.battleRandom.placed < 40)
+      fail(`ships, ${dev.name}: a random battle: ${JSON.stringify(o.battleRandom)}`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}; a random battle of 20 a side, ${o.battleRandom.govt.join(' against ')}, ${o.battleRandom.placed} ships fighting`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

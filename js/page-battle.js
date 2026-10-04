@@ -30,7 +30,7 @@ const BATTLE = {
   on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0, side: 10,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -127,13 +127,14 @@ function battlePanel() {
       <div class="battle-left" id="battleLeft${i}"></div></div>`;
   };
   const sysOpts = systems.map(x => `<option value="${x.id}"${x.id === BATTLE.sys ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
-  const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) || [0, 1].some(i => { const g = D.govts.get(BATTLE.govt[i]); return g && (g.flags & 1) && !novaGovtAllies(D, BATTLE.govt[0], BATTLE.govt[1]); });
+  const foes = battleFoes(D, BATTLE.govt[0], BATTLE.govt[1]);
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-battle-do="speed:${v}" aria-pressed="${BATTLE.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   const sides = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
   const names = novaStrings(GAME, 138), kills = BATTLE_RATINGS.includes(BATTLE.kills) ? BATTLE_RATINGS : [...BATTLE_RATINGS, BATTLE.kills].sort((a, b) => a - b);
   const rating = kills.map(k => { const lv = BATTLE_RATINGS.findLastIndex(v => v <= k);
     return `<option value="${k}"${k === BATTLE.kills ? ' selected' : ''}>${esc(names[lv] || `rating ${lv}`)} (${k.toLocaleString('en')} kills)</option>`; }).join('');
   top.innerHTML = `
+    <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
     <div class="battle-row"><span class="note">In</span> <select data-battle="sys" aria-label="The system">${sysOpts}</select></div>
     <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select></div>
     ${side(0)}${side(1)}
@@ -254,6 +255,7 @@ function battleChange(e) {
   if (k === 'sys') { BATTLE.sys = +t.value; battleWriteHash(); }
   else if (k === 'many') BATTLE.many = +t.value;
   else if (k === 'ai') BATTLE.ai = +t.value;
+  else if (k === 'side') BATTLE.side = +t.value;
   else if (k === 'kills') { BATTLE.kills = +t.value; if (BATTLE.w) BATTLE.w.kills = BATTLE.kills; battleWriteHash(); }
   else BATTLE[k][+i] = +t.value;
   if (k === 'govt') battlePanel();
@@ -266,6 +268,7 @@ function battleDo(what) {
   else if (what === 'clear') { BATTLE.pick = null; BATTLE.setup = []; BATTLE.placed = []; BATTLE.w = null; }
   else if (what === 'setup') { BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.follow = true; }
   else if (what === 'fight') battleFight();
+  else if (what === 'random') battleRandom();
   battlePanel();
   battleDraw();
 }
@@ -285,6 +288,40 @@ function battleDrop(clsId, x, y, n, ai = 3) {
   }
   if (!BATTLE.w) battlePanel(); else battleStatus(true);
   battleDraw();
+}
+// Whether ships of two governments fight: enemies, or either xenophobic (gövt Flags 0x0001) and the two not allies.
+function battleFoes(D, a, b) {
+  return novaGovtEnemies(D, a, b) || [a, b].some(i => { const g = D.govts.get(i); return g && (g.flags & 1) && !novaGovtAllies(D, a, b); });
+}
+/* A random battle: two governments that fight, each side `BATTLE.side`
+   ships of the classes it flies -- its düdes' ship types, its fleets'
+   leads and escorts, its persons' ships -- in columns of eight on its half,
+   flying as Flies as says. The system stays as chosen. */
+function battleRandom() {
+  const D = flightData();
+  if (!D) return;
+  const flies = new Map();
+  const add = (g, c) => { if (D.classes.has(c) && !D.classes.get(c).missing) { if (!flies.has(g)) flies.set(g, new Set()); flies.get(g).add(c); } };
+  for (const d of D.dudes.values()) for (const c of d.ShipTypes || []) add(d.Govt, c);
+  for (const f of D.fleets.values()) { add(f.Govt, f.LeadShipType); for (const c of f.EscortType || []) add(f.Govt, c); }
+  for (const p of D.persons.values()) add(p.Govt, p.ShipType);
+  const govts = [...flies.keys()].filter(g => D.govts.has(g));
+  const pairs = [];
+  for (const a of govts) for (const b of govts) if (a < b && battleFoes(D, a, b)) pairs.push([a, b]);
+  if (!pairs.length) return;
+  const pick = l => l[Math.floor(Math.random() * l.length)];
+  const pair = pick(pairs);
+  if (Math.random() < 0.5) pair.reverse();
+  BATTLE.govt = pair; BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null; BATTLE.follow = true;
+  BATTLE.setup = [];
+  pair.forEach((g, side) => {
+    const kinds = [...flies.get(g)];
+    for (let k = 0; k < BATTLE.side; k++) {
+      const col = Math.floor(k / 8), row = k % 8, n = Math.min(8, BATTLE.side - col * 8);
+      const x = (side ? 1 : -1) * (430 + col * 160), y = (row - (n - 1) / 2) * BATTLE_GAP;
+      BATTLE.setup.push({ cls: pick(kinds), side, x, y, ai: BATTLE.ai });
+    }
+  });
 }
 /* The arena's ships put in the system, each where it was set and facing
    the other side, as warships, and nothing else there. */

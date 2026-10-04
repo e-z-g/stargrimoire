@@ -176,6 +176,32 @@ function drawOutside(ctx, d, w, at, z) {
    pixels taken `a` of the way to the colour. One canvas, drawn over each
    time. */
 let TINT_CANVAS = null;
+/* A ship's silhouette as a dashed line round it, at the size it is drawn:
+   the picture's shape grown by 2 pixels each way, its own shape cut out,
+   and the ring left cut into dashes by diagonal stripes. One canvas (and
+   one for the work), drawn over each time. */
+let OUTLINE = null, OUTLINE_WORK = null, OUTLINE_STRIPES = null;
+function silhouetteOutline(img, wd, ht) {
+  const W = Math.ceil(wd) + 6, H = Math.ceil(ht) + 6;
+  const o = OUTLINE || (OUTLINE = document.createElement('canvas')), k = OUTLINE_WORK || (OUTLINE_WORK = document.createElement('canvas'));
+  for (const c of [o, k]) if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+  const g = o.getContext('2d'), h = k.getContext('2d');
+  h.clearRect(0, 0, W, H); h.imageSmoothingEnabled = wd < img.width;
+  h.drawImage(img, 3, 3, wd, ht);
+  g.clearRect(0, 0, W, H);
+  for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) if (dx * dx + dy * dy <= 5) g.drawImage(k, dx, dy);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = '#b4c8ff'; g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'destination-out'; g.drawImage(k, 0, 0);
+  if (!OUTLINE_STRIPES) {
+    const p = document.createElement('canvas'); p.width = p.height = 8;
+    const q = p.getContext('2d'); q.fillStyle = '#000';
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) if ((i + j) % 8 < 4) q.fillRect(i, j, 1, 1);
+    OUTLINE_STRIPES = p;
+  }
+  g.globalCompositeOperation = 'destination-in'; g.fillStyle = g.createPattern(OUTLINE_STRIPES, 'repeat'); g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'source-over';
+  return o;
+}
 function tintedFrame(img, rgb, a) {
   const c = TINT_CANVAS || (TINT_CANVAS = document.createElement('canvas'));
   if (c.width !== img.width || c.height !== img.height) { c.width = img.width; c.height = img.height; }
@@ -215,8 +241,8 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
       const fade = s.cloak > 0 ? Math.min(1, s.cloak / 32) : 0;
       if (fade < 1) { ctx.globalAlpha = 1 - fade; ctx.drawImage(s.ionTint > 0 ? tintedFrame(img, s.ionColor, s.ionTint / 32) : img, x - wd / 2, y - ht / 2, wd, ht); ctx.globalAlpha = 1; }
       if (fade > 0) {
-        ctx.beginPath(); ctx.arc(x, y, Math.max(wd, ht) / 2 + 3, 0, Math.PI * 2);
-        ctx.setLineDash([4, 4]); ctx.strokeStyle = `rgba(180,200,255,${0.25 + 0.5 * fade})`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+        const o = silhouetteOutline(img, wd, ht);
+        ctx.globalAlpha = 0.3 + 0.6 * fade; ctx.drawImage(o, x - o.width / 2, y - o.height / 2); ctx.globalAlpha = 1;
       }
     } else {
       ctx.beginPath(); ctx.arc(x, y, wd / 2, 0, Math.PI * 2);

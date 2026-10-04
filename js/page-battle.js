@@ -66,12 +66,14 @@ function battleShow(opts = {}) {
   if (!opts.fromHash && !/^#battle\b/.test(location.hash)) history.pushState(null, '', battleHash());
 }
 /* The setup in the address, so that a link opens it again:
-   #battle&in=<system>&left=<govt>&right=<govt>&ships=<class>.<x>.<y>[.<ai>],…
+   #battle&in=<system>&left=<govt>&right=<govt>&ships=<class>.<x>.<y>[.<ai>[.<side>]],…
    in the arena's units, the AI type given when it is not 3 (0 is the
-   class's own); a ship's side is the half it is in. */
+   class's own); a ship's side is the half it is in, or given (0 left, 1
+   right) when it is not, as a random battle's are. System -1 is empty
+   space. */
 function battleHash() {
   if (BATTLE.sys === null) return '#battle';
-  const ships = BATTLE.setup.map(e => `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${e.ai === 3 ? '' : '.' + e.ai}`).join(',');
+  const ships = BATTLE.setup.map(e => { const half = e.x < 0 ? 0 : 1, tail = e.side !== half ? `.${e.ai}.${e.side}` : e.ai !== 3 ? `.${e.ai}` : ''; return `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${tail}`; }).join(',');
   return `#battle&in=${BATTLE.sys}&left=${BATTLE.govt[0]}&right=${BATTLE.govt[1]}${BATTLE.kills ? '&kills=' + BATTLE.kills : ''}${ships ? '&ships=' + ships : ''}`;
 }
 function battleWriteHash() {
@@ -83,12 +85,12 @@ function battleTakeHash(D) {
   const p = BATTLE.want;
   BATTLE.want = null;
   const n = k => p.has(k) && /^-?\d+$/.test(p.get(k)) ? +p.get(k) : null;
-  if (U.byId.has(n('in'))) BATTLE.sys = n('in');
+  if (n('in') === -1 || U.byId.has(n('in'))) BATTLE.sys = n('in');
   ['left', 'right'].forEach((k, i) => { if (D.govts.has(n(k))) BATTLE.govt[i] = n(k); });
   BATTLE.kills = Math.max(0, Math.min(10000000, n('kills') || 0));
   BATTLE.setup = (p.get('ships') || '').split(',').map(t => t.split('.').map(Number))
-    .filter(a => (a.length === 3 || a.length === 4 && battleAiOk(a[3])) && a.every(Number.isFinite) && D.classes.has(a[0]))
-    .map(([cls, x, y, ai = 3]) => ({ cls, side: x < 0 ? 0 : 1, x, y, ai }));
+    .filter(a => (a.length === 3 || (a.length >= 4 && a.length <= 5 && battleAiOk(a[3]) && (a.length === 4 || a[4] === 0 || a[4] === 1))) && a.every(Number.isFinite) && D.classes.has(a[0]))
+    .map(([cls, x, y, ai = 3, side = x < 0 ? 0 : 1]) => ({ cls, side, x, y, ai }));
   BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null;
 }
 function battleLeave(fromHash) {
@@ -117,7 +119,7 @@ function battlePanel() {
   const govts = [...U.govts.values()].filter(g => D.govts.has(g.id)).sort((a, b) => a.id - b.id);
   const systems = [...U.byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
   if (!govts.length || !systems.length) { top.innerHTML = '<p class="note">The files have no ships to fight.</p>'; return; }
-  if (BATTLE.sys === null || !U.byId.has(BATTLE.sys)) BATTLE.sys = U.byId.has(130) ? 130 : systems[0].id;
+  if (BATTLE.sys === null || (BATTLE.sys !== -1 && !U.byId.has(BATTLE.sys))) BATTLE.sys = U.byId.has(130) ? 130 : systems[0].id;
   for (let i = 0; i < 2; i++) if (BATTLE.govt[i] === null || !D.govts.has(BATTLE.govt[i])) BATTLE.govt[i] = govts[Math.min(i, govts.length - 1)].id;
   const w = BATTLE.w;
   const side = i => {
@@ -126,7 +128,7 @@ function battlePanel() {
       <div class="battle-row"><b>${i ? 'Right' : 'Left'}</b> <select data-battle="govt:${i}" aria-label="The ${i ? 'right' : 'left'} side's government">${g}</select></div>
       <div class="battle-left" id="battleLeft${i}"></div></div>`;
   };
-  const sysOpts = systems.map(x => `<option value="${x.id}"${x.id === BATTLE.sys ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+  const sysOpts = `<option value="-1"${BATTLE.sys === -1 ? ' selected' : ''}>Empty space</option>` + systems.map(x => `<option value="${x.id}"${x.id === BATTLE.sys ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
   const foes = battleFoes(D, BATTLE.govt[0], BATTLE.govt[1]);
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-battle-do="speed:${v}" aria-pressed="${BATTLE.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   const sides = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
@@ -293,40 +295,56 @@ function battleDrop(clsId, x, y, n, ai = 3) {
 function battleFoes(D, a, b) {
   return novaGovtEnemies(D, a, b) || [a, b].some(i => { const g = D.govts.get(i); return g && (g.flags & 1) && !novaGovtAllies(D, a, b); });
 }
-/* A random battle: two governments that fight, each side `BATTLE.side`
-   ships of the classes it flies -- its düdes' ship types, its fleets'
-   leads and escorts, its persons' ships -- in columns of eight on its half,
-   flying as Flies as says. The system stays as chosen. */
+/* A random battle (the maintainer's asking): the Federation against the
+   Auroran Empire, each `BATTLE.side` ships of any class that fights --
+   Warship or Interceptor by its InherentAI, armed, able to move, not
+   planet-type -- whoever flies it in the game. Twice as many are drawn,
+   and dealt strongest first to the side with the less Strength so far,
+   so the two come out about even. They are scattered over the arena, the
+   sides mixed, in empty space (-1), flying as Flies as says. */
 function battleRandom() {
   const D = flightData();
   if (!D) return;
-  const flies = new Map();
-  const add = (g, c) => { if (D.classes.has(c) && !D.classes.get(c).missing) { if (!flies.has(g)) flies.set(g, new Set()); flies.get(g).add(c); } };
-  for (const d of D.dudes.values()) for (const c of d.ShipTypes || []) add(d.Govt, c);
-  for (const f of D.fleets.values()) { add(f.Govt, f.LeadShipType); for (const c of f.EscortType || []) add(f.Govt, c); }
-  for (const p of D.persons.values()) add(p.Govt, p.ShipType);
-  const govts = [...flies.keys()].filter(g => D.govts.has(g));
-  const pairs = [];
-  for (const a of govts) for (const b of govts) if (a < b && battleFoes(D, a, b)) pairs.push([a, b]);
-  if (!pairs.length) return;
-  const pick = l => l[Math.floor(Math.random() * l.length)];
-  const pair = pick(pairs);
-  if (Math.random() < 0.5) pair.reverse();
-  BATTLE.govt = pair; BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null; BATTLE.follow = true;
-  BATTLE.setup = [];
-  pair.forEach((g, side) => {
-    const kinds = [...flies.get(g)];
-    for (let k = 0; k < BATTLE.side; k++) {
-      const col = Math.floor(k / 8), row = k % 8, n = Math.min(8, BATTLE.side - col * 8);
-      const x = (side ? 1 : -1) * (430 + col * 160), y = (row - (n - 1) / 2) * BATTLE_GAP;
-      BATTLE.setup.push({ cls: pick(kinds), side, x, y, ai: BATTLE.ai });
-    }
+  const govt = name => { const g = [...U.govts.values()].filter(x => x.name === name && D.govts.has(x.id)).sort((a, b) => a.id - b.id)[0]; return g ? g.id : null; };
+  const fed = govt('Federation'), aur = govt('Auroran Empire');
+  if (fed === null || aur === null) return;
+  const fights = [...D.classes.values()].filter(c => {
+    const f = novaClassFight(D, c);
+    return !c.missing && c.ai >= 3 && c.speed > 0 && !(c.flags & 0x0400) && f.strength > 0 && f.count.some(n => n > 0);
   });
+  if (!fights.length) return;
+  const pick = l => l[Math.floor(Math.random() * l.length)];
+  const drawn = Array.from({ length: 2 * BATTLE.side }, () => pick(fights)).sort((a, b) => novaClassFight(D, b).strength - novaClassFight(D, a).strength);
+  const sides = [[], []], sum = [0, 0];
+  for (const c of drawn) {
+    const k = sides[0].length >= BATTLE.side ? 1 : sides[1].length >= BATTLE.side ? 0 : sum[0] <= sum[1] ? 0 : 1;
+    sides[k].push(c); sum[k] += novaClassFight(D, c).strength;
+  }
+  BATTLE.govt = [fed, aur]; BATTLE.sys = -1;
+  BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null; BATTLE.follow = true;
+  BATTLE.setup = [];
+  const R = 250 + 45 * Math.sqrt(2 * BATTLE.side), at = [];
+  for (const k of [0, 1]) for (const c of sides[k]) {
+    let x = 0, y = 0;
+    for (let tries = 0; tries < 50; tries++) {
+      const a = Math.random() * 2 * Math.PI, d = R * Math.sqrt(Math.random());
+      x = Math.round(d * Math.cos(a)); y = Math.round(d * Math.sin(a));
+      if (at.every(p => Math.hypot(p[0] - x, p[1] - y) >= 90)) break;
+    }
+    at.push([x, y]);
+    BATTLE.setup.push({ cls: c.id, side: k, x, y, ai: BATTLE.ai });
+  }
+  BATTLE.strength = sum;
+}
+// Empty space: Sol's system with no stellars and no asteroids, a system of its own (-1).
+function battleEmptySystem() {
+  const base = U.byId.get(130) || U.byId.values().next().value;
+  return base && { ...base, id: -1, name: 'Empty space', rec: { ...base.rec, Asteroids: 0, Nav: new Array(16).fill(-1) } };
 }
 /* The arena's ships put in the system, each where it was set and facing
    the other side, as warships, and nothing else there. */
 function battleFight() {
-  const D = flightData(), sys = U.byId.get(BATTLE.sys);
+  const D = flightData(), sys = BATTLE.sys === -1 ? battleEmptySystem() : U.byId.get(BATTLE.sys);
   if (!D || !sys) return;
   const w = novaFlightWorld(D, sys, STATE, Math.floor(Math.random() * 0x7fffffff), battleView());
   w.kills = BATTLE.kills;

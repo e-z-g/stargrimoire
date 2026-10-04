@@ -19,7 +19,7 @@
 
    The view follows the ships, zoomed to keep them all on the screen,
    until it is zoomed or dragged by hand; Follow takes it back. The bar's
-   Battle, and the address #battle.
+   Battle, and the address #battle, which keeps the setup (battleHash).
 
    The page's own script: DOM here. LOAD ORDER: after page-flight.js and
    page-ships.js, whose flightData, drawFlightThings, shipSprite and
@@ -29,7 +29,7 @@ const BATTLE = {
   on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -39,6 +39,8 @@ const BATTLE_GAP = 120;            // between ships dropped together, in a colum
 
 function battleFromHash() {
   if (!/(^#|&)battle\b/.test(location.hash)) { if (BATTLE.on) battleLeave(true); return false; }
+  const p = new URLSearchParams(location.hash.slice(1));
+  if (p.has('in') || p.has('ships')) BATTLE.want = p;
   battleShow({ fromHash: true });
   return true;
 }
@@ -58,7 +60,31 @@ function battleShow(opts = {}) {
   battleResize();
   battlePanel();
   battleRun();
-  if (!opts.fromHash && location.hash !== '#battle') history.pushState(null, '', '#battle');
+  if (!opts.fromHash && !/^#battle\b/.test(location.hash)) history.pushState(null, '', battleHash());
+}
+/* The setup in the address, so that a link opens it again:
+   #battle&in=<system>&left=<govt>&right=<govt>&ships=<class>.<x>.<y>,…
+   in the arena's units; a ship's side is the half it is in. */
+function battleHash() {
+  if (BATTLE.sys === null) return '#battle';
+  const ships = BATTLE.setup.map(e => `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}`).join(',');
+  return `#battle&in=${BATTLE.sys}&left=${BATTLE.govt[0]}&right=${BATTLE.govt[1]}${ships ? '&ships=' + ships : ''}`;
+}
+function battleWriteHash() {
+  const h = battleHash();
+  if (BATTLE.on && location.hash !== h) history.replaceState(null, '', h);
+}
+// An address's setup, once the ships are read: what the files lack is left out.
+function battleTakeHash(D) {
+  const p = BATTLE.want;
+  BATTLE.want = null;
+  const n = k => p.has(k) && /^-?\d+$/.test(p.get(k)) ? +p.get(k) : null;
+  if (U.byId.has(n('in'))) BATTLE.sys = n('in');
+  ['left', 'right'].forEach((k, i) => { if (D.govts.has(n(k))) BATTLE.govt[i] = n(k); });
+  BATTLE.setup = (p.get('ships') || '').split(',').map(t => t.split('.').map(Number))
+    .filter(a => a.length === 3 && a.every(Number.isFinite) && D.classes.has(a[0]))
+    .map(([cls, x, y]) => ({ cls, side: x < 0 ? 0 : 1, x, y }));
+  BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null;
 }
 function battleLeave(fromHash) {
   BATTLE.on = false;
@@ -82,6 +108,7 @@ function battlePanel() {
     BATTLE.hangar = null;
     return;
   }
+  if (BATTLE.want) battleTakeHash(D);
   const govts = [...U.govts.values()].filter(g => D.govts.has(g.id)).sort((a, b) => a.id - b.id);
   const systems = [...U.byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
   if (!govts.length || !systems.length) { top.innerHTML = '<p class="note">The files have no ships to fight.</p>'; return; }
@@ -109,6 +136,7 @@ function battlePanel() {
   battleStatus(true);
   battleInspect(true);
   battleHangar(D);
+  battleWriteHash();
 }
 
 /* The hangar: every class that can fly, heaviest first as a shipyard lists
@@ -214,7 +242,7 @@ function battleChange(e) {
   const t = e.target.closest('[data-battle]');
   if (!t || !BATTLE.on) return;
   const [k, i] = t.dataset.battle.split(':');
-  if (k === 'sys') BATTLE.sys = +t.value;
+  if (k === 'sys') { BATTLE.sys = +t.value; battleWriteHash(); }
   else if (k === 'many') BATTLE.many = +t.value;
   else BATTLE[k][+i] = +t.value;
   if (k === 'govt') battlePanel();

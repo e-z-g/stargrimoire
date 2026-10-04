@@ -683,6 +683,10 @@ try {
         await p.evaluate("document.querySelector('#views [data-view=map]').click()");
         await wait(300);
         out.battleOut = await p.evaluate("({ app: !document.getElementById('app').hidden, battle: !document.getElementById('battle').hidden, on: BATTLE.on })");
+        // the setup's address, opened again from the map with the setup forgotten
+        await p.evaluate(`BATTLE.setup = []; BATTLE.govt = [128, 129]; location.hash = ${JSON.stringify(out.battle.hash || '')}`);
+        await wait(400);
+        out.battleBack = await p.evaluate("({ on: BATTLE.on, fought: !!BATTLE.w, govt: BATTLE.govt.join(' '), setup: BATTLE.setup.map(e => e.cls + ':' + e.side).join(' '), hash: location.hash })");
         return out;
       } });
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
@@ -702,9 +706,11 @@ try {
     const fl = o.flight;
     if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     const bt = o.battle;
-    if (!bt || !bt.panel || bt.hash !== '#battle' || bt.app || bt.setup !== '154:0 141:1 141:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
+    if (!bt || !bt.panel || !/^#battle&in=\d+&left=129&right=128&ships=154\.-?\d+\.-?\d+,141\.\d+\.-?\d+,141\.\d+\.-?\d+$/.test(bt.hash) || bt.app || bt.setup !== '154:0 141:1 141:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
-    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; an Aurora Cruiser dragged to the left, two Fed Destroyers tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map`);
+    else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '129 128' || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
+      fail(`ships, ${dev.name}: the battle's address opened again: ${JSON.stringify(o.battleBack)} from ${bt.hash}`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; an Aurora Cruiser dragged to the left, two Fed Destroyers tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

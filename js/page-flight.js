@@ -172,6 +172,20 @@ function drawOutside(ctx, d, w, at, z) {
    the screen by `at` (system units to pixels) at `z` pixels to the unit,
    at `alpha`, on a canvas cw by ch; `mark`, if given, draws beneath
    each ship (the battle's sides). */
+/* A ship's frame tinted, as the program tints an ionized ship: its
+   pixels taken `a` of the way to the colour. One canvas, drawn over each
+   time. */
+let TINT_CANVAS = null;
+function tintedFrame(img, rgb, a) {
+  const c = TINT_CANVAS || (TINT_CANVAS = document.createElement('canvas'));
+  if (c.width !== img.width || c.height !== img.height) { c.width = img.width; c.height = img.height; }
+  const g = c.getContext('2d');
+  g.globalCompositeOperation = 'copy'; g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-atop'; g.globalAlpha = a;
+  g.fillStyle = '#' + (rgb & 0xffffff).toString(16).padStart(6, '0'); g.fillRect(0, 0, c.width, c.height);
+  g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  return c;
+}
 function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
   for (const a of w.roids) {
     if (!a.active) continue;
@@ -196,7 +210,7 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
     if (mark) mark(ctx, s, x, y, Math.max(wd, ht));
     if (img) {
       ctx.imageSmoothingEnabled = wd < img.width;
-      ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht);
+      ctx.drawImage(s.ionTint > 0 ? tintedFrame(img, s.ionColor, s.ionTint / 32) : img, x - wd / 2, y - ht / 2, wd, ht);
     } else {
       ctx.beginPath(); ctx.arc(x, y, wd / 2, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();

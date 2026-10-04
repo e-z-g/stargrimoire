@@ -253,13 +253,27 @@ if (haveRelease('1.0.10')) {
     return s.state;
   };
   eq('out of rockets, with Flags2 0x0080 and without', [spent(true), spent(false)], [3, 4]);
+  // ionization (IonizeShip, ShipIonizationFactor, ShipTurnRate, HandleShip): a blast's by the square of
+  // the distance, a hit's whole, the turn slowed by the factor (at most 0.7), and drained by Deionize a step
+  w = empty(6);
+  const io = S.novaPlaceShip(w, DESTROYER, FED, 0, 0, 3), turn0 = S.novaShipTurn(io), ionMax = io.cls.ionMax, deion = io.cls.deion;
+  S.novaIonize(io, { ion: 100, blast: 100, ionColor: 0x1200 }, { x: 50, y: 0 });
+  const blast = io.ion;
+  S.novaIonize(io, { ion: 10, blast: 0, ionColor: 0x34 }, null);
+  eq('ionized by a blast 50 of 100 off, then a hit of 10: 75 + 10, the colours or-ed', [blast, io.ion, io.ionColor], [75, 85, 0x1234]);
+  io.ion = ionMax / 2;
+  eq('turning slowed by half at half its IonizeMax', S.novaShipTurn(io), Math.fround(turn0 * 0.5));
+  io.ion = ionMax * 3;
+  eq('slowed by 0.7 at most', S.novaShipTurn(io), Math.fround(turn0 * Math.fround(1 - Math.fround(0.7))));
+  const was = io.ion; S.novaFlightStep(w);
+  eq('drained by Deionize in a step', io.ion, Math.fround(was - deion));
   // a battle that ends: three destroyers against two cruisers
   w = empty(5);
   const sides = [[DESTROYER, DESTROYER, DESTROYER], [CRUISER, CRUISER]].map((l, k) => l.map((id, j) => S.novaPlaceShip(w, id, k ? AUR : FED, k ? 450 : -450, j * 140, 3)));
   let t = 0;
   for (; t < 30 * 180 && !sides.some(l => l.every(s => w.ships[s.slot] !== s)); t++) S.novaFlightStep(w);
   if (t >= 30 * 180) fail('three destroyers and two cruisers still fighting after three minutes');
-  if (!fails) console.log(`fighting: damage, the shield floor, disable-only, the disable threshold at ${Math.floor(third)} of ${acap}, turning on an attacker, targets, death in ${steps} steps, the out-of-ammunition retreat, a battle over in ${t} steps`);
+  if (!fails) console.log(`fighting: damage, the shield floor, disable-only, the disable threshold at ${Math.floor(third)} of ${acap}, turning on an attacker, targets, death in ${steps} steps, the out-of-ammunition retreat, ionization, a battle over in ${t} steps`);
 }
 
 // ---- 5. every release ----------------------------------------------------

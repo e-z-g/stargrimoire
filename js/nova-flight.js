@@ -166,6 +166,8 @@ function novaFlightData(u) {
       accel: f32(s.Accel / 10000), speed: f32(s.Speed / 100), turn: f32(s.Maneuver * 0.1),
       holds: s.Holds, fuel: s.Fuel, shield: s.Shield, armor: s.Armor, ai: s.InherentAI,
       flags: s.Flags, flags2: s.Flags2, flags3: s.Flags3 || 0, skillVar: s.SkillVar, missing: s.TechLevel === -9999,
+      // the loader's (0x7aa25): Deionize a hundredth a step, 1 when 0 or less; IonizeMax 0 when under 1
+      deion: s.Deionize > 0 ? f32(s.Deionize * 0.01) : 1, ionMax: s.IonizeMax < 1 ? 0 : s.IonizeMax,
       appearOn: test(s.AppearOn),
       // the jump's pace (LoadObjectData 0x7ae9d): Flags 0x0001 slow, 0x0002 semi-fast, 0x0004 fast
       jumpPace: s.Flags & 1 ? f32(0.7) : s.Flags & 2 ? f32(1.3) : s.Flags & 4 ? f32(1.6) : 1,
@@ -321,7 +323,17 @@ function novaShipAccel(D, ship) {
   if (g) a = f32(a * g.skill);
   // doubled, but held by another ship's tractor beam a third
   const held = ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot;
-  return Math.max(0, held ? f32(a * 0.333) : f32(a + a));
+  return Math.max(0, novaIonSlowed(ship, held ? f32(a * 0.333) : f32(a + a), 0.7));
+}
+/* ShipIonizationFactor 0x3225: the ship's ionization over its class's
+   IonizeMax, 0 when that is 0. Ionized, a rate is less by it, at most
+   by `most` (0.7, or 0.8 in AIMaintainFormation). */
+function novaIonFactor(ship) { const m = ship.cls.ionMax; return m > 0 ? f32(ship.ion / m) : 0; }
+function novaIonSlowed(ship, v, most) {
+  if (!(ship.ion > 0)) return v;
+  let f = novaIonFactor(ship);
+  if (f > most) f = f32(most);
+  return f32(v * (1 - f));
 }
 function novaShipMaxSpeed(D, ship) {
   const c = ship.cls;
@@ -336,7 +348,9 @@ function novaShipTurn(ship) {
   let t = ship.cls.turn;
   // held by another ship's tractor beam, a third as quick
   if (ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot) t = f32(t * 0.333);
-  return Math.max(0, ship.cls.turn >= 1 ? Math.max(1, t) : t);
+  t = ship.cls.turn >= 1 ? Math.max(1, t) : t;
+  if (!(ship.jump > 0)) t = novaIonSlowed(ship, t, 0.7);
+  return Math.max(0, t);
 }
 const novaInertialess = ship => !!(ship.cls.flags2 & 0x0040);
 // AIIsShipJumping 0x82bf9.
@@ -385,7 +399,7 @@ const novaDist2 = (ax, ay, bx, by) => f32(f32(f32(ax - bx) ** 2) + f32(f32(ay - 
 // An empty ship in a slot, keeping the heading its last ship left there (a person's is never set).
 function novaFreshShip(w, slot) {
   const old = w.ships[slot] || w.last[slot];
-  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false, boost: false,
+  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false, boost: false, ion: 0, ionColor: 0, ionTint: 0,
            hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false, tractor: -1, tractorAt: 0,
            x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: old ? old.heading : 0, want: 0,
            thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1,
@@ -669,7 +683,7 @@ function novaFormation(w, lead, snap) {
 function novaKeepFormation(w, s, snap) {
   if ((s.jump > 0 && !snap) || s.follows < 0 || s.follows > 63 || s.formX === undefined) return;
   if (snap) { s.x = s.formX; s.y = s.formY; return; }
-  const step = f32(f32(novaShipAccel(w.D, s) * 10) * 1);
+  const step = novaIonSlowed(s, f32(f32(novaShipAccel(w.D, s) * 10) * 1), 0.8);
   for (const [k, f] of [['x', s.formX], ['y', s.formY]]) {
     if (f32(f - 8) >= s[k]) s[k] = f32(s[k] + step);
     else if (s[k] >= f32(f + 8)) s[k] = f32(s[k] - step);
@@ -766,6 +780,7 @@ function novaFlightStep(w) {
     novaShipFire(w, s);
     novaFoldStep(w, s);
     novaPutInLayer(w, 's', s.slot, s.disabled ? 'disabled' : s.leader === 0 ? 'escort' : 'ship');
+    novaIonTint(w, s);
     s.frame = novaShipFrame(s);
     novaDeathThroes(w, s);
   }
@@ -775,6 +790,20 @@ function novaFlightStep(w) {
   novaHandleBeams(w);
   novaMoveParticles(w);
   w.t++;
+}
+/* HandleShipDisplay 0x2b58f, ionized: at a factor of 0.33 or more the
+   ship is tinted its ionization's colour, 14 to 18 of 32 (a factor x 24
+   x 0.01 held to 16 to 24, less 2, plus Rand(5)); not ionized, its colour
+   is forgotten. The tint is put over the murk's, which is not done here
+   (it is 0), so the ionization's always shows. */
+function novaIonTint(w, s) {
+  s.ionTint = 0;
+  if (!(s.ion > 0)) { s.ionColor = 0; return; }
+  const f = novaIonFactor(s);
+  if (!(f >= 0.33)) return;
+  let lv = (Math.trunc(f32(f * 24) * 0.01) << 16) >> 16;
+  lv = lv > 24 ? 24 : lv < 16 ? 16 : lv;
+  s.ionTint = lv - 2 + w.rand(5);
 }
 // A ship leaves the system (it jumped, or went into a gate).
 function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gone.push({ slot: s.slot, cls: s.cls.id, how, t: w.t, ship: s }); }
@@ -1349,6 +1378,16 @@ function novaHandleShip(w, s) {
   else {
     if (novaInertialess(s)) novaSteerInertialess(D, s);
     s.x = f32(s.x + s.vx); s.y = f32(s.y + s.vy);
+  }
+  // ionized: the ionization down by the class's Deionize, and each axis of the velocity over the top speed less by the factor (at most 0.7) eased back by 0.025
+  if (!(s.ion > 0)) s.ion = 0;
+  else {
+    s.ion = f32(s.ion - c.deion);
+    const f = novaIonFactor(s), cap = f32(novaShipMaxSpeed(D, s) * f32(1 - (f > 0.7 ? f32(0.7) : f))), neg = -cap;
+    for (const k of ['vx', 'vy']) {
+      if (cap < s[k]) s[k] = f32(s[k] - 0.025);
+      if (s[k] < neg) s[k] = f32(s[k] + 0.025);
+    }
   }
   let dir = 0;
   if (!s.disabled && s.timer <= 0) {

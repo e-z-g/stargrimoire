@@ -16,9 +16,8 @@
    the boxes they leave, mining and scooping, and SpriteWorld's layers,
    whose order is the order hits are taken in.
 
-   Not here yet: point defence, ionization, cloaking, escape pods,
-   reinforcements, shots against stellars, smoke, and the trail particles'
-   preference (taken as on).
+   Not here yet: cloaking, escape pods, reinforcements, shots against
+   stellars, smoke, and the trail particles' preference (taken as on).
 
    The player is in none of it: every branch about the player is left
    out. The player's combat rating (kills) is w.kills, 0 unless a battle
@@ -46,7 +45,7 @@ function novaFightData(D) {
       impact: r.Impact, recoil: r.Recoil, explod: r.ExplodType, prox: r.ProxRadius, blast: r.BlastRadius, decay: r.Decay,
       proxSafety: r.ProxSafety, maxAmmo: r.MaxAmmo, flags: r.Flags & 0xffff, flags2: r.Flags2 & 0xffff, flags3: r.Flags3 & 0xffff,
       seeker: r.Seeker & 0xffff, reload: r.Reload, guidedTurn: f32(r.GuidedTurn * 0.1), particles: r.Particles,
-      hitParticles: r.HitParticles, exitType: r.ExitType, durability: r.Durability,
+      hitParticles: r.HitParticles, exitType: r.ExitType, durability: r.Durability, ion: r.Ionization, ionColor: r.IonizeColor,
       beamLength: r.BeamLength, animDelay: r.BeamWidth, beamWidth: r.BeamWidth, falloff: r.BeamLength > 0 && r.Falloff <= 0 ? 16 : r.Falloff,
       beamColor: r.BeamColor, coronaColor: r.CoronaColor, subCount: r.SubCount, subType: r.SubType, subLimit: r.SubLimit,
       // the loader's (0x7aa25): the submunition as an index, -1 for none (no count, none of 128 to 383), SubTheta -1 as 0
@@ -1314,8 +1313,10 @@ function novaHandleShot(w, sh) {
         const o = w.ships[i];
         if (!o || (i === sh.owner && !(sh.owner === 0 && !(W.flags & 0x100)))) continue;
         if (novaClassFight(D, o.cls).flags & 0x400) continue;
-        if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast)
+        if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast) {
           novaDamageShip(w, o, sh, W.impact, W.mass, W.energy, sh.owner, false, false, sh.dis, false, !!(W.flags & 0x20));
+          novaIonize(o, W, sh);
+        }
       }
     } else if (W.explod > 0) novaSpawnExplod(w, sh.x, sh.y, 0, 0);
   }
@@ -1474,12 +1475,15 @@ function novaShipHit(w, sh, t, sub) {
   let mass = W.mass, energy = W.energy;
   if (sh.decays > 0) { mass = Math.max(0, mass - sh.decays); energy = Math.max(0, energy - sh.decays); }
   if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(sh.x), Math.trunc(sh.y), W.hitPartVel, 20, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
+  novaIonize(t, W, null);
   novaDamageShip(w, t, sh, W.impact, mass, energy, sh.owner, true, sh.target === t.slot, sh.dis, false, !!(W.flags & 0x20));
   if (W.blast > 0) for (let i = 0; i < 64; i++) {
     const o = w.ships[i];
     if (!o || o === t || (i === sh.owner && !(sh.owner === 0 && !(W.flags & 0x100)))) continue;
-    if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast)
+    if (Math.abs(f32(o.x - sh.x)) <= W.blast && Math.abs(f32(o.y - sh.y)) <= W.blast) {
       novaDamageShip(w, o, sh, W.impact, W.mass, W.energy, sh.owner, false, false, sh.dis, false, !!(W.flags & 0x20));
+      novaIonize(o, W, sh);
+    }
   }
   if (sub && W.subCount > 0) novaSubmunitions(w, sh, t.slot);
   // spent, and unseen: its slot stays taken till HandleShot frees it
@@ -1487,6 +1491,19 @@ function novaShipHit(w, sh, t, sub) {
 }
 
 /* ---- damage ------------------------------------------------------------------ */
+
+/* IonizeShip 0x8409: a weapon's Ionization added to the ship's, for a blast
+   from `at` less by the square of the distance over the square of the
+   BlastRadius, none beyond it; its IonizeColor or'ed into the ship's. */
+function novaIonize(s, W, at) {
+  let v = W.ion;
+  if (at) {
+    const d = novaDist2(s.x, s.y, at.x, at.y), B = f32(W.blast * W.blast);
+    if (B < d) return;
+    if (d > 0) v = (Math.trunc(v * (1 - f32(d / B))) << 16) >> 16;
+  }
+  if (v > 0) { s.ion = f32(v + s.ion); s.ionColor = (s.ionColor | W.ionColor) >>> 0; }
+}
 
 /* DamageShip 0x3a807: the ship pushed by the Impact (unless jumping);
    energy damage taken by the shields, mass damage by the armour once the
@@ -1661,9 +1678,12 @@ function novaHandleExplods(w) {
 function novaShipUpkeep(w, s) {
   const D = w.D;
   if (s.primary !== -1 && !w.ships[s.primary]) s.primary = -1;
+  // fully ionized (ShipIonizationFactor 1 or more), a weapon of Seeker 0x0020 is held at a reload of 1
+  const held = Math.trunc(novaIonFactor(s)) > 0;
   for (const r of s.weap) {
     if (r.count <= 0) continue;
     if (r.reload > 0) r.reload = f32(r.reload - 1); else r.reload = 0;
+    if (held) { const W = novaWeapOf(D, r.i); if (W && (W.seeker & 0x20)) r.reload = 1; }
   }
   if (s.primary === -1) for (const r of s.weap) { const W = novaWeapOf(D, r.i); if (W && W.guid === 99 && r.count > 0) r.reload = f32(W.reload); }
   const p = s.pers ? D.persons.get(s.pers) : null;
@@ -1853,6 +1873,7 @@ function novaHandleBeams(w) {
         len = f32(Math.trunc(hw * -0.2 + Math.sqrt(novaDist2(t.x, t.y, o.x, o.y))));
         novaAccel(ang, len, p);
         novaCreateExplosion(w, p.x, p.y, W.explod, W.blast, true);
+        novaIonize(t, W, null);
         if (W.hitParticles > 0) novaSpawnParticles(w, Math.trunc(p.x), Math.trunc(p.y), W.hitPartVel, 25, W.hitPartLife, (Math.trunc(W.hitPartLife * 1.25) << 16) >> 16, W.hitPartColor, 32, W.hitParticles, 0);
         let impact = W.impact;
         if (impact < 0 && t.pers !== 0x3ff) {

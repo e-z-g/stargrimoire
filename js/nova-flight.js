@@ -179,6 +179,8 @@ function novaFlightData(u) {
       scoops: items.some((id, i) => counts[i] > 0 && modTypes(outfits.get(id)).includes(31)),
       board: novaBoardingMods(items, counts, outfits),
       // ShipCanTargetUntargetableShips 0x238f: a default outfit of ModType 30 whose ModVal has 0x0004
+      // HasCloak 0x95f2: the first default outfit of ModType 17, its ModVal (fuel x 16, shields x 256, 0x0004 zeroes the shields); -1 for none
+      cloak: (() => { for (let i = 0; i < items.length; i++) { const o = outfits.get(items[i]); if (counts[i] > 0 && o) for (const [t, v] of [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]]) if (t === 17) return v & 0xffff; } return -1; })(),
       targetsAll: items.some((id, i) => { const o = outfits.get(id); return counts[i] > 0 && !!o && [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]].some(([t, v]) => t === 30 && (v & 4)); }),
       sprite: shan.BaseImageID, width: shan.BaseXSize || 0, framesPer: shan.FramesPer || 36,
       sets: Math.max(1, shan.BaseSetCount || 1), animDelay: shan.AnimDelay || 0, shanFlags: shan.Flags || 0,
@@ -399,7 +401,7 @@ const novaDist2 = (ax, ay, bx, by) => f32(f32(f32(ax - bx) ** 2) + f32(f32(ay - 
 // An empty ship in a slot, keeping the heading its last ship left there (a person's is never set).
 function novaFreshShip(w, slot) {
   const old = w.ships[slot] || w.last[slot];
-  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false, boost: false, ion: 0, ionColor: 0, ionTint: 0,
+  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false, boost: false, ion: 0, ionColor: 0, ionTint: 0, cloak: 0, cloakDir: 0, jx: 0, jy: 0,
            hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false, tractor: -1, tractorAt: 0,
            x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: old ? old.heading : 0, want: 0,
            thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1,
@@ -781,6 +783,7 @@ function novaFlightStep(w) {
     novaFoldStep(w, s);
     novaPutInLayer(w, 's', s.slot, s.disabled ? 'disabled' : s.leader === 0 ? 'escort' : 'ship');
     novaIonTint(w, s);
+    novaCloakFade(w, s);
     s.frame = novaShipFrame(s);
     novaDeathThroes(w, s);
   }
@@ -805,6 +808,83 @@ function novaIonTint(w, s) {
   lv = lv > 24 ? 24 : lv < 16 ? 16 : lv;
   s.ionTint = lv - 2 + w.rand(5);
 }
+/* ---- cloaking ------------------------------------------------------------- */
+
+/* A ship's cloak is a level, 0 to 32, and a way it is going (+0xc8d8): 1
+   cloaking, -1 uncloaking, -2 dying, 0 neither. ShipIsCloaked 0x255f:
+   over 24 and not uncloaking, over 8 uncloaking, or over 16. */
+const novaCloaked = s => (s.cloak > 24 && s.cloakDir >= 0) || (s.cloak > 8 && s.cloakDir < 0) || s.cloak > 16;
+/* ShipCanCloak 0x553c, for a ship not the player's: not disabled, with a
+   cloak, and fuel -- the program reads the costs from the outfit's
+   ModType (17) where it means its ModVal, so every cloak costs fuel (17 /
+   16 & 15 is 1) and none shields. The area cloak HasCloak lends an escort
+   (ModVal 0x1000) is in no release and is not done. */
+const novaCanCloak = s => !s.disabled && s.cls.cloak >= 0 && s.fuel > 0;
+// DoShipCloak 0xde73: not cloaked, cloaking (or, part faded out, no longer uncloaking); the shields gone with a cloak of ModVal 0x0004.
+function novaCloak(s) {
+  if (novaCloaked(s)) return;
+  if (s.cloak > 0) { if (s.cloakDir < 0) s.cloakDir = 0; } else s.cloakDir = 1;
+  if (s.shield > 0 && (s.cls.cloak & 4)) s.shield = 0;
+}
+// DoShipUncloak 0xdf55: cloaked, uncloaking (or, not yet faded in, no longer cloaking).
+function novaUncloak(s) {
+  if (!novaCloaked(s)) return;
+  if (s.cloak <= 0) { if (s.cloakDir > 0) s.cloakDir = 0; } else s.cloakDir = -1;
+}
+/* AIHandleCloaking 0x833e1, while the ship's timer is out: with a cloak,
+   not disabled, and the fuel and shields its cloak spends, a ship cloaks
+   by its class's Flags2 -- 0x0100 with a weapon past its reload (a
+   burst's), 0x0200 running (state 3, or 16 in move 19), 0x0400 jumping
+   (move 4, state 8 or 11), 0x0800 going about (states 1, 6, 7, 10, 20),
+   0x1000 staying cloaked attacking farther than 165 off on either axis or
+   mining (state 16 but move 20), 0x2000 idle (state 0) -- or an escort
+   (AI over 4) in formation (move 12) behind a cloaked lead; else it
+   uncloaks. */
+function novaHandleCloaking(w, s) {
+  const c = s.cls;
+  if (c.cloak < 0 || s.disabled) { if (s.cloak <= 0) return; novaUncloak(s); return; }
+  if (((c.cloak >> 4) & 0xf) >= 1 && !(s.fuel > 0)) { novaUncloak(s); return; }
+  if (((c.cloak >> 8) & 0xf) >= 1 && !(s.shield > 0)) { novaUncloak(s); return; }
+  const f2 = c.flags2, st = s.state, mv = s.mode;
+  let go = false;
+  if (f2 & 0x0100) go = s.weap.some(r => { const W = novaWeapOf(w.D, r.i); return r.count > 0 && W && W.reload < r.reload; });
+  if ((f2 & 0x0200) && (st === 3 || (st === 0x10 && mv === 0x13))) go = true;
+  if ((f2 & 0x0400) && (mv === 4 || st === 8 || st === 0xb)) go = true;
+  if ((f2 & 0x0800) && [1, 6, 0x14, 7, 10].includes(st)) go = true;
+  if (f2 & 0x1000) {
+    const t = s.primary !== -1 ? w.ships[s.primary] : null;
+    if (novaCloaked(s) && t && st === 4 && (Math.abs(f32(s.x - t.x)) > 165 || Math.abs(f32(s.y - t.y)) > 165)) go = true;
+    if (novaCloaked(s) && st === 0x10 && mv !== 0x14) go = true;
+  }
+  if ((f2 & 0x2000) && st === 0) go = true;
+  const L = s.leader !== -1 ? w.ships[s.leader] : null;
+  if (go || (s.ai > 4 && L && mv === 0xc && novaCloaked(L))) novaCloak(s); else novaUncloak(s);
+}
+/* HandleShipDisplay 0x2b58f, the cloak's fade: a level going nowhere and
+   between 0 and 32 falls by 1 a step; else it moves by 0.75 a step in its
+   way (1.5 for a class of Flags2 0x0001), stopping at 0 and 32. A dying
+   ship's cloak goes out (-2). Part faded, the ship's picture shakes by
+   up to a tenth of the level each way (two Rand draws). */
+function novaCloakFade(w, s) {
+  s.jx = s.jy = 0;
+  if (s.cloakDir === 0) {
+    if (!(s.cloak < 32)) { /* held */ }
+    else if (s.cloak > 0) s.cloak = f32(s.cloak - 1);
+    else return;
+  } else {
+    const rate = (s.cls.flags2 & 1) ? 1.5 : 0.75;
+    s.cloak = f32(s.cloak + rate * s.cloakDir);
+    if (s.cloak <= 0 && s.cloakDir < 0) { s.cloak = 0; s.cloakDir = 0; }
+    if (s.cloak >= 32 && s.cloakDir > 0) { s.cloakDir = 0; s.cloak = 32; }
+  }
+  if (!(s.cloak > 0)) return;
+  if (novaDying(s)) s.cloakDir = -2;
+  if (s.cloak < 32) {
+    const k = (Math.trunc(f32(s.cloak / 10)) << 16) >> 16, n = 2 * k + 1;
+    s.jx = k - w.rand(n); s.jy = k - w.rand(n);
+  }
+}
+
 // A ship leaves the system (it jumped, or went into a gate).
 function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gone.push({ slot: s.slot, cls: s.cls.id, how, t: w.t, ship: s }); }
 
@@ -813,6 +893,7 @@ function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gon
    spread the thinking over two to sixteen. */
 function novaAI(w, s) {
   const D = w.D;
+  if (s.timer <= 0) novaHandleCloaking(w, s);
   if (s.formLead) novaFormation(w, s, false);
   if (s.disabled && s.jump > 0) s.jump = -1;
   let think = true;
@@ -1373,6 +1454,13 @@ function novaHandleShip(w, s) {
     if (s.leader !== 0 && w.rand(500) === 0 && !(s.death > 0 || s.armor <= 0) && c.selfRepair) {
       s.armor = f32(novaArmorCap(D, s) * ((c.flags & 0x10) ? 0.1 : 0.3333) + 1); novaSetDisabled(D, s);
     }
+  }
+  // cloaked: no longer able, uncloaking; the cloak's fuel and shields spent, a thirtieth of its rate a step
+  if (novaCloaked(s)) {
+    if (!novaCanCloak(s)) novaUncloak(s);
+    const fuel = (c.cloak >> 4) & 0xf, sh = (c.cloak >> 8) & 0xf;
+    if (fuel > 0) { s.fuel = f32(s.fuel + fuel * -0.03333); if (s.fuel <= 0) s.fuel = 0; }
+    if (sh > 0 && sh <= s.shield) { s.shield = f32(s.shield + sh * -0.03333); if (s.shield <= 0) s.shield = 0; }
   }
   if (c.accel === 0 && c.speed === 0) s.vx = s.vy = 0;
   else {

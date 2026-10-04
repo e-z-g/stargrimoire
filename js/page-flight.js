@@ -201,7 +201,8 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
   }
   for (const s of w.ships) {
     if (!s) continue;
-    const [x, y] = at(s.x, s.y);
+    let [x, y] = at(s.x, s.y);
+    x += (s.jx || 0) * z; y += (s.jy || 0) * z;
     const spr = shipSprite(s.cls.sprite), img = spr && spr.kind === 'rle' ? shipFrame(spr, s.frame % spr.count) : null;
     let wd = (img ? img.width : 32) * z, ht = (img ? img.height : 32) * z;
     const m = Math.max(wd, ht);
@@ -210,7 +211,13 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
     if (mark) mark(ctx, s, x, y, Math.max(wd, ht));
     if (img) {
       ctx.imageSmoothingEnabled = wd < img.width;
-      ctx.drawImage(s.ionTint > 0 ? tintedFrame(img, s.ionColor, s.ionTint / 32) : img, x - wd / 2, y - ht / 2, wd, ht);
+      // cloaked, faded as the program darkens it by the cloak's level of 32, with a dashed ring to keep it in sight
+      const fade = s.cloak > 0 ? Math.min(1, s.cloak / 32) : 0;
+      if (fade < 1) { ctx.globalAlpha = 1 - fade; ctx.drawImage(s.ionTint > 0 ? tintedFrame(img, s.ionColor, s.ionTint / 32) : img, x - wd / 2, y - ht / 2, wd, ht); ctx.globalAlpha = 1; }
+      if (fade > 0) {
+        ctx.beginPath(); ctx.arc(x, y, Math.max(wd, ht) / 2 + 3, 0, Math.PI * 2);
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = `rgba(180,200,255,${0.25 + 0.5 * fade})`; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+      }
     } else {
       ctx.beginPath(); ctx.arc(x, y, wd / 2, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();

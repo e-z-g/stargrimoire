@@ -422,6 +422,7 @@ function battleInspect(force) {
     <tr><td>Flies as</td><td>${esc(NOVA_AI_TYPES[s.ai] || `AI type ${s.ai}`)}</td></tr>
     <tr><td>Shields</td><td>${bar(s.shield, novaShieldCap(D, s))}</td></tr>
     <tr><td>Armour</td><td>${bar(s.armor, novaArmorCap(D, s))}</td></tr>
+    ${s.cloak > 0 || s.cloakDir ? `<tr><td>Cloak</td><td>${novaCloaked(s) ? 'cloaked' : s.cloakDir > 0 ? 'cloaking' : 'uncloaking'} (${Math.round(s.cloak)} of 32)</td></tr>` : ''}
     ${s.ion > 0 ? `<tr><td>Ionization</td><td>${bar(s.ion, s.cls.ionMax)}</td></tr>` : ''}
     <tr><td>Fuel</td><td>${Math.round(s.fuel)}</td></tr></table>
     ${wr ? `<table class="kv"><tr><td>Weapon</td><td>Ammo</td><td>Reload</td></tr>${wr}</table>` : '<p class="note">No weapons.</p>'}</div>`;

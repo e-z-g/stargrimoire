@@ -16,7 +16,7 @@
    the boxes they leave, mining and scooping, and SpriteWorld's layers,
    whose order is the order hits are taken in.
 
-   Not here yet: cloaking, escape pods, reinforcements, shots against
+   Not here yet: escape pods, reinforcements, shots against
    stellars, smoke, and the trail particles' preference (taken as on).
 
    The player is in none of it: every branch about the player is left
@@ -244,9 +244,10 @@ function novaSetDisabled(D, s) {
 // IsDying 0x2540: the death throes begun, or no armour left.
 const novaDying = s => s.death > 0 || s.armor <= 0;
 const novaActive = (w, i) => i >= 0 && i < 64 && !!w.ships[i];
-/* ShipVisibleToShip 0x9721, without cloaking: a ship coming out of a
-   hypergate cannot be seen. */
-const novaVisible = (a, b) => a.state !== 0x15 && !!b;
+/* ShipVisibleToShip 0x9721: a ship coming out of a hypergate cannot be
+   seen, nor a cloaked one, but by its own escorts with cloaks and a
+   person 1023 (0x3ff). */
+const novaVisible = (a, b) => a.state !== 0x15 && !!b && (!novaCloaked(a) || (b.leader === a.slot && b.cls.cloak >= 0) || b.pers === 0x3ff);
 
 /* IsShipMyEnemy 0x8196c: two ships of two governments, either at war or
    the other xenophobic and not an ally. */
@@ -341,7 +342,6 @@ function novaOddsRound(w) {
 
 /* ---- weapons ------------------------------------------------------------ */
 
-const novaCloaked = () => false;
 /* WeaponHasAmmo 0xb95a, for a ship not the player's: not one the player
    alone may fire (Flags2 0x0100); a fighter bay's own ammunition, or the
    weapon's own (an ammunition type 0 to 255), or fuel (-1000 and below). */
@@ -983,6 +983,8 @@ function novaPointDefenseHit(w, W, sh, x, y, owner) {
 function novaFireMissile(w, s) {
   const D = w.D, t = s.primary !== -1 ? w.ships[s.primary] : null;
   if (!t || ((novaClassFight(D, t.cls).flags2 & 4) && !s.cls.targetsAll)) return;
+  // a cloaked target, but by a ship that can target cloaked ships (ModType 30, ModVal 0x0008: in no release)
+  if (novaCloaked(t)) return;
   if (f32(t.shield + t.armor) * 1.05 <= t.targeted) return;
   const d2 = Math.abs(novaDist2(s.x, s.y, t.x, t.y)) * 0.95;
   for (const r of s.weap) {
@@ -1577,6 +1579,11 @@ function novaRetaliate(w, t, A, attacker, mass, energy, aimed) {
   const af = novaClassFight(D, A.cls), tf = novaClassFight(D, t.cls);
   if (af.escortType === 0 && tf.escortType !== 0 && t.primary !== -1 && t.state === 4) return;
   t.harass = 0;
+  // Flags2 0x4000: attacked by a ship it is not fighting, a ship that can cloaks, its bursts' weapons put to their burst reload (AIForceBurstReload 0x84c37)
+  if ((tf.flags2 & 0x4000) && novaCanCloak(t) && !(t.primary === attacker && t.state === 4)) {
+    for (const r of t.weap) { const W = novaWeapOf(D, r.i); if (tf.count[r.i] > 0 && W && W.burstCount > 0 && W.burstReload > 0) { r.burst = 0; r.reload = f32(W.burstReload); } }
+    novaCloak(t);
+  }
   if (t.primary !== -1 && t.state === 4 && novaAngleApart(Math.trunc(t.heading), t.want) <= 44) {
     const cur = w.ships[t.primary];
     if (cur && novaDist2(t.x, t.y, A.x, A.y) > f32(novaDist2(t.x, t.y, cur.x, cur.y) * 0.25)) return;

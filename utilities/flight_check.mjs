@@ -267,13 +267,32 @@ if (haveRelease('1.0.10')) {
   eq('slowed by 0.7 at most', S.novaShipTurn(io), Math.fround(turn0 * Math.fround(1 - Math.fround(0.7))));
   const was = io.ion; S.novaFlightStep(w);
   eq('drained by Deionize in a step', io.ion, Math.fround(was - deion));
+  // cloaking (ShipIsCloaked, DoShipCloak, HandleShipDisplay's fade, ShipVisibleToShip, DamageShip's Flags2 0x4000):
+  // a Polaris Raven with its cloak fades in at 0.75 a step, cannot be seen by an enemy, and cloaks when first attacked
+  w = empty(7);
+  const RAVEN = 263, POL = [...u.govts.values()].find(g => g.name === 'Polaris').id;
+  const rv = S.novaPlaceShip(w, RAVEN, POL, 0, 0, 3), fd = S.novaPlaceShip(w, DESTROYER, FED, 2000, 0, 3);
+  eq('a Raven has a cloak, and can cloak', [rv.cls.cloak >= 0, S.novaCanCloak(rv)], [true, true]);
+  S.novaCloak(rv);
+  let n = 0; for (; n < 100 && rv.cloak < 32; n++) S.novaCloakFade(w, rv);
+  const rate = (rv.cls.flags2 & 1) ? 1.5 : 0.75;   // Flags2 0x0001, as a Raven has: 1.5
+  eq(`faded in in ${Math.ceil(32 / rate)} steps (32 / ${rate})`, [n, rv.cloak, rv.cloakDir], [Math.ceil(32 / rate), 32, 0]);
+  eq('cloaked, and unseen by an enemy', [S.novaCloaked(rv), S.novaVisible(rv, fd)], [true, false]);
+  S.novaUncloak(rv);
+  rv.cloak = 12; eq('uncloaking, cloaked over 8', S.novaCloaked(rv), true);
+  rv.cloak = 8; eq('uncloaking, not at 8', S.novaCloaked(rv), false);
+  rv.cloak = 0; rv.cloakDir = 0; rv.fuel = 0;
+  eq('no fuel, no cloak', S.novaCanCloak(rv), false);
+  rv.fuel = 100; rv.primary = -1; rv.state = 0;
+  S.novaDamageShip(w, rv, fd, 0, 5, 5, fd.slot, true, true, false, false, false);
+  eq('first attacked: cloaking (Flags2 0x4000)', rv.cloakDir, 1);
   // a battle that ends: three destroyers against two cruisers
   w = empty(5);
   const sides = [[DESTROYER, DESTROYER, DESTROYER], [CRUISER, CRUISER]].map((l, k) => l.map((id, j) => S.novaPlaceShip(w, id, k ? AUR : FED, k ? 450 : -450, j * 140, 3)));
   let t = 0;
   for (; t < 30 * 180 && !sides.some(l => l.every(s => w.ships[s.slot] !== s)); t++) S.novaFlightStep(w);
   if (t >= 30 * 180) fail('three destroyers and two cruisers still fighting after three minutes');
-  if (!fails) console.log(`fighting: damage, the shield floor, disable-only, the disable threshold at ${Math.floor(third)} of ${acap}, turning on an attacker, targets, death in ${steps} steps, the out-of-ammunition retreat, ionization, a battle over in ${t} steps`);
+  if (!fails) console.log(`fighting: damage, the shield floor, disable-only, the disable threshold at ${Math.floor(third)} of ${acap}, turning on an attacker, targets, death in ${steps} steps, the out-of-ammunition retreat, ionization, cloaking, a battle over in ${t} steps`);
 }
 
 // ---- 5. every release ----------------------------------------------------

@@ -6,7 +6,8 @@
    ship class that can fly, as the Ships view does, each with its picture;
    a ship is dragged from it onto the arena (with a finger, first
    sideways, so that the list still scrolls), or tapped and then the arena
-   tapped where it goes, as many at a time as Drop says. The arena's left
+   tapped where it goes, as many at a time as Drop says, each flying as
+   Flies as says (its class's InherentAI, or one chosen). The arena's left
    half is side 1's and its right half side 2's, each a government chosen
    above the hangar; a ship dropped is that half's, facing the other. Until
    the fight, ships on the arena are dragged to move them -- across the
@@ -29,7 +30,7 @@ const BATTLE = {
   on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -63,11 +64,12 @@ function battleShow(opts = {}) {
   if (!opts.fromHash && !/^#battle\b/.test(location.hash)) history.pushState(null, '', battleHash());
 }
 /* The setup in the address, so that a link opens it again:
-   #battle&in=<system>&left=<govt>&right=<govt>&ships=<class>.<x>.<y>,…
-   in the arena's units; a ship's side is the half it is in. */
+   #battle&in=<system>&left=<govt>&right=<govt>&ships=<class>.<x>.<y>[.<ai>],…
+   in the arena's units, the AI type given when it is not 3 (0 is the
+   class's own); a ship's side is the half it is in. */
 function battleHash() {
   if (BATTLE.sys === null) return '#battle';
-  const ships = BATTLE.setup.map(e => `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}`).join(',');
+  const ships = BATTLE.setup.map(e => `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${e.ai === 3 ? '' : '.' + e.ai}`).join(',');
   return `#battle&in=${BATTLE.sys}&left=${BATTLE.govt[0]}&right=${BATTLE.govt[1]}${ships ? '&ships=' + ships : ''}`;
 }
 function battleWriteHash() {
@@ -82,8 +84,8 @@ function battleTakeHash(D) {
   if (U.byId.has(n('in'))) BATTLE.sys = n('in');
   ['left', 'right'].forEach((k, i) => { if (D.govts.has(n(k))) BATTLE.govt[i] = n(k); });
   BATTLE.setup = (p.get('ships') || '').split(',').map(t => t.split('.').map(Number))
-    .filter(a => a.length === 3 && a.every(Number.isFinite) && D.classes.has(a[0]))
-    .map(([cls, x, y]) => ({ cls, side: x < 0 ? 0 : 1, x, y }));
+    .filter(a => (a.length === 3 || a.length === 4 && battleAiOk(a[3])) && a.every(Number.isFinite) && D.classes.has(a[0]))
+    .map(([cls, x, y, ai = 3]) => ({ cls, side: x < 0 ? 0 : 1, x, y, ai }));
   BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null;
 }
 function battleLeave(fromHash) {
@@ -244,6 +246,7 @@ function battleChange(e) {
   const [k, i] = t.dataset.battle.split(':');
   if (k === 'sys') { BATTLE.sys = +t.value; battleWriteHash(); }
   else if (k === 'many') BATTLE.many = +t.value;
+  else if (k === 'ai') BATTLE.ai = +t.value;
   else BATTLE[k][+i] = +t.value;
   if (k === 'govt') battlePanel();
 }
@@ -261,14 +264,14 @@ function battleDo(what) {
 
 /* ---- the arena ------------------------------------------------------------ */
 
-// `n` ships of a class put down at (x, y) in the arena's units, in a column: before the fight on the arena, in it into the fight.
-function battleDrop(clsId, x, y, n) {
+// `n` ships of a class put down at (x, y) in the arena's units, in a column, flying as AI type `ai` (0 its class's): before the fight on the arena, in it into the fight.
+function battleDrop(clsId, x, y, n, ai = 3) {
   const side = x < 0 ? 0 : 1;
   for (let k = 0; k < n; k++) {
     const yy = y + (k - (n - 1) / 2) * BATTLE_GAP;
-    if (!BATTLE.w) BATTLE.setup.push({ cls: clsId, side, x, y: yy });
+    if (!BATTLE.w) BATTLE.setup.push({ cls: clsId, side, x, y: yy, ai });
     else {
-      const s = novaPlaceShip(BATTLE.w, clsId, BATTLE.govt[side], x, yy, 3, BATTLE_FACING[side]);
+      const s = novaPlaceShip(BATTLE.w, clsId, BATTLE.govt[side], x, yy, ai, BATTLE_FACING[side]);
       if (s) { s.frame = novaShipFrame(s); BATTLE.placed.push({ side, slot: s.slot, ship: s }); }
     }
   }
@@ -285,7 +288,7 @@ function battleFight() {
   w.noArrivals = true;
   BATTLE.w = w; BATTLE.placed = []; BATTLE.shown = '';
   for (const e of BATTLE.setup) {
-    const s = novaPlaceShip(w, e.cls, BATTLE.govt[e.side], e.x, e.y, 3, BATTLE_FACING[e.side]);
+    const s = novaPlaceShip(w, e.cls, BATTLE.govt[e.side], e.x, e.y, e.ai, BATTLE_FACING[e.side]);
     if (s) BATTLE.placed.push({ side: e.side, slot: s.slot, ship: s });
   }
   for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
@@ -293,6 +296,7 @@ function battleFight() {
   BATTLE.paused = false;
   battleRun();
 }
+const battleAiOk = ai => ai === 0 || ai in NOVA_AI_TYPES;
 // The arena's ship at a point on the screen, before the fight.
 function battleSetupAt(px, py) {
   const D = flightData();
@@ -351,6 +355,7 @@ function battleInspect(force) {
   }).join('');
   el.innerHTML = `<div class="battle-inspect"><div class="battle-row"><b>${name(s)}</b> <button data-battle-do="unpick" aria-label="Close">×</button></div>
     <table class="kv"><tr><td>Doing</td><td>${doing}</td></tr>
+    <tr><td>Flies as</td><td>${esc(NOVA_AI_TYPES[s.ai] || `AI type ${s.ai}`)}</td></tr>
     <tr><td>Shields</td><td>${bar(s.shield, novaShieldCap(D, s))}</td></tr>
     <tr><td>Armour</td><td>${bar(s.armor, novaArmorCap(D, s))}</td></tr>
     <tr><td>Fuel</td><td>${Math.round(s.fuel)}</td></tr></table>
@@ -541,7 +546,7 @@ function wireBattle() {
       return;
     }
     const at = e.type === 'pointerup' && onArena(e.clientX, e.clientY);
-    if (at) { const [x, y] = battleFromScreen(at[0], at[1]); battleDrop(p.cls, x, y, BATTLE.many); }
+    if (at) { const [x, y] = battleFromScreen(at[0], at[1]); battleDrop(p.cls, x, y, BATTLE.many, BATTLE.ai); }
   };
   window.addEventListener('pointerup', endPress);
   window.addEventListener('pointercancel', endPress);
@@ -597,7 +602,7 @@ function wireBattle() {
     }
     if (tapAt && e.type === 'pointerup' && BATTLE.armed !== null) {
       const r = cv.getBoundingClientRect(), [x, y] = battleFromScreen(e.clientX - r.left, e.clientY - r.top);
-      battleDrop(BATTLE.armed, x, y, BATTLE.many);
+      battleDrop(BATTLE.armed, x, y, BATTLE.many, BATTLE.ai);
     } else if (tapAt && e.type === 'pointerup' && BATTLE.w) {
       const r = cv.getBoundingClientRect();
       BATTLE.pick = battleShipAt(e.clientX - r.left, e.clientY - r.top);

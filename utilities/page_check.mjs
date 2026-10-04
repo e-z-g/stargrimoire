@@ -664,12 +664,12 @@ try {
           ev(window, 'pointermove', r.left + r.width * 0.25, r.top + r.height * 0.5, 7);
           ev(window, 'pointerup', r.left + r.width * 0.25, r.top + r.height * 0.5, 7);
           // two Fed Destroyers, found by a search (they share a look): tapped in the hangar, then the right half tapped
-          set('many', 2);
+          set('many', 2); set('ai', 1);
           const q = document.getElementById('battleSearch'); q.value = 'fed destroyer'; q.dispatchEvent(new Event('input', { bubbles: true }));
           const b = row(141).getBoundingClientRect();
           ev(row(141), 'pointerdown', b.left + 20, b.top + 10, 8); ev(window, 'pointerup', b.left + 20, b.top + 10, 8);
           ev(cv, 'pointerdown', r.left + r.width * 0.75, r.top + r.height * 0.5, 9); ev(cv, 'pointerup', r.left + r.width * 0.75, r.top + r.height * 0.5, 9);
-          const setup = BATTLE.setup.map(e => e.cls + ':' + e.side).join(' ');
+          const setup = BATTLE.setup.map(e => e.cls + ':' + e.side + ':' + e.ai).join(' ');
           side.querySelector('[data-battle-do="fight"]').click();
           const t = BATTLE.w ? BATTLE.w.t : -1;
           await wait(1500);
@@ -686,7 +686,7 @@ try {
         // the setup's address, opened again from the map with the setup forgotten
         await p.evaluate(`BATTLE.setup = []; BATTLE.govt = [128, 129]; location.hash = ${JSON.stringify(out.battle.hash || '')}`);
         await wait(400);
-        out.battleBack = await p.evaluate("({ on: BATTLE.on, fought: !!BATTLE.w, govt: BATTLE.govt.join(' '), setup: BATTLE.setup.map(e => e.cls + ':' + e.side).join(' '), hash: location.hash })");
+        out.battleBack = await p.evaluate("({ on: BATTLE.on, fought: !!BATTLE.w, govt: BATTLE.govt.join(' '), setup: BATTLE.setup.map(e => e.cls + ':' + e.side + ':' + e.ai).join(' '), hash: location.hash })");
         return out;
       } });
     for (const e of pageErrors(r.console)) fail(`ships, ${dev.name}: ${describe(e)}`);
@@ -706,11 +706,11 @@ try {
     const fl = o.flight;
     if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     const bt = o.battle;
-    if (!bt || !bt.panel || !/^#battle&in=\d+&left=129&right=128&ships=154\.-?\d+\.-?\d+,141\.\d+\.-?\d+,141\.\d+\.-?\d+$/.test(bt.hash) || bt.app || bt.setup !== '154:0 141:1 141:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
+    if (!bt || !bt.panel || !/^#battle&in=\d+&left=129&right=128&ships=154\.-?\d+\.-?\d+,141\.\d+\.-?\d+\.1,141\.\d+\.-?\d+\.1$/.test(bt.hash) || bt.app || bt.setup !== '154:0:3 141:1:1 141:1:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
     else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '129 128' || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
       fail(`ships, ${dev.name}: the battle's address opened again: ${JSON.stringify(o.battleBack)} from ${bt.hash}`);
-    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; an Aurora Cruiser dragged to the left, two Fed Destroyers tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

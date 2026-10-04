@@ -385,7 +385,7 @@ const novaDist2 = (ax, ay, bx, by) => f32(f32(f32(ax - bx) ** 2) + f32(f32(ay - 
 // An empty ship in a slot, keeping the heading its last ship left there (a person's is never set).
 function novaFreshShip(w, slot) {
   const old = w.ships[slot] || w.last[slot];
-  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false,
+  return { slot, cls: null, dude: null, pers: null, fleet: null, govt: -1, ai: 1, leader: -1, follows: -1, formLead: false, boost: false,
            hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false, tractor: -1, tractorAt: 0,
            x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: old ? old.heading : 0, want: 0,
            thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1,
@@ -440,12 +440,29 @@ function novaSpawnDudeShip(w) {
     s.skill = novaSkill(w, cls);
     s.aggr = w.rand(3) ^ 2;
     if (novaDerelict(w.D, s.govt)) s.glow = 0;
+    s.boost = novaHasAfterburner(w, s);
     w.rand(2);
     novaSpriteDraws(w, s, cls);
     w.ships[slot] = s;
     return s;
   }
   return null;
+}
+
+/* AIHasAfterburner 0x64f5, asked as a ship is made (+0xbd): never when
+   another ship swarms with it, nor for Flags 0x0400; always for Flags
+   0x0040; for Flags 0x0020 when Rand(1344) + 256 is at most the player's
+   kills (w.kills, 0 unless a battle sets them) over the Strength of the
+   first ship class -- the first's, not the ship's own, as the program has
+   it. A first class of Strength 0 would divide by 0; here it gives none. */
+function novaHasAfterburner(w, s) {
+  if (s.slot !== 0) for (let i = 1; i < 64; i++) { const o = w.ships[i]; if (i !== s.slot && o && o.mate === s.slot) return false; }
+  const f = s.cls.flags;
+  if (f & 0x0400) return false;
+  if (f & 0x0040) return true;
+  if (!(f & 0x0020)) return false;
+  const first = w.D.classes.values().next().value, str = first ? first.rec.Strength : 0;
+  return w.rand(0x540) + 256 <= (str ? Math.trunc((w.kills || 0) / str) : -1);
 }
 
 /* GenericRandomShipSpawn 0x3c89f: a ship of no kind yet, at random within
@@ -482,6 +499,7 @@ function novaSpawnPerson(w, forced, noDerelicts) {
   const s = novaSpawnBlank(w);
   if (!s) return null;
   Object.assign(s, { cls, pers: id, govt: p.Govt, ai: p.AIType });
+  s.boost = novaHasAfterburner(w, s) || !!(p.Flags & 0x0002);   // a përs's Flags 0x0002 gives it one besides
   if (novaDerelict(D, s.govt)) { s.vx = s.vy = s.speed = 0; s.heading = w.rand(360); s.glow = 0; s.disabled = true; }
   return s;
 }
@@ -589,6 +607,7 @@ function novaHyperSpawnFleet(w, f) {
   const lead = novaSpawnBlank(w);
   if (!lead) return;
   Object.assign(lead, { cls: lc, fleet: f.id, govt: f.Govt, ai: lc.ai });
+  lead.boost = novaHasAfterburner(w, lead);   // the lead only: the escorts are not asked
   if ((f.Flags & 1) && lc.ai <= 2) { const k = w.rand(6); lead.cargo[k] = w.rand(lc.holds) + 1; }
   lead.vx = lead.vy = lead.speed = 0;
   const gate = novaPickEmerge(w, lead);

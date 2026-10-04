@@ -21,8 +21,9 @@
    preference (taken as on).
 
    The player is in none of it: every branch about the player is left
-   out, and the player's combat rating, which scales some of it, is taken
-   as a new pilot's, 0.
+   out. The player's combat rating (kills) is w.kills, 0 unless a battle
+   sets it: it decides some complex manoeuvres and, at a ship's making,
+   some afterburners (novaHasAfterburner).
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-flight.js. */
 
@@ -201,7 +202,7 @@ function novaArm(w, s) {
   s.shield = f32(s.cls.shield); s.armor = f32(s.cls.armor); s.fuel = f32(s.cls.fuel);
   if (p && (p.Flags2 & 1)) s.fuel = 0;
   if (p) s.aggr = p.Aggress;
-  Object.assign(s, { armed: true, death: 0, anger: 0, odds: -1, lastW: -1, lastGun: -1, latch: false, boost: false,
+  Object.assign(s, { armed: true, death: 0, anger: 0, odds: -1, lastW: -1, lastGun: -1, latch: false,
                      patience: -1, targeted: 0, flash: 0, exits: [0, 0, 0, 0], podsLeft: c.podCount, mate: -1, harass: 0 });
   if (s.aggr === undefined) s.aggr = 2;
   if (!F) return;
@@ -759,8 +760,8 @@ function novaLowAttack(w, s) {
       if (novaInertialess(s) && dx < 100 && dy < 100 && s.speed > t.speed) s.desired = t.speed;
     }
     if (!(dx >= 165 && dy >= 165 && novaInertialess(s))) {
-      // AIPerformsComplexManeuvers draws Rand(1344) and asks the player's rating, 0 on the map
-      const go = w.rand(2) === 0 || (w.rand(0x540) + 256 <= 0);
+      // AIPerformsComplexManeuvers 0x659a: Rand(1344) + 256 at most the player's kills, 0 on the map
+      const go = w.rand(2) === 0 || (w.rand(0x540) + 256 <= (w.kills || 0));
       const cf = novaClassFight(D, s.cls), tf = novaClassFight(D, t.cls);
       if (go && cf.inherentAI > 2 && cf.mass <= 199 && Math.abs(Math.trunc(f32(s.x - t.x))) <= 122 && Math.abs(Math.trunc(f32(s.y - t.y))) <= 122 &&
           (t.slot < s.slot || (t.slot > s.slot && cf.mass < tf.mass))) {
@@ -1700,6 +1701,7 @@ function novaPlaceShip(w, clsId, govt, x, y, ai, heading) {
   s.skill = novaSkill(w, cls);
   s.aggr = w.rand(3) ^ 2;
   novaSpriteDraws(w, s, cls);
+  s.boost = novaHasAfterburner(w, s);
   w.ships[slot] = s;
   novaArm(w, s);
   return s;
@@ -1935,6 +1937,7 @@ function novaLaunchFighter(w, s, i) {
   if (!f) return false;
   Object.assign(f, { cls, x: s.x, y: s.y, vx: s.vx, vy: s.vy, speed: s.speed, ai: 5, govt: s.govt, jump: 0, state: 0, mode: 0, anger: 0, goal: -2,
                      timer: f32(W.count), leader: s.slot, follows: -1, heading: s.heading, pers: null, dude: null });
+  f.boost = novaHasAfterburner(w, f);
   w.rand(2);
   novaSpriteDraws(w, f, cls);
   f.primary = s.primary;

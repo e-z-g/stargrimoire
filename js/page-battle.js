@@ -30,11 +30,13 @@ const BATTLE = {
   on: false, sys: null, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
 const BATTLE_GAP = 120;            // between ships dropped together, in a column
+// The least kills for each combat rating, whose names are STR# 138 (DrawCombatRatingString 0x57e5).
+const BATTLE_RATINGS = [0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
 
 /* ---- in and out of the view -------------------------------------------- */
 
@@ -70,7 +72,7 @@ function battleShow(opts = {}) {
 function battleHash() {
   if (BATTLE.sys === null) return '#battle';
   const ships = BATTLE.setup.map(e => `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${e.ai === 3 ? '' : '.' + e.ai}`).join(',');
-  return `#battle&in=${BATTLE.sys}&left=${BATTLE.govt[0]}&right=${BATTLE.govt[1]}${ships ? '&ships=' + ships : ''}`;
+  return `#battle&in=${BATTLE.sys}&left=${BATTLE.govt[0]}&right=${BATTLE.govt[1]}${BATTLE.kills ? '&kills=' + BATTLE.kills : ''}${ships ? '&ships=' + ships : ''}`;
 }
 function battleWriteHash() {
   const h = battleHash();
@@ -83,6 +85,7 @@ function battleTakeHash(D) {
   const n = k => p.has(k) && /^-?\d+$/.test(p.get(k)) ? +p.get(k) : null;
   if (U.byId.has(n('in'))) BATTLE.sys = n('in');
   ['left', 'right'].forEach((k, i) => { if (D.govts.has(n(k))) BATTLE.govt[i] = n(k); });
+  BATTLE.kills = Math.max(0, Math.min(10000000, n('kills') || 0));
   BATTLE.setup = (p.get('ships') || '').split(',').map(t => t.split('.').map(Number))
     .filter(a => (a.length === 3 || a.length === 4 && battleAiOk(a[3])) && a.every(Number.isFinite) && D.classes.has(a[0]))
     .map(([cls, x, y, ai = 3]) => ({ cls, side: x < 0 ? 0 : 1, x, y, ai }));
@@ -127,8 +130,12 @@ function battlePanel() {
   const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) || [0, 1].some(i => { const g = D.govts.get(BATTLE.govt[i]); return g && (g.flags & 1) && !novaGovtAllies(D, BATTLE.govt[0], BATTLE.govt[1]); });
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-battle-do="speed:${v}" aria-pressed="${BATTLE.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   const sides = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
+  const names = novaStrings(GAME, 138), kills = BATTLE_RATINGS.includes(BATTLE.kills) ? BATTLE_RATINGS : [...BATTLE_RATINGS, BATTLE.kills].sort((a, b) => a - b);
+  const rating = kills.map(k => { const lv = BATTLE_RATINGS.findLastIndex(v => v <= k);
+    return `<option value="${k}"${k === BATTLE.kills ? ' selected' : ''}>${esc(names[lv] || `rating ${lv}`)} (${k.toLocaleString('en')} kills)</option>`; }).join('');
   top.innerHTML = `
     <div class="battle-row"><span class="note">In</span> <select data-battle="sys" aria-label="The system">${sysOpts}</select></div>
+    <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select></div>
     ${side(0)}${side(1)}
     ${foes ? '' : '<p class="note">These governments are not enemies, so their ships will not fight.</p>'}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
@@ -247,6 +254,7 @@ function battleChange(e) {
   if (k === 'sys') { BATTLE.sys = +t.value; battleWriteHash(); }
   else if (k === 'many') BATTLE.many = +t.value;
   else if (k === 'ai') BATTLE.ai = +t.value;
+  else if (k === 'kills') { BATTLE.kills = +t.value; if (BATTLE.w) BATTLE.w.kills = BATTLE.kills; battleWriteHash(); }
   else BATTLE[k][+i] = +t.value;
   if (k === 'govt') battlePanel();
 }
@@ -284,6 +292,7 @@ function battleFight() {
   const D = flightData(), sys = U.byId.get(BATTLE.sys);
   if (!D || !sys) return;
   const w = novaFlightWorld(D, sys, STATE, Math.floor(Math.random() * 0x7fffffff), battleView());
+  w.kills = BATTLE.kills;
   for (let i = 0; i < 64; i++) w.ships[i] = null;
   w.noArrivals = true;
   BATTLE.w = w; BATTLE.placed = []; BATTLE.shown = '';

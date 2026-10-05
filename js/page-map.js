@@ -1286,7 +1286,9 @@ function drawDots(ctx) {
     // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings round it are drawn
     // either way. As metro stations (the maintainer's asking, the same day): white, a small stop on a
     // line, and where three links or more meet a larger one in a ring the colour of the background,
-    // so that the lines stop short of it
+    // so that the lines stop short of it; and round the white a ring in the colour Systems coloured
+    // gives, its government's or a figure's, thin for a stop and thicker where three links or more
+    // meet, and outside it a thin ring of the background (the maintainer's asking, 30 September 2026)
     if (SYS_STYLE === 'dots') {
       markPath(ctx, d, r);
       ctx.fillStyle = dotFill(d.sys);
@@ -1294,10 +1296,10 @@ function drawDots(ctx) {
       ctx.strokeStyle = 'rgba(225,232,242,0.75)';
       ctx.stroke();
     } else if (SYS_STYLE === 'metro') {
-      const busy = placeLinks(d.p) >= 3;
-      markPath(ctx, d, busy ? r + 0.5 : Math.max(2, 0.6 * r));
-      ctx.fillStyle = '#f2f4f8'; ctx.fill();
-      ctx.strokeStyle = '#04060a'; ctx.lineWidth = busy ? 2.5 : 1.5; ctx.stroke(); ctx.lineWidth = 1;
+      const busy = placeLinks(d.p) >= 3, white = busy ? r + 0.5 : Math.max(2, 0.6 * r), ring = busy ? 2 : 1.25;
+      markPath(ctx, d, white + ring + 1); ctx.fillStyle = '#04060a'; ctx.fill();
+      markPath(ctx, d, white + ring); ctx.fillStyle = dotFill(d.sys); ctx.fill();
+      markPath(ctx, d, white); ctx.fillStyle = '#f2f4f8'; ctx.fill();
     }
     // a system on the route ringed in the route's gold
     if (onRoute(d.p)) { markPath(ctx, d, r + 2.5); ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }

@@ -693,15 +693,22 @@ try {
           const side = document.getElementById('battleSide'), el = side.querySelector('[data-battle="side"]');
           el.value = '20'; el.dispatchEvent(new Event('change', { bubbles: true }));
           side.querySelector('[data-battle-do="random"]').click();
-          const D = flightData(), n = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
+          const D = flightData(), armed = BATTLE.setup.every(e => novaClassFight(D, D.classes.get(e.cls)).count.some((k, i) => { const W = k > 0 && novaWeapOf(D, i); return W && (W.mass > 0 || W.energy > 0 || W.guid === 99); })), n = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
           const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) && novaGovtEnemies(D, BATTLE.govt[1], BATTLE.govt[0]);
           const before = BATTLE.setup.map(e => [e.cls, Math.round(e.x), Math.round(e.y), e.side].join()).join(' ');
           BATTLE.want = new URLSearchParams(location.hash.slice(1)); BATTLE.setup = []; battlePanel();
           const again = BATTLE.setup.map(e => [e.cls, Math.round(e.x), Math.round(e.y), e.side].join()).join(' ') === before;
           side.querySelector('[data-battle-do="fight"]').click();
           await new Promise(r => setTimeout(r, 1000));
+          // Ammunition never runs out: ticked, every ship's ammunition and fuel emptied comes back after a step
+          const am = side.querySelector('[data-battle="ammo"]'); am.checked = true; am.dispatchEvent(new Event('change', { bubbles: true }));
+          const live = BATTLE.placed.filter(p => BATTLE.w.ships[p.slot] === p.ship && p.ammo.some(a => a > 0));
+          for (const p of live) { p.ship.weap.forEach(r => { r.ammo = 0; }); p.ship.fuel = 0; }
+          const t0 = BATTLE.w.t; await new Promise(r => setTimeout(r, 300));
+          const full = BATTLE.w.t > t0 && live.length > 0 && live.every(p => BATTLE.w.ships[p.slot] !== p.ship || (p.ship.weap.every((r, k) => r.ammo >= p.ammo[k]) && p.ship.fuel >= p.fuel));
+          const ammoHash = /&ammo=1/.test(location.hash);
           const mixed = [0, 1].every(i => BATTLE.setup.some(e => e.side === i && e.x < 0) && BATTLE.setup.some(e => e.side === i && e.x >= 0));
-          return { n, foes, again, mixed, sys: BATTLE.w ? BATTLE.w.sys.id : null, strength: BATTLE.strength, govt: BATTLE.govt.map(g => U.govts.get(g).name), placed: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, roids: BATTLE.w ? BATTLE.w.roids.filter(a => a.active).length : -1 };
+          return { n, foes, again, mixed, armed, full, ammoHash, refilled: live.length, sys: BATTLE.w ? BATTLE.w.sys.id : null, strength: BATTLE.strength, govt: BATTLE.govt.map(g => U.govts.get(g).name), placed: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, roids: BATTLE.w ? BATTLE.w.roids.filter(a => a.active).length : -1 };
         })()`);
         return out;
       } });
@@ -726,10 +733,10 @@ try {
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
     else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '128 129' || o.battleBack.kills !== 1600 || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
       fail(`ships, ${dev.name}: the battle's address opened again: ${JSON.stringify(o.battleBack)} from ${bt.hash}`);
-    else if (o.battleRandom.n.join() !== '20,20' || !o.battleRandom.foes || o.battleRandom.placed < 40 || o.battleRandom.govt.join() !== 'Federation,Auroran Empire' || o.battleRandom.sys !== -1 || o.battleRandom.roids !== 0 || !o.battleRandom.mixed || !o.battleRandom.again
+    else if (o.battleRandom.n.join() !== '20,20' || !o.battleRandom.foes || o.battleRandom.placed < 40 || o.battleRandom.govt.join() !== 'Federation,Auroran Empire' || o.battleRandom.sys !== -1 || o.battleRandom.roids !== 0 || !o.battleRandom.mixed || !o.battleRandom.again || !o.battleRandom.armed || !o.battleRandom.full || !o.battleRandom.ammoHash
              || Math.abs(o.battleRandom.strength[0] - o.battleRandom.strength[1]) > 0.15 * Math.max(...o.battleRandom.strength))
       fail(`ships, ${dev.name}: a random battle: ${JSON.stringify(o.battleRandom)}`);
-    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, no system or government to choose, none retreating; an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}; a random battle of 20 a side, ${o.battleRandom.govt.join(' against ')} in empty space, mixed, kept by its address, of Strength ${o.battleRandom.strength.join(' and ')}, ${o.battleRandom.placed} ships fighting`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, no system or government to choose, none retreating; an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}; a random battle of 20 a side, ${o.battleRandom.govt.join(' against ')} in empty space, mixed, kept by its address, of Strength ${o.battleRandom.strength.join(' and ')}, ${o.battleRandom.placed} ships fighting, each with a weapon; Ammunition never runs out refilled ${o.battleRandom.refilled} ships emptied`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

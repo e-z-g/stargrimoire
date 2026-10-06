@@ -18,7 +18,9 @@
    maintainer's asking, 6 October 2026): each side flies as a government
    that is the other's enemy (battleGovts), and the world's noRetreat
    turns off every retreat and departure. Set up again goes back to the
-   arena as it was set.
+   arena as it was set. Ammunition never runs out, when ticked, tops each
+   ship's ammunition and fuel back up to what it started with after every
+   step (the maintainer's asking, 6 October 2026).
 
    The view follows the ships, zoomed to keep them all on the screen,
    until it is zoomed or dragged by hand; Follow takes it back. The bar's
@@ -32,7 +34,7 @@ const BATTLE = {
   on: false, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0, side: 10,
+  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0, side: 10, ammo: false,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -68,13 +70,13 @@ function battleShow(opts = {}) {
   if (!opts.fromHash && !/^#battle\b/.test(location.hash)) history.pushState(null, '', battleHash());
 }
 /* The setup in the address, so that a link opens it again:
-   #battle&ships=<class>.<x>.<y>[.<ai>[.<side>]],…
+   #battle[&ammo=1]&ships=<class>.<x>.<y>[.<ai>[.<side>]],…
    in the arena's units, the AI type given when it is not 3 (0 is the
    class's own); a ship's side is the half it is in, or given (0 left, 1
    right) when it is not, as a random battle's are. */
 function battleHash() {
   const ships = BATTLE.setup.map(e => { const half = e.x < 0 ? 0 : 1, tail = e.side !== half ? `.${e.ai}.${e.side}` : e.ai !== 3 ? `.${e.ai}` : ''; return `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${tail}`; }).join(',');
-  return `#battle${BATTLE.kills ? '&kills=' + BATTLE.kills : ''}${ships ? '&ships=' + ships : ''}`;
+  return `#battle${BATTLE.ammo ? '&ammo=1' : ''}${BATTLE.kills ? '&kills=' + BATTLE.kills : ''}${ships ? '&ships=' + ships : ''}`;
 }
 function battleWriteHash() {
   const h = battleHash();
@@ -86,6 +88,7 @@ function battleTakeHash(D) {
   BATTLE.want = null;
   const n = k => p.has(k) && /^-?\d+$/.test(p.get(k)) ? +p.get(k) : null;
   BATTLE.kills = Math.max(0, Math.min(10000000, n('kills') || 0));
+  BATTLE.ammo = n('ammo') === 1;
   BATTLE.setup = (p.get('ships') || '').split(',').map(t => t.split('.').map(Number))
     .filter(a => (a.length === 3 || (a.length >= 4 && a.length <= 5 && battleAiOk(a[3]) && (a.length === 4 || a[4] === 0 || a[4] === 1))) && a.every(Number.isFinite) && D.classes.has(a[0]))
     .map(([cls, x, y, ai = 3, side = x < 0 ? 0 : 1]) => ({ cls, side, x, y, ai }));
@@ -128,6 +131,7 @@ function battlePanel() {
   top.innerHTML = `
     <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
     <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select></div>
+    <label class="battle-row"><input type="checkbox" data-battle="ammo"${BATTLE.ammo ? ' checked' : ''}> Ammunition never runs out</label>
     ${side(0)}${side(1)}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
@@ -242,7 +246,8 @@ function battleChange(e) {
   const t = e.target.closest('[data-battle]');
   if (!t || !BATTLE.on) return;
   const [k, i] = t.dataset.battle.split(':');
-  if (k === 'many') BATTLE.many = +t.value;
+  if (k === 'ammo') { BATTLE.ammo = t.checked; battleWriteHash(); }
+  else if (k === 'many') BATTLE.many = +t.value;
   else if (k === 'ai') BATTLE.ai = +t.value;
   else if (k === 'side') BATTLE.side = +t.value;
   else if (k === 'kills') { BATTLE.kills = +t.value; if (BATTLE.w) BATTLE.w.kills = BATTLE.kills; battleWriteHash(); }
@@ -270,7 +275,7 @@ function battleDrop(clsId, x, y, n, ai = 3) {
     if (!BATTLE.w) BATTLE.setup.push({ cls: clsId, side, x, y: yy, ai });
     else {
       const s = novaPlaceShip(BATTLE.w, clsId, BATTLE.govt[side], x, yy, ai, BATTLE_FACING[side]);
-      if (s) { s.frame = novaShipFrame(s); BATTLE.placed.push({ side, slot: s.slot, ship: s }); }
+      if (s) { s.frame = novaShipFrame(s); BATTLE.placed.push(battleStock({ side, slot: s.slot, ship: s })); }
     }
   }
   if (!BATTLE.w) battlePanel(); else battleStatus(true);
@@ -289,7 +294,8 @@ function battleGovts(D) {
   return null;
 }
 /* A random battle (the maintainer's asking): each `BATTLE.side` ships of any class that fights --
-   Warship or Interceptor by its InherentAI, armed, able to move, not
+   Warship or Interceptor by its InherentAI, with a weapon that does
+   damage or a fighter bay, able to move, not
    planet-type -- whoever flies it in the game. Twice as many are drawn,
    and dealt strongest first to the side with the less Strength so far,
    so the two come out about even. They are scattered over the arena, the
@@ -300,7 +306,8 @@ function battleRandom() {
   if (!battleGovts(D)) return;
   const fights = [...D.classes.values()].filter(c => {
     const f = novaClassFight(D, c);
-    return !c.missing && c.ai >= 3 && c.speed > 0 && !(c.flags & 0x0400) && f.strength > 0 && f.count.some(n => n > 0);
+    const armed = f.count.some((n, i) => { const W = n > 0 && novaWeapOf(D, i); return W && (W.mass > 0 || W.energy > 0 || W.guid === 99); });
+    return !c.missing && c.ai >= 3 && c.speed > 0 && !(c.flags & 0x0400) && f.strength > 0 && armed;
   });
   if (!fights.length) return;
   const pick = l => l[Math.floor(Math.random() * l.length)];
@@ -343,12 +350,21 @@ function battleFight() {
   BATTLE.w = w; BATTLE.placed = []; BATTLE.shown = '';
   for (const e of BATTLE.setup) {
     const s = novaPlaceShip(w, e.cls, BATTLE.govt[e.side], e.x, e.y, e.ai, BATTLE_FACING[e.side]);
-    if (s) BATTLE.placed.push({ side: e.side, slot: s.slot, ship: s });
+    if (s) BATTLE.placed.push(battleStock({ side: e.side, slot: s.slot, ship: s }));
   }
   for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
   BATTLE.follow = true;
   BATTLE.paused = false;
   battleRun();
+}
+// What a ship starts with, for Ammunition never runs out: each weapon's ammunition, and its fuel.
+function battleStock(p) { p.ammo = p.ship.weap.map(r => r.ammo); p.fuel = p.ship.fuel; return p; }
+function battleRefill(w) {
+  for (const p of BATTLE.placed) {
+    if (w.ships[p.slot] !== p.ship) continue;
+    p.ship.weap.forEach((r, k) => { if (r.ammo < p.ammo[k]) r.ammo = p.ammo[k]; });
+    if (p.ship.fuel < p.fuel) p.ship.fuel = p.fuel;
+  }
 }
 const battleAiOk = ai => ai === 0 || ai in NOVA_AI_TYPES;
 // The arena's ship at a point on the screen, before the fight.
@@ -434,6 +450,7 @@ function battleLoop(now) {
     for (; BATTLE.due >= 1; BATTLE.due--) {
       BATTLE.w.view = battleView();
       novaFlightStep(BATTLE.w);
+      if (BATTLE.ammo) battleRefill(BATTLE.w);
     }
     battleStatus(false);
     battleInspect(false);

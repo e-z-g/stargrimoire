@@ -652,9 +652,10 @@ try {
         out.battle = await p.evaluate(`(async () => {
           const wait = ms => new Promise(r => setTimeout(r, ms));
           const side = document.getElementById('battleSide'), cv = document.getElementById('battleCanvas');
-          if (!side.querySelector('[data-battle="govt:0"]')) return { panel: false, hash: location.hash };
+          if (!side.querySelector('[data-battle="kills"]')) return { panel: false, hash: location.hash };
           const set = (k, v) => { const el = side.querySelector('[data-battle="' + k + '"]'); el.value = String(v); el.dispatchEvent(new Event('change', { bubbles: true })); };
-          set('govt:0', 129); set('govt:1', 128); set('kills', 1600);
+          set('kills', 1600);
+          const chosen = side.querySelectorAll('[data-battle="sys"], [data-battle^="govt"]').length;
           const ev = (el, type, x, y, id) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: id, pointerType: 'mouse', isPrimary: true }));
           const r = cv.getBoundingClientRect(), row = id => document.querySelector('#battleRows [data-bcls="' + id + '"]:not([data-blook])') || document.querySelector('#battleRows [data-bcls="' + id + '"]');
           // an Aurora Cruiser dragged onto the left half
@@ -676,7 +677,7 @@ try {
           const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
           let lit = 0;
           for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 120) lit++;
-          return { panel: true, hash: location.hash, setup, rows: (BATTLE.classes || []).length, ships: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, steps: BATTLE.w ? BATTLE.w.t - t : 0, lit,
+          return { panel: true, chosen, noRetreat: !!(BATTLE.w && BATTLE.w.noRetreat), hash: location.hash, setup, rows: (BATTLE.classes || []).length, ships: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, steps: BATTLE.w ? BATTLE.w.t - t : 0, lit,
                    app: !document.getElementById('app').hidden, status: (document.getElementById('battleLeft0') || {}).textContent };
         })()`);
         await shot('battle');
@@ -684,7 +685,7 @@ try {
         await wait(300);
         out.battleOut = await p.evaluate("({ app: !document.getElementById('app').hidden, battle: !document.getElementById('battle').hidden, on: BATTLE.on })");
         // the setup's address, opened again from the map with the setup forgotten
-        await p.evaluate(`BATTLE.setup = []; BATTLE.govt = [128, 129]; BATTLE.kills = 0; location.hash = ${JSON.stringify(out.battle.hash || '')}`);
+        await p.evaluate(`BATTLE.setup = []; BATTLE.kills = 0; location.hash = ${JSON.stringify(out.battle.hash || '')}`);
         await wait(400);
         out.battleBack = await p.evaluate("({ on: BATTLE.on, fought: !!BATTLE.w, kills: BATTLE.kills, govt: BATTLE.govt.join(' '), setup: BATTLE.setup.map(e => e.cls + ':' + e.side + ':' + e.ai).join(' '), hash: location.hash })");
         // a random battle of 20 a side, fought
@@ -693,14 +694,14 @@ try {
           el.value = '20'; el.dispatchEvent(new Event('change', { bubbles: true }));
           side.querySelector('[data-battle-do="random"]').click();
           const D = flightData(), n = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
-          const foes = battleFoes(D, BATTLE.govt[0], BATTLE.govt[1]);
+          const foes = novaGovtEnemies(D, BATTLE.govt[0], BATTLE.govt[1]) && novaGovtEnemies(D, BATTLE.govt[1], BATTLE.govt[0]);
           const before = BATTLE.setup.map(e => [e.cls, Math.round(e.x), Math.round(e.y), e.side].join()).join(' ');
-          BATTLE.want = new URLSearchParams(location.hash.slice(1)); BATTLE.setup = []; BATTLE.sys = 130; battlePanel();
-          const again = BATTLE.setup.map(e => [e.cls, Math.round(e.x), Math.round(e.y), e.side].join()).join(' ') === before && BATTLE.sys === -1;
+          BATTLE.want = new URLSearchParams(location.hash.slice(1)); BATTLE.setup = []; battlePanel();
+          const again = BATTLE.setup.map(e => [e.cls, Math.round(e.x), Math.round(e.y), e.side].join()).join(' ') === before;
           side.querySelector('[data-battle-do="fight"]').click();
           await new Promise(r => setTimeout(r, 1000));
           const mixed = [0, 1].every(i => BATTLE.setup.some(e => e.side === i && e.x < 0) && BATTLE.setup.some(e => e.side === i && e.x >= 0));
-          return { n, foes, again, mixed, sys: BATTLE.sys, strength: BATTLE.strength, govt: BATTLE.govt.map(g => U.govts.get(g).name), placed: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, roids: BATTLE.w ? BATTLE.w.roids.filter(a => a.active).length : -1 };
+          return { n, foes, again, mixed, sys: BATTLE.w ? BATTLE.w.sys.id : null, strength: BATTLE.strength, govt: BATTLE.govt.map(g => U.govts.get(g).name), placed: BATTLE.w ? BATTLE.w.ships.filter(Boolean).length : 0, roids: BATTLE.w ? BATTLE.w.roids.filter(a => a.active).length : -1 };
         })()`);
         return out;
       } });
@@ -721,14 +722,14 @@ try {
     const fl = o.flight;
     if (!fl || !fl.panel || !(fl.steps >= 15) || (fl.moving && !fl.moved) || !fl.paused) fail(`ships, ${dev.name}: ships in that system: ${JSON.stringify(fl)}`);
     const bt = o.battle;
-    if (!bt || !bt.panel || !/^#battle&in=\d+&left=129&right=128&kills=1600&ships=154\.-?\d+\.-?\d+,141\.\d+\.-?\d+\.1,141\.\d+\.-?\d+\.1$/.test(bt.hash) || bt.app || bt.setup !== '154:0:3 141:1:1 141:1:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
+    if (!bt || !bt.panel || !/^#battle&kills=1600&ships=154\.-?\d+\.-?\d+,141\.\d+\.-?\d+\.1,141\.\d+\.-?\d+\.1$/.test(bt.hash) || bt.chosen || !bt.noRetreat || bt.app || bt.setup !== '154:0:3 141:1:1 141:1:1' || bt.ships < 3 || !(bt.steps >= 20) || bt.lit < 50 || !o.battleOut.app || o.battleOut.battle || o.battleOut.on)
       fail(`ships, ${dev.name}: the battle tab: ${JSON.stringify(bt)} ${JSON.stringify(o.battleOut)}`);
-    else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '129 128' || o.battleBack.kills !== 1600 || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
+    else if (!o.battleBack.on || o.battleBack.fought || o.battleBack.govt !== '128 129' || o.battleBack.kills !== 1600 || o.battleBack.setup !== bt.setup || o.battleBack.hash !== bt.hash)
       fail(`ships, ${dev.name}: the battle's address opened again: ${JSON.stringify(o.battleBack)} from ${bt.hash}`);
     else if (o.battleRandom.n.join() !== '20,20' || !o.battleRandom.foes || o.battleRandom.placed < 40 || o.battleRandom.govt.join() !== 'Federation,Auroran Empire' || o.battleRandom.sys !== -1 || o.battleRandom.roids !== 0 || !o.battleRandom.mixed || !o.battleRandom.again
              || Math.abs(o.battleRandom.strength[0] - o.battleRandom.strength[1]) > 0.15 * Math.max(...o.battleRandom.strength))
       fail(`ships, ${dev.name}: a random battle: ${JSON.stringify(o.battleRandom)}`);
-    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}; a random battle of 20 a side, ${o.battleRandom.govt.join(' against ')} in empty space, mixed, kept by its address, of Strength ${o.battleRandom.strength.join(' and ')}, ${o.battleRandom.placed} ships fighting`);
+    else console.log(`battle, ${dev.name}: ${bt.rows} ships in the hangar; a combat rating of 1,600 kills, no system or government to choose, none retreating; an Aurora Cruiser dragged to the left, two Fed Destroyers as wimpy traders tapped to the right; ${bt.ships} ships fought ${bt.steps} steps in 1.5 s, ${bt.lit} pixels lit; side 1: ${bt.status}; and back to the map, and to the battle again by its address ${bt.hash}; a random battle of 20 a side, ${o.battleRandom.govt.join(' against ')} in empty space, mixed, kept by its address, of Strength ${o.battleRandom.strength.join(' and ')}, ${o.battleRandom.placed} ships fighting`);
     console.log(`ships, ${dev.name}: ${o.list.ships} ship classes in ${o.list.looks} rows by look, each drawn, the Aurora Cruiser's look shut and opened; the Aurora Cruiser turns, ${o.off.n} pixels lit,` +
                 ` the engines add ${Math.round((o.on.sum / o.off.sum - 1) * 100)}% light; ${o.pics.length} pictures;` +
                 ` Map and Back; its first shipyard, spöb ${o.yard.id}, opens on the map at ${o.yard.hash}, with ${fl && fl.ships} ships flying there, ${fl && fl.steps} steps in a second, and stopped by Pause`);

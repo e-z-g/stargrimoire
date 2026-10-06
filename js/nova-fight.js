@@ -17,7 +17,7 @@
    whose order is the order hits are taken in.
 
    Not here yet: escape pods, reinforcements, shots against
-   stellars, smoke, and the trail particles' preference (taken as on).
+   stellars, and the trail particles' preference (taken as on).
 
    The player is in none of it: every branch about the player is left
    out. The player's combat rating (kills) is w.kills, 0 unless a battle
@@ -501,8 +501,11 @@ function novaSelectTarget(w, s) {
 
 /* The leave-or-park test the supervisors share: fuel to jump (above 99),
    not matching velocity with another, and not a person who may not
-   leave (përs Flags2 0x0001 with fuel under 100). */
+   leave (përs Flags2 0x0001 with fuel under 100). None leaves in the
+   battle simulator's world (w.noRetreat), where every retreat (state 3)
+   is turned off as well: it parks, and looks for a target again. */
 function novaCanLeave(w, s) {
+  if (w.noRetreat) return false;
   if (!(s.cls.fuel > 99)) return false;
   if (s.tractor !== undefined && s.tractor !== -1 && s.tractor !== s.slot) return false;
   const p = s.pers ? w.D.persons.get(s.pers) : null;
@@ -559,11 +562,11 @@ function novaWarshipAI(w, s) {
       if (!t || novaDying(t) || (t.disabled && !novaHasDestroying(w, s))) { s.state = 0; s.primary = -1; }
     }
     const g = D.govts.get(s.govt);
-    if (s.primary !== -1 && g && s.state === 4 && (g.flags & 0x10) && novaOddsRetreat(w, s, g)) s.state = 3;
+    if (s.primary !== -1 && g && s.state === 4 && (g.flags & 0x10) && !w.noRetreat && novaOddsRetreat(w, s, g)) s.state = 3;
     if (s.primary !== -1 && s.state !== 7 && s.state !== 3) {
       if (s.jump <= 0) s.state = 4;
-      if (novaCowardice(D, s) > s.shield && s.leader === -1 && g && (g.flags & 0x10) && ![2, 3, 0xb].includes(s.state)) s.state = 3;
-      if ((novaClassFight(D, s.cls).flags2 & 0x80) && novaOutOfAmmo(w, s) && ![2, 3, 0xb].includes(s.state)) s.state = 3;
+      if (!w.noRetreat && novaCowardice(D, s) > s.shield && s.leader === -1 && g && (g.flags & 0x10) && ![2, 3, 0xb].includes(s.state)) s.state = 3;
+      if ((novaClassFight(D, s.cls).flags2 & 0x80) && novaOutOfAmmo(w, s) && !w.noRetreat && ![2, 3, 0xb].includes(s.state)) s.state = 3;
     }
   }
   if (s.state === 2 && !novaCanLeave(w, s)) {
@@ -587,9 +590,9 @@ function novaInterceptorFight(w, s) {
 }
 function novaInterceptorTail(w, s, g) {
   const D = w.D;
-  if (g && s.state === 4 && (g.flags & 0x0100) && novaOddsRetreat(w, s, g)) s.state = 3;
+  if (g && s.state === 4 && (g.flags & 0x0100) && !w.noRetreat && novaOddsRetreat(w, s, g)) s.state = 3;
   if (s.primary !== -1 && s.state === 4) { const t = w.ships[s.primary]; if (t && t.disabled && !novaHasDestroying(w, s)) { s.primary = -1; s.state = 0; } }
-  if ((novaClassFight(D, s.cls).flags2 & 0x80) && novaOutOfAmmo(w, s) && ![2, 3, 0xb].includes(s.state)) s.state = 3;
+  if ((novaClassFight(D, s.cls).flags2 & 0x80) && novaOutOfAmmo(w, s) && !w.noRetreat && ![2, 3, 0xb].includes(s.state)) s.state = 3;
   if (s.primary !== -1 && s.state === 7) {
     const t = w.ships[s.primary];
     if (!t || !novaVisible(t, s)) Object.assign(s, { primary: -1, sec: -1, state: 0, mode: 0 });
@@ -603,7 +606,7 @@ function novaInterceptorTail(w, s, g) {
 function novaTraderFight(w, s, brave) {
   if (!(s.anger > 0) || s.primary === -1) return;
   const t = w.ships[s.primary] || w.last[s.primary];
-  if (brave && t && Math.abs(Math.trunc(f32(s.x - t.x))) <= 1250 && Math.abs(Math.trunc(f32(s.y - t.y))) <= 1250) { if (s.jump <= 0) s.state = 4; }
+  if ((brave || w.noRetreat) && t && (w.noRetreat || Math.abs(Math.trunc(f32(s.x - t.x))) <= 1250 && Math.abs(Math.trunc(f32(s.y - t.y))) <= 1250)) { if (s.jump <= 0) s.state = 4; }
   else if (s.leader === 0) { s.state = 10; s.sec = 0; }
   else s.state = 3;
 }
@@ -666,7 +669,7 @@ function novaHighAttack(w, s) {
             let r = Math.trunc(novaMaxRange(w, s) * 0.85);
             if (t.disabled) r = Math.trunc(r * 0.5);
             s.mode = dx > r || dy > r ? 7 : 0xe;
-          } else if (novaHopeless(w, s)) { if (s.ai > 2) s.mode = 0xe; else { s.state = 3; s.mode = 5; } }
+          } else if (novaHopeless(w, s)) { if (s.ai > 2 || w.noRetreat) s.mode = 0xe; else { s.state = 3; s.mode = 5; } }
           else if ((cf.flags2 & 1) && s.mate > 0 && s.mate !== s.leader) s.mode = 0x12;
           else if (s.mode !== 0x11) s.mode = 7;
         } else if (cf.flags2 & 2) s.mode = 5;
@@ -684,7 +687,7 @@ function novaHighAttack(w, s) {
       else if (!t.disabled) {
         s.sec = -1;
         if (Math.abs(f32(s.x - t.x)) > 165 || Math.abs(f32(s.y - t.y)) > 165) {
-          if (novaHopeless(w, s)) { if (s.ai < 3) { s.state = 3; s.mode = 5; } else s.mode = 0xe; }
+          if (novaHopeless(w, s)) { if (s.ai < 3 && !w.noRetreat) { s.state = 3; s.mode = 5; } else s.mode = 0xe; }
           else if (s.mode !== 0x11) s.mode = 7;
         } else if (s.mode !== 0x10 && s.mode !== 0x11) s.mode = 6;
       } else if (!t.boarded || s.timer > 0) {

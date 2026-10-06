@@ -1002,7 +1002,7 @@ function novaInterceptorAI(w, s) {
 function novaMinerAI(w, s) {
   if (s.disabled) { Object.assign(s, { state: 0, mode: 0, sec: -1, primary: -1 }); return; }
   if (s.state === 0x16) return;
-  if (s.anger > 0 && s.primary !== -1) { s.state = 3; return; }
+  if (s.anger > 0 && s.primary !== -1) { s.state = w.noRetreat ? 4 : 3; return; }
   const f = s.cls.flags3;
   // destroying asteroids (Flags3 0x0001): at the first of them, or parked with none
   if ((f & 1) && s.state !== 2) {

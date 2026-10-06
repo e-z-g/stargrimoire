@@ -243,8 +243,10 @@ if (haveRelease('1.0.10')) {
   while (w.ships[d.slot] === d && steps < 1000) { S.novaFlightStep(w); steps++; }
   near('a destroyer dies in its DeathDelay steps', steps, delay, 2);
   // out of ammunition: Raven Rockets spent, a Viper (Flags2 0x0080) runs; without the flag it fights on
-  const spent = flag => {
-    const w2 = empty(4), s = S.novaPlaceShip(w2, VIPER, AUR, 0, 0, 3), t = S.novaPlaceShip(w2, DESTROYER, FED, 300, 0, 3);
+  const spent = (flag, noRetreat) => {
+    const w2 = empty(4);
+    w2.noRetreat = !!noRetreat;
+    const s = S.novaPlaceShip(w2, VIPER, AUR, 0, 0, 3), t = S.novaPlaceShip(w2, DESTROYER, FED, 300, 0, 3);
     if (!flag) S.novaClassFight(D, s.cls).flags2 &= ~0x80;
     for (const r of s.weap) if (D.fight.weaps[r.i].ammoType >= 0) r.ammo = 0;
     s.primary = t.slot; s.state = 4;
@@ -252,7 +254,9 @@ if (haveRelease('1.0.10')) {
     S.novaClassFight(D, s.cls).flags2 |= 0x80;
     return s.state;
   };
-  eq('out of rockets, with Flags2 0x0080 and without', [spent(true), spent(false)], [3, 4]);
+  eq('out of rockets, with Flags2 0x0080 and without, and with it in the battle simulator (none retreats)', [spent(true), spent(false), spent(true, true)], [3, 4, 4]);
+  // the battle simulator's world: no ship can leave
+  { const w3 = empty(4), v = S.novaPlaceShip(w3, DESTROYER, FED, 0, 0, 3); const before = S.novaCanLeave(w3, v); w3.noRetreat = true; eq('able to leave, and not in the battle simulator', [before, S.novaCanLeave(w3, v)], [true, false]); }
   // ionization (IonizeShip, ShipIonizationFactor, ShipTurnRate, HandleShip): a blast's by the square of
   // the distance, a hit's whole, the turn slowed by the factor (at most 0.7), and drained by Deionize a step
   w = empty(6);

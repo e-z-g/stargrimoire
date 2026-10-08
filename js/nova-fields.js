@@ -16,6 +16,18 @@
 
 const NOVA_FIELD_NOTES = {
   'sÿst': {
+    AvgShips: {
+      note: 'How many ships are placed when you enter the system: each is a përs 1 time in 7 (one picked from those that may be met here), else a flët 1 time in 7, else a ship from DudeTypes.',
+      code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
+    },
+    Person: {
+      note: 'Up to eight përs that may be here as well as those AvgShips brings: each, while not destroyed or captured and its ActivateOn holds, comes when you enter with a chance of its PersonProb in 100.',
+      code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    PersonProb: {
+      note: 'The chance in 100 that the Person beside it comes when you enter.',
+      code: [['SetupShipsInSystem', 0x42b61], ['Rand', 0xa4c76]],
+    },
     Message: {
       note: 'Shown when you arrive: entry Message of STR# 1000, or the STR resource numbered Message + 999 where there is one. -1: "Entering the", "Jumping into the" or "Arriving in the", at random, and the system\'s name.',
       code: [['HandlePlayer', 0x68390], ['DisplayMessage', 0x5289], ['LoadPluginString', 0x71a8e]],
@@ -361,6 +373,16 @@ const NOVA_FIELD_NOTES = {
     SubLimit: {
       note: 'How many generations of submunitions there can be. Below 1: no limit.',
       code: [['SpawnShotSubmunitions', 0x3f1d5]],
+    },
+  },
+  'përs': {
+    LinkSyst: {
+      note: 'Where this person may be met among the ships a system\'s AvgShips brings, or among those jumping in later (1 time in 7 each). -1: anywhere. 128 to 9998: that sÿst; 0 to 127 count as 128 to 255. 9999: systems of no government; 10000 + n, of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Not among those jumping in if its government has Flags 0x0800. It is never picked while its AIType is 0 or less, its ActivateOn fails, it has been destroyed or captured, or it is already there.',
+      code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
+    },
+    ActivateOn: {
+      note: 'A test of control bits: while it fails, this person is not met, whether by LinkSyst or as a system\'s Person. Empty: no test.',
+      code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e]],
     },
   },
   'crön': {

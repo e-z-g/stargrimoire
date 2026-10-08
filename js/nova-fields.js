@@ -142,6 +142,14 @@ const NOVA_FIELD_NOTES = {
       note: 'Where you must land for the mission to be done, once the rest of it is: picked as TravelStel is, from where you are, and a random pick never the stellar TravelStel picked. -1: the stellar TravelStel picked, so it is done on landing there; with TravelStel -1 too, no landing does it. Landing on a stellar of the same name at the same place does as well.',
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['LoadCurrentMissionData', 0xa0a38], ['MissionLandCheck', 0xa19cc], ['StellarsAreIdentical', 0xab35]],
     },
+    PickupMode: {
+      note: 'When the cargo comes aboard. 0: when you accept, which is refused while the cargo is more than your holds or your free room. 1: on landing at TravelStel\'s stellar; while it will not fit, that stellar does not count as reached. 2: on boarding one of the mission\'s ships. Anything else: never. LoadCargText, if not -1, is shown as it comes aboard by landing or accepting.',
+      code: [['DoMissionAccept', 0xa1b11], ['MissionLandCargoCheck', 0x9edc5], ['DoMissionCargoPickup', 0x98292], ['HandlePlayerBoardAttempt', 0x65000]],
+    },
+    DropoffMode: {
+      note: 'Where the cargo comes off, if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s, once its ShipGoal is met or is -1 (with ShipGoal 3, also while a count the mission keeps, not yet read, is 0). Anything else: never. DropCargText, if not -1, is shown then.',
+      code: [['MissionLandCargoCheck', 0x9edc5]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

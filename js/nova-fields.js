@@ -110,6 +110,10 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'mïsn': {
+    AvailStel: {
+      note: 'Where it is offered. -1: anywhere. 128 to 4999: at that spöb. 5000 + n: in a system with a link to sÿst 128 + n. At a stellar whose government is: 9999, none; 10000 + n, gövt 128 + n; 15000 + n, an ally of it; 20000 + n, any but it, or none; 25000 + n, an enemy of it; 30000 + n, it, or one with the same class in the same one of the four Classes; 31000 + n, neither (not none). Anything else: never. Not tested when a ship offers it. Unless it names one spöb, it is not offered while its TravelStel or ReturnStel is a stellar in the system you are in.',
+      code: [['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48], ['LoadObjectData', 0x771b0]],
+    },
     AvailLoc: {
       note: 'Where it is offered. 0: listed in the Mission BBS. 1: in the bar. 2: by a ship whose përs has it as LinkMission, when you hail the ship, or, with that përs\'s Flags 0x0200, when you board it. 3: on landing, at the spaceport. 4: at the Trade Center. 5: at the shipyard. 6: at the outfitter. Anything else: nowhere.',
       code: [['IsMissionAvailable', 0x9b152], ['OfferMissionFromPort', 0xa369e], ['DoMissionDialog', 0xa37cf], ['DoBarDialog', 0x48ef5], ['DoPortDialog', 0x5f911], ['DoTradeDialog', 0x5dbe1], ['DoShipyardDialog', 0x5e679], ['DoOutfitDialog', 0x5bacf], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000]],

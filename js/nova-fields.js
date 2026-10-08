@@ -191,7 +191,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['IncrementGameTime', 0xb516], ['MissionObjectivesCheck', 0x9e79e], ['QuickMissionFailure', 0x99d1b]],
     },
     CanAbort: {
-      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which is then no longer aboard for it; when it fails, it is taken off your list at once. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
+      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which fails it; when it fails, it is taken off your list at once. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['PlayerHasJettisonableCargo', 0x825a], ['JettisonCargo', 0x3dffd], ['QuickMissionFailure', 0x99d1b], ['MissionLandCheck', 0xa19cc]],
     },
     BriefText: {
@@ -249,6 +249,18 @@ const NOVA_FIELD_NOTES = {
     AuxShipSyst: {
       note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system; -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. 9999, 10000 + n and the other numbers AvailStel takes for governments: systems of those governments, counting as an enemy of a government with Flags 0x0001 any not its ally. Anything else: none.',
       code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
+    },
+    ScanMask: {
+      note: 'When a ship of a government whose ScanMask shares a bit with this scans you while the mission\'s cargo is aboard: with Flags 0x0020 the mission fails ("Your ship has been scanned - mission failed."); otherwise it is smuggling, and you are fined.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['ScanPlayer', 0x7e46e]],
+    },
+    Flags: {
+      note: '0x0001: it ends by itself once its ships are placed or its ShipGoal is met, or on accepting if it has no ships and no ReturnStel. 0x0002: its systems are not marked on the map. 0x0004: it cannot be refused. 0x0008: offered only while you have 100 units of fuel, which are taken when it ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if you are scanned with its cargo aboard (ScanMask). 0x0040: aborting it costs five times CompReward. 0x0100: its destination is marked on the map while it is offered. 0x0200: ShipSyst\'s system is marked on the map too. 0x0400: it is left out of your list of missions, its failures show no message, and its ships being destroyed or disabled does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while your ship class\'s InherentAI is 2 or less; 0x4000: while it is 3 or more.',
+      code: [['AutoAbortMission', 0x99bdc], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionObjectivesCheck', 0x9e79e], ['DoMissionAccept', 0xa1b11], ['RecalcMissionSystsForMap', 0xe1b5], ['OfferOneMission', 0xa21ac], ['IsMissionAvailable', 0x9b152], ['ScanPlayer', 0x7e46e], ['DoMissionInfoDialog', 0x9e19b], ['SetupMissionInfoList', 0x9de7a], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['JettisonCargo', 0x3dffd], ['MissionDudeSpawn', 0x3cd3b]],
+    },
+    Flags2: {
+      note: '0x0001: offered only while your ship has room for its cargo. 0x0002: PayVal is paid when it ends by itself too. 0x0004: it fails if your ship is disabled.',
+      code: [['IsMissionAvailable', 0x9b152], ['TotalMissionCargoSpace', 0xcffb], ['AutoAbortMission', 0x99bdc], ['ApplyMissionPay', 0x98326], ['DamageShip', 0x3a807]],
     },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',

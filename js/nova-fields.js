@@ -15,6 +15,24 @@
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js. */
 
 const NOVA_FIELD_NOTES = {
+  'sÿst': {
+    Message: {
+      note: 'Shown when you arrive: entry Message of STR# 1000, or the STR resource numbered Message + 999 where there is one. -1: "Entering the", "Jumping into the" or "Arriving in the", at random, and the system\'s name.',
+      code: [['HandlePlayer', 0x68390], ['DisplayMessage', 0x5289], ['LoadPluginString', 0x71a8e]],
+    },
+    ReinfFleet: {
+      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system. -1: none.',
+      code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['HandleReinforcements', 0x39048]],
+    },
+    ReinfTime: {
+      note: 'How long the fleet takes to come once called: counted down by the game speed each step, then it arrives from hyperspace. When less than a quarter is left: "Sensors detect" the government\'s name "reinforcement fleet approaching."',
+      code: [['AICallForReinforcements', 0x7f5a1], ['HandleReinforcements', 0x39048]],
+    },
+    ReinfIntrval: {
+      note: 'Days before the fleet can be called here again, from its warning or its arrival; at least 1.',
+      code: [['HandleReinforcements', 0x39048], ['IncrementGameTime', 0xb516]],
+    },
+  },
   'spöb': {
     Govt: {
       note: '128 and up is that gövt; anything less is no government.',

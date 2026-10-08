@@ -150,6 +150,14 @@ const NOVA_FIELD_NOTES = {
       note: 'Where the cargo comes off, if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s, once its ShipGoal is met or is -1 (with ShipGoal 3, also while a count the mission keeps, not yet read, is 0). Anything else: never. DropCargText, if not -1, is shown then.',
       code: [['MissionLandCargoCheck', 0x9edc5]],
     },
+    PayVal: {
+      note: 'Above 0: credits paid when the mission is done. -10000 - n: instead, in every system whose government is gövt n, a record below 0 goes to 0; -20000 - n: the same where the government is allied with gövt n; -30000 - n: where it shares a class with it. -40000 - p, p from 1 to 99: you lose p per cent of your credits. -50000 - c, below -50000: it costs c credits, taken when you accept (never leaving you below 0), and it is offered only while you have c. Paid as well when the mission ends by itself, with Flags2 0x0002. Anything else: nothing.',
+      code: [['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['DoMissionAccept', 0xa1b11], ['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtSharedClass', 0x6e48]],
+    },
+    ShipSyst: {
+      note: 'Where the mission\'s ships are, worked out when you accept. -1: the system you are in then. -2: a random system there now (its Visibility) other than yours. -3: TravelStel\'s stellar\'s system, or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to yours and there now, drawn until one is found. -6: whichever system you are in. 128 to 2175: that sÿst. 9999, 10000 + n and the other numbers AvailStel takes for governments: a random system there now, not yours, of those governments. Anything else: nowhere.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['SelectMissionSystem', 0x9b993], ['SetupShipsInSystem', 0x42b61], ['MissionHandlePlayerEnteredNewSystem', 0x99f11]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

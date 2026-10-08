@@ -222,6 +222,10 @@ details.inline .list { margin-top: 4px; }
 #choose h2 { font-size: 16px; margin: 0 0 6px; }
 #choose label { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; cursor: pointer; }
 #choose small { color: var(--dim); }
+#choose .actions button small { color: var(--dim); }
+.compare th { text-align: left; font-weight: 600; color: var(--dim); }
+.compare td { overflow-wrap: anywhere; }
+.compareList > details, .compareList > div { margin: 2px 0 2px 10px; }
 #choose .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 
 @media (max-width: 820px) {
@@ -252,6 +256,7 @@ details.inline .list { margin-top: 4px; }
   <nav id="crumbs"></nav>
   <span id="status"></span>
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
+  <button id="compareBtn" title="Compare the open game with another release" hidden>Compare…</button>
   <button id="forgetBtn" title="Forget the copy this page remembers, so the next visit starts empty" hidden>Forget</button>
 </header>
 
@@ -266,7 +271,7 @@ details.inline .list { margin-top: 4px; }
     <p>What it reads:</p>
     <ul>
       <li>a release as Ambrosia shipped it: <code>EV_Nova_1.0.10.sit</code>, <code>1.0.8</code> or <code>1.0.2</code>;</li>
-      <li>the <code>.ndat</code> files from 1.1.1's <code>Nova Files</code> folder, all selected at once;</li>
+      <li>1.1.1's disk image, <code>EV_Nova_1.1.1_for_Mac_OS_X.dmg</code>, or the <code>.ndat</code> files from its <code>Nova Files</code> folder, all selected at once;</li>
       <li>the community's builds and their <code>.rez</code> files, or the zip they come in;</li>
       <li>a MacBinary or BinHex copy of each data file;</li>
       <li>plug-ins, as <code>.rez</code>, <code>.sit</code> or <code>.zip</code>, opened with a game or after it.</li>
@@ -403,7 +408,8 @@ details.inline .list { margin-top: 4px; }
 <script src="js/mac-stuffit.js?v=dacdb7f2"></script>
 <script src="js/mac-vise.js?v=fcf4feff"></script>
 <script src="js/mac-zip.js?v=388f5cc5"></script>
-<script src="js/nova-files.js?v=971d2e95"></script>
+<script src="js/disk-image.js?v=bc77f7f6"></script>
+<script src="js/nova-files.js?v=26209b81"></script>
 <script src="js/nova-records.js?v=75d6acca"></script>
 <script src="js/nova-ncb.js?v=e8a20c19"></script>
 <script src="js/nova-sprites.js?v=944def6a"></script>
@@ -415,10 +421,12 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-ships.js?v=44513e72"></script>
 <script src="js/nova-flight.js?v=458f1046"></script>
 <script src="js/nova-fight.js?v=dfcfdfd9"></script>
-<script src="js/page-open.js?v=62257206"></script>
+<script src="js/nova-compare.js?v=6e93acca"></script>
+<script src="js/page-open.js?v=4c0f0ea6"></script>
+<script src="js/page-compare.js?v=bfe95a5e"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=f9990fc1"></script>
-<script src="js/page-ships.js?v=5ff78155"></script>
+<script src="js/page-map.js?v=8b8cee32"></script>
+<script src="js/page-ships.js?v=76f79a24"></script>
 <script src="js/page-flight.js?v=35476edd"></script>
 <script src="js/page-battle.js?v=b391ec60"></script>
 </body>

@@ -360,6 +360,7 @@ function shipHtml(ship, shan) {
       </div>
     </div>
     ${shan ? shanHtml(shan) : ''}
+    ${compareBlock('shïp', ship.id)}
     ${fieldsTable('shïp', ship)}
     ${shan ? fieldsTable('shän', shan) : ''}`;
 }

@@ -88,7 +88,7 @@ async function openGameFiles(picked, opts = {}) {
     setStatus('Looking inside ' + name);
     await nextPaint();
     try {
-      if (looksLikeStuffIt(bytes) || looksLikeZip(bytes)) {
+      if (looksLikeStuffIt(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes)) {
         const list = novaArchiveFiles(bytes);
         if (list.length) found.push(...list); else refused.push(name + ' holds no Nova files');
       } else {
@@ -288,34 +288,38 @@ function wireOpening() {
   }, () => {});
 }
 
-/* Fetches each URL whole, counting as it comes (archive.org's copy is 96 MB),
-   and opens them together. */
+/* One URL's bytes, fetched whole, counting in the status as they come
+   (archive.org's copy is 96 MB); `from` is said after the name. */
+async function fetchBytes(url, from = '') {
+  const name = decodeURIComponent(url.split('/').pop());
+  setStatus(`Fetching ${name}${from}`);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+  const total = +r.headers.get('content-length') || 0;
+  const reader = r.body.getReader();
+  const parts = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    setStatus(`Fetching ${name}${from}: ${fmtBytes(got)}${total ? ' of ' + fmtBytes(total) : ''}`);
+  }
+  const bytes = new Uint8Array(got);
+  let at = 0;
+  for (const p of parts) { bytes.set(p, at); at += p.length; }
+  return { name, bytes };
+}
+
+/* Fetches each URL whole and opens them together. */
 async function fetchAndOpen(urls) {
   const picked = [];
   for (const s of urls) {
-    const name = decodeURIComponent(s.split('/').pop());
     const from = s === ARCHIVE_ORG.url ? ' from archive.org' : '';
-    setStatus(`Fetching ${name}${from}`);
-    try {
-      const r = await fetch(s);
-      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
-      const total = +r.headers.get('content-length') || 0;
-      const reader = r.body.getReader();
-      const parts = [];
-      let got = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        parts.push(value);
-        got += value.length;
-        setStatus(`Fetching ${name}${from}: ${fmtBytes(got)}${total ? ' of ' + fmtBytes(total) : ''}`);
-      }
-      const bytes = new Uint8Array(got);
-      let at = 0;
-      for (const p of parts) { bytes.set(p, at); at += p.length; }
-      picked.push({ name, bytes });
-    } catch (e) {
-      setStatus(`Could not fetch ${name}${from}: ${e.message}`, true);
+    try { picked.push(await fetchBytes(s, from)); }
+    catch (e) {
+      setStatus(`Could not fetch ${decodeURIComponent(s.split('/').pop())}${from}: ${e.message}`, true);
       return;
     }
   }

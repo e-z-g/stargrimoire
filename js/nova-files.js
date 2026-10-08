@@ -107,7 +107,7 @@ function novaOpenFork(bytes) {
   return looksLikeRez(bytes) ? novaOpenRez(bytes) : openResourceFork(bytes);
 }
 
-/* The files of a release or a plug-in archive, StuffIt or zip, from its
+/* The files of a release or a plug-in archive, StuffIt, zip or disk image, from its
    catalog. What is in a `Nova Files` folder is the game itself; what is in
    a `Nova Plug-ins` folder, or is of Finder type Npïf (which fourcc shows
    as 'Np?f'), or is a `.rez` anywhere else, is a plug-in -- except beside
@@ -118,10 +118,10 @@ function novaOpenFork(bytes) {
    `read()`, which decompresses it when called, and `unpack`, what a
    background thread needs to do the same (page-open.js). */
 function novaArchiveFiles(bytes) {
-  const zip = looksLikeZip(bytes);
-  const cat = zip ? parseZipArchive(bytes) : parseStuffItArchive(bytes);
+  const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
+  const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
   const out = [];
-  const all = cat.entries || cat;
+  const all = Array.isArray(cat) ? cat : cat.entries;
   const gameDirs = new Set();
   for (const e of all) {
     const parts = (e.path || e.name).replace(/\/$/, '').split('/');
@@ -133,6 +133,7 @@ function novaArchiveFiles(bytes) {
     const name = e.name.replace(/\r$/, '');
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;
+    if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
     const dataFile = /\.(rez|ndat)$/i.test(name);
     if (!hasRsrc && !dataFile) continue;
     const parts = (e.path || e.name).split('/');
@@ -148,8 +149,8 @@ function novaArchiveFiles(bytes) {
     const which = hasRsrc ? 'rsrc' : 'data';
     out.push({ name: name.replace(/\.(ndat|rez)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
                role: plugin ? null : (novaFileRole(name) || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
-               read: () => zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which),
-               unpack: { archive: bytes, entry: e, which, zip } });
+               read: () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which),
+               unpack: dmg ? null : { archive: bytes, entry: e, which, zip } });
   }
   return out;
 }

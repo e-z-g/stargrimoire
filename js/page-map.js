@@ -245,6 +245,8 @@ function stellarAnimLoop(now) {
 
 function mapStart(fresh) {
   U = novaUniverse(GAME);
+  if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
+  $('compareBtn').hidden = false;
   PICT_CACHE.clear();
   SPRITE_CACHE.clear();
   FRAME_CACHE.clear();
@@ -1307,6 +1309,7 @@ function drawDots(ctx) {
       markPath(ctx, d, r + 3);
       ctx.strokeStyle = 'rgba(232,184,106,0.8)'; ctx.stroke();
     }
+    compareRing(ctx, compareSystem(d.sys.id), x => markPath(ctx, d, r + x));
     if (GATE_LINES) drawGateMarks(ctx, d, r);
     const story = storyPlaces();
     if (story && story.has(d.p)) { ctx.globalAlpha = 1 - d.t; markPath(ctx, d, r + 5); ctx.strokeStyle = '#9fe870'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
@@ -1347,6 +1350,7 @@ function drawStellars(ctx, d, cur) {
       ctx.beginPath(); ctx.arc(b.x, b.y, b.w / 2, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke();
     }
+    compareRing(ctx, compareStellar(b.sp.id), x => { ctx.beginPath(); ctx.arc(b.x, b.y, b.w / 2 + x, 0, Math.PI * 2); });
     if (b.sp.id === selId) {
       ctx.strokeStyle = '#86b6ff'; ctx.lineWidth = 2;
       ctx.strokeRect(b.x - b.w / 2 - 4, b.y - b.h / 2 - 4, b.w + 8, b.h + 8);
@@ -2208,6 +2212,7 @@ function missionPanel(id) {
     </table>
     <p class="note">Leads to: the missions whose AvailBits need a bit this one turns on (a bit at most three missions turn on), or that it starts.</p>
     ${text('The offer', 4000 + id - 128)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
+    ${compareBlock('mïsn', id)}
     ${fieldsTable('mïsn', r)}`;
 }
 
@@ -2274,6 +2279,7 @@ function galaxyPanel() {
     <h3>Governments</h3><div class="legend">${legend}</div>
     ${storyList()}
     <h3>Nebulae</h3><div class="list">${neb || '<span class="note">none</span>'}</div>
+    ${compareList()}
     <details><summary>Files open</summary><table class="kv">${files}</table></details>`;
 }
 
@@ -2342,6 +2348,7 @@ function systemPanel(sys) {
     </table>
     <h3>Visibility</h3><p>${testLine(sys.visibility)}</p>
     ${versions ? `<h3>Versions of this place</h3><table class="kv">${versions}</table>` : ''}
+    ${compareBlock('sÿst', sys.id)}
     ${fieldsTable('sÿst', r)}`;
 }
 
@@ -2391,6 +2398,7 @@ function stellarPanel(sp) {
     <h3>In ${inSys.length === 1 ? 'the system' : 'the systems'}</h3><div class="list">${inSys.map(id => sysLink(id)).join('') || '<span class="note">none: in no system\'s navigation list</span>'}</div>
     ${sets ? `<h3>Control bits</h3><table class="kv">${sets}</table>` : ''}
     ${stellarMissions(sp)}
+    ${compareBlock('spöb', sp.id)}
     ${fieldsTable('spöb', sp)}`;
 }
 
@@ -2796,6 +2804,7 @@ function wireTools() {
 }
 
 wireOpening();
+wireCompare();
 wireMap();
 wireLanding();
 wirePanel();

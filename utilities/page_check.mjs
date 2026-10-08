@@ -564,6 +564,44 @@ try {
     }
   }
 
+  // 1.1.1's disk image, opened whole: the same galaxy as its Nova Files.
+  const dmg = 'reference/game/EV_Nova_1.1.1_for_Mac_OS_X.dmg';
+  if (!fs.existsSync(path.join(ROOT, dmg))) console.log('SKIP the disk image: not in reference/game/');
+  else {
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(dmg), 'typeof U !== "undefined" && U && !PUMPING && PENDING.length === 0', 300000,
+      { chrome, device: { name: 'desktop', width: 1280, height: 800, scale: 1 },
+        then: async p => p.evaluate("({ systems: U.systems.length, files: GAME.files.map(f => f.name), picts: GAME.list('PICT').length })") });
+    for (const e of pageErrors(r.console)) fail('the disk image: ' + describe(e));
+    const o = r.more || {};
+    if (!r.met || o.systems !== 545 || !((o.files || []).length >= 13)) fail('the disk image: ' + JSON.stringify(o));
+    else console.log(`1.1.1's disk image: ${o.files.length} files open, ${o.systems} systems, ${o.picts} PICTs, in ${(r.ms / 1000).toFixed(1)} s`);
+  }
+
+  // Compared with 1.0.2 by ?compare=: the galaxy's panel lists what changed,
+  // Kipa is ringed, and its panel gives its government in both.
+  if (!haveRelease('1.0.10') || !haveRelease('1.0.2')) console.log('SKIP the comparison: 1.0.10 or 1.0.2 not in reference/');
+  else {
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent('reference/' + RELEASES['1.0.10'].sit) + '&compare=' + encodeURIComponent('reference/' + RELEASES['1.0.2'].sit),
+      'typeof COMPARE !== "undefined" && COMPARE && COMPARE.cmp && !PUMPING', 300000, { chrome, device: { name: 'desktop', width: 1280, height: 800, scale: 1 },
+      then: async p => {
+        const out = await p.evaluate(`(() => {
+          renderPanel();
+          const galaxy = document.getElementById('panel').textContent;
+          VIEW.sel = { kind: 'system', id: 288 }; renderPanel();
+          const kipa = [...document.querySelectorAll('#panel table.compare tr')].map(tr => tr.textContent.trim());
+          return { count: COMPARE.cmp.count, listed: /Compared with EV_Nova_1\.0\.2\.sit/.test(galaxy), kipa, ring: compareSystem(288) };
+        })()`);
+        return out;
+      } });
+    for (const e of pageErrors(r.console)) fail('the comparison: ' + describe(e));
+    if (!r.met) fail('the comparison never finished');
+    const o = r.more || {};
+    if (!o.listed) fail('the comparison: the galaxy\'s panel does not list what changed');
+    if (o.ring !== 'changed') fail(`the comparison: Kipa is ${o.ring}, not ringed as changed`);
+    if (!(o.kipa || []).some(t => /^Govt\s*137\s*170$/.test(t))) fail('the comparison: Kipa\'s panel does not give Govt 137 then 170: ' + JSON.stringify(o.kipa));
+    console.log(`compared with 1.0.2: ${o.count} records differ; Kipa ${o.ring}, ${JSON.stringify(o.kipa)}`);
+  }
+
   // The ships, from 1.0.10's archive, whose ships files the page reads only
   // when the ships are first looked at.
   const sit = RELEASES['1.0.10'].sit;

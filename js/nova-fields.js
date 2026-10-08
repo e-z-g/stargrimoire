@@ -86,6 +86,10 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'mïsn': {
+    AvailLoc: {
+      note: 'Where it is offered. 0: listed in the Mission BBS. 1: in the bar. 2: by a ship whose përs has it as LinkMission, when you hail the ship, or, with that përs\'s Flags 0x0200, when you board it. 3: on landing, at the spaceport. 4: at the Trade Center. 5: at the shipyard. 6: at the outfitter. Anything else: nowhere.',
+      code: [['IsMissionAvailable', 0x9b152], ['OfferMissionFromPort', 0xa369e], ['DoMissionDialog', 0xa37cf], ['DoBarDialog', 0x48ef5], ['DoPortDialog', 0x5f911], ['DoTradeDialog', 0x5dbe1], ['DoShipyardDialog', 0x5e679], ['DoOutfitDialog', 0x5bacf], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000]],
+    },
     AvailRecord: {
       note: '0: no test. Above 0: your record in this system must be at least this; below 0, at most this. -32000: the stellar you are at must be one you have dominated; -32001: you must have dominated some stellar; below that: never offered.',
       code: [['IsMissionAvailable', 0x9b152]],

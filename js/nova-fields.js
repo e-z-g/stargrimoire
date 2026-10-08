@@ -186,6 +186,14 @@ const NOVA_FIELD_NOTES = {
       note: 'Days that pass when the mission is done, or when it ends by itself.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['IncrementGameTime', 0xb516]],
     },
+    TimeLimit: {
+      note: 'Days you have: one comes off each day, and when none are left the mission fails, as soon as you are not in a spaceport, with a message unless its Flags has 0x0400. 0 or less: no limit.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['IncrementGameTime', 0xb516], ['MissionObjectivesCheck', 0x9e79e], ['QuickMissionFailure', 0x99d1b]],
+    },
+    CanAbort: {
+      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which is then no longer aboard for it; when it fails, it is taken off your list at once. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['PlayerHasJettisonableCargo', 0x825a], ['JettisonCargo', 0x3dffd], ['QuickMissionFailure', 0x99d1b], ['MissionLandCheck', 0xa19cc]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

@@ -46,6 +46,10 @@ const NOVA_FIELD_NOTES = {
       note: 'The chance in 100 it is offered on a given day: it is offered while BuyRandom is at least a number from 1 to 100 drawn for its class each day. 0: never.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
     },
+    HireRandom: {
+      note: 'The chance in 100 it is offered for hire on a given day: it is offered while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy, the state in which the program sends its nag ship, Captain Hector, the draw is passed by and every class above 0 is offered every day.',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['SpawnNagShip', 0x5fdb]],
+    },
     Require: {
       note: 'Offered only when the Contributes bits of your ship and outfits include every bit set here.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],

@@ -166,6 +166,26 @@ const NOVA_FIELD_NOTES = {
       note: 'How the mission\'s ships act. 0: each is set on you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments their own is an enemy of. Anything else: as their own AI has it.',
       code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6]],
     },
+    ShipCount: {
+      note: 'How many ships the mission has, placed as ShipSyst and ShipStart say. 0 or less: none. With ShipSyst -6 and ShipBehav 1, those of them already with you are not placed again.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['MissionObjectivesCheck', 0x9e79e]],
+    },
+    ShipDude: {
+      note: 'The düde the mission\'s ships are drawn from, each ship\'s class drawn from it in turn; with the mission\'s Flags 0x0800, one class is drawn when you accept and serves for them all.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['MissionDudeSpawn', 0x3cd3b], ['SelectShipFieldFromDude', 0x65c2]],
+    },
+    CompGovt: {
+      note: 'The government whose regard CompReward changes: 128 to 383. Anything else: none, and CompReward is not used.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc]],
+    },
+    CompReward: {
+      note: 'When the mission is done, your record goes up by this in every system whose government is CompGovt, by half of it where the government is an ally of CompGovt\'s, and down by half where it is an enemy. When it fails, down by half in CompGovt\'s systems. When you abort it and its Flags has 0x0040, down by five times this there.',
+      code: [['DoMissionSuccess', 0xa03fc], ['DoMissionFailure', 0xa0285], ['DoMissionInfoDialog', 0x9e19b], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
+    },
+    DatePostInc: {
+      note: 'Days that pass when the mission is done, or when it ends by itself.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['IncrementGameTime', 0xb516]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

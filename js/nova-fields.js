@@ -376,6 +376,22 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'përs': {
+    HailQuote: {
+      note: 'What this person\'s ship says when it hails you: the STR resource numbered HailQuote + 4999 where there is one, else entry HailQuote of STR# 7101. -1: it does not hail. It hails, while you can see it and it is not dying, jumping or leaving, 1 time in 140 each step and not within 2,700 ticks of its last, as Flags allows.',
+      code: [['HandleShip', 0x33581], ['ShowPersonHailQuote', 0x4457e], ['LoadPluginString', 0x71a8e]],
+    },
+    LinkMission: {
+      note: 'The mïsn this person offers: when you hail its ship, or with Flags 0x0200, when you board it, if the mission is available then (AvailLoc 2). -1: none.',
+      code: [['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['IsMissionAvailable', 0x9b152], ['OfferOneMission', 0xa21ac]],
+    },
+    Flags: {
+      note: '0x0001: damaging its ship gives it a grudge, and as a warship it then goes for you. 0x0002: when its ship is destroyed, it is not gone for good. HailQuote only: 0x0004, while it has a grudge; 0x0008, while it likes you; 0x0010, as it turns on you (then at once); 0x0020, while its ship is disabled; 0x0080, once; 0x0400, while its LinkMission is available; not 0x1000 if your ship class\'s InherentAI is 1, 0x2000 if 2, 0x4000 if 3 or more. 0x0040: once you accept its LinkMission, if that mission has one ship, this ship becomes it. 0x0100: once you accept its LinkMission, it is not met again. 0x0200: its LinkMission is offered on boarding, not hailing. 0x0800: once you accept its LinkMission, its ship leaves.',
+      code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0]],
+    },
+    Flags2: {
+      note: '0x0001: its ship cannot jump out while it has less than 100 units of fuel.',
+      code: [['AIShipHasFuelForJump', 0x7f48f], ['WarshipAI', 0x8b729]],
+    },
     LinkSyst: {
       note: 'Where this person may be met among the ships a system\'s AvgShips brings, or among those jumping in later (1 time in 7 each). -1: anywhere. 128 to 9998: that sÿst; 0 to 127 count as 128 to 255. 9999: systems of no government; 10000 + n, of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Not among those jumping in if its government has Flags 0x0800. It is never picked while its AIType is 0 or less, its ActivateOn fails, it has been destroyed or captured, or it is already there.',
       code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],

@@ -602,6 +602,76 @@ try {
     console.log(`compared with 1.0.2: ${o.count} records differ; Kipa ${o.ring}, ${JSON.stringify(o.kipa)}`);
   }
 
+  // The plug-in editor: Sol's xPos changed from its panel, a bad value
+  // refused, the map moved, the change kept in the browser's storage, saved
+  // as a .rez and for the Mac and both read back, then undone.
+  if (!haveRelease('1.0.10')) console.log('SKIP the plug-in editor: no 1.0.10 in reference/');
+  else {
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent('reference/' + RELEASES['1.0.10'].sit),
+      'typeof U !== "undefined" && U && !PUMPING', 300000, { chrome, device: { name: 'desktop', width: 1280, height: 800, scale: 1 },
+      then: async p => p.evaluate(`(async () => {
+        const out = {};
+        const sol = U.systems.find(s => s.name === 'Sol');
+        const x0 = sol.x;
+        const panel = () => document.getElementById('panel');
+        const box = () => panel().querySelector('.fieldsBox[data-type="sÿst"]');
+        VIEW.sel = { kind: 'system', id: sol.id }; renderPanel();
+        box().querySelector('[data-edit]').click();
+        const input = f => box().querySelector('input[data-f="' + f + '"]');
+        out.boxes = box().querySelectorAll('input[data-f]').length;
+        out.want = NOVA_RECORDS['sÿst'].filter(f => f[1] !== 'pad').length + 1;
+        input('xPos').value = 'abc';
+        box().querySelector('[data-edit-apply]').click();
+        out.refused = box().querySelector('[data-edit-why]').textContent;
+        out.editsAfterRefused = EDITS.size;
+        input('xPos').value = String(x0 + 50);
+        box().querySelector('[data-edit-apply]').click();
+        await new Promise(r => setTimeout(r, 300));
+        VIEW.sel = { kind: 'system', id: sol.id }; renderPanel();
+        out.moved = U.byId.get(sol.id).x - x0;
+        out.from = box().querySelector('summary').textContent;
+        out.open = box().open;
+        out.stored = JSON.parse(localStorage.getItem(EDITS_STORE)).records.length;
+        EDITS.clear(); editsLoad(); mapStart(false);
+        out.movedAfterLoad = U.byId.get(sol.id).x - x0;
+        out.button = document.getElementById('pluginBtn').textContent;
+        const saved = [];
+        const keep = downloadBlob;
+        downloadBlob = (bytes, name) => saved.push({ bytes, name });
+        document.getElementById('pluginBtn').click();
+        const dialog = document.querySelector('#choose .box');
+        out.rows = dialog.querySelectorAll('table.plugin tr').length;
+        dialog.querySelector('[data-a=rez]').click();
+        dialog.querySelector('[data-a=bin]').click();
+        downloadBlob = keep;
+        out.names = saved.map(s => s.name);
+        const rez = novaOpenRez(saved[0].bytes);
+        const e = rez.resourcesByType[novaTypeKey('sÿst')][0];
+        out.rezX = novaRecord('sÿst', rez.dataOf(null, e)).xPos - x0;
+        const mac = macBinaryForks(saved[1].bytes), fork = openResourceFork(mac.rsrc);
+        const m = fork.resourcesByType[novaTypeKey('sÿst')][0];
+        out.macX = novaRecord('sÿst', fork.dataOf(novaTypeKey('sÿst'), m)).xPos - x0;
+        out.macType = mac.type;
+        dialog.querySelector('[data-a=clear]').click();
+        out.back = U.byId.get(sol.id).x - x0;
+        out.left = EDITS.size + JSON.parse(localStorage.getItem(EDITS_STORE)).records.length;
+        return out;
+      })()`) });
+    for (const e of pageErrors(r.console)) fail('the plug-in editor: ' + describe(e));
+    const o = r.more || {};
+    if (!r.met) fail('the plug-in editor: the page never opened');
+    else {
+      if (o.boxes !== o.want) fail(`the plug-in editor: ${o.boxes} boxes for Sol's ${o.want} fields and name`);
+      if (!/xPos/.test(o.refused || '') || o.editsAfterRefused !== 0) fail(`the plug-in editor: 'abc' for xPos was not refused (${JSON.stringify(o.refused)})`);
+      if (o.moved !== 50 || o.movedAfterLoad !== 50) fail(`the plug-in editor: Sol moved ${o.moved}, after loading ${o.movedAfterLoad}, not 50`);
+      if (!/from Changed here/.test(o.from || '') || !o.open) fail(`the plug-in editor: Sol's fields say ${JSON.stringify(o.from)}, open ${o.open}`);
+      if (o.stored !== 1 || o.rows !== 1 || !/\(1\)/.test(o.button || '')) fail(`the plug-in editor: stored ${o.stored}, listed ${o.rows}, button ${o.button}`);
+      if (o.rezX !== 50 || o.macX !== 50 || o.macType !== 'Np?f') fail(`the plug-in editor: saved ${JSON.stringify(o.names)}, .rez xPos +${o.rezX}, Mac +${o.macX} ${o.macType}`);
+      if (o.back !== 0 || o.left !== 0) fail(`the plug-in editor: undone, Sol is ${o.back} off and ${o.left} changes are left`);
+      console.log(`the plug-in editor: Sol moved 50 from its panel and back; saved ${o.names.join(' and ')}, both read back`);
+    }
+  }
+
   // The ships, from 1.0.10's archive, whose ships files the page reads only
   // when the ships are first looked at.
   const sit = RELEASES['1.0.10'].sit;

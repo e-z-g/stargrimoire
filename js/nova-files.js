@@ -175,19 +175,31 @@ function novaLooseFile(name, bytes) {
    order, which is the order a Mac folder lists them in. */
 function novaGame() {
   const files = [];
+  const fileOrder = (a, b) => (!!a.edits - !!b.edits) || (a.plugin - b.plugin) || a.name.localeCompare(b.name, 'en', { numeric: true });
   const game = {
     files,
     add(file, forkBytes) {
       const fork = novaOpenFork(forkBytes);
       files.push({ name: file.name, plugin: !!file.plugin, role: file.role, fork });
-      files.sort((a, b) => (a.plugin - b.plugin) || a.name.localeCompare(b.name, 'en', { numeric: true }));
+      files.sort(fileOrder);
       memo.clear();
       return fork;
     },
-    /* The entry for (type, id): { type, id, name, file, bytes } or null. */
-    get(type, id) {
+    /* The records changed in the page, [{ type, id, name, data }], as a
+       plug-in read after every other (nova-plugin.js); none takes it away. */
+    setEdits(resources) {
+      const i = files.findIndex(f => f.edits);
+      if (i >= 0) files.splice(i, 1);
+      if (resources && resources.length)
+        files.push({ name: 'Changed here', plugin: true, edits: true, role: null, fork: novaPluginFork(resources) });
+      memo.clear();
+    },
+    /* The entry for (type, id): { type, id, name, file, bytes } or null.
+       `{ under: true }` passes over the records changed in the page. */
+    get(type, id, opts) {
       const key = novaTypeKey(type);
       for (let i = files.length - 1; i >= 0; i--) {
+        if (files[i].edits && opts && opts.under) continue;
         const list = files[i].fork.resourcesByType[key];
         if (!list) continue;
         const e = list.find(r => r.id === id);

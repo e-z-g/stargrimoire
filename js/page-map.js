@@ -244,6 +244,7 @@ function stellarAnimLoop(now) {
 /* ---- starting, and more files ------------------------------------------ */
 
 function mapStart(fresh) {
+  pluginOnto(GAME);
   U = novaUniverse(GAME);
   if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
   $('compareBtn').hidden = false;
@@ -1973,6 +1974,8 @@ function viewHash() {
   return '#galaxy';
 }
 function writeHash(replace) {
+  // the map hidden behind the ships or the battle leaves their address alone
+  if (SHIPS.on || BATTLE.on) return;
   const h = hashFor();
   if (location.hash === h) return;
   if (replace) history.replaceState(null, '', h); else history.pushState(null, '', h);
@@ -2074,15 +2077,6 @@ const sysLink = (id, label) => `<a data-sys="${id}">${esc(label ?? (U.byId.get(i
 const stellarLink = (id, sys) => `<a data-stellar="${id}"${sys !== undefined ? ` data-in="${sys}"` : ''}>${esc(U.stellars.get(id).name)}</a>`;
 const chip = color => `<span class="chip" style="background:${color}"></span>`;
 const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr><td>${esc(k)}</td><td>${v}</td></tr>`;
-
-function fieldsTable(type, rec) {
-  const rows = [];
-  for (const [name, kind, n] of NOVA_RECORDS[type]) {
-    if (kind === 'pad' || !(name in rec)) continue;
-    rows.push(`<tr><td>${esc(name)}</td><td>${esc(novaFieldText(kind, rec[name]))}</td></tr>`);
-  }
-  return `<details><summary>Every field of ${esc(type)} ${rec.id}, from ${esc(rec.file)}</summary><table class="fields">${rows.join('')}</table></details>`;
-}
 
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
@@ -2805,6 +2799,7 @@ function wireTools() {
 
 wireOpening();
 wireCompare();
+wirePlugin();
 wireMap();
 wireLanding();
 wirePanel();

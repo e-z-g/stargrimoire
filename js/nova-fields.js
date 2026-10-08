@@ -76,6 +76,10 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'gövt': {
+    InitialRec: {
+      note: 'Your record in each system whose Govt is this, when you start a new pilot; a system with no government starts at 0. When your escape pod is picked up (dësc 13999), every system\'s record goes back to this again.',
+      code: [['ResetPlayer', 0x1d40d], ['ResetPlayerRecord', 0x1db70], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
+    },
     ScanFine: {
       note: 'The fine when one of its ships fines you after a scan: 1 and up, that many credits; 0, a warning only; below 0, that percentage of your credits, rounded down to the hundred (at least 1).',
       code: [['ScanPlayer', 0x7e46e]],

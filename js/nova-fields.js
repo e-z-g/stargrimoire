@@ -194,6 +194,46 @@ const NOVA_FIELD_NOTES = {
       note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which is then no longer aboard for it; when it fails, it is taken off your list at once. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['PlayerHasJettisonableCargo', 0x825a], ['JettisonCargo', 0x3dffd], ['QuickMissionFailure', 0x99d1b], ['MissionLandCheck', 0xa19cc]],
     },
+    BriefText: {
+      note: 'The dësc shown when you accept the mission. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11]],
+    },
+    QuickBrief: {
+      note: 'The dësc shown for the mission in your list of missions. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['MissionInfoFilter', 0x9d6e5]],
+    },
+    LoadCargText: {
+      note: 'The dësc shown when the cargo comes aboard, on accepting or landing (PickupMode 0 or 1). 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11], ['MissionLandCargoCheck', 0x9edc5]],
+    },
+    DropCargText: {
+      note: 'The dësc shown when the cargo comes off (DropoffMode). 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['MissionLandCargoCheck', 0x9edc5]],
+    },
+    CompText: {
+      note: 'The dësc shown when the mission is done. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc]],
+    },
+    FailText: {
+      note: 'The dësc shown when the mission fails. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionFailure', 0xa0285]],
+    },
+    RefuseText: {
+      note: 'The dësc shown when you refuse the mission as it is offered. -1: none.',
+      code: [['OfferOneMission', 0xa21ac]],
+    },
+    ShipDoneText: {
+      note: 'The dësc shown when the mission\'s ShipGoal is first met. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['MissionObjectivesCheck', 0x9e79e]],
+    },
+    ShipNameID: {
+      note: '-1: the mission\'s ships have their usual names. Otherwise an STR#: one of its strings, picked at random when you accept, is the name of every one of them.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DrawStatusTarg', 0x4ace1], ['AICallForHelp', 0x82ffb]],
+    },
+    ShipSubtitle: {
+      note: '-1: none. Otherwise an STR#: one of its strings, picked at random when you accept, is the subtitle of every one of the mission\'s ships.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DrawStatusTarg', 0x4ace1]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

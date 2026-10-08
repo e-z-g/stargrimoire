@@ -162,6 +162,10 @@ const NOVA_FIELD_NOTES = {
       note: 'What you must do with the mission\'s ships before landing at ReturnStel\'s stellar finishes it. 0: destroy them all. 1: disable them all. 2 and 5: board them all (with 5 they start still and disabled, and stay disabled until boarded). 3: keep them; it is met while one of them is about. 4: see one of them, once all have come (if it can cloak, on your screen). 6: be rid of them, each destroyed or jumped out counting (jumping out does not count with ShipSyst -6). The mission fails at once, unless its Flags has 0x0400, when one is destroyed with goal 1 or 3, or with 2 or 5 before you have boarded it, and when one is disabled with goal 3.',
       code: [['MissionObjectivesCheck', 0x9e79e], ['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['HandlePlayerBoardAttempt', 0x65000], ['LowLevelAIHandler', 0x851da], ['QuickMissionFailure', 0x99d1b], ['ShipVisibleToShip', 0x971c], ['SetupShipsInSystem', 0x42b61], ['IsDisabled', 0x2ce6]],
     },
+    ShipBehav: {
+      note: 'How the mission\'s ships act. 0: each is set on you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments their own is an enemy of. Anything else: as their own AI has it.',
+      code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['IsDisabled', 0x2ce6]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

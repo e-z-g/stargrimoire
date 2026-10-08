@@ -85,6 +85,44 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableItems', 0xbedb], ['IncrementGameTime', 0xb516]],
     },
   },
+  'wëap': {
+    Reload: {
+      note: 'Steps before it fires again, shared among however many of it the ship carries: Reload ÷ that many for each shot fired, or the whole Reload with Flags 0x0040. At the end of a burst, BurstReload instead.',
+      code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702]],
+    },
+    Count: {
+      note: 'Steps a shot lasts. A shot reaches Count × Speed ÷ 100, and on through its submunitions.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586]],
+    },
+    Speed: {
+      note: 'A shot moves Speed ÷ 100 units a step along its heading; with Count, its reach.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
+    },
+    GuidedTurn: {
+      note: 'A homing shot turns a tenth of this in degrees each step, from 15 steps old.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
+    },
+    Impact: {
+      note: 'Pushes the ship it hits, unless that ship is jumping.',
+      code: [['DamageShip', 0x3a807]],
+    },
+    Ionization: {
+      note: 'Added to the ship it hits; from a blast, less by the square of the distance over the square of BlastRadius, and none beyond it.',
+      code: [['IonizeShip', 0x8409]],
+    },
+    SubCount: {
+      note: 'How many shots of SubType a shot breaks into.',
+      code: [['SpawnShotSubmunitions', 0x3f1d5]],
+    },
+    SubTheta: {
+      note: 'Above 0: each submunition within this many degrees of the shot\'s heading, at random. Below 0: fanned out this far apart.',
+      code: [['SpawnShotSubmunitions', 0x3f1d5]],
+    },
+    SubLimit: {
+      note: 'How many generations of submunitions there can be. Below 1: no limit.',
+      code: [['SpawnShotSubmunitions', 0x3f1d5]],
+    },
+  },
   'spöb': {
     Govt: {
       note: '128 and up is that gövt; anything less is no government.',

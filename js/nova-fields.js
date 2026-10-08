@@ -85,6 +85,16 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['WarshipAI', 0x8b729], ['AICallForReinforcements', 0x7f5a1]],
     },
   },
+  'mïsn': {
+    CargoType: {
+      note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
+      code: [['SelectMissionCargoType', 0x981d8]],
+    },
+    CargoQty: {
+      note: '0 and up: that many tons. -1: none. -2 and below: half its size, plus a number from 0 to one less than its size drawn at random, so from half to one and a half times it.',
+      code: [['SelectMissionCargoQty', 0x98191]],
+    },
+  },
   'oütf': {
     TechLevel: {
       note: 'Offered at an outfitter whose stellar\'s TechLevel is at least this, or one of whose SpecialTech is this. Below 0, or 32767: nowhere by its TechLevel.',

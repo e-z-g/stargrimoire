@@ -21,8 +21,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayer', 0x68390], ['DisplayMessage', 0x5289], ['LoadPluginString', 0x71a8e]],
     },
     ReinfFleet: {
-      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system. -1: none.',
-      code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['HandleReinforcements', 0x39048]],
+      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system: when the odds against it are more than half the MaxOdds of the fleet\'s government, or, without that test, when a ship you hail comes to help you. While it is on its way, a warship of that side holds out to twice its MaxOdds before it runs, not once. Below 128: none.',
+      code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['WarshipAI', 0x8b729], ['DoCommDialog', 0x956d5], ['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
     },
     ReinfTime: {
       note: 'How long the fleet takes to come once called: counted down by the game speed each step, then it arrives from hyperspace. When less than a quarter is left: "Sensors detect" the government\'s name "reinforcement fleet approaching."',
@@ -69,16 +69,16 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerDockRequest', 0x66691], ['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949]],
     },
     Gravity: {
-      note: 'While you are in its system, pulls every ship in it toward the stellar, however far: each step by Gravity × the game speed ÷ the square of the distance in hundreds of units, the square taken as at least 30. 0: no pull. Inertialess ships do not feel it, nor ship classes with Flags3 0x0020, nor your ship if it carries an outfit with ModType 41.',
+      note: 'While you are in its system, pulls every ship in it toward the stellar, however far: each step by Gravity × the game speed ÷ the square of the distance in hundreds of units, the square taken as at least 30. Below 0, it pushes instead; 0, nothing. Inertialess ships do not feel it, nor ship classes with Flags3 0x0020, nor your ship if it carries an outfit with ModType 41.',
       code: [['HandleGravity', 0x39bc3], ['ApplyGravity', 0x7c5a], ['ShipResistsGravity', 0x7b10]],
     },
     Weapon: {
-      note: '-1: it does not fire. It does not fire once destroyed.',
-      code: [['HandleStellarWeapons', 0x2ef3a]],
+      note: 'Below 128: none. It does not fire once destroyed.',
+      code: [['LoadObjectData', 0x771b0], ['HandleStellarWeapons', 0x2ef3a]],
     },
     Strength: {
-      note: 'Its strength to start with and its most.',
-      code: [['LoadObjectData', 0x771b0]],
+      note: 'Its strength to start with and its most. 0 or less: it is never destroyed.',
+      code: [['LoadObjectData', 0x771b0], ['StellarIsDestroyed', 0x4e14]],
     },
     DeadType: {
       note: 'Above 255, or below 0: its own Type.',

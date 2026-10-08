@@ -376,6 +376,22 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'përs': {
+    Coward: {
+      note: 'As a warship of a government with Flags 0x0010 and with no leader, it turns tail once its shields fall below Coward per cent of their full; ships that are not persons go by their aggression instead.',
+      code: [['WarshipAI', 0x8b729], ['ShipShieldCapacity', 0x2995]],
+    },
+    HailPict: {
+      note: 'The picture shown when you hail its ship: 128 and up, that PICT; anything else, its ship class\'s.',
+      code: [['LoadObjectData', 0x771b0], ['DoCommDialog', 0x956d5]],
+    },
+    CommQuote: {
+      note: 'What its ship answers when you hail it: above 0, the STR resource numbered CommQuote + 15000 where there is one, else entry CommQuote of STR# 7100. -1 with Flags 0x8000: news of a disaster now under way. Otherwise the usual answer.',
+      code: [['LoadAdvice', 0x9133c], ['LoadPluginString', 0x71a8e]],
+    },
+    Subtitle: {
+      note: 'Shown for its ship in your target display.',
+      code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1]],
+    },
     Credits: {
       note: 'The credits you can take when you plunder this person\'s ship: Credits ÷ 1,000 rounded down and halved, plus, when that is above 2, a number from 0 to one less than it drawn at random; that many thousands. 0 or less: none.',
       code: [['LoadObjectData', 0x771b0], ['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
@@ -433,8 +449,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['IsMissionAvailable', 0x9b152], ['OfferOneMission', 0xa21ac]],
     },
     Flags: {
-      note: '0x0001: damaging its ship gives it a grudge, and as a warship it then goes for you. 0x0002: when its ship is destroyed, it is not gone for good. HailQuote only: 0x0004, while it has a grudge; 0x0008, while it likes you; 0x0010, as it turns on you (then at once); 0x0020, while its ship is disabled; 0x0080, once; 0x0400, while its LinkMission is available; not 0x1000 if your ship class\'s InherentAI is 1, 0x2000 if 2, 0x4000 if 3 or more. 0x0040: once you accept its LinkMission, if that mission has one ship, this ship becomes it. 0x0100: once you accept its LinkMission, it is not met again. 0x0200: its LinkMission is offered on boarding, not hailing. 0x0800: once you accept its LinkMission, its ship leaves.',
-      code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0]],
+      note: '0x0001: damaging its ship gives it a grudge, and as a warship it then goes for you. 0x0002: when its ship is destroyed, it is not gone for good. HailQuote only: 0x0004, while it has a grudge; 0x0008, while it likes you; 0x0010, as it turns on you (then at once); 0x0020, while its ship is disabled; 0x0080, once; 0x0400, while its LinkMission is available; not 0x1000 if your ship class\'s InherentAI is 1, 0x2000 if 2, 0x4000 if 3 or more. 0x0040: once you accept its LinkMission, if that mission has one ship, this ship becomes it. 0x0100: once you accept its LinkMission, it is not met again. 0x0200: its LinkMission is offered on boarding, not hailing. 0x0800: once you accept its LinkMission, its ship leaves. 0x8000: with CommQuote -1, hailing it gives news of a disaster.',
+      code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['LoadAdvice', 0x9133c], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0]],
     },
     Flags2: {
       note: '0x0001: its ship starts with no fuel, and cannot jump out while it has less than 100 units.',

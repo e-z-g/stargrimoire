@@ -234,6 +234,22 @@ const NOVA_FIELD_NOTES = {
       note: '-1: none. Otherwise an STR#: one of its strings, picked at random when you accept, is the subtitle of every one of the mission\'s ships.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DrawStatusTarg', 0x4ace1]],
     },
+    ShipStart: {
+      note: 'Where the mission\'s ships start. -1 to -16: on the stellar in that place of their system\'s list (-1 the first), there when you arrive. 0, or a place the list does not fill: brought in as the system\'s other ships are, there when you arrive. 1: they come in from hyperspace, making for you, 100 to 199 steps after you arrive (30 with ShipBehav 1 and ShipGoal 3), and so again each time you enter their system. 2: the first time, the same; after that they are there when you arrive, cloaked.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['DoShipCloak', 0xde73], ['GenericRandomShipSpawn', 0x3c89f]],
+    },
+    AuxShipCount: {
+      note: 'How many ships of AuxShipDude the mission sends after you, in the systems AuxShipSyst allows: 70 to 139 steps after you enter such a system (or take off), as many as are left come in from hyperspace, less those already there. Each that comes counts against what is left, unless the mission\'s Flags has 0x0010, when the number is whole again in each system. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['SpecificDudeSpawn', 0x3d0eb]],
+    },
+    AuxShipDude: {
+      note: 'The düde the aux ships are drawn from: 128 to 639. Anything else: none, and AuxShipCount is not used.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['SpecificDudeSpawn', 0x3d0eb]],
+    },
+    AuxShipSyst: {
+      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system; -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. 9999, 10000 + n and the other numbers AvailStel takes for governments: systems of those governments, counting as an enemy of a government with Flags 0x0001 any not its ally. Anything else: none.',
+      code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

@@ -75,6 +75,16 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipResistsGravity', 0x7b10]],
     },
   },
+  'oütf': {
+    TechLevel: {
+      note: 'Offered at an outfitter whose stellar\'s TechLevel is at least this, or one of whose SpecialTech is this. Below 0, or 32767: nowhere by its TechLevel.',
+      code: [['SetupPortAvailableItems', 0xbedb]],
+    },
+    BuyRandom: {
+      note: 'The chance in 100 it is offered on a given day: it is offered while BuyRandom is at least a number from 1 to 100 drawn for it each day. Above 100: 100. 0 or less: never, unless you already have one.',
+      code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableItems', 0xbedb], ['IncrementGameTime', 0xb516]],
+    },
+  },
   'spöb': {
     Govt: {
       note: '128 and up is that gövt; anything less is no government.',

@@ -75,6 +75,16 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipResistsGravity', 0x7b10]],
     },
   },
+  'gövt': {
+    ScanFine: {
+      note: 'The fine when one of its ships fines you after a scan: 1 and up, that many credits; 0, a warning only; below 0, that percentage of your credits, rounded down to the hundred (at least 1).',
+      code: [['ScanPlayer', 0x7e46e]],
+    },
+    MaxOdds: {
+      note: 'Kept as MaxOdds ÷ 100, at least 0.01. A warship of this government runs once the odds against it pass that, or twice that while a reinforcement fleet is on its way; a system\'s reinforcement fleet of this government is called at half of it.',
+      code: [['LoadObjectData', 0x771b0], ['WarshipAI', 0x8b729], ['AICallForReinforcements', 0x7f5a1]],
+    },
+  },
   'oütf': {
     TechLevel: {
       note: 'Offered at an outfitter whose stellar\'s TechLevel is at least this, or one of whose SpecialTech is this. Below 0, or 32767: nowhere by its TechLevel.',

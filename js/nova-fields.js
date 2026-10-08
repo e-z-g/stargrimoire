@@ -66,6 +66,10 @@ const NOVA_FIELD_NOTES = {
       note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled. 0 or less: a tenth of its Cost.',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
+    Contributes: {
+      note: 'Added to your bits while you fly this class. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, is met when they include every bit it sets.',
+      code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
+    },
     FuelRegen: {
       note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your own ship regains it only with Flags 0x0008.',
       code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],
@@ -128,6 +132,10 @@ const NOVA_FIELD_NOTES = {
       note: 'The chance in 100 it is offered on a given day: it is offered while BuyRandom is at least a number from 1 to 100 drawn for it each day. Above 100: 100. 0 or less: never, unless you already have one.',
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableItems', 0xbedb], ['IncrementGameTime', 0xb516]],
     },
+    Contributes: {
+      note: 'Added to your bits while you carry at least one. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, is met when they include every bit it sets.',
+      code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableItems', 0xbedb], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
   },
   'wëap': {
     Reload: {
@@ -165,6 +173,12 @@ const NOVA_FIELD_NOTES = {
     SubLimit: {
       note: 'How many generations of submunitions there can be. Below 1: no limit.',
       code: [['SpawnShotSubmunitions', 0x3f1d5]],
+    },
+  },
+  'crön': {
+    Contrib: {
+      note: 'Added to your bits while the event is running: from the end of its PreHoldoff until it ends, not in its PostHoldoff. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, is met when they include every bit it sets.',
+      code: [['CronEventHandler', 0x3874f], ['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
   },
   'spöb': {

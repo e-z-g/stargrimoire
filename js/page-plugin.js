@@ -10,7 +10,9 @@
 
    The bar's Plug-in lists them and saves them as a plug-in: a `.rez` for
    the Windows builds and the Community Edition, or a MacBinary `.bin`
-   for the Mac (nova-plugin.js says why a .bin). While comparing, it also
+   for the Mac (nova-plugin.js says why a .bin). A field the program has
+   been read for has its note under it (nova-fields.js), the routines it was
+   read from on hovering. While comparing, it also
    saves what differs from the files compared with.
 
    The page's own script: DOM here. LOAD ORDER: after js/page-compare.js
@@ -66,9 +68,11 @@ function fieldsTable(type, rec) {
   for (const [name, kind, n] of NOVA_RECORDS[type]) {
     if (kind === 'pad' || !(name in rec)) continue;
     const text = novaFieldText(kind, rec[name]);
-    if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}</td></tr>`); continue; }
+    const fn = novaFieldNote(type, name);
+    const note = fn ? `<div class="fieldNote" title="${esc(fn.code.map(([f, a]) => f + ' 0x' + a.toString(16)).join(', '))}">${esc(fn.note)}</div>` : '';
+    if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}${note}</td></tr>`); continue; }
     const max = kind === 'str' ? ` maxlength="${n - 1}"` : '';
-    rows.push(`<tr><td>${esc(name)}</td><td><input data-f="${esc(name)}" value="${esc(text)}"${max} spellcheck="false"></td></tr>`);
+    rows.push(`<tr><td>${esc(name)}</td><td><input data-f="${esc(name)}" value="${esc(text)}"${max} spellcheck="false">${note}</td></tr>`);
   }
   const changed = EDITS.has(key);
   const buttons = editing

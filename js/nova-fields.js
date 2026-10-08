@@ -86,6 +86,18 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'mïsn': {
+    AvailRecord: {
+      note: '0: no test. Above 0: your record in this system must be at least this; below 0, at most this. -32000: the stellar you are at must be one you have dominated; -32001: you must have dominated some stellar; below that: never offered.',
+      code: [['IsMissionAvailable', 0x9b152]],
+    },
+    AvailRating: {
+      note: '0 or less: no test. Above 0: your combat rating must be at least this.',
+      code: [['IsMissionAvailable', 0x9b152]],
+    },
+    AvailRandom: {
+      note: 'The chance in 100 it is offered: each mission has a number from 1 to 100, drawn again from time to time as you play, and it is offered while AvailRandom is at least that. 100 or more: always. 0 or less: never. Accepting it sets its number to 0.',
+      code: [['IsMissionAvailable', 0x9b152], ['InitObjects', 0x1c2e5], ['HandlePlayer', 0x68390], ['DoMissionAccept', 0xa1b11]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

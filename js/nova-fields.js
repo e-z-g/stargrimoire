@@ -376,6 +376,22 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'përs': {
+    Credits: {
+      note: 'The credits you can take when you plunder this person\'s ship: Credits ÷ 1,000 rounded down and halved, plus, when that is above 2, a number from 0 to one less than it drawn at random; that many thousands. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0], ['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
+    },
+    GrantClass: {
+      note: 'When you plunder this person\'s ship, with a chance of GrantProb in 100, you are given outfits of one oütf picked at random among those whose ItemClass is this and of which you do not have the most you can. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b], ['HasMaxOfItem', 0x4512], ['GrantOutfitItem', 0x44d4f]],
+    },
+    GrantProb: {
+      note: 'The chance in 100 of the GrantClass gift; kept between 0 and 100.',
+      code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b]],
+    },
+    GrantCount: {
+      note: 'How many of the GrantClass outfit are given: GrantCount × a number from 50 to 100 drawn at random ÷ 100, at least 1, and fewer while they would not fit your ship\'s free mass. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b], ['ShipFreeMass', 0xb462], ['GrantOutfitItem', 0x44d4f]],
+    },
     ShipType: {
       note: 'The class of this person\'s ship: 128 to 895. Anything else: shïp 128.',
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],

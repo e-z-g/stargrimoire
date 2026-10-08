@@ -376,6 +376,38 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'përs': {
+    ShipType: {
+      note: 'The class of this person\'s ship: 128 to 895. Anything else: shïp 128.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+    },
+    Govt: {
+      note: 'The government of this person\'s ship. If that gövt has Flags 0x0800, the ship starts disabled and is never one jumping in.',
+      code: [['SpawnPerson', 0x408d5]],
+    },
+    AIType: {
+      note: 'How this person\'s ship flies, by the program\'s routines: 1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI (PirateWarshipAI if its government has Flags 0x1000), 4 InterceptorAI, above 4 EscortAI. 0 or less: the person is never picked by LinkSyst.',
+      code: [['SpawnPerson', 0x408d5], ['AIDispatch', 0x8fb52], ['WimpyTraderAI', 0x8b029], ['BraveTraderAI', 0x8b493], ['WarshipAI', 0x8b729], ['PirateWarshipAI', 0x8c2d2], ['InterceptorAI', 0x8c895], ['EscortAI', 0x838d2]],
+    },
+    Aggress: {
+      note: 'Kept for the ship as 1 when below 1, as given when 1 or 2, and as 4 when above 2.',
+      code: [['SpawnPerson', 0x408d5]],
+    },
+    WeapType: {
+      note: 'Weapons added to those of the ship\'s class, each 128 and up a wëap, WeapCount of it and AmmoLoad of its ammunition; one listed twice takes the later of the two. Below 128: none.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+    },
+    WeapCount: {
+      note: 'How many of the WeapType beside it are added to the ship.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+    },
+    AmmoLoad: {
+      note: 'Ammunition added for the WeapType beside it.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+    },
+    ShieldMod: {
+      note: 'Above 0: the ship\'s shields and armour are ShieldMod per cent of its class\'s. 0 or less: as its class\'s.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+    },
     HailQuote: {
       note: 'What this person\'s ship says when it hails you: the STR resource numbered HailQuote + 4999 where there is one, else entry HailQuote of STR# 7101. -1: it does not hail. It hails, while you can see it and it is not dying, jumping or leaving, 1 time in 140 each step and not within 2,700 ticks of its last, as Flags allows.',
       code: [['HandleShip', 0x33581], ['ShowPersonHailQuote', 0x4457e], ['LoadPluginString', 0x71a8e]],
@@ -389,8 +421,8 @@ const NOVA_FIELD_NOTES = {
       code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0]],
     },
     Flags2: {
-      note: '0x0001: its ship cannot jump out while it has less than 100 units of fuel.',
-      code: [['AIShipHasFuelForJump', 0x7f48f], ['WarshipAI', 0x8b729]],
+      note: '0x0001: its ship starts with no fuel, and cannot jump out while it has less than 100 units.',
+      code: [['SpawnPerson', 0x408d5], ['AIShipHasFuelForJump', 0x7f48f], ['WarshipAI', 0x8b729]],
     },
     LinkSyst: {
       note: 'Where this person may be met among the ships a system\'s AvgShips brings, or among those jumping in later (1 time in 7 each). -1: anywhere. 128 to 9998: that sÿst; 0 to 127 count as 128 to 255. 9999: systems of no government; 10000 + n, of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Not among those jumping in if its government has Flags 0x0800. It is never picked while its AIType is 0 or less, its ActivateOn fails, it has been destroyed or captured, or it is already there.',

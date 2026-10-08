@@ -164,7 +164,7 @@ const NOVA_FIELD_NOTES = {
     },
     ShipBehav: {
       note: 'How the mission\'s ships act. 0: each is set on you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments their own is an enemy of. Anything else: as their own AI has it.',
-      code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['IsDisabled', 0x2ce6]],
+      code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6]],
     },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',

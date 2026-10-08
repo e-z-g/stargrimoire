@@ -63,7 +63,7 @@ const NOVA_FIELD_NOTES = {
       code: [['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     EscSellValue: {
-      note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled.',
+      note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled. 0 or less: a tenth of its Cost.',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     FuelRegen: {

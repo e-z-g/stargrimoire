@@ -10,9 +10,11 @@
    utilities/fields_check.mjs holds every routine named here to the
    program's own symbols.
 
-   The plug-in editor shows a note beside its field (page-plugin.js).
+   The plug-in editor shows a note beside its field (page-plugin.js), and
+   under it, where there is one, what the record's own value means.
 
-   GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js. */
+   GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js and
+   nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
   'sÿst': {
@@ -506,6 +508,88 @@ const NOVA_FIELD_NOTES = {
     },
   },
 };
+
+/* ---- what a record's own value means ---------------------------------------
+
+   Beside each note, a reading of the value in the record at hand, by the same
+   rules: (value, record, game) to words, the records it names named from the
+   game's files (novaRefText). Only fields whose value is a code, a set of
+   bits or another record's id have one; a plain quantity reads as itself.
+   utilities/fields_check.mjs runs every reading over every record of every
+   release. */
+
+// A record named by type and id: "düde 130, Pirates", or "spöb 4000, not in the files".
+function novaRefText(game, type, id) {
+  const r = game && game.get(type, id);
+  return r ? `${type} ${id}, ${novaNameParts(r.name).name}` : `${type} ${id}, not in the files`;
+}
+function novaGovtText(game, id) { return id >= 128 && id <= 383 ? novaRefText(game, 'gövt', id) : 'no government'; }
+function novaPlaceRead(game, field, v) {
+  const p = novaMissionPlace(null, field, v);
+  if (p.stellar) return novaRefText(game, 'spöb', p.stellar);
+  const sys = p.system !== undefined ? novaRefText(game, 'sÿst', p.system) : '';
+  if (p.text === 'system') return sys;
+  return p.text.replace('{g}', p.govt !== undefined ? novaGovtText(game, p.govt) : '') + (sys ? ' ' + sys : '');
+}
+// The bits set in a flags word, each by the words given for it, others as "0x… no use found".
+function novaBitsRead(v, words) {
+  const out = [];
+  for (let b = 1; b <= 0x8000; b <<= 1) if (v & b) out.push('0x' + b.toString(16).padStart(4, '0') + ' ' + (words[b] || 'no use found'));
+  return out.length ? out.join('; ') : 'none set';
+}
+const novaDescRead = (game, v) => v <= 0 ? 'none' : novaRefText(game, 'dësc', v);
+const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düde', v) : 'none';
+
+const NOVA_FIELD_READS = {
+  'mïsn': {
+    AvailStel: (v, r, g) => novaPlaceRead(g, 'avail', v),
+    AvailLoc: v => NOVA_AVAIL_LOC[v] || 'nowhere',
+    AvailRecord: v => v === 0 ? 'no test' : v === -32000 ? 'a stellar you have dominated' : v === -32001 ? 'once you have dominated a stellar' : v < -32001 ? 'never offered' : v > 0 ? `a record of ${v} or more here` : `a record of ${v} or less here`,
+    AvailRating: v => v <= 0 ? 'no test' : `a combat rating of ${v} or more`,
+    AvailRandom: v => v >= 100 ? 'always' : v <= 0 ? 'never' : `${v} in 100`,
+    AvailShipTyp: (v, r, g) => v >= 128 && v <= 896 ? 'flying ' + novaRefText(g, 'shïp', v) : v >= 1128 && v <= 1896 ? 'not flying ' + novaRefText(g, 'shïp', v - 1000)
+      : v >= 2128 && v <= 2384 ? 'a ship class whose InherentGovt is ' + novaGovtText(g, v - 2000) : v >= 3128 && v <= 3384 ? 'a ship class whose InherentGovt is not ' + novaGovtText(g, v - 3000) : 'no test',
+    TravelStel: (v, r, g) => novaPlaceRead(g, 'travel', v),
+    ReturnStel: (v, r, g) => novaPlaceRead(g, 'return', v) + (v === -1 && r.TravelStel === -1 ? ': with TravelStel -1 too, no landing finishes it' : ''),
+    CargoQty: v => v >= 0 ? `${v} tons` : v === -1 ? 'none' : `${Math.trunc(-v / 2)} to ${Math.trunc(-v / 2) - v - 1} tons, at random`,
+    PickupMode: v => ['on accepting', 'at TravelStel', 'on boarding one of its ships'][v] || 'not picked up',
+    DropoffMode: v => ['at TravelStel', 'at ReturnStel'][v] || 'not dropped off',
+    PayVal: (v, r, g) => { const p = novaMissionPay(v); return p.text.replace('{g}', p.govt !== undefined ? novaGovtText(g, p.govt) : ''); },
+    ShipCount: v => v > 0 ? `${v} ship${v === 1 ? '' : 's'}` : 'none',
+    ShipSyst: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : novaPlaceRead(g, 'ship', v),
+    ShipDude: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : novaDudeRead(g, v),
+    ShipGoal: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (({ 0: 'destroy them all', 1: 'disable them all', 2: 'board them all', 3: 'keep them', 4: 'see one of them', 5: 'board them all, disabled from the start', 6: 'be rid of them' })[v] || 'none'),
+    ShipBehav: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (({ 0: 'set on you', 1: 'fly with you as escorts', 2: 'go for stellars of their enemies' })[v] || 'as their own AI has it'),
+    ShipStart: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v >= -16 && v <= -1 ? `on stellar ${-v} of their system's list` : v === 1 ? 'in from hyperspace after a while, each time' : v === 2 ? 'in from hyperspace the first time, cloaked after' : 'brought in as the system\'s other ships are'),
+    ShipNameID: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v === -1 ? 'their usual names' : g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `their usual names (no STR# ${v})`),
+    ShipSubtitle: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v === -1 ? 'none' : g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `none (no STR# ${v})`),
+    CompGovt: (v, r, g) => v >= 128 && v <= 383 ? novaGovtText(g, v) : 'none',
+    CompReward: (v, r) => r.CompGovt >= 128 && r.CompGovt <= 383 ? `${v} done, ${-Math.trunc(v / 2)} failed, ${-5 * v} aborted with Flags 0x0040` : 'not used',
+    BriefText: (v, r, g) => novaDescRead(g, v), QuickBrief: (v, r, g) => novaDescRead(g, v),
+    LoadCargText: (v, r, g) => novaDescRead(g, v), DropCargText: (v, r, g) => novaDescRead(g, v),
+    CompText: (v, r, g) => novaDescRead(g, v), FailText: (v, r, g) => novaDescRead(g, v),
+    ShipDoneText: (v, r, g) => novaDescRead(g, v),
+    RefuseText: (v, r, g) => v === -1 ? 'none' : g.get('dësc', v) ? novaRefText(g, 'dësc', v) : `dësc ${v}, not in the files: an empty text`,
+    TimeLimit: v => v > 0 ? `${v} days` : 'no limit',
+    CanAbort: v => v ? 'can be aborted' : 'cannot be aborted',
+    AuxShipCount: (v, r) => v > 0 && r.AuxShipDude >= 128 && r.AuxShipDude <= 639 ? `${v} ship${v === 1 ? '' : 's'}` : 'none',
+    AuxShipDude: (v, r, g) => r.AuxShipCount > 0 ? novaDudeRead(g, v) : 'no aux ships',
+    AuxShipSyst: (v, r, g) => r.AuxShipCount > 0 ? novaPlaceRead(g, 'aux', v) : 'no aux ships',
+    DatePostInc: v => v > 0 ? `${v} days` : 'none',
+    AcceptButton: (v, r) => /^[a-z]/i.test(v || '') ? `"${v}"` : (r.Flags & 4 ? '"Okay"' : '"Yes"'),
+    RefuseButton: v => /^[a-z]/i.test(v || '') ? `"${v}"` : '"No"',
+    Flags: v => novaBitsRead(v, { 1: 'ends by itself', 2: 'unmarked on the map', 4: 'cannot be refused', 8: 'needs 100 fuel', 0x10: 'aux ships without end',
+      0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
+      0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
+    Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
+  },
+};
+
+/* A record's own value of a field in words, or null where there is no reading. */
+function novaFieldRead(game, type, field, rec) {
+  const f = NOVA_FIELD_READS[type] && NOVA_FIELD_READS[type][field];
+  return f ? f(rec[field], rec, game) : null;
+}
 
 /* A field's note, or null. */
 function novaFieldNote(type, field) {

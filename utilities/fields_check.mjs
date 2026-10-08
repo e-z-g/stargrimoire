@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { site, REF } from './load.mjs';
+import { site, REF, RELEASES, haveRelease, openRelease } from './load.mjs';
 
 const S = site();
 let fails = 0;
@@ -36,4 +36,29 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
   }
 }
 console.log(`${notes} field notes, ${cites} routines cited, each a routine of Mac 1.1.1 at its address`);
+
+// Every reading (NOVA_FIELD_READS) run over every record of its type in every
+// release: each must give words, for a field its table names. What the shipped
+// records come to is counted where it is worth knowing: codes the program reads
+// as never offered or as where the mission is accepted, records named that are
+// not in the files, flag bits no use of was found for.
+const WATCH = /never offered|where it is accepted|not in the files|no use found|no landing finishes it/;
+let reads = 0;
+for (const [type, fields] of Object.entries(S.NOVA_FIELD_READS)) for (const field of Object.keys(fields))
+  if (!S.NOVA_RECORDS[type].some(f => f[0] === field)) fail(`${type} ${field}: a reading for a field not in its table`);
+for (const v of Object.keys(RELEASES)) {
+  if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }
+  const game = openRelease(S, v, null);
+  const seen = new Map();
+  for (const [type, fields] of Object.entries(S.NOVA_FIELD_READS)) for (const rec of S.novaAll(game, type)) for (const field of Object.keys(fields)) {
+    let t;
+    try { t = S.novaFieldRead(game, type, field, rec); } catch (e) { fail(`${v} ${type} ${rec.id} ${field}: ${e.message}`); continue; }
+    reads++;
+    if (typeof t !== 'string' || !t) { fail(`${v} ${type} ${rec.id} ${field}: no words for ${rec[field]}`); continue; }
+    const m = WATCH.exec(t);
+    if (m) { const k = `${type} ${field}: ${m[0]}`; if (!seen.has(k)) seen.set(k, []); seen.get(k).push(rec.id); }
+  }
+  for (const [k, ids] of [...seen].sort()) console.log(`  ${v}: ${k} in ${ids.length} (${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ', …' : ''})`);
+}
+console.log(`${reads} readings of the shipped records, each in words`);
 process.exit(fails ? 1 : 0);

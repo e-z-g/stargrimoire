@@ -69,7 +69,9 @@ function fieldsTable(type, rec) {
     if (kind === 'pad' || !(name in rec)) continue;
     const text = novaFieldText(kind, rec[name]);
     const fn = novaFieldNote(type, name);
-    const note = fn ? `<div class="fieldNote" title="${esc(fn.code.map(([f, a]) => f + ' 0x' + a.toString(16)).join(', '))}">${esc(fn.note)}</div>` : '';
+    const rd = editing ? null : novaFieldRead(GAME, type, name, rec);
+    const note = (fn ? `<div class="fieldNote" title="${esc(fn.code.map(([f, a]) => f + ' 0x' + a.toString(16)).join(', '))}">${esc(fn.note)}</div>` : '') +
+                 (rd ? `<div class="fieldNote fieldRead">This one: ${esc(rd)}</div>` : '');
     if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}${note}</td></tr>`); continue; }
     const max = kind === 'str' ? ` maxlength="${n - 1}"` : '';
     rows.push(`<tr><td>${esc(name)}</td><td><input data-f="${esc(name)}" value="${esc(text)}"${max} spellcheck="false">${note}</td></tr>`);

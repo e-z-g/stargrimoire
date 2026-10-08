@@ -2160,19 +2160,12 @@ function placeText(field, v) {
   if (p.stellar) return U.stellars.has(p.stellar) ? stellarLink(p.stellar) : `spöb ${p.stellar}`;
   const sys = p.system !== undefined ? (U.byId.has(p.system) ? sysLink(p.system) : `sÿst ${p.system}`) : '';
   if (p.text === 'system') return sys;
-  return esc(p.text) + (sys ? ' ' + sys : '') + (p.govt !== undefined ? ' ' + esc(govtName(p.govt < 128 ? -1 : p.govt)) : '');
+  return esc(p.text).replace('{g}', p.govt !== undefined ? esc(govtName(p.govt < 128 ? -1 : p.govt)) : '') + (sys ? ' ' + sys : '');
 }
-// PayVal by the Bible's mïsn section.
+// PayVal as the program reads it (novaMissionPay), the government named.
 function payText(v) {
-  if (v > 0) return v.toLocaleString() + ' credits';
-  if (v === 0 || v === -1) return 'none';
-  const gv = off => esc(govtName(128 + (-v - off)));
-  if (v <= -10128 && v >= -10383) return 'a clean record with ' + gv(10128 - 128);
-  if (v <= -20128 && v >= -20383) return 'a clean record with ' + gv(20128 - 128) + ' and its allies';
-  if (v <= -30128 && v >= -30383) return 'a clean record with ' + gv(30128 - 128) + ' and its class';
-  if (v <= -40001 && v >= -40099) return `${-v - 40000}% of the player's cash taken`;
-  if (v <= -50000) return `${(-v - 50000).toLocaleString()} credits taken at the start`;
-  return 'code ' + v;
+  const p = novaMissionPay(v);
+  return esc(p.text).replace('{g}', p.govt !== undefined ? esc(govtName(p.govt < 128 ? -1 : p.govt)) : '');
 }
 // Whether a mission's AvailBits hold for the bits shown.
 function missionHolds(m) { try { return ncbTest(m.rec.AvailBits || '', STATE); } catch (e) { return false; } }
@@ -2189,7 +2182,7 @@ function missionPanel(id) {
     <div class="actions"><button data-bit-back>Back</button></div>
     ${m.note ? `<p class="note">Ambrosia's note in its resource name: “${esc(m.note)}”</p>` : ''}
     <table class="kv">
-      ${kvRow('Offered at', placeText('avail', r.AvailStel) + ', from ' + esc(NOVA_AVAIL_LOC[r.AvailLoc] || 'place ' + r.AvailLoc))}
+      ${kvRow('Offered at', placeText('avail', r.AvailStel) + ', from ' + esc(NOVA_AVAIL_LOC[r.AvailLoc] || 'nowhere'))}
       ${kvRow('Offered when', testLine(r.AvailBits))}
       ${kvRow('Chance', r.AvailRandom > 0 && r.AvailRandom < 100 ? r.AvailRandom + '% each time you arrive in the system' : '')}
       ${kvRow('Legal record', r.AvailRecord === -32000 ? 'the stellar dominated' : r.AvailRecord === -32001 ? 'a stellar dominated' : r.AvailRecord > 0 ? 'at least ' + r.AvailRecord : r.AvailRecord < 0 ? 'at most ' + r.AvailRecord : '')}

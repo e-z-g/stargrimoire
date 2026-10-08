@@ -43,41 +43,68 @@ function novaStoryNote(note) {
   };
 }
 
-/* A place code in words, by the Bible's mïsn section: { text, stellar,
-   system, govt } with the ids a page can link, any of them null. `field`
-   is 'avail', 'travel', 'return' or 'ship'. */
+/* A place code in words, as Mac 1.1.1 reads it: { text, stellar, system,
+   govt } with the ids a page can link, any of them absent. `field` is
+   'avail' (AvailStel, IsMissionAvailable 0x9b152), 'travel' or 'return'
+   (TravelStel and ReturnStel, RandomizeOneMission 0xa14d1 and
+   SelectMissionStellar 0x9a26a), 'ship' (ShipSyst, LoadCurrentMissionData
+   0xa0a38 and SelectMissionSystem 0x9b993) or 'aux' (AuxShipSyst,
+   ValidAuxShipSystem 0x992b5). `{g}` in the text is where the government
+   goes, kept as 128 + index; 9999 gives 127, no government. js/nova-fields.js says the same in its notes. */
 function novaMissionPlace(u, field, v) {
-  const govt = off => ({ govt: 128 + v - off });
-  const g = (off, what) => ({ text: what, ...govt(off) });
+  const g = (off, what) => ({ text: what, govt: 128 + v - off });
+  const govts = where => {
+    if (v >= 9999 && v <= 14999) return g(10000, `${where} of {g}`);
+    if (v >= 15000 && v <= 19999) return g(15000, `${where} of an ally of {g}`);
+    if (v >= 20000 && v <= 24999) return g(20000, `${where} of any government but {g}`);
+    if (v >= 25000 && v <= 29999) return g(25000, `${where} of an enemy of {g}`);
+    if (v >= 30000 && v <= 30999) return g(30000, `${where} of {g} or of one sharing a class with it`);
+    if (v >= 31000 && v <= 31999) return g(31000, `${where} of neither {g} nor one sharing a class with it`);
+    return null;
+  };
+  if (field === 'avail') {
+    if (v <= -32000) return { text: 'nowhere: never offered' };
+    if (v === -1) return { text: 'anywhere' };
+    if (v >= 128 && v <= 4999) return { text: 'stellar', stellar: v };
+    if (v >= 5000 && v <= 9998) return { text: 'a stellar in a system linked to', system: 128 + v - 5000 };
+    return govts('a stellar') || { text: 'nowhere: never offered' };
+  }
+  if (field === 'travel' || field === 'return') {
+    if (v === -1) return { text: field === 'travel' ? 'no destination' : "TravelStel's stellar" };
+    if (v === -2) return { text: 'a random stellar without spöb Flags 0x20' };
+    if (v === -3) return { text: 'a random stellar with spöb Flags 0x20 and without 0x10' };
+    if (v >= 128 && v <= 2175) return { text: 'stellar', stellar: v };
+    return govts('a random stellar') || { text: 'the stellar where it is accepted' };
+  }
   if (field === 'ship') {
-    const words = { '-1': 'the system where the mission begins', '-2': 'any system', '-3': "TravelStel's system", '-4': "ReturnStel's system",
-      '-5': 'a system next to where it begins', '-6': 'whatever system the player is in' };
+    const words = { '-1': 'the system you accept it in', '-2': 'a random system, not that one', '-3': "TravelStel's system, or ReturnStel's",
+      '-4': "ReturnStel's system", '-5': 'a random system linked to the one you accept it in', '-6': 'whatever system you are in' };
+    if (words[v]) return { text: words[v] };
+    if (v >= 128 && v <= 9998) return { text: 'system', system: v };
+    return govts('a random system') || { text: 'nowhere' };
+  }
+  if (field === 'aux') {
+    const words = { '-1': 'any system', '-6': 'any system', '-2': "TravelStel's system", '-3': "ReturnStel's system" };
     if (words[v]) return { text: words[v] };
     if (v >= 128 && v <= 2175) return { text: 'system', system: v };
-    if (v >= 9999 && v <= 10255) return g(10000, "a system of the government");
-    if (v >= 15000 && v <= 15255) return g(15000, "a system of an ally of the government");
-    if (v >= 20000 && v <= 20255) return g(20000, 'a system of any government but');
-    if (v >= 25000 && v <= 25255) return g(25000, "a system of an enemy of the government");
-    return { text: 'code ' + v };
+    if (v >= 5000 && v <= 9998) return { text: 'the system, or one linked to it:', system: 128 + v - 5000 };
+    return govts('systems') || { text: 'nowhere' };
   }
-  if (v === -1) return { text: field === 'avail' ? 'any inhabited stellar' : 'none in particular' };
-  // below the first stellar id: in the shipped files, the "Silent Mission"s
-  // other missions start (Sxxx), which are offered nowhere
-  if (field === 'avail' && v >= 0 && v < 128) return { text: 'nowhere (no stellar has id ' + v + '); it is only ever started by another' };
-  if (v === -2 && field !== 'avail') return { text: 'a random inhabited stellar' };
-  if (v === -3 && field !== 'avail') return { text: field === 'travel' ? 'a random uninhabited planet' : 'a random uninhabited stellar' };
-  if (v === -4 && field === 'return') return { text: 'the stellar where it was accepted' };
-  if (v >= 128 && v <= 2175) return { text: 'stellar', stellar: v };
-  if (field === 'avail' && v >= 5000 && v <= 7047) return { text: 'a stellar in a system next to', system: 128 + v - 5000 };
-  if (v >= 9999 && v <= 10255) return g(10000, 'a stellar of the government');
-  if (v >= 15000 && v <= 15255) return g(15000, 'a stellar of an ally of the government');
-  if (v >= 20000 && v <= 20255) return g(20000, 'a stellar of any government but');
-  if (v >= 25000 && v <= 25255) return g(25000, 'a stellar of an enemy of the government');
-  if (v >= 30000 && v <= 30255) return g(30000, 'a stellar of the government, or of one of its class');
-  if (v >= 31000 && v <= 31255) return g(31000, 'a stellar of neither the government nor its class');
   return { text: 'code ' + v };
 }
-const NOVA_AVAIL_LOC = ['the mission computer', 'the bar', 'a ship (a përs offers it)', 'the spaceport', 'the trading dialog', 'the shipyard', 'the outfitter'];
+/* PayVal in words, as ApplyMissionPay 0x98326 and DoMissionAccept 0xa1b11
+   read it: { text, govt } with a government's id where one is named. */
+function novaMissionPay(v) {
+  if (v > 0) return { text: v.toLocaleString('en-US') + ' credits' };
+  if (v <= -10000 && v >= -19999) return { text: 'records below 0 cleared in the systems of {g}', govt: -v - 10000 };
+  if (v <= -20000 && v >= -29999) return { text: 'records below 0 cleared in the systems of an ally of {g}', govt: -v - 20000 };
+  if (v <= -30000 && v >= -39999) return { text: 'records below 0 cleared in the systems of {g} or of one sharing a class with it', govt: -v - 30000 };
+  if (v <= -40001 && v >= -40099) return { text: `${-v - 40000}% of your credits taken` };
+  if (v < -50000) return { text: `${(-v - 50000).toLocaleString('en-US')} credits taken on accepting` };
+  return { text: 'nothing' };
+}
+// AvailLoc's places, as OfferMissionFromPort 0xa369e and the port dialogs set them.
+const NOVA_AVAIL_LOC = ['the Mission BBS', 'the bar', 'a ship (a përs offers it)', 'the spaceport, on landing', 'the Trade Center', 'the shipyard', 'the outfitter'];
 
 /* Every mission, and the storylines: { byId: Map of id to mission, stories:
    Map of key to { key, name, missions } }. A mission is { id, name, note,

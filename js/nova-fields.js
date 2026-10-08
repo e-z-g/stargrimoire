@@ -158,6 +158,10 @@ const NOVA_FIELD_NOTES = {
       note: 'Where the mission\'s ships are, worked out when you accept. -1: the system you are in then. -2: a random system there now (its Visibility) other than yours. -3: TravelStel\'s stellar\'s system, or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to yours and there now, drawn until one is found. -6: whichever system you are in. 128 to 2175: that sÿst. 9999, 10000 + n and the other numbers AvailStel takes for governments: a random system there now, not yours, of those governments. Anything else: nowhere.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SelectMissionSystem', 0x9b993], ['SetupShipsInSystem', 0x42b61], ['MissionHandlePlayerEnteredNewSystem', 0x99f11]],
     },
+    ShipGoal: {
+      note: 'What you must do with the mission\'s ships before landing at ReturnStel\'s stellar finishes it. 0: destroy them all. 1: disable them all. 2 and 5: board them all (with 5 they start at a standstill, facing at random). 3: keep them; it is met while one of them is about. 4: see one of them, once all have come (if it can cloak, on your screen). 6: be rid of them, each destroyed or jumped out counting (jumping out does not count with ShipSyst -6). The mission fails at once, unless its Flags has 0x0400, when one is destroyed with goal 1 or 3, or with 2 or 5 before you have boarded it, and when one is disabled with goal 3.',
+      code: [['MissionObjectivesCheck', 0x9e79e], ['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['HandlePlayerBoardAttempt', 0x65000], ['LowLevelAIHandler', 0x851da], ['QuickMissionFailure', 0x99d1b], ['ShipVisibleToShip', 0x971c], ['SetupShipsInSystem', 0x42b61]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

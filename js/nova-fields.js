@@ -54,6 +54,18 @@ const NOVA_FIELD_NOTES = {
       note: 'Offered only when the Contributes bits of your ship and outfits include every bit set here.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
     },
+    UpgradeTo: {
+      note: 'The ship class an escort of this class that you own (not a hired one) becomes when you have marked it in the escort dialog ("Will be upgraded at next shipyard") and land at a shipyard with its EscUpgrdCost in hand. Below 128: it cannot be ("This ship class cannot be upgraded.").',
+      code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['LoadObjectData', 0x771b0]],
+    },
+    EscUpgrdCost: {
+      note: 'Credits taken for that upgrade, at the shipyard; with fewer, it waits.',
+      code: [['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
+    },
+    EscSellValue: {
+      note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled.',
+      code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
+    },
     FuelRegen: {
       note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your own ship regains it only with Flags 0x0008.',
       code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],

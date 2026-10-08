@@ -66,6 +66,22 @@ const NOVA_FIELD_NOTES = {
       note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled. 0 or less: a tenth of its Cost.',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
+    DefaultItems: {
+      note: 'An outfit a ship of this class comes with, ItemCount of it: 128 to 639 is that oütf; anything else, none. Added to yours when you buy one at a shipyard, start a new pilot in one, capture one, or a set expression gives you one. DefaultItms2 is four more of the same.',
+      code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['DoNewPilot', 0x18b0a], ['DoShipCapture', 0x41120], ['EvalSetExp', 0x150fc]],
+    },
+    ItemCount: {
+      note: 'How many of the DefaultItems beside it. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
+    },
+    DefaultItms2: {
+      note: 'Four more DefaultItems, read the same way, with ItemCount2.',
+      code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
+    },
+    ItemCount2: {
+      note: 'How many of the DefaultItms2 beside it. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
+    },
     Contributes: {
       note: 'Added to your bits while you fly this class. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, is met when they include every bit it sets.',
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],

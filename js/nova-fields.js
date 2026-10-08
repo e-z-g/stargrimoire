@@ -262,6 +262,46 @@ const NOVA_FIELD_NOTES = {
       note: '0x0001: offered only while your ship has room for its cargo. 0x0002: PayVal is paid when it ends by itself too. 0x0004: it fails if your ship is disabled.',
       code: [['IsMissionAvailable', 0x9b152], ['TotalMissionCargoSpace', 0xcffb], ['AutoAbortMission', 0x99bdc], ['ApplyMissionPay', 0x98326], ['DamageShip', 0x3a807]],
     },
+    AvailBits: {
+      note: 'A test of control bits: the mission is offered only while it holds. Empty: no test.',
+      code: [['InitMissions', 0x97b97], ['IsMissionAvailable', 0x9b152], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    OnAccept: {
+      note: 'Control bits set when you accept the mission.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11], ['EvalCurrentMissionBitSetString', 0x99a43]],
+    },
+    OnRefuse: {
+      note: 'Control bits set when you refuse the mission as it is offered.',
+      code: [['OfferOneMission', 0xa21ac], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnSuccess: {
+      note: 'Control bits set when the mission is done.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc], ['EvalCurrentMissionBitSetString', 0x99a43]],
+    },
+    OnFailure: {
+      note: 'Control bits set when the mission fails.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionFailure', 0xa0285], ['QuickMissionFailure', 0x99d1b], ['EvalCurrentMissionBitSetString', 0x99a43]],
+    },
+    OnAbort: {
+      note: 'Control bits set when you abort the mission, when a set expression aborts it, when your escape pod is picked up (every mission is aborted then), or when it ends by itself; not when a failed mission is taken off your list.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['AbortMission', 0x99a92], ['DoMissionInfoDialog', 0x9e19b], ['EvalSetExp', 0x150fc], ['HandlePlayer', 0x68390], ['AutoAbortMission', 0x99bdc], ['QuickMissionFailure', 0x99d1b]],
+    },
+    OnShipDone: {
+      note: 'Control bits set when the mission\'s ShipGoal is first met (not with ShipGoal -1).',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['MissionObjectivesCheck', 0x9e79e], ['EvalCurrentMissionBitSetString', 0x99a43]],
+    },
+    AcceptButton: {
+      note: 'The label of the Accept button as the mission is offered. Empty, or not starting with a letter: "Yes" if it can be refused, else "Okay" (STR# 150).',
+      code: [['OfferOneMission', 0xa21ac]],
+    },
+    RefuseButton: {
+      note: 'The label of the Refuse button as the mission is offered. Empty, or not starting with a letter: "No" (STR# 150).',
+      code: [['OfferOneMission', 0xa21ac]],
+    },
+    DispWeight: {
+      note: 'A port\'s missions are put in order of this, highest first: the order of the Mission BBS\'s list, and which is offered first elsewhere.',
+      code: [['InitMissions', 0x97b97], ['RandomizeMissionData', 0xa1756], ['OfferMissionFromPort', 0xa369e]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

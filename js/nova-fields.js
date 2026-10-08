@@ -33,6 +33,28 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleReinforcements', 0x39048], ['IncrementGameTime', 0xb516]],
     },
   },
+  'shïp': {
+    TechLevel: {
+      note: 'Offered in a stellar\'s shipyard whose TechLevel is at least this, or one of whose SpecialTech is this. Below 0: in none.',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3]],
+    },
+    BuyRandom: {
+      note: 'The chance in 100 it is offered on a given day: it is offered while BuyRandom is at least a number from 1 to 100 drawn for its class each day. 0: never.',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
+    },
+    Require: {
+      note: 'Offered only when the Contributes bits of your ship and outfits include every bit set here.',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
+    },
+    FuelRegen: {
+      note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your own ship regains it only with Flags 0x0008.',
+      code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],
+    },
+    Flags3: {
+      note: '0x0020: a planet\'s Gravity does not pull it.',
+      code: [['ShipResistsGravity', 0x7b10]],
+    },
+  },
   'spöb': {
     Govt: {
       note: '128 and up is that gövt; anything less is no government.',
@@ -47,7 +69,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerDockRequest', 0x66691], ['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949]],
     },
     Gravity: {
-      note: 'While you are in its system, pulls every ship in it toward the stellar, however far: each step by Gravity × the game speed ÷ the square of the distance in hundreds of units, the square taken as at least 30. 0: no pull. Inertialess ships do not feel it, nor some ship classes by a flag, nor your ship if it carries an outfit with ModType 41.',
+      note: 'While you are in its system, pulls every ship in it toward the stellar, however far: each step by Gravity × the game speed ÷ the square of the distance in hundreds of units, the square taken as at least 30. 0: no pull. Inertialess ships do not feel it, nor ship classes with Flags3 0x0020, nor your ship if it carries an outfit with ModType 41.',
       code: [['HandleGravity', 0x39bc3], ['ApplyGravity', 0x7c5a], ['ShipResistsGravity', 0x7b10]],
     },
     Weapon: {

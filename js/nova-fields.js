@@ -134,6 +134,14 @@ const NOVA_FIELD_NOTES = {
       note: '128 to 896: you must be flying that ship class; 1128 to 1896: you must not be. 2128 to 2384: your ship class\'s InherentGovt must name that government (as 128 and up or 1128 and up); 3128 to 3384: it must not. Anything else: no test.',
       code: [['IsMissionAvailable', 0x9b152], ['LoadObjectData', 0x771b0]],
     },
+    TravelStel: {
+      note: 'Where you must go, picked when the mission is made ready to offer. -1: nowhere. 128 to 2175: that spöb. -2: one picked at random from the stellars that qualify and have Flags 0x20 clear; -3: from those with Flags 0x20 set and 0x10 clear. 9999, 10000 + n, 15000 + n, 20000 + n, 25000 + n, 30000 + n and 31000 + n: from those, Flags 0x20 clear, of the governments AvailStel\'s same numbers name; for 10000 + n, Flags 0x20 set too when gövt 128 + n has Flags 0x0800. A stellar qualifies when its system is there now (its Visibility), it is in every version of that system, you can land on it and it is no hypergate or wormhole (Flags2 0x1000, 0x2000), and it is not where you are nor in your system or one linked to it. The mission is not offered while none qualifies, that last test aside. -4, anything else, or none qualifying: the stellar you are at (offered by a ship, the first in your system). Landing on it, or on a stellar of the same name at the same place, does this part of the mission.',
+      code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['StellarsAreDistant', 0x9cb9], ['StellarIsNormalLandable', 0xa9f8], ['StellarIsLandable', 0xa989], ['IsMissionAvailable', 0x9b152], ['HandleStellarSystemVisibility', 0x32aa5], ['PropagateMissionBitEffects', 0x99676], ['StellarsAreIdentical', 0xab35], ['MissionLandCargoCheck', 0x9edc5]],
+    },
+    ReturnStel: {
+      note: 'Where you must land for the mission to be done, once the rest of it is: picked as TravelStel is, from where you are, and a random pick never the stellar TravelStel picked. -1: the stellar TravelStel picked, so it is done on landing there; with TravelStel -1 too, no landing does it. Landing on a stellar of the same name at the same place does as well.',
+      code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['LoadCurrentMissionData', 0xa0a38], ['MissionLandCheck', 0xa19cc], ['StellarsAreIdentical', 0xab35]],
+    },
     CargoType: {
       note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],

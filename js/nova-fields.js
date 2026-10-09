@@ -17,7 +17,37 @@
    nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
+  'jünk': {
+    BoughtAt: {
+      note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while BuyOn holds. Of the commodities a stellar so names, the highest-numbered is the one traded there.',
+      code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    SoldAt: {
+      note: 'Up to eight stellars where it is traded at BasePrice ÷ 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while SellOn holds; the highest-numbered so named is the one.',
+      code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    BasePrice: {
+      note: 'Its price before the stellar\'s factor (see BoughtAt and SoldAt).',
+      code: [['DoTradeDialog', 0x5dbe1]],
+    },
+    BuyOn: {
+      note: 'A test of control bits: while it fails, it is not traded at its BoughtAt stellars. Empty: no test.',
+      code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    SellOn: {
+      note: 'A test of control bits: while it fails, it is not traded at its SoldAt stellars. Empty: no test.',
+      code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
+    },
+  },
   'öops': {
+    Commodity: {
+      note: 'Which of the six standard commodities, 0 to 5, the disaster changes: while it lasts, at its stellar, that commodity\'s price is its base price plus PriceDelta, at least 5, whatever the stellar\'s demand.',
+      code: [['DoTradeDialog', 0x5dbe1]],
+    },
+    PriceDelta: {
+      note: 'Added to the Commodity\'s base price at the stricken stellar while the disaster lasts; the price is kept at 5 or more.',
+      code: [['DoTradeDialog', 0x5dbe1]],
+    },
     Freq: {
       note: 'The chance in 100 each day that the disaster starts, while it is not under way and its ActivateOn holds.',
       code: [['DisasterHandler', 0x41ab9], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
@@ -720,7 +750,13 @@ const NOVA_FIELD_READS = {
       0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
   },
+  'jünk': {
+    BoughtAt: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
+    SoldAt: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
+    BasePrice: v => `${Math.trunc(v / 1.25)} to ${Math.trunc(v * 1.25)} credits at most stellars (÷ or × 1.25)`,
+  },
   'öops': {
+    Commodity: v => v >= 0 && v <= 5 ? `standard commodity ${v}` : 'none',
     Freq: v => v <= 0 ? 'never' : `${Math.min(v, 100)} in 100 a day`,
     Stellar: (v, r, g) => v >= 128 ? novaRefText(g, 'spöb', v) : 'a stellar drawn at random',
     Duration: v => v < 0 ? 'never ends' : `${v} day${v === 1 ? '' : 's'}`,

@@ -1104,6 +1104,90 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'spöb': {
+    xPos: {
+      note: 'With yPos, where it is in its system, from the middle; what ships head for, land on and are drawn round.',
+      code: [['LoadObjectData', 0x771b0], ['FindNearestStellar', 0x276c], ['DrawStatusRadar', 0x496e0]],
+    },
+    yPos: {
+      note: 'With xPos, where it is in its system.',
+      code: [['LoadObjectData', 0x771b0], ['FindNearestStellar', 0x276c]],
+    },
+    Type: {
+      note: 'Its picture: spïn 1000 + Type for its sprite, and PICT 10000 + Type when you land, unless CustPicID is 128 or more.',
+      code: [['LoadObjectData', 0x771b0], ['HandleStellarSprites', 0x2e6f1], ['PreloadPortDialog', 0x4e5c7]],
+    },
+    Flags: {
+      note: '0x01: you can land or dock; 0x80: only while it is destroyed (and then only). 0x02, 0x04, 0x08, 0x40: a commodity exchange, an outfitter, a shipyard, a bar. 0x10: a station, which changes the words of hails, landing and advice. 0x20: uninhabited: it is not hailed, gives no missions and no services. The next 24 bits are the six commodities\' prices, a nibble each from the top: 1 low, 2 medium, 4 high, the first set counting; 0, not traded.',
+      code: [['StellarIsLandable', 0xa989], ['SystemHasService', 0xd373], ['CalcPortDemand', 0x56b1], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerDockApproach', 0x647a6], ['SystemIsInhabited', 0x4c4a]],
+    },
+    TechLevel: {
+      note: 'Its shipyard offers the ship classes, and its outfitter the outfits, whose TechLevel is 0 or more and at most this, or equal to one of its SpecialTech.',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3], ['SetupPortAvailableItems', 0xbedb]],
+    },
+    SpecialTech: {
+      note: 'Three of its eight special tech levels (SpecialTech4to8 the other five): ship classes and outfits of exactly one of these TechLevels are offered here too.',
+      code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3], ['SetupPortAvailableItems', 0xbedb]],
+    },
+    SpecialTech4to8: {
+      note: 'The other five of its eight special tech levels; see SpecialTech.',
+      code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3]],
+    },
+    MinStatus: {
+      note: 'In its hail dialog it treats you as hated while your record in its system is below this, or always at 32767; never at -32767. Releasing it once dominated puts your record there just below this.',
+      code: [['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9]],
+    },
+    CustPicID: {
+      note: 'The picture when you land: 128 and up, that PICT; below, PICT 10000 + Type. For a hypergate, where its frames split: the opening frames are those below it, when it is from 1 to two short of the count.',
+      code: [['PreloadPortDialog', 0x4e5c7], ['HandleStellarSprites', 0x2e6f1]],
+    },
+    CustSndID: {
+      note: 'Landed, a snd of 128 and up plays while the ambient sounds are on. For a hypergate or wormhole, the heading of a ship leaving it: 0 to 359, that; else at random.',
+      code: [['DoPortDialog', 0x5f911], ['PlayerEnterHypergate', 0x637bf], ['PlayerEnterWormhole', 0x64005], ['AIMakeShipEmergeFromHyperGate', 0x89518]],
+    },
+    DefenseDude: {
+      note: 'The düde its defence ships are drawn from, of its own government, flying as warships tied to it. Below 128: none.',
+      code: [['SpawnStellarDefenseShip', 0x3d2c9], ['SpecificDudeSpawn', 0x3d0eb]],
+    },
+    DefCount: {
+      note: 'How many defence ships it has: up to 1000, that many, launched together; above, the last digit is how many are out at once, the total DefCount ÷ 10 - 100 (above 10,000, ÷ 10 - 1000), launched as those out are lost.',
+      code: [['LoadObjectData', 0x771b0], ['EnterMoreShips', 0x43459], ['SpawnStellarDefenseShip', 0x3d2c9], ['DoPlanetCommDialog', 0x96949]],
+    },
+    Flags2: {
+      note: '0x0001: frame 0 comes between every other; 0x0002: frames picked at random; 0x0080: it animates only while destroyed. 0x0020: always dominated. 0x0040: it starts destroyed. 0x0100: a ship that touches it is destroyed. 0x0400: its outfitter lists every outfit you carry that can be sold, to buy it back. 0x1000: a hypergate; 0x2000: a wormhole (HyperLink). 0x0010 and 0x0200 are not traced here.',
+      code: [['HandleStellarSprites', 0x2e6f1], ['DoStellarTimePassage', 0x40867], ['DoNewPilot', 0x18b0a], ['HandleDeadlyStellars', 0x39ccd], ['SetupPortAvailableItems', 0xbedb], ['HandlePlayerDockRequest', 0x66691], ['PlayerEnterWormhole', 0x64005]],
+    },
+    AnimDelay: {
+      note: 'How many 30ths of a second each frame of its sprite shows.',
+      code: [['HandleStellarSprites', 0x2e6f1]],
+    },
+    Frame0Bias: {
+      note: 'Above 1, the first frame shows this many times as long as the others.',
+      code: [['HandleStellarSprites', 0x2e6f1]],
+    },
+    HyperLink: {
+      note: 'For a hypergate, the stellars you can go to, picking their systems on the map; for a wormhole, one of them at random, or, with none set, another such wormhole at random. Below 128: none.',
+      code: [['PlayerEnterHypergate', 0x637bf], ['PlayerEnterWormhole', 0x64005], ['DoSystemMap', 0x121a3]],
+    },
+    OnDominate: {
+      note: 'Control bits set when you dominate it. Empty: none.',
+      code: [['DoPlanetCommDialog', 0x96949], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnRelease: {
+      note: 'Control bits set when you release it from domination. Empty: none.',
+      code: [['DoPlanetCommDialog', 0x96949], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    DeadTime: {
+      note: 'Days it stays destroyed: each day one is counted off, and at 0 it regenerates, its strength whole again, setting OnRegen. Below 0: it never regenerates.',
+      code: [['IncrementGameTime', 0xb516], ['StellarIsDestroyed', 0x4e14]],
+    },
+    OnDestroy: {
+      note: 'Control bits set when it is destroyed. Empty: none.',
+      code: [['CheckShotProximities', 0x371bc], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnRegen: {
+      note: 'Control bits set when it regenerates (DeadTime). Empty: none.',
+      code: [['IncrementGameTime', 0xb516], ['EvalMissionBitSetString', 0x99dc5]],
+    },
     Govt: {
       note: '128 and up is that gövt; anything less is no government.',
       code: [['LoadObjectData', 0x771b0]],
@@ -1407,6 +1491,21 @@ const NOVA_FIELD_READS = {
     MaxOdds: v => `runs at odds over ${Math.max(0.01, v / 100)}`,
   },
   'spöb': {
+    Type: (v, r, g) => `${novaRefText(g, 'spïn', 1000 + v)}; landed, ${r.CustPicID >= 128 ? `PICT ${r.CustPicID}` : `PICT ${10000 + v}`}`,
+    Flags: (v, r, g) => novaListRead([v & 1 ? (v & 0x80 ? 'landable only destroyed' : 'landable') : 'not landable',
+      ...[[2, 'commodity exchange'], [4, 'outfitter'], [8, 'shipyard'], [0x40, 'bar'], [0x10, 'station'], [0x20, 'uninhabited']].filter(([b]) => v & b).map(([, w]) => w),
+      novaListRead([0, 1, 2, 3, 4, 5].map(i => { const n = (v >>> (28 - 4 * i)) & 15; const w = n & 1 ? 'low' : n & 2 ? 'medium' : n & 4 ? 'high' : null;
+        return w && `${novaString(g, 4000, i, 9000) ?? `commodity ${i}`} ${w}`; })).replace(/^none$/, 'no trade')]),
+    TechLevel: v => `ships and outfits of TechLevel 0 to ${v}`,
+    MinStatus: v => v === -32767 ? 'never hated' : v === 32767 ? 'always hated' : `hated below ${v}`,
+    CustSndID: v => v >= 128 ? `snd ${v} when landed` : v >= 0 && v <= 359 ? `leaving gates at ${v}°` : 'none',
+    DefenseDude: (v, r, g) => novaDudeRead(g, v),
+    DefCount: v => v <= 1000 ? `${v} ship${v === 1 ? '' : 's'}` : `${Math.trunc(v / 10) - (v > 10000 ? 1000 : 100)} ships, ${v % 10} at a time`,
+    Flags2: v => novaBitsRead(v, { 1: 'frame 0 between', 2: 'frames at random', 0x10: 'not traced', 0x20: 'always dominated', 0x40: 'starts destroyed', 0x80: 'animates destroyed',
+      0x100: 'deadly', 0x200: 'not traced', 0x400: 'buys back any outfit', 0x1000: 'hypergate', 0x2000: 'wormhole' }),
+    AnimDelay: v => `${novaNum(Math.max(0, v) / 30)} s a frame`,
+    HyperLink: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
+    DeadTime: v => v < 0 ? 'never regenerates' : `${v} day${v === 1 ? '' : 's'}`,
     Govt: (v, r, g) => novaGovtText(g, v),
     Tribute: (v, r) => `${(v > 0 ? v : r.TechLevel * 1000).toLocaleString('en-US')} credits a day once dominated`,
     Fee: v => v > 0 ? `${v.toLocaleString('en-US')} credits` : 'none',

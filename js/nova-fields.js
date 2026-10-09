@@ -486,6 +486,90 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'gövt': {
+    VoiceType: {
+      note: 'Its ships\' spoken messages: snd resources from 1000 + 100 × VoiceType, ten more for each kind of message, one of those there picked at random. -1: none.',
+      code: [['HandleVoiceSound', 0x31e20]],
+    },
+    CrimeTol: {
+      note: 'Below -CrimeTol your record makes you a criminal to it, and its warships go for you. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
+      code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
+    },
+    SmugPenalty: {
+      note: 'How far your record with it falls when one of its ships catches you smuggling (ScanMask): half this where it happens, the change spreading to other systems from there; very small changes are dropped, and the record is kept between -32,000 and 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+    },
+    DisabPenalty: {
+      note: 'How far your record with it falls when you disable one of its ships: half this where it happens, the change spreading to other systems from there; very small changes are dropped, and the record is kept between -32,000 and 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+    },
+    BoardPenalty: {
+      note: 'How far your record with it falls when you board one of its ships: half this where it happens, the change spreading to other systems from there; very small changes are dropped, and the record is kept between -32,000 and 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+    },
+    KillPenalty: {
+      note: 'How far your record with it falls when you destroy one of its ships: half this where it happens, the change spreading to other systems from there; very small changes are dropped, and the record is kept between -32,000 and 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+    },
+    ShootPenalty: {
+      note: 'How far your record with it falls when you fire on one of its ships: half this where it happens, the change spreading to other systems from there; very small changes are dropped, and the record is kept between -32,000 and 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+    },
+    Classes: {
+      note: 'Up to four class numbers (0 and up; below 0, none), by which other governments\' Allies and Enemies, and missions and others, name it.',
+      code: [['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
+    },
+    Allies: {
+      note: 'Up to four class numbers: a government with any of them among its Classes is its ally, and it theirs. Below 0: none. A government with Flags 0x0800 is no one\'s ally.',
+      code: [['GovtAllies', 0x4e3d]],
+    },
+    Enemies: {
+      note: 'Up to four class numbers: a government with any of them among its Classes is its enemy, and it theirs, even if they are also allies. Failing that, with Flags 0x0001 every government not its ally, and every independent ship, is its enemy. A government with Flags 0x0800 is no one\'s enemy.',
+      code: [['GovtEnemies', 0x4f22], ['GovtAllies', 0x4e3d]],
+    },
+    SkillMult: {
+      note: 'Multiplies the skill of its ships (shïp SkillVar), so their acceleration and top speed: SkillMult ÷ 100; 0 or less, 1.',
+      code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2]],
+    },
+    ScanMask: {
+      note: 'Its scans find a mission\'s cargo, a jünk or an outfit whose ScanMask shares a bit with this: smuggling, fined at ScanFine and SmugPenalty.',
+      code: [['ScanPlayer', 0x7e46e]],
+    },
+    CommName: {
+      note: 'Its name in the hail dialog.',
+      code: [['LoadObjectData', 0x771b0], ['DoCommDialog', 0x956d5]],
+    },
+    TargetCode: {
+      note: 'Its name in the target display.',
+      code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1]],
+    },
+    Require: {
+      note: 'You may land at its stellars only when the Contributes bits of your ship and outfits include every bit set here, unless one of your missions goes to or returns to that stellar.',
+      code: [['HandlePlayerDockRequest', 0x66691], ['PlayerMeetsRequirements', 0x776f]],
+    },
+    InhJam: {
+      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). A ship not yours adds the jamming outfits among its class\'s DefaultItems, and has it all halved when its own government has Flags 0x0080. Yours adds your jamming outfits. Below 0 counts as 0.',
+      code: [['ShipECM', 0x3aff]],
+    },
+    MediumName: {
+      note: 'Its name in the message when its reinforcements arrive.',
+      code: [['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
+    },
+    Color: {
+      note: 'The colour of its territory on the galaxy map.',
+      code: [['LoadObjectData', 0x771b0], ['DrawMapInfluence', 0xe360]],
+    },
+    ShipColor: {
+      note: 'The colour its ships are painted, kept to 5 bits a channel; black, unpainted. A përs\'s ship takes the përs\'s colour instead, and yours none of this.',
+      code: [['LoadObjectData', 0x771b0], ['GetShipPaintColor', 0x7d0c]],
+    },
+    Intf: {
+      note: 'The intf resource for the status display in its systems. Below 128: intf 128.',
+      code: [['LoadObjectData', 0x771b0], ['LoadIntfResource', 0x735f2]],
+    },
+    NewsPic: {
+      note: 'The picture in the news dialog at its stellars. Below 128: PICT 9000.',
+      code: [['LoadObjectData', 0x771b0], ['DoNewsDialog', 0x47f0a]],
+    },
     InitialRec: {
       note: 'Your record in each system whose Govt is this, when you start a new pilot; a system with no government starts at 0. When your escape pod is picked up (dësc 13999), every system\'s record goes back to this again.',
       bible: 'says nothing of the escape pod.',
@@ -1034,6 +1118,16 @@ const novaScanRead = (g, v) => !(v & 0xffff) ? 'never smuggling'
   : (by => by.size ? 'smuggling where scanned by ' + [...by].map(([n, ids]) => `${n} (gövt ${ids.join(', ')})`).join('; ')
     : 'never caught: no government\'s ScanMask shares a bit')(novaAll(g, 'gövt').filter(gv => gv.ScanMask & v)
     .reduce((by, gv) => by.set(novaNameParts(gv.name).name, [...(by.get(novaNameParts(gv.name).name) || []), gv.id]), new Map()));
+// The governments whose Classes include any of these class numbers, grouped by name.
+function novaGovtClassRead(game, self, classes) {
+  const want = classes.filter(c => c >= 0);
+  if (!want.length) return 'none';
+  const by = new Map();
+  for (const gv of novaAll(game, 'gövt')) if (gv.id !== self && gv.Classes.some(c => c >= 0 && want.includes(c))) {
+    const n = novaNameParts(gv.name).name; by.set(n, [...(by.get(n) || []), gv.id]);
+  }
+  return by.size ? [...by].map(([n, ids]) => `${n} (gövt ${ids.join(', ')})`).join('; ') : 'no government has these classes';
+}
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -1204,6 +1298,20 @@ const NOVA_FIELD_READS = {
     BuyRandom: v => v <= 0 ? 'not sold, unless you have one' : `${Math.min(v, 100)} in 100 a day`,
   },
   'gövt': {
+    VoiceType: v => v >= 0 ? `snd ${1000 + 100 * v} on` : 'silent',
+    CrimeTol: v => `a criminal below ${-v}`,
+    SmugPenalty: v => `${novaNum(-v / 2)} where it happens`,
+    DisabPenalty: v => `${novaNum(-v / 2)} where it happens`,
+    BoardPenalty: v => `${novaNum(-v / 2)} where it happens`,
+    KillPenalty: v => `${novaNum(-v / 2)} where it happens`,
+    ShootPenalty: v => `${novaNum(-v / 2)} where it happens`,
+    Classes: v => novaListRead(v.map(c => c >= 0 ? `class ${c}` : null)),
+    Allies: (v, r, g) => novaGovtClassRead(g, r.id, v),
+    Enemies: (v, r, g) => novaGovtClassRead(g, r.id, v),
+    SkillMult: v => `skill × ${novaNum(v > 0 ? v / 100 : 1)}`,
+    ScanMask: v => v & 0xffff ? `finds ScanMask bits 0x${(v & 0xffff).toString(16).padStart(4, '0')}` : 'finds nothing',
+    Intf: (v, r, g) => novaRefText(g, 'ïntf', v >= 128 ? v : 128),
+    NewsPic: (v, r, g) => novaRefText(g, 'PICT', v >= 128 ? v : 9000),
     ScanFine: v => v > 0 ? `${v.toLocaleString('en-US')} credits` : v === 0 ? 'a warning' : `${-v}% of your credits`,
     MaxOdds: v => `runs at odds over ${Math.max(0.01, v / 100)}`,
   },

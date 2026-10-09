@@ -21,11 +21,11 @@
 const NOVA_FIELD_NOTES = {
   'jünk': {
     BoughtAt: {
-      note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while BuyOn holds. Of the commodities a stellar so names, the highest-numbered is the one traded there.',
+      note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while BuyOn holds. Of the commodities a stellar so names, the highest-numbered is the one traded there. It takes the trade screen\'s seventh row, where you may buy it or sell it at that one price.',
       code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
     },
     SoldAt: {
-      note: 'Up to eight stellars where it is traded at BasePrice ÷ 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while SellOn holds; the highest-numbered so named is the one.',
+      note: 'Up to eight stellars where it is traded at BasePrice ÷ 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while SellOn holds; the highest-numbered so named is the one. It takes the eighth row, where you may buy it or sell it at that one price.',
       code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
     },
     BasePrice: {
@@ -39,6 +39,22 @@ const NOVA_FIELD_NOTES = {
     SellOn: {
       note: 'A test of control bits: while it fails, it is not traded at its SoldAt stellars. Empty: no test.',
       code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    Flags: {
+      note: '0x0001: what you carry of it grows by a ton every 250 frames while your fleet has room in its holds. 0x0002: what you carry of it shrinks by a ton every 250 frames; the room test beside it reads a value only worked out when you also carry 0x0001 cargo, and otherwise whatever was left in its place. With both bits set it grows, and shrinks only when another cargo you carry has 0x0002 alone.',
+      code: [['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['TotalFleetHolds', 0xc24d], ['TotalCargo', 0x4a0b]],
+    },
+    ScanMask: {
+      note: 'When a ship of a government whose ScanMask shares a bit with this scans you while you carry it, it is smuggling: your record with that government suffers and you pay its ScanFine, and the ship tells you so, naming it by its LCName.',
+      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
+    },
+    LCName: {
+      note: 'Its name in the middle of a sentence: in your ship\'s information and when you are caught with it (ScanMask). The trade screen shows the resource\'s own name.',
+      code: [['LoadObjectData', 0x771b0], ['SetupPlayerInfoText', 0x53cb8], ['ScanPlayer', 0x7e46e], ['TradeDialogUpdate', 0x4ceea]],
+    },
+    Abbrev: {
+      note: 'Its short name, in the list of your cargo on the status bar.',
+      code: [['LoadObjectData', 0x771b0], ['DrawStatusCargo', 0x4c313]],
     },
   },
   'öops': {
@@ -84,6 +100,14 @@ const NOVA_FIELD_NOTES = {
       note: 'The weight of the ShipTypes beside it: a class is drawn with the chance of its Probs over the total of those that may be drawn.',
       code: [['SelectShipFieldFromDude', 0x65c2], ['Rand', 0xa4c76]],
     },
+    Booty: {
+      note: 'What you find when you board one of its ships. 0x0001 to 0x0020: the six commodities, in order; one of those set is picked at random, and you find half its Holds to all of them in tons of it. 0x0040: credits, 2.5% of its class\'s Cost, or up to just under 5% for a class costing 81,000 or more, at least 1,000; without it, only a përs\'s ship has credits, half to all of the përs\'s Credits. A bit above 0x0040 set with none of 0x0001 to 0x0020 hangs the game when you board: the program draws a commodity forever.',
+      code: [['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
+    },
+    InfoTypes: {
+      note: 'What its ships say when you hail them; one of the kinds set is picked at random. 0x1000: that a stellar is a good place to buy or sell one of the six commodities, where its price is low or high. 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits; but the number that picks it is never drawn in this program, so it is the first string until you hail a stellar and almost never one after. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less), 6 to 10 for others; a plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4, or 10015 + …, is taken first. None of these: STR# 2002\'s string 175.',
+      code: [['LoadAdvice', 0x9133c], ['CalcPortDemand', 0x56b1], ['DoPlanetCommDialog', 0x96949], ['LoadPluginString', 0x71a8e]],
+    },
   },
   'flët': {
     LinkSyst: {
@@ -117,6 +141,10 @@ const NOVA_FIELD_NOTES = {
     Quote: {
       note: 'Above 0: when the fleet jumps in while you are there, a string picked at random from the STR# of this number, each # in it a random digit, is shown. 0 or less: none.',
       code: [['HyperSpawnFleet', 0x41c8d], ['GetRandomIndString', 0x72ef7], ['DisplayComm', 0x90201]],
+    },
+    Flags: {
+      note: '0x0001: each ship of the fleet whose class has an InherentAI of 2 or less starts with cargo, 1 to Holds tons of one of the six commodities picked at random. No other bit is read.',
+      code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76], ['DrawStatusCargo', 0x4c313]],
     },
   },
   'sÿst': {
@@ -769,9 +797,14 @@ const NOVA_FIELD_READS = {
     BoughtAt: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
     SoldAt: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
     BasePrice: v => `${Math.trunc(v / 1.25)} to ${Math.trunc(v * 1.25)} credits at most stellars (÷ or × 1.25)`,
+    Flags: v => novaBitsRead(v, { 1: 'grows', 2: 'shrinks' }),
+    ScanMask: (v, r, g) => !(v & 0xffff) ? 'never smuggling'
+      : (by => by.size ? 'smuggling where scanned by ' + [...by].map(([n, ids]) => `${n} (gövt ${ids.join(', ')})`).join('; ')
+        : 'never caught: no government\'s ScanMask shares a bit')(novaAll(g, 'gövt').filter(gv => gv.ScanMask & v)
+        .reduce((by, gv) => by.set(novaNameParts(gv.name).name, [...(by.get(novaNameParts(gv.name).name) || []), gv.id]), new Map())),
   },
   'öops': {
-    Commodity: v => v >= 0 && v <= 5 ? `standard commodity ${v}` : 'none',
+    Commodity: (v, r, g) => v >= 0 && v <= 5 ? novaString(g, 4000, v, 9000) ?? `standard commodity ${v}` : 'none',
     Freq: v => v <= 0 ? 'never' : `${Math.min(v, 100)} in 100 a day`,
     Stellar: (v, r, g) => v >= 128 ? novaRefText(g, 'spöb', v) : 'a stellar drawn at random',
     Duration: v => v < 0 ? 'never ends' : `${v} day${v === 1 ? '' : 's'}`,
@@ -781,6 +814,14 @@ const NOVA_FIELD_READS = {
     Govt: (v, r, g) => novaGovtText(g, v),
     ShipTypes: (v, r, g) => novaWeightedRead(g, 'shïp', v, r.Probs, 128, 895),
     Probs: (v, r) => novaWeightedRead(null, 'shïp', r.ShipTypes, v, 128, 895, true),
+    Booty: (v, r, g) => {
+      const goods = [0, 1, 2, 3, 4, 5].filter(i => v & (1 << i)).map(i => novaString(g, 4000, i, 9000) ?? `commodity ${i}`);
+      if (v & 0xff80 && !goods.length) return 'boarding hangs the game';
+      return novaListRead([goods.length > 1 ? 'one of ' + goods.join(', ') : goods[0], v & 0x40 ? 'credits' : null, ...novaBitsRead(v & 0xff80, {}).split('; ').filter(t => t !== 'none set')]);
+    },
+    InfoTypes: (v, r, g) => novaListRead([v & 0x1000 ? 'where to trade' : null, v & 0x2000 ? 'a disaster\'s prices' : null,
+      v & 0x4000 ? (g.get('STR#', 7500 + (v & 0xfff)) ? novaRefText(g, 'STR#', 7500 + (v & 0xfff)) : `no STR# ${7500 + (v & 0xfff)}`) : null,
+      v & 0x8000 ? 'its government\'s greeting' : null]) .replace(/^none$/, 'a plain greeting'),
   },
   'flët': {
     LinkSyst: (v, r, g) => v === -1 ? 'anywhere' : v >= 0 && v <= 127 ? novaRefText(g, 'sÿst', v + 128) : v >= 10000 && v <= 14999 ? 'systems of ' + novaGovtText(g, v - 10000 + 128) : v >= 128 && v <= 9999 ? novaRefText(g, 'sÿst', v)
@@ -790,6 +831,7 @@ const NOVA_FIELD_READS = {
     EscortType: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 && id <= 895 ? `${novaRefText(g, 'shïp', id)} ×${r.Min[i]}${r.Max[i] > r.Min[i] ? ' to ' + r.Max[i] : ''}` : null)),
     Govt: (v, r, g) => novaGovtText(g, v),
     Quote: (v, r, g) => v > 0 ? (g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `no STR# ${v}: none`) : 'none',
+    Flags: v => novaBitsRead(v, { 1: 'trading ships carry cargo' }),
   },
   'sÿst': {
     Con: (v, r, g) => novaListRead(v.map(id => id >= 128 && id <= 2175 ? novaRefText(g, 'sÿst', id) : null)),

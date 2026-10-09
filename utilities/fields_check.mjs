@@ -43,7 +43,7 @@ console.log(`${notes} field notes, ${cites} routines cited, each a routine of Ma
 // records come to is counted where it is worth knowing: codes the program reads
 // as never offered or as where the mission is accepted, records named that are
 // not in the files, flag bits no use of was found for.
-const WATCH = /never offered|where it is accepted|not in the files|no use found|no landing finishes it|no such string/;
+const WATCH = /never offered|where it is accepted|not in the files|no use found|no landing finishes it|no such string|hangs the game/;
 let reads = 0;
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_READS)) for (const field of Object.keys(fields))
   if (!S.NOVA_RECORDS[type].some(f => f[0] === field)) fail(`${type} ${field}: a reading for a field not in its table`);

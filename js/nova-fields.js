@@ -1020,6 +1020,84 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'crön': {
+    FirstDay: {
+      note: 'The day of the month from which it may start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    FirstMonth: {
+      note: 'The month from which it may start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    FirstYear: {
+      note: 'The year from which it may start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    LastDay: {
+      note: 'The day of the month after which it may not start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    LastMonth: {
+      note: 'The month after which it may not start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    LastYear: {
+      note: 'The year after which it may not start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
+      bible: 'The first or last date on which the event can occur.',
+    },
+    Random: {
+      note: 'Each day it is not running, it starts if a number from 0 to 100 drawn for it is at most this, its dates hold (FirstYear), its Require is met and its EnableOn holds. 100 or more: always; below 0: never.',
+      code: [['CronEventHandler', 0x3874f], ['Rand', 0xa4c76]],
+    },
+    Duration: {
+      note: 'Days it runs once started (after PreHoldoff): OnStart is set as it starts, OnEnd as it ends. 0: both on the same day. Below 0: it never starts.',
+      code: [['CronEventHandler', 0x3874f], ['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
+    },
+    PreHoldoff: {
+      note: 'Days between its being drawn and its starting: OnStart is set only then. 0 or less: at once.',
+      code: [['CronEventHandler', 0x3874f]],
+    },
+    PostHoldoff: {
+      note: 'Days after it ends before it may be drawn again. 0 or less: from the next day.',
+      code: [['CronEventHandler', 0x3874f]],
+    },
+    IndNewsStr: {
+      note: 'While it runs, an STR# of news shown at any stellar where none of its NewsGovt applies; one string of it at random, the event drawn at random among those with news there. Government news (GovtNewsStr) from any running event comes first. 0 or less: none.',
+      code: [['RandomizeNewsDialog', 0x48238], ['GetRandomIndString', 0x72ef7]],
+    },
+    Flags: {
+      note: '0x0001: as it starts, OnStart is set over and over while its Require and EnableOn still hold. 0x0002: as it ends, OnEnd likewise. No other bit is read.',
+      code: [['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
+    },
+    EnableOn: {
+      note: 'A test of control bits: it starts only while this holds. Empty: no test.',
+      code: [['CronEventHandler', 0x3874f], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    OnStart: {
+      note: 'Control bits set when it starts (after PreHoldoff); see Flags 0x0001. Empty: none.',
+      code: [['ActivateCron', 0x385db], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnEnd: {
+      note: 'Control bits set when it ends; see Flags 0x0002. Empty: none.',
+      code: [['TerminateCron', 0x38467], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    Require: {
+      note: 'It starts only when the Contributes bits of your ship and outfits include every bit set here.',
+      code: [['CronEventHandler', 0x3874f], ['PlayerMeetsRequirements', 0x776f]],
+    },
+    NewsGovt: {
+      note: 'Up to four governments: while it runs, at a stellar of a government allied with one of them (or that one), the GovtNewsStr beside it is the event\'s news there, the last that applies. Below 128: none.',
+      code: [['LoadObjectData', 0x771b0], ['RandomizeNewsDialog', 0x48238], ['GovtAllies', 0x4e3d]],
+    },
+    GovtNewsStr: {
+      note: 'The STR# of news for the NewsGovt beside it; one string of it at random. Below 1: none.',
+      code: [['RandomizeNewsDialog', 0x48238], ['GetRandomIndString', 0x72ef7]],
+    },
     Contrib: {
       note: 'Added to your bits while the event is running: from the end of its PreHoldoff until it ends, not in its PostHoldoff. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, is met when they include every bit it sets.',
       code: [['CronEventHandler', 0x3874f], ['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
@@ -1366,6 +1444,15 @@ const NOVA_FIELD_READS = {
       0x200: 'mission on boarding', 0x400: 'hails while its mission is available', 0x800: 'leaves after its mission', 0x1000: 'no hail for InherentAI 1',
       0x2000: 'no hail for InherentAI 2', 0x4000: 'no hail for InherentAI 3 and up', 0x8000: 'disaster news' }),
     Flags2: v => novaBitsRead(v, { 1: 'starts with no fuel' }),
+  },
+  'crön': {
+    Random: v => v >= 100 ? 'every day it may' : v < 0 ? 'never' : `${v + 1} in 101 a day`,
+    Duration: v => v < 0 ? 'never starts' : `${v} day${v === 1 ? '' : 's'}`,
+    PreHoldoff: v => v > 0 ? `${v} day${v === 1 ? '' : 's'}` : 'none',
+    PostHoldoff: v => v > 0 ? `${v} day${v === 1 ? '' : 's'}` : 'none',
+    IndNewsStr: (v, r, g) => v > 0 ? novaRefText(g, 'STR#', v) : 'none',
+    Flags: v => novaBitsRead(v, { 1: 'OnStart repeated', 2: 'OnEnd repeated' }),
+    NewsGovt: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaGovtText(g, id)}: ${r.GovtNewsStr[i] > 0 ? novaRefText(g, 'STR#', r.GovtNewsStr[i]) : 'no news'}` : null)),
   },
 };
 

@@ -17,6 +17,24 @@
    nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
+  'düde': {
+    AIType: {
+      note: 'How its ships fly: above 0, that AI (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI, above 4 EscortAI); 0 or less, the InherentAI of the ship class drawn.',
+      code: [['RandomShipSpawn', 0x3c0f3], ['AIDispatch', 0x8fb52]],
+    },
+    Govt: {
+      note: 'The government of its ships: 128 to 383, that gövt; anything else, none.',
+      code: [['LoadObjectData', 0x771b0], ['RandomShipSpawn', 0x3c0f3]],
+    },
+    ShipTypes: {
+      note: 'Up to sixteen ship classes its ships are drawn from: 128 to 895, each with the Probs beside it as its weight. A class whose AppearOn fails is passed over, though a mission\'s ships take one anyway when none is left. Anything else: none.',
+      code: [['LoadObjectData', 0x771b0], ['SelectShipFieldFromDude', 0x65c2], ['MissionDudeSpawn', 0x3cd3b]],
+    },
+    Probs: {
+      note: 'The weight of the ShipTypes beside it: a class is drawn with the chance of its Probs over the total of those that may be drawn.',
+      code: [['SelectShipFieldFromDude', 0x65c2], ['Rand', 0xa4c76]],
+    },
+  },
   'flët': {
     LinkSyst: {
       note: 'Where this fleet may be met, as a system\'s AvgShips ships are placed (1 time in 7 each, after the përs chance) or as ships jump in later: -1, anywhere; 128 to 9999, that sÿst (0 to 127 count as 128 to 255); 10000 + n, systems of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Each time, one of the 256 fleet places is drawn at random, and the fleet comes only if the place drawn is one that may be met here, so a fleet is likelier where more fleets may be.',
@@ -134,6 +152,10 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'shïp': {
+    AppearOn: {
+      note: 'A test of control bits: while it fails, ships of this class are not drawn from a düde (a mission\'s ships aside, when no other class is left). Empty: no test.',
+      code: [['PropagateMissionBitEffects', 0x99676], ['SelectShipFieldFromDude', 0x65c2]],
+    },
     TechLevel: {
       note: 'Offered in a stellar\'s shipyard whose TechLevel is at least this, or one of whose SpecialTech is this. Below 0: in none.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
@@ -679,6 +701,12 @@ const NOVA_FIELD_READS = {
       0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
       0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
+  },
+  'düde': {
+    AIType: v => ({ 1: 'WimpyTraderAI', 2: 'BraveTraderAI', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : "the class's InherentAI"),
+    Govt: (v, r, g) => novaGovtText(g, v),
+    ShipTypes: (v, r, g) => novaWeightedRead(g, 'shïp', v, r.Probs, 128, 895),
+    Probs: (v, r) => novaWeightedRead(null, 'shïp', r.ShipTypes, v, 128, 895, true),
   },
   'flët': {
     LinkSyst: (v, r, g) => v === -1 ? 'anywhere' : v >= 0 && v <= 127 ? novaRefText(g, 'sÿst', v + 128) : v >= 10000 && v <= 14999 ? 'systems of ' + novaGovtText(g, v - 10000 + 128) : v >= 128 && v <= 9999 ? novaRefText(g, 'sÿst', v)

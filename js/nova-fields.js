@@ -7,6 +7,8 @@
    program carries and their addresses, so it can be read again; a field
    with no note has not been traced. evnova-workbench's tools/fieldtrace.py
    finds where a loader puts each field and which routines use that place;
+   where the Bible says otherwise, or leaves out what the code does, a note
+   carries `bible`, what it says;
    utilities/fields_check.mjs holds every routine named here to the
    program's own symbols.
 
@@ -188,6 +190,7 @@ const NOVA_FIELD_NOTES = {
     },
     ReinfFleet: {
       note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system: when the odds against it are more than half the MaxOdds of the fleet\'s government, or, without that test, when a ship you hail comes to help you. While it is on its way, a warship of that side holds out to twice its MaxOdds before it runs, not once. Below 128: none.',
+      bible: 'the fleet is called once the odds against ships allied with its government exceed that government\'s MaxOdds, not half of it.',
       code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['WarshipAI', 0x8b729], ['DoCommDialog', 0x956d5], ['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
     },
     ReinfTime: {
@@ -210,6 +213,7 @@ const NOVA_FIELD_NOTES = {
     },
     Cost: {
       note: 'What the shipyard asks is this less a trade-in, never below 0: a quarter of your own ship\'s Cost and half the Cost of each outfit you carry, some outfits aside. Each is multiplied by the PriceMod of every rank you hold with a government allied to the stellar\'s, the trade-in twice over; at a stellar of TechLevel 5 or less, a ship of lower TechLevel costs 3% less for each level between (from 100 credits), the trade-in again twice; and each is rounded down to 10 credits above 100, 100 above 10,000, 1,000 above 100,000.',
+      bible: 'the price is the new ship\'s Cost less 25% of the original cost of your current ship and upgrades; it says nothing of outfits at half, nor of the PriceMods and TechLevel.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerShipTradeInPrice', 0xb079], ['ApplyPriceAndTechnologyFlux', 0x4e6cd], ['DoPortDialog', 0x5f911]],
     },
     BuyRandom: {
@@ -218,6 +222,7 @@ const NOVA_FIELD_NOTES = {
     },
     HireRandom: {
       note: 'The chance in 100 it is offered for hire on a given day: it is offered while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy, the state in which the program sends its nag ship, Captain Hector, the draw is passed by and every class above 0 is offered every day.',
+      bible: 'says nothing of the unregistered copy.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['SpawnNagShip', 0x5fdb]],
     },
     Require: {
@@ -238,6 +243,7 @@ const NOVA_FIELD_NOTES = {
     },
     DefaultItems: {
       note: 'An outfit a ship of this class comes with, ItemCount of it: 128 to 639 is that oütf; anything else, none. Added to yours when you buy one at a shipyard, start a new pilot in one, capture one, or a set expression gives you one. DefaultItms2 is four more of the same.',
+      bible: '128 to 255.',
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['DoNewPilot', 0x18b0a], ['DoShipCapture', 0x41120], ['EvalSetExp', 0x150fc]],
     },
     ItemCount: {
@@ -268,6 +274,7 @@ const NOVA_FIELD_NOTES = {
   'gövt': {
     InitialRec: {
       note: 'Your record in each system whose Govt is this, when you start a new pilot; a system with no government starts at 0. When your escape pod is picked up (dësc 13999), every system\'s record goes back to this again.',
+      bible: 'says nothing of the escape pod.',
       code: [['ResetPlayer', 0x1d40d], ['ResetPlayerRecord', 0x1db70], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
     },
     ScanFine: {
@@ -306,10 +313,12 @@ const NOVA_FIELD_NOTES = {
     },
     TravelStel: {
       note: 'Where you must go, picked when the mission is made ready to offer. -1: nowhere. 128 to 2175: that spöb. -2: one picked at random from the stellars that qualify and have Flags 0x20 clear; -3: from those with Flags 0x20 set and 0x10 clear. 9999, 10000 + n, 15000 + n, 20000 + n, 25000 + n, 30000 + n and 31000 + n: from those, Flags 0x20 clear, of the governments AvailStel\'s same numbers name; for 10000 + n, Flags 0x20 set too when gövt 128 + n has Flags 0x0800. A stellar qualifies when its system is there now (its Visibility), it is in every version of that system, you can land on it and it is no hypergate or wormhole (Flags2 0x1000, 0x2000), and it is not where you are nor in your system or one linked to it. The mission is not offered while none qualifies, that last test aside. -4, anything else, or none qualifying: the stellar you are at (offered by a ship, the first in your system). Landing on it, or on a stellar of the same name at the same place, does this part of the mission.',
+      bible: 'lists no -4, nor what other values do.',
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['StellarsAreDistant', 0x9cb9], ['StellarIsNormalLandable', 0xa9f8], ['StellarIsLandable', 0xa989], ['IsMissionAvailable', 0x9b152], ['HandleStellarSystemVisibility', 0x32aa5], ['PropagateMissionBitEffects', 0x99676], ['StellarsAreIdentical', 0xab35], ['MissionLandCargoCheck', 0x9edc5]],
     },
     ReturnStel: {
       note: 'Where you must land for the mission to be done, once the rest of it is: picked as TravelStel is, from where you are, and a random pick never the stellar TravelStel picked. -1: the stellar TravelStel picked, so it is done on landing there; with TravelStel -1 too, no landing does it. Landing on a stellar of the same name at the same place does as well.',
+      bible: '-1 is no specific stellar destination.',
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['LoadCurrentMissionData', 0xa0a38], ['MissionLandCheck', 0xa19cc], ['StellarsAreIdentical', 0xab35]],
     },
     PickupMode: {
@@ -350,6 +359,7 @@ const NOVA_FIELD_NOTES = {
     },
     CompReward: {
       note: 'When the mission is done, your record goes up by this in every system whose government is CompGovt, by half of it where the government is an ally of CompGovt\'s, and down by half where it is an enemy. When it fails, down by half in CompGovt\'s systems. When you abort it and its Flags has 0x0040, down by five times this there.',
+      bible: 'speaks only of CompGovt: up by this on success, down by half on failure.',
       code: [['DoMissionSuccess', 0xa03fc], ['DoMissionFailure', 0xa0285], ['DoMissionInfoDialog', 0x9e19b], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
     },
     DatePostInc: {
@@ -406,6 +416,7 @@ const NOVA_FIELD_NOTES = {
     },
     ShipStart: {
       note: 'Where the mission\'s ships start. -1 to -16: on the stellar in that place of their system\'s list (-1 the first), there when you arrive. 0, or a place the list does not fill: brought in as the system\'s other ships are, there when you arrive. 1: they come in from hyperspace, making for you, 100 to 199 steps after you arrive (30 with ShipBehav 1 and ShipGoal 3), and so again each time you enter their system. 2: the first time, the same; after that they are there when you arrive, cloaked.',
+      bible: '-1 to -4 for the first four stellars; 1, jump in after a short delay; 2, appear at random, cloaked.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['DoShipCloak', 0xde73], ['GenericRandomShipSpawn', 0x3c89f]],
     },
     AuxShipCount: {
@@ -426,6 +437,7 @@ const NOVA_FIELD_NOTES = {
     },
     Flags: {
       note: '0x0001: it ends by itself once its ships are placed or its ShipGoal is met, or on accepting if it has no ships and no ReturnStel. 0x0002: its systems are not marked on the map. 0x0004: it cannot be refused. 0x0008: offered only while you have 100 units of fuel, which are taken when it ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if you are scanned with its cargo aboard (ScanMask). 0x0040: aborting it costs five times CompReward. 0x0100: its destination is marked on the map while it is offered. 0x0200: ShipSyst\'s system is marked on the map too. 0x0400: it is left out of your list of missions, its failures show no message, and its ships being destroyed or disabled does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while your ship class\'s InherentAI is 2 or less; 0x4000: while it is 3 or more.',
+      bible: '0x0400 makes the mission invisible, kept out of the mission info dialog, and no more; it gives no 0x1000.',
       code: [['AutoAbortMission', 0x99bdc], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionObjectivesCheck', 0x9e79e], ['DoMissionAccept', 0xa1b11], ['RecalcMissionSystsForMap', 0xe1b5], ['OfferOneMission', 0xa21ac], ['IsMissionAvailable', 0x9b152], ['ScanPlayer', 0x7e46e], ['DoMissionInfoDialog', 0x9e19b], ['SetupMissionInfoList', 0x9de7a], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['JettisonCargo', 0x3dffd], ['MissionDudeSpawn', 0x3cd3b]],
     },
     Flags2: {
@@ -462,6 +474,7 @@ const NOVA_FIELD_NOTES = {
     },
     AcceptButton: {
       note: 'The label of the Accept button as the mission is offered. Empty, or not starting with a letter: "Yes" if it can be refused, else "Okay" (STR# 150).',
+      bible: 'empty text gives Yes, or Okay when it cannot be refused; it says nothing of text not starting with a letter.',
       code: [['OfferOneMission', 0xa21ac]],
     },
     RefuseButton: {
@@ -488,6 +501,7 @@ const NOVA_FIELD_NOTES = {
     },
     BuyRandom: {
       note: 'The chance in 100 it is offered on a given day: it is offered while BuyRandom is at least a number from 1 to 100 drawn for it each day. Above 100: 100. 0 or less: never, unless you already have one.',
+      bible: 'values below 1 or above 100 are read as 100.',
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableItems', 0xbedb], ['IncrementGameTime', 0xb516]],
     },
     Contributes: {
@@ -608,6 +622,7 @@ const NOVA_FIELD_NOTES = {
     },
     Flags: {
       note: '0x0001: damaging its ship gives it a grudge, and as a warship it then goes for you. 0x0002: when its ship is destroyed, it is not gone for good. HailQuote only: 0x0004, while it has a grudge; 0x0008, while it likes you; 0x0010, as it turns on you (then at once); 0x0020, while its ship is disabled; 0x0080, once; 0x0400, while its LinkMission is available; not 0x1000 if your ship class\'s InherentAI is 1, 0x2000 if 2, 0x4000 if 3 or more. 0x0040: once you accept its LinkMission, if that mission has one ship, this ship becomes it. 0x0100: once you accept its LinkMission, it is not met again. 0x0200: its LinkMission is offered on boarding, not hailing. 0x0800: once you accept its LinkMission, its ship leaves. 0x8000: with CommQuote -1, hailing it gives news of a disaster.',
+      bible: '0x1000, 0x2000 and 0x4000 keep the person from offering its mission to a player flying a wimpy freighter, beefy freighter or warship, not from hailing; 0x8000 shows disaster info when hailing, with no word of CommQuote.',
       code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['LoadAdvice', 0x9133c], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0]],
     },
     Flags2: {

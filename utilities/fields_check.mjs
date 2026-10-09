@@ -29,6 +29,7 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
     notes++;
     if (!table.some(f => f[0] === field)) fail(`${type} ${field}: not a field of its table`);
     if (!n.note || !n.code || !n.code.length) fail(`${type} ${field}: a note with no routine`);
+    if ('bible' in n && (typeof n.bible !== 'string' || !n.bible)) fail(`${type} ${field}: a bible line with no words`);
     for (const [name, at] of n.code || []) {
       cites++;
       if (!held(name, at)) fail(`${type} ${field}: ${name} is ${syms.has(name) ? 'at 0x' + syms.get(name).toString(16) : 'not a routine'} in the program, not 0x${at.toString(16)}`);

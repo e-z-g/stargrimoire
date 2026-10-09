@@ -341,6 +341,46 @@ const NOVA_FIELD_NOTES = {
       note: 'A test of control bits: while it fails, the class cannot be bought, and with Flags3 0x0100 it is not shown in the shipyard. Empty: no test.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['SetupPortAvailableShipTypes', 0xbbe3], ['EvalMissionBitTestString', 0x9959e]],
     },
+    OnPurchase: {
+      note: 'Control bits set when you buy a ship of this class, and when it is the ship you are given after escaping in a pod. Empty: none.',
+      code: [['DoShipyardDialog', 0x5e679], ['HandlePlayer', 0x68390], ['ResetPlayer', 0x1d40d], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnCapture: {
+      note: 'Control bits set when you capture a ship of this class. Empty: none.',
+      code: [['DoShipCapture', 0x41120], ['DoPlunderDialog', 0x9302b], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnRetire: {
+      note: 'Control bits set when you leave a ship of this class: trading it in at a shipyard, taking a ship you capture in its place, or escaping from it in a pod. Empty: none.',
+      code: [['DoShipyardDialog', 0x5e679], ['DoShipCapture', 0x41120], ['HandlePlayer', 0x68390], ['HasEscapePod', 0xb83d], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    ShortName: {
+      note: 'Its name in the shipyard\'s list; "\\n" in it splits it over two lines, and a line starting with a letter or digit is drawn white.',
+      code: [['LoadObjectData', 0x771b0], ['ShipyardDialogUpdate', 0x58a10], ['SplitTwoLineString', 0x7dc1]],
+    },
+    CommName: {
+      note: 'Its name in the hail and escort dialogs.',
+      code: [['LoadObjectData', 0x771b0], ['DoCommDialog', 0x956d5], ['DoEscortDialog', 0x951ee]],
+    },
+    LongName: {
+      note: 'Its full name: in the shipyard and the ship\'s description, in the message a new pilot starts with, and in messages about your ship in flight.',
+      code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['ShipDescDialogUpdate', 0x4f915], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
+    },
+    MovieFile: {
+      note: 'A movie played on a loop in the shipyard while the class is picked.',
+      code: [['LoadObjectData', 0x771b0], ['ShipyardFilter', 0x60449], ['StartLoopingMovie', 0x60266]],
+    },
+    Subtitle: {
+      note: 'Shown under its name in the target display, unless the ship is a përs\'s with a Subtitle of its own, and under your ship on the main screen.',
+      code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1], ['MainScreenUpdate', 0x17c0d]],
+    },
+    KeyCarried: {
+      note: 'A class (128 to 895) it carries as fighters, its key: aboard while one of its fighter bays holds one or more. Its shän with Flags 0x0004 shows its second set of frames, and its weapons with wëap Flags2 0x0080 fire, only then. Below 128: none.',
+      code: [['LoadObjectData', 0x771b0], ['KeyCarriedShipTypeOnboard', 0x399c], ['HandleShipDisplay', 0x2b514], ['WeaponHasAmmo', 0xb95a]],
+    },
+    EscortType: {
+      note: 'Its group among your escorts: 0 fighter, 1 medium, 2 warship, 3 freighter. Anything else is worked out at loading: 3 for an InherentAI of 2 or less, else 0 below Mass 50, 1 below 200, 2 from 200. The group also gives the class 80 (fighter), 90 (medium) or 100: a turret\'s shot rolls 1 to its firer\'s, and misses a ship that is not disabled when the roll is over the target\'s.',
+      code: [['LoadObjectData', 0x771b0], ['DrawEscortMenuInFrame', 0x56268], ['ShotCanHitShip', 0x4477e]],
+    },
     AppearOn: {
       note: 'A test of control bits: while it fails, ships of this class are not drawn from a düde (a mission\'s ships aside, when no other class is left). Empty: no test.',
       code: [['PropagateMissionBitEffects', 0x99676], ['SelectShipFieldFromDude', 0x65c2]],
@@ -979,6 +1019,8 @@ const NOVA_FIELD_READS = {
     Explode1: (v, r, g) => novaBoomRead(g, v),
     Explode2: (v, r, g) => novaBoomRead(g, v),
     PodCount: v => v > 0 ? `${v} pod${v === 1 ? '' : 's'}` : 'none',
+    EscortType: (v, r) => (t => ['fighter', 'medium', 'warship', 'freighter'][t] + (v >= 0 && v <= 3 ? '' : ', worked out'))(v >= 0 && v <= 3 ? v : r.InherentAI <= 2 ? 3 : r.Mass < 50 ? 0 : r.Mass < 200 ? 1 : 2),
+    KeyCarried: (v, r, g) => v >= 128 && v <= 895 ? novaRefText(g, 'shïp', v) : 'none',
     Mass: v => (d => `${d} day${d === 1 ? '' : 's'} a jump${v >= 100 ? ', a larger radar blip' : ''}`)(v < 100 ? 1 : v < 200 ? 2 : 3),
     InherentAI: v => ({ 1: 'WimpyTraderAI, a trading ship', 2: 'BraveTraderAI, a trading ship', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : 'none: its ships run no AI, and count as trading ships'),
     MaxGun: v => v > 0 ? `${v} fixed gun${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',

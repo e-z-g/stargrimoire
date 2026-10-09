@@ -709,6 +709,20 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'oütf': {
+    ModType: {
+      note: 'What it does, ModVal saying how much; ModType2 to ModType4 the same. 1: the weapon wëap ModVal. 2: tons of hold; below 0 it takes hold space. 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge, ModVal ÷ 1,000 a frame. 6: armor points. 7: acceleration, ÷ 10,000. 8: top speed, ÷ 100. 9: turn, ÷ 100 degrees a frame. 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps; -1, every inhabited system; -1000 - n, the systems of governments of class n. 17: a cloak; ModVal 0x0002 shows on radar, 0x0004 drops the shields at once, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use and 0x0f00 ÷ 0x100 its shield use, 0x1000 cloaks the ships in formation with it. 18: a fuel scoop, as FuelRegen. 19: auto-refuelling. 20: auto-eject. 21: your record below 0 set to 0 in the systems of gövt ModVal, or in every one for -1. 22: days a jump. 23: the distance from the middle you jump from, 1,000 + ModVal. 24: anti-interference, -100 to 100 in all. 25: your capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these you carry. 28: murk. 29: armor recharge, ÷ 1,000 a frame. 30: a cloak scanner. 31: a mining scoop. 32: ModVal more jumps a jump, once for each kind carried, not each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization, ÷ 100. 40: ionization capacity. 41: gravity does not pull you. 42: deadly stellars do not harm you. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship carrying it repairs itself to just over the point of disabling. For a ship not yours, 32 and 49 count among its class\'s DefaultItems.',
+      code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581]],
+    },
+    ModVal: {
+      note: 'How much of what ModType says; see there. For ModType 1, 3 and 21, the id is kept less 128.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
+    ModType2: { note: 'A second effect, read as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal2: { note: 'How much of ModType2, as ModVal.', code: [['LoadObjectData', 0x771b0]] },
+    ModType3: { note: 'A third effect, read as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal3: { note: 'How much of ModType3, as ModVal.', code: [['LoadObjectData', 0x771b0]] },
+    ModType4: { note: 'A fourth effect, read as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal4: { note: 'How much of ModType4, as ModVal.', code: [['LoadObjectData', 0x771b0]] },
     TechLevel: {
       note: 'Offered at an outfitter whose stellar\'s TechLevel is at least this, or one of whose SpecialTech is this. Below 0, or 32767: nowhere by its TechLevel.',
       code: [['SetupPortAvailableItems', 0xbedb]],
@@ -932,6 +946,29 @@ const novaBoomRead = (game, v) => v >= 0 && v <= 63 ? novaRefText(game, 'bööm'
 // Stock weapons: wëap 128 to 383, each with its count and ammunition.
 const novaStockRead = (game, ids, counts, ammo) => novaListRead(ids.map((id, i) => id >= 128 && id <= 383
   ? `${novaRefText(game, 'wëap', id)} ×${counts[i]}${ammo[i] > 0 ? `, ammunition ${ammo[i]}` : ''}` : null));
+// An outfit's effect (ModType) and its amount (ModVal), as the program reads them.
+const NOVA_MOD_NAMES = { 1: 'weapon', 2: 'hold', 3: 'ammunition', 4: 'shield', 5: 'shield recharge', 6: 'armor', 7: 'acceleration', 8: 'top speed', 9: 'turn',
+  11: 'escape pod', 12: 'fuel', 13: 'density scanner', 14: 'IFF', 15: 'afterburner', 16: 'map', 17: 'cloak', 18: 'fuel scoop', 19: 'auto-refuel', 20: 'auto-eject',
+  21: 'clean record', 22: 'days a jump', 23: 'jump distance', 24: 'anti-interference', 25: 'capture odds', 27: 'raises a Max', 28: 'murk', 29: 'armor recharge',
+  30: 'cloak scanner', 31: 'mining scoop', 32: 'more jumps a jump', 33: 'jamming 1', 34: 'jamming 2', 35: 'jamming 3', 36: 'jamming 4', 37: 'jumps without slowing',
+  38: 'inertialess', 39: 'deionization', 40: 'ionization capacity', 41: 'gravity resistance', 42: 'deadly stellar resistance', 43: 'paint',
+  44: 'reinforcement inhibitor', 45: 'more guns', 46: 'more turrets', 47: 'bomb', 48: 'IFF scrambler', 49: 'self-repair', 50: 'bomb' };
+const novaModTypeRead = v => v === -1 || v === 0 ? 'none' : NOVA_MOD_NAMES[v] || `${v}: nothing reads it`;
+function novaModValRead(game, t, v) {
+  if (t === 1 || t === 3) return novaRefText(game, 'wëap', v);
+  if (t === 21) return v === -1 ? 'every system' : novaGovtText(game, v);
+  if (t === 27) return novaRefText(game, 'oütf', v);
+  if (t === 16) return v > 0 ? `${v} jump${v === 1 ? '' : 's'} around` : v === -1 ? 'every inhabited system' : v <= -1000 ? `governments of class ${-v - 1000}` : 'nothing';
+  if (t === 5 || t === 29) return `${novaNum(v * 0.03)} points a second`;
+  if (t === 7) return `${novaNum(v / 10000)} each 30th of a second`;
+  if (t === 8) return `${novaNum(v / 100)} each 30th of a second`;
+  if (t === 9) return `${novaNum(v * 0.3)}° a second`;
+  if (t === 15) return `${v} fuel a second`;
+  if (t === 23) return `${v > 0 ? '+' : ''}${v} on the 1,000 from the middle`;
+  if (t === 39) return `${novaNum(v * 0.3)} a second`;
+  if (t === 17) return novaBitsRead(v & 0x100e, { 2: 'on radar', 4: 'drops shields', 8: 'drops when hit', 0x1000: 'area' }) + `; fuel ${(v >> 4) & 15}, shield ${(v >> 8) & 15}`;
+  return t === -1 || t === 0 ? 'not read' : `${v}`;
+}
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -1083,6 +1120,14 @@ const NOVA_FIELD_READS = {
     Flags3: v => novaBitsRead(v, { 1: 'a miner, parking', 2: 'a miner, going between stellars', 0x20: 'no gravity or deadly stellars', 0x40: 'turret shots above ships', 0x100: 'hidden while Availability fails', 0x200: 'hidden while Require is not met', 0x4000: 'hides later classes of its DispWeight' }),
   },
   'oütf': {
+    ModType: v => novaModTypeRead(v),
+    ModType2: v => novaModTypeRead(v),
+    ModType3: v => novaModTypeRead(v),
+    ModType4: v => novaModTypeRead(v),
+    ModVal: (v, r, g) => novaModValRead(g, r.ModType, v),
+    ModVal2: (v, r, g) => novaModValRead(g, r.ModType2, v),
+    ModVal3: (v, r, g) => novaModValRead(g, r.ModType3, v),
+    ModVal4: (v, r, g) => novaModValRead(g, r.ModType4, v),
     TechLevel: v => v < 0 || v === 32767 ? 'nowhere by it' : `outfitters of TechLevel ${v} or more`,
     BuyRandom: v => v <= 0 ? 'not sold, unless you have one' : `${Math.min(v, 100)} in 100 a day`,
   },

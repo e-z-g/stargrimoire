@@ -231,6 +231,75 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'shïp': {
+    Holds: {
+      note: 'Tons of cargo. Yours: plus each ModType 2 outfit\'s ModVal; what you can buy and carry adds the Holds of each ship flying with you under AI 6 whose class has an InherentAI of 2 or less, to 32,000 in all. Below 0: as many tons, but no outfit taking hold space (ModType 2 with a negative ModVal) can be bought for it; otherwise one needs that much room free.',
+      code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['TotalFleetHolds', 0xc24d], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    Shield: {
+      note: 'Shield points. Yours: plus each ModType 4 outfit\'s ModVal. A përs\'s ship: × its ShieldMod, a percentage, when above 0. A ship under AI 5, the program\'s for launched fighters and ships you capture: × 1.333.',
+      code: [['LoadObjectData', 0x771b0], ['ShipShieldCapacity', 0x2995]],
+    },
+    Accel: {
+      note: 'Accel ÷ 10,000 is its acceleration, each 30th of a second. Yours: plus each ModType 7 outfit\'s ModVal ÷ 10,000. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100, then × 2; a third while another ship\'s tractor beam holds it; less by its ionization, at most 70% (IonizeMax); Flags 0x0400 makes it 0.',
+      code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b]],
+    },
+    Speed: {
+      note: 'Speed ÷ 100 is its top speed, each 30th of a second. Yours: plus each ModType 8 outfit\'s ModVal ÷ 100; then, for you and the ships flying with you, × 1.5 unless the pilot was made for strict play. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100; a third while another ship\'s tractor beam holds it; Flags 0x0400 makes it 0.',
+      code: [['LoadObjectData', 0x771b0], ['ShipMaxSpeed', 0x36f2], ['DoNewPilotNameDialog', 0x165cc]],
+      bible: 'Top speed. 300 is also an average value here.',
+    },
+    Maneuver: {
+      note: 'Maneuver ÷ 10 is its turn, in degrees each 30th of a second. Yours: plus each ModType 9 outfit\'s ModVal ÷ 100, at least 1 if the class turns at all. Not yours: a third while another ship\'s tractor beam holds it. A class turning 1 or more turns at least 1; then less by its ionization, at most 70%, unless it is jumping.',
+      code: [['LoadObjectData', 0x771b0], ['ShipTurnRate', 0x32f7]],
+    },
+    Fuel: {
+      note: 'Units of fuel; a jump takes 100. Yours: plus each ModType 12 outfit\'s ModVal, 0 to 32,000. A ship not yours jumps out of a system only if its class has 100 or more; a përs\'s ship with Flags2 0x0001 also needs 100 aboard.',
+      code: [['ShipFuelCapacity', 0x2f21], ['HandlePlayer', 0x68390], ['AIShipHasFuelForJump', 0x7f48f]],
+    },
+    FreeMass: {
+      note: 'Tons for outfits. Yours: less each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. The weapons of WeapType are not outfits and take none of it. An outfit is sold to you only while its Mass fits (or is 0 or less).',
+      code: [['ShipFreeMass', 0xb462], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    Armor: {
+      note: 'Armor points. Yours: plus each ModType 6 outfit\'s ModVal. A përs\'s ship: × its ShieldMod, a percentage, when above 0. A ship under AI 5 (as Shield): × 1.333.',
+      code: [['LoadObjectData', 0x771b0], ['ShipArmorCapacity', 0x2bc0]],
+    },
+    DispWeight: {
+      note: 'The shipyard lists the classes on offer highest DispWeight first, classes of equal DispWeight by id (but see Flags3 0x4000).',
+      code: [['SetupPortAvailableShipTypes', 0xbbe3]],
+    },
+    MaxGun: {
+      note: 'How many fixed guns, outfits with Flags 0x0001, you can carry. Yours: plus each ModType 45 outfit\'s ModVal. 0 or less: none.',
+      code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    MaxTur: {
+      note: 'How many turrets, outfits with Flags 0x0002, you can carry. Yours: plus each ModType 46 outfit\'s ModVal. 0 or less: none.',
+      code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    ShieldRech: {
+      note: 'ShieldRech ÷ 1,000 shield points come back each 30th of a second, so ShieldRech × 0.03 a second; 0 or less, none. Yours: plus each ModType 5 outfit\'s ModVal ÷ 1,000. A ship under AI 5: × 1.333.',
+      code: [['LoadObjectData', 0x771b0], ['ShipShieldRechargeRate', 0x2abb], ['HandleShip', 0x33581]],
+    },
+    ArmorRech: {
+      note: 'ArmorRech ÷ 1,000 armor points come back each 30th of a second, so ArmorRech × 0.03 a second; 0 or less, none, and none while it is disabled. Yours: plus each ModType 29 outfit\'s ModVal ÷ 1,000, and × 50 while the cheats are on. A ship under AI 5: × 1.333.',
+      code: [['LoadObjectData', 0x771b0], ['ShipArmorRechargeRate', 0x2e0e], ['IsDisabled', 0x2ce6], ['HandleShip', 0x33581]],
+    },
+    SkillVar: {
+      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100; for a ship not yours it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar, before it is given its own class.',
+      code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['Rand', 0xa4c76]],
+    },
+    Deionize: {
+      note: 'Deionize ÷ 100 of its ionization wears off each 30th of a second; 0 or less, 1. Yours: plus each ModType 39 outfit\'s ModVal ÷ 100.',
+      code: [['LoadObjectData', 0x771b0], ['ShipDeionizationRate', 0x6ec3], ['HandleShip', 0x33581]],
+    },
+    IonizeMax: {
+      note: 'Its ionization over IonizeMax is how far it is ionized, which slows its acceleration, top speed and turning by as much, at most 70%. Yours: plus each ModType 40 outfit\'s ModVal. 0 or less: never slowed.',
+      code: [['LoadObjectData', 0x771b0], ['ShipIonizationFactor', 0x3225]],
+    },
+    Availability: {
+      note: 'A test of control bits: while it fails, the class cannot be bought, and with Flags3 0x0100 it is not shown in the shipyard. Empty: no test.',
+      code: [['CalcShipCanBuy', 0x4f5eb], ['SetupPortAvailableShipTypes', 0xbbe3], ['EvalMissionBitTestString', 0x9959e]],
+    },
     AppearOn: {
       note: 'A test of control bits: while it fails, ships of this class are not drawn from a düde (a mission\'s ships aside, when no other class is left). Empty: no test.',
       code: [['PropagateMissionBitEffects', 0x99676], ['SelectShipFieldFromDude', 0x65c2]],
@@ -254,8 +323,8 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['SpawnNagShip', 0x5fdb]],
     },
     Require: {
-      note: 'Offered only when the Contributes bits of your ship and outfits include every bit set here.',
-      code: [['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
+      note: 'It can be bought only when the Contributes bits of your ship and outfits include every bit set here. With Flags3 0x0200 it is not shown in the shipyard either until then; without, it is shown and cannot be bought.',
+      code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
     },
     UpgradeTo: {
       note: 'The ship class an escort of this class that you own (not a hired one) becomes when you have marked it in the escort dialog ("Will be upgraded at next shipyard") and land at a shipyard with its EscUpgrdCost in hand. Below 128: it cannot be ("This ship class cannot be upgraded.").',
@@ -295,8 +364,9 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],
     },
     Flags3: {
-      note: '0x0020: a planet\'s Gravity does not pull it.',
-      code: [['ShipResistsGravity', 0x7b10]],
+      note: '0x0001 and 0x0002: a ship not following another flies as a miner: with 0x0001 it parks where there are no asteroids; with 0x0002 it goes between the nearest stellars, and coasts 100 to 174 steps, not 300 to 499, when idle. 0x0020: a planet\'s Gravity does not pull it, and deadly stellars do not harm it. 0x0040: its turrets\' shots are drawn above the ships. 0x0100: not shown in the shipyard while its Availability fails; 0x0200, while its Require is not met. 0x4000: while it is on offer, every higher-numbered class of the same DispWeight is not. 0x0010 is not read.',
+      code: [['AIDispatch', 0x8fb52], ['MinerAI', 0x8b202], ['HighLevelAIHandler', 0x8d453], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['SpawnShot', 0x3e550], ['SetupPortAvailableShipTypes', 0xbbe3]],
+      bible: '0x0010, the ship ignores gravity; 0x0020, it ignores deadly stellars.',
     },
   },
   'gövt': {
@@ -739,6 +809,8 @@ function novaBitsRead(v, words) {
 const novaDescRead = (game, v) => v <= 0 ? 'none' : novaRefText(game, 'dësc', v);
 const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düde', v) : 'none';
 
+// A rate in words: up to four decimals, no trailing zeros.
+const novaNum = x => (+x.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -849,6 +921,22 @@ const NOVA_FIELD_READS = {
     ReinfIntrval: v => `${Math.max(1, v)} day${Math.max(1, v) === 1 ? '' : 's'}`,
   },
   'shïp': {
+    Holds: v => v < 0 ? `${-v} tons, and nothing taking hold space can be bought` : `${v} tons`,
+    Shield: v => `${v} points`,
+    Armor: v => `${v} points`,
+    Accel: v => `${novaNum(v / 10000)} each 30th of a second, before skill`,
+    Speed: v => `${novaNum(v / 100)} each 30th of a second, before skill and strict play`,
+    Maneuver: v => `${novaNum(v / 10)}° each 30th of a second, ${novaNum(v * 3)}° a second`,
+    Fuel: v => `${Math.max(0, Math.trunc(v / 100))} jump${Math.trunc(v / 100) === 1 ? '' : 's'}`,
+    FreeMass: v => `${v} tons`,
+    DispWeight: v => `listed by ${v}, highest first`,
+    MaxGun: v => v > 0 ? `${v} fixed gun${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',
+    MaxTur: v => v > 0 ? `${v} turret${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',
+    ShieldRech: v => v > 0 ? `${novaNum(v * 0.03)} points a second` : 'none',
+    ArmorRech: v => v > 0 ? `${novaNum(v * 0.03)} points a second` : 'none',
+    SkillVar: v => v > 0 ? `skill ${100 - v}% to ${100 + v}%` : 'skill 100%',
+    Deionize: v => `${novaNum(v > 0 ? v * 0.3 : 30)} a second`,
+    IonizeMax: v => v > 0 ? `fully ionized at ${v}` : 'never slowed',
     TechLevel: v => v < 0 ? 'in no shipyard by it' : `shipyards of TechLevel ${v} or more`,
     BuyRandom: v => v <= 0 ? 'not sold' : `${Math.min(v, 100)} in 100 a day`,
     HireRandom: v => v <= 0 ? 'never for hire' : `${Math.min(v, 100)} in 100 a day`,
@@ -857,7 +945,7 @@ const NOVA_FIELD_READS = {
     DefaultItems: (v, r, g) => novaItemsRead(g, v, r.ItemCount),
     DefaultItms2: (v, r, g) => novaItemsRead(g, v, r.ItemCount2),
     FuelRegen: (v, r) => v > 0 ? `a unit every ${v} steps${r.Flags & 8 ? '' : ' (not yours: Flags 0x0008 clear)'}` : 'none',
-    Flags3: v => v & 0x20 ? 'gravity does not pull it' : 'gravity pulls it',
+    Flags3: v => novaBitsRead(v, { 1: 'a miner, parking', 2: 'a miner, going between stellars', 0x20: 'no gravity or deadly stellars', 0x40: 'turret shots above ships', 0x100: 'hidden while Availability fails', 0x200: 'hidden while Require is not met', 0x4000: 'hides later classes of its DispWeight' }),
   },
   'oütf': {
     TechLevel: v => v < 0 || v === 32767 ? 'nowhere by it' : `outfitters of TechLevel ${v} or more`,

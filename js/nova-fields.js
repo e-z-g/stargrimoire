@@ -18,6 +18,30 @@
 
 const NOVA_FIELD_NOTES = {
   'sÿst': {
+    Interference: {
+      note: 'Less your ship\'s anti-interference, kept between 0 and 100: the chance in 100 each step that your status display is jammed. Also the chance in 100 that a guided shot with Seeker 0x0008 fired here is confused.',
+      code: [['HandleStatus', 0x494d7], ['ShipAntiInterference', 0x5f2c], ['SpawnShot', 0x3e550]],
+    },
+    Murk: {
+      note: 'How murky the system is: below 0 as 0, plus the ModVal of every outfit you carry with ModType 28, as many times as you have it, kept between 0 and 100; ships are shaded by it.',
+      code: [['PlayerEffectiveMurk', 0x6f8f], ['HandleShipDisplay', 0x2b514], ['HandleSpriteMurkiness', 0x2b42f]],
+    },
+    Asteroids: {
+      note: 'How many asteroids are kept about you: placed when you arrive, and one more at the edge of the screen whenever fewer are about, at most 16. 0 or less: none.',
+      code: [['CreateAsteroids', 0x3fa05], ['SpawnAsteroid', 0x3a233]],
+    },
+    AstTypes: {
+      note: 'Which röid types the asteroids are, drawn at random among those set: bit 0x0001 is röid 128, 0x0002 röid 129, and so on to 0x8000, röid 143. 0: no asteroids.',
+      code: [['SpawnAsteroid', 0x3a233]],
+    },
+    DudeTypes: {
+      note: 'The düdes the system\'s ships are drawn from: 128 to 639, each with the Probs beside it as its weight. Anything else: none.',
+      code: [['SelectDudeFieldFromSystem', 0x674d], ['RandomShipSpawn', 0x3c0f3]],
+    },
+    Probs: {
+      note: 'The weight of the DudeTypes beside it: a düde is drawn with the chance of its Probs over the total of them all, which need not be 100.',
+      code: [['SelectDudeFieldFromSystem', 0x674d], ['Rand', 0xa4c76]],
+    },
     AvgShips: {
       note: 'How many ships are placed when you enter the system: each is a përs 1 time in 7 (one picked from those that may be met here), else a flët 1 time in 7, else a ship from DudeTypes.',
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
@@ -540,6 +564,17 @@ function novaBitsRead(v, words) {
 const novaDescRead = (game, v) => v <= 0 ? 'none' : novaRefText(game, 'dësc', v);
 const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düde', v) : 'none';
 
+const novaList = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
+// Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
+function novaWeighted(game, type, ids, weights, lo, hi, sharesOnly) {
+  const ok = ids.map((id, i) => id >= lo && id <= hi ? i : -1).filter(i => i >= 0);
+  const total = ok.reduce((t, i) => t + weights[i], 0);
+  if (!(total > 0)) return 'none';
+  return ok.map(i => (sharesOnly ? `${type} ${ids[i]}` : novaRefText(game, type, ids[i])) + ` ${Math.round(100 * weights[i] / total)}%`).join('; ');
+}
+// Outfits and counts ("oütf 130, Afterburner ×1"), as a ship comes with them.
+const novaItems = (game, ids, counts) => novaList(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
+
 const NOVA_FIELD_READS = {
   'mïsn': {
     AvailStel: (v, r, g) => novaPlaceRead(g, 'avail', v),
@@ -582,6 +617,76 @@ const NOVA_FIELD_READS = {
       0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
       0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
+  },
+  'sÿst': {
+    DudeTypes: (v, r, g) => novaWeighted(g, 'düde', v, r.Probs, 128, 639),
+    Probs: (v, r) => novaWeighted(null, 'düde', r.DudeTypes, v, 128, 639, true),
+    Person: (v, r, g) => novaList(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'përs', id)} (${r.PersonProb[i]} in 100)` : null)),
+    AstTypes: (v, r, g) => r.Asteroids > 0 && v & 0xffff ? novaList([...Array(16).keys()].filter(i => (v >> i) & 1).map(i => novaRefText(g, 'röid', 128 + i))) : 'no asteroids',
+    Asteroids: v => v > 0 ? `${Math.min(v, 16)} kept about you` : 'none',
+    Interference: v => `${Math.max(0, Math.min(100, v))} in 100, before your anti-interference`,
+    Murk: v => `${Math.max(0, Math.min(100, v))}, before your outfits`,
+    Message: (v, r, g) => v === -1 ? 'one of three greetings and the system\'s name, at random' : `"${novaString(g, 1000, v - 1, 1000) ?? '(no such string)'}"`,
+    ReinfFleet: (v, r, g) => v >= 128 ? novaRefText(g, 'flët', v) : 'none',
+    ReinfIntrval: v => `${Math.max(1, v)} day${Math.max(1, v) === 1 ? '' : 's'}`,
+  },
+  'shïp': {
+    TechLevel: v => v < 0 ? 'in no shipyard by it' : `shipyards of TechLevel ${v} or more`,
+    BuyRandom: v => v <= 0 ? 'not sold' : `${Math.min(v, 100)} in 100 a day`,
+    HireRandom: v => v <= 0 ? 'never for hire' : `${Math.min(v, 100)} in 100 a day`,
+    UpgradeTo: (v, r, g) => v >= 128 ? novaRefText(g, 'shïp', v) : 'cannot be upgraded',
+    EscSellValue: (v, r) => `${(v > 0 ? v : Math.trunc(r.Cost / 10)).toLocaleString('en-US')} credits`,
+    DefaultItems: (v, r, g) => novaItems(g, v, r.ItemCount),
+    DefaultItms2: (v, r, g) => novaItems(g, v, r.ItemCount2),
+    FuelRegen: (v, r) => v > 0 ? `a unit every ${v} steps${r.Flags & 8 ? '' : ' (not yours: Flags 0x0008 clear)'}` : 'none',
+    Flags3: v => v & 0x20 ? 'gravity does not pull it' : 'gravity pulls it',
+  },
+  'oütf': {
+    TechLevel: v => v < 0 || v === 32767 ? 'nowhere by it' : `outfitters of TechLevel ${v} or more`,
+    BuyRandom: v => v <= 0 ? 'not sold, unless you have one' : `${Math.min(v, 100)} in 100 a day`,
+  },
+  'gövt': {
+    ScanFine: v => v > 0 ? `${v.toLocaleString('en-US')} credits` : v === 0 ? 'a warning' : `${-v}% of your credits`,
+    MaxOdds: v => `runs at odds over ${Math.max(0.01, v / 100)}`,
+  },
+  'spöb': {
+    Govt: (v, r, g) => novaGovtText(g, v),
+    Tribute: (v, r) => `${(v > 0 ? v : r.TechLevel * 1000).toLocaleString('en-US')} credits a day once dominated`,
+    Fee: v => v > 0 ? `${v.toLocaleString('en-US')} credits` : 'none',
+    Gravity: v => v > 0 ? 'pulls' : v < 0 ? 'pushes' : 'none',
+    Weapon: (v, r, g) => v >= 128 ? novaRefText(g, 'wëap', v) : 'none',
+    Strength: v => v > 0 ? `${v}` : 'never destroyed',
+    DeadType: (v, r) => v > 255 || v < 0 ? `its own Type, ${r.Type}` : `${v}`,
+    ExplodType: v => v < 0 ? 'none' : `${v}`,
+  },
+  'wëap': {
+    Count: (v, r) => `${v} steps, reaching ${Math.trunc(v * r.Speed / 100)}`,
+    GuidedTurn: v => `${v / 10}° a step`,
+    SubTheta: v => v > 0 ? `within ${v}° at random` : v < 0 ? `fanned ${-v}° apart` : 'straight on',
+    SubLimit: v => v < 1 ? 'no limit' : `${v} generations`,
+  },
+  'përs': {
+    LinkSyst: (v, r, g) => v === -1 ? 'anywhere' : v >= 0 && v <= 127 ? novaRefText(g, 'sÿst', v + 128) : v <= 9998 && v >= 128 ? novaRefText(g, 'sÿst', v)
+      : v === 9999 ? 'systems of no government' : v <= 14999 && v >= 10000 ? 'systems of ' + novaGovtText(g, v - 10000 + 128) : v >= 15000 && v <= 19999 ? 'systems of an ally of ' + novaGovtText(g, v - 15000 + 128)
+      : v >= 20000 && v <= 24999 ? 'systems of a government other than ' + novaGovtText(g, v - 20000 + 128) : v >= 25000 && v <= 29999 ? 'systems of an enemy of ' + novaGovtText(g, v - 25000 + 128) : 'nowhere',
+    Govt: (v, r, g) => novaGovtText(g, v),
+    AIType: v => ({ 1: 'WimpyTraderAI', 2: 'BraveTraderAI', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : 'never picked by LinkSyst'),
+    Aggress: v => `kept as ${v < 1 ? 1 : v > 2 ? 4 : v}`,
+    ShipType: (v, r, g) => novaRefText(g, 'shïp', v >= 128 && v <= 895 ? v : 128),
+    WeapType: (v, r, g) => novaList(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'wëap', id)} ×${r.WeapCount[i]}${r.AmmoLoad[i] ? `, ammunition ${r.AmmoLoad[i]}` : ''}` : null)),
+    Credits: v => { const k = Math.trunc(v / 1000) * 0.5; return k <= 0 ? 'none' : k > 2 ? `${(k * 1000).toLocaleString('en-US')} to ${((k + Math.trunc(k) - 1) * 1000).toLocaleString('en-US')} credits` : `${(k * 1000).toLocaleString('en-US')} credits`; },
+    ShieldMod: v => v > 0 ? `${v}% of its class's` : "its class's",
+    HailPict: v => v >= 128 ? `PICT ${v}` : "its ship class's",
+    CommQuote: (v, r, g) => v > 0 ? `"${novaString(g, 7100, v - 1, 15001) ?? '(no such string)'}"` : v === -1 && r.Flags & 0x8000 ? 'news of a disaster' : 'the usual answer',
+    HailQuote: (v, r, g) => v === -1 ? 'it does not hail' : `"${novaString(g, 7101, v - 1, 5000) ?? '(no such string)'}"`,
+    LinkMission: (v, r, g) => v >= 128 ? novaRefText(g, 'mïsn', v) : 'none',
+    GrantClass: (v, r) => v > 0 && r.GrantProb > 0 && r.GrantCount > 0 ? `ItemClass ${v}, ${Math.min(r.GrantProb, 100)} in 100` : 'none',
+    GrantCount: v => v > 0 ? `${Math.max(1, Math.trunc(v * 50 / 100))} to ${v}` : 'none',
+    Flags: v => novaBitsRead(v, { 1: 'holds a grudge', 2: 'not gone for good when destroyed', 4: 'hails with a grudge only', 8: 'hails when it likes you only',
+      0x10: 'hails as it turns on you', 0x20: 'hails while disabled only', 0x40: 'becomes the mission ship', 0x80: 'hails once', 0x100: 'gone after its mission',
+      0x200: 'mission on boarding', 0x400: 'hails while its mission is available', 0x800: 'leaves after its mission', 0x1000: 'no hail for InherentAI 1',
+      0x2000: 'no hail for InherentAI 2', 0x4000: 'no hail for InherentAI 3 and up', 0x8000: 'disaster news' }),
+    Flags2: v => novaBitsRead(v, { 1: 'starts with no fuel' }),
   },
 };
 

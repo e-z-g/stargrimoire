@@ -18,6 +18,34 @@
 
 const NOVA_FIELD_NOTES = {
   'sÿst': {
+    xPos: {
+      note: 'With yPos, where the system is on the galaxy map. Systems at the same place are versions of one another: the lowest-numbered of them whose Visibility holds is the one used.',
+      code: [['LoadObjectData', 0x771b0], ['FindFirstCoLocatedSystem', 0x4baa], ['FindActiveCoLocatedSystem', 0x4be0]],
+    },
+    yPos: {
+      note: 'With xPos, where the system is on the galaxy map; see xPos for systems at the same place.',
+      code: [['LoadObjectData', 0x771b0], ['FindActiveCoLocatedSystem', 0x4be0], ['DrawMap', 0xe568]],
+    },
+    Con: {
+      note: 'Up to sixteen systems this one links to: 128 to 2175, that sÿst; anything else, none.',
+      code: [['LoadObjectData', 0x771b0], ['StellarsAreDistant', 0x9cb9]],
+    },
+    Nav: {
+      note: 'Up to sixteen stellars in the system: 128 to 2175, that spöb; anything else, none.',
+      code: [['LoadObjectData', 0x771b0], ['HandleStellarSystemVisibility', 0x32aa5]],
+    },
+    Govt: {
+      note: 'The government of the system: 128 to 383, that gövt; anything else, none. Your record here starts at its InitialRec, and the government ranges of LinkSyst, ShipSyst, AuxShipSyst, PayVal and CompReward count the system by it.',
+      code: [['LoadObjectData', 0x771b0], ['ResetPlayer', 0x1d40d], ['SpawnPerson', 0x408d5], ['SelectMissionSystem', 0x9b993], ['ValidAuxShipSystem', 0x992b5], ['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc]],
+    },
+    BkgndColor: {
+      note: 'The colour of space while you are in the system.',
+      code: [['LoadObjectData', 0x771b0], ['SetSystemBackgroundColor', 0x6af4]],
+    },
+    Visibility: {
+      note: 'A test of control bits: while it fails, the system is not there, nor its stellars, and another version of it at the same place stands for it. Empty: always there.',
+      code: [['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e], ['FindActiveCoLocatedSystem', 0x4be0], ['HandleStellarSystemVisibility', 0x32aa5]],
+    },
     Interference: {
       note: 'Less your ship\'s anti-interference, kept between 0 and 100: the chance in 100 each step that your status display is jammed. Also the chance in 100 that a guided shot with Seeker 0x0008 fired here is confused.',
       code: [['HandleStatus', 0x494d7], ['ShipAntiInterference', 0x5f2c], ['SpawnShot', 0x3e550]],
@@ -619,6 +647,9 @@ const NOVA_FIELD_READS = {
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
   },
   'sÿst': {
+    Con: (v, r, g) => novaListRead(v.map(id => id >= 128 && id <= 2175 ? novaRefText(g, 'sÿst', id) : null)),
+    Nav: (v, r, g) => novaListRead(v.map(id => id >= 128 && id <= 2175 ? novaRefText(g, 'spöb', id) : null)),
+    Govt: (v, r, g) => novaGovtText(g, v),
     DudeTypes: (v, r, g) => novaWeightedRead(g, 'düde', v, r.Probs, 128, 639),
     Probs: (v, r) => novaWeightedRead(null, 'düde', r.DudeTypes, v, 128, 639, true),
     Person: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'përs', id)} (${r.PersonProb[i]} in 100)` : null)),

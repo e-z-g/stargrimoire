@@ -257,8 +257,8 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipFuelCapacity', 0x2f21], ['HandlePlayer', 0x68390], ['AIShipHasFuelForJump', 0x7f48f]],
     },
     FreeMass: {
-      note: 'Tons for outfits. Yours: less each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. The weapons of WeapType are not outfits and take none of it. An outfit is sold to you only while its Mass fits (or is 0 or less).',
-      code: [['ShipFreeMass', 0xb462], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
+      note: 'Tons for outfits. Yours: less each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. Its stock weapons and their ammunition take none of it, their outfits\' Mass being added to it at loading (WeapType). An outfit is sold to you only while its Mass fits (or is 0 or less).',
+      code: [['ShipFreeMass', 0xb462], ['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Armor: {
       note: 'Armor points. Yours: plus each ModType 6 outfit\'s ModVal. A përs\'s ship: × its ShieldMod, a percentage, when above 0. A ship under AI 5 (as Shield): × 1.333.',
@@ -285,9 +285,19 @@ const NOVA_FIELD_NOTES = {
       note: 'Shown in the ship\'s description; nothing else reads it.',
       code: [['ShipDescDialogUpdate', 0x4f915]],
     },
+    Flags: {
+      note: '0x0001, 0x0002, 0x0004: its jumps run at 0.7, 1.3 or 1.6 times the usual pace, the first bit set counting. 0x0008: its FuelRegen works for you. 0x0010: it is disabled at a tenth of its armor, not a third. 0x0020: a ship not yours has an afterburner when your kills ÷ shïp 128\'s Strength reach 256 + a number to 1,343 drawn for it; 0x0040: always. 0x0100 and 0x0200 change what the target display shows of its shields and armor. 0x0400: a planet-type ship: only weapons with wëap Flags2 0x0400 hit it, and those hit nothing else; not yours, it does not move; a tractor beam cannot hold it; it leaves no blast. 0x1000, 0x2000, 0x4000: its turrets cannot fire within 45° of ahead, from 45° to 135° off, or beyond 135°. 0x8000: carried in your fighter bay, it is your escape ship: you eject into it.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShip', 0x33581], ['ShipFuelGenRate', 0x2ffb], ['IsDisabled', 0x2ce6], ['AIHasAfterburner', 0x64f5], ['DrawStatusTarg', 0x4ace1], ['ShotCanHitShip', 0x4477e], ['AIFireGun', 0x7feb6], ['ShipAccelRate', 0x353b], ['HandleBeams', 0x30295], ['TurretBlindSpot', 0xb325], ['EscapeShipType', 0x38d0]],
+      bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
+    },
+    Flags2: {
+      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: it cannot be targeted: your targeting keys and mouse pass it over, and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as your escort it speaks no reply to your orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), while flying about (0x0800); 0x1000: it stays cloaked until near its target. 0x2000 and 0x4000 are read by the cloaking and damage code, not yet traced here.',
+      code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807]],
+    },
     PodCount: {
       note: 'How many escape pods its ships launch as they break up (DeathDelay): the first at once, then one every DeathDelay ÷ PodCount × 0.4 frames, at least 10 apart. 0 or less: none.',
       code: [['RandomShipSpawn', 0x3c0f3], ['HandleShip', 0x33581], ['SpawnEscapePod', 0x45547]],
+      bible: 'At a rate of one per second.',
     },
     Mass: {
       note: 'Days a jump takes: 1 under 100, 2 from 100 to 199, 3 from 200; yours plus each ModType 22 outfit\'s ModVal, at least 1. From 100 it is a larger blip on the radar. A tractor beam takes hold of it only when the firing ship\'s Mass is at least ¾ of this; 0 or less, or Flags 0x0400, and it is never held. Only a ship of 100 or more is tested for giving up a hopeless chase.',
@@ -309,6 +319,30 @@ const NOVA_FIELD_NOTES = {
       note: 'Its weight in the odds ships weigh before fighting or running: its Strength × the share of its shield left (¼ to 1), with its friends\', against the Strength of those against it (a warship runs when they pass its government\'s MaxOdds). Yours counts × your kills ÷ (6,400 × shïp 128\'s Strength), 1 to 2. In boarding, see Crew.',
       code: [['AIShipFriendStrength', 0x825a8], ['AICalculateOddsAgainst', 0x84a2e], ['SetPlunderValues', 0x92219]],
     },
+    WeapType: {
+      note: 'Four stock weapons, and four more in WeapType2: 128 to 383, that wëap; anything else, none. Every ship of the class carries them: yours when you buy, capture or start in one, and every ship spawned of it. A weapon named twice keeps the later count. At loading, the Mass of the first outfit of ModType 1 naming each weapon × its WeapCount, and of the first of ModType 3 naming its ammunition × its AmmoLoad, is added to FreeMass, so they take none of it.',
+      code: [['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['RandomShipSpawn', 0x3c0f3], ['DoShipyardDialog', 0x5e679], ['DoShipCapture', 0x41120]],
+    },
+    WeapCount: {
+      note: 'How many of the WeapType beside it. 0 or less: none, though its AmmoLoad still counts.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
+    AmmoLoad: {
+      note: 'Ammunition for the WeapType beside it, for a weapon that uses it. 0 or less: none.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
+    WeapType2: {
+      note: 'Four more stock weapons, after WeapType\'s, read the same way.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
+    WeapCount2: {
+      note: 'How many of the WeapType2 beside it, as WeapCount.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
+    AmmoLoad2: {
+      note: 'Ammunition for the WeapType2 beside it, as AmmoLoad.',
+      code: [['LoadObjectData', 0x771b0]],
+    },
     MaxGun: {
       note: 'How many fixed guns, outfits with Flags 0x0001, you can carry. Yours: plus each ModType 45 outfit\'s ModVal. 0 or less: none.',
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
@@ -328,6 +362,7 @@ const NOVA_FIELD_NOTES = {
     SkillVar: {
       note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100; for a ship not yours it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar, before it is given its own class.',
       code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['Rand', 0xa4c76]],
+      bible: 'This affects acceleration and turn rate for each ship. Values from 1 to 50% are valid.',
     },
     Deionize: {
       note: 'Deionize ÷ 100 of its ionization wears off each 30th of a second; 0 or less, 1. Yours: plus each ModType 39 outfit\'s ModVal ÷ 100.',
@@ -894,6 +929,9 @@ const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düd
 const novaNum = x => (+x.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
 // An explosion type: 0 to 63, a bööm; 1000 to 1063, the big kind (CreateExplosion).
 const novaBoomRead = (game, v) => v >= 0 && v <= 63 ? novaRefText(game, 'bööm', 128 + v) : v >= 1000 && v <= 1063 ? novaRefText(game, 'bööm', 128 + v - 1000) + ', the big kind' : 'none';
+// Stock weapons: wëap 128 to 383, each with its count and ammunition.
+const novaStockRead = (game, ids, counts, ammo) => novaListRead(ids.map((id, i) => id >= 128 && id <= 383
+  ? `${novaRefText(game, 'wëap', id)} ×${counts[i]}${ammo[i] > 0 ? `, ammunition ${ammo[i]}` : ''}` : null));
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -1021,6 +1059,10 @@ const NOVA_FIELD_READS = {
     PodCount: v => v > 0 ? `${v} pod${v === 1 ? '' : 's'}` : 'none',
     EscortType: (v, r) => (t => ['fighter', 'medium', 'warship', 'freighter'][t] + (v >= 0 && v <= 3 ? '' : ', worked out'))(v >= 0 && v <= 3 ? v : r.InherentAI <= 2 ? 3 : r.Mass < 50 ? 0 : r.Mass < 200 ? 1 : 2),
     KeyCarried: (v, r, g) => v >= 128 && v <= 895 ? novaRefText(g, 'shïp', v) : 'none',
+    Flags: v => novaBitsRead(v, { 1: 'jumps at 0.7', 2: 'jumps at 1.3', 4: 'jumps at 1.6', 8: 'FuelRegen yours too', 0x10: 'disabled at a tenth', 0x20: 'afterburner for good pilots', 0x40: 'afterburner always', 0x100: 'target display', 0x200: 'target display', 0x400: 'planet-type', 0x1000: 'no turret fire ahead', 0x2000: 'no turret fire abeam', 0x4000: 'no turret fire astern', 0x8000: 'escape ship' }),
+    Flags2: v => novaBitsRead(v, { 1: 'swarms', 2: 'stands off', 4: 'cannot be targeted', 8: 'point defense fires on it', 0x10: 'no spoken replies', 0x20: 'jumps without slowing', 0x40: 'inertialess', 0x80: 'minds its ammunition', 0x100: 'cloaks in burst reload', 0x200: 'cloaks running away', 0x400: 'cloaks jumping', 0x800: 'cloaks flying about', 0x1000: 'cloaked until near', 0x2000: 'read, not yet traced', 0x4000: 'read, not yet traced' }),
+    WeapType: (v, r, g) => novaStockRead(g, v, r.WeapCount, r.AmmoLoad),
+    WeapType2: (v, r, g) => novaStockRead(g, v, r.WeapCount2, r.AmmoLoad2),
     Mass: v => (d => `${d} day${d === 1 ? '' : 's'} a jump${v >= 100 ? ', a larger radar blip' : ''}`)(v < 100 ? 1 : v < 200 ? 2 : 3),
     InherentAI: v => ({ 1: 'WimpyTraderAI, a trading ship', 2: 'BraveTraderAI, a trading ship', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : 'none: its ships run no AI, and count as trading ships'),
     MaxGun: v => v > 0 ? `${v} fixed gun${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',

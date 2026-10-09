@@ -17,6 +17,24 @@
    nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
+  'öops': {
+    Freq: {
+      note: 'The chance in 100 each day that the disaster starts, while it is not under way and its ActivateOn holds.',
+      code: [['DisasterHandler', 0x41ab9], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
+    },
+    ActivateOn: {
+      note: 'A test of control bits: while it fails, the disaster does not start. Empty: no test.',
+      code: [['DisasterHandler', 0x41ab9], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    Stellar: {
+      note: 'Where the disaster strikes: 128 and up, that spöb; anything else, a stellar drawn at random when it starts, one that is there now and has Flags 0x20 clear.',
+      code: [['DisasterHandler', 0x41ab9], ['Rand', 0xa4c76]],
+    },
+    Duration: {
+      note: 'How many days it lasts once started. Below 0: it never ends.',
+      code: [['DisasterHandler', 0x41ab9]],
+    },
+  },
   'düde': {
     AIType: {
       note: 'How its ships fly: above 0, that AI (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI, above 4 EscortAI); 0 or less, the InherentAI of the ship class drawn.',
@@ -701,6 +719,11 @@ const NOVA_FIELD_READS = {
       0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
       0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
+  },
+  'öops': {
+    Freq: v => v <= 0 ? 'never' : `${Math.min(v, 100)} in 100 a day`,
+    Stellar: (v, r, g) => v >= 128 ? novaRefText(g, 'spöb', v) : 'a stellar drawn at random',
+    Duration: v => v < 0 ? 'never ends' : `${v} day${v === 1 ? '' : 's'}`,
   },
   'düde': {
     AIType: v => ({ 1: 'WimpyTraderAI', 2: 'BraveTraderAI', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : "the class's InherentAI"),

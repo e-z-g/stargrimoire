@@ -723,6 +723,66 @@ const NOVA_FIELD_NOTES = {
     ModVal3: { note: 'How much of ModType3, as ModVal.', code: [['LoadObjectData', 0x771b0]] },
     ModType4: { note: 'A fourth effect, read as ModType.', code: [['LoadObjectData', 0x771b0]] },
     ModVal4: { note: 'How much of ModType4, as ModVal.', code: [['LoadObjectData', 0x771b0]] },
+    DispWeight: {
+      note: 'The outfitter lists the items on offer highest DispWeight first, those of equal DispWeight by id (but see Flags 0x1000).',
+      code: [['SetupPortAvailableItems', 0xbedb]],
+    },
+    Mass: {
+      note: 'Tons of your ship\'s FreeMass each one takes; with Flags 0x0400, that percentage of your ship class\'s Mass when that is more. 0 or less is always sold to you, whatever your free mass.',
+      code: [['ShipFreeMass', 0xb462], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    Max: {
+      note: 'The most you can carry, times the number of ModType 27 outfits you carry that name this one (at least 1). Ammunition (ModType 3) for a weapon with a MaxAmmo is held instead to MaxAmmo × the launchers you carry.',
+      code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    Flags: {
+      note: '0x0001: a fixed gun, and 0x0002 a turret, counted against your ship\'s MaxGun and MaxTur. 0x0004: it stays with you when you buy or capture another ship, and is left out of your ship\'s trade-in; with 0x0004 or 0x0020 it also stays when a mission changes your ship. 0x0008: it cannot be sold. 0x0010: what you carry of it is taken away when you leave the outfitter. 0x0100: not offered unless your bits meet its Requires, or you have one; 0x4000, unless its Availability holds, or you have one. 0x0200: its price is Cost × your ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of your ship class\'s. 0x0800: any outfitter lists it while you have one. 0x1000: while it is on offer, every higher-numbered item of the same DispWeight is not. 0x2000: shown among your ranks in the player info, not among the rest.',
+      code: [['HasMaxOfItem', 0x4512], ['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['PlayerShipTradeInPrice', 0xb079], ['EvalSetExp', 0x150fc], ['DoOutfitDialog', 0x5bacf], ['SetupPortAvailableItems', 0xbedb], ['AdjustedItemCost', 0x5869], ['AdjustedItemMass', 0x2889], ['SetupPlayerInfoText', 0x53cb8]],
+    },
+    Cost: {
+      note: 'Its price; 0 or less, free; with Flags 0x0200, Cost × your ship class\'s Mass when that is more. It is sold only while you have the credits.',
+      code: [['AdjustedItemCost', 0x5869], ['CanBuyOutfitItem', 0x4e7c4]],
+    },
+    Requires: {
+      note: 'It is sold to you only when the Contributes bits of your ship and outfits include every bit set here, wherever RequireGovt says they apply; with Flags 0x0100 it is not even listed until then, unless you have one.',
+      code: [['CanBuyOutfitItem', 0x4e7c4], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableItems', 0xbedb]],
+    },
+    Availability: {
+      note: 'A test of control bits: while it fails, it is not sold, and with Flags 0x4000 not listed unless you have one. Empty: no test.',
+      code: [['CanBuyOutfitItem', 0x4e7c4], ['SetupPortAvailableItems', 0xbedb], ['EvalMissionBitTestString', 0x9959e]],
+    },
+    OnPurchase: {
+      note: 'Control bits set when you buy one. Empty: none.',
+      code: [['DoOutfitDialog', 0x5bacf], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    OnSell: {
+      note: 'Control bits set when you sell one. Empty: none.',
+      code: [['DoOutfitDialog', 0x5bacf], ['EvalMissionBitSetString', 0x99dc5]],
+    },
+    ShortName: {
+      note: 'Its name in the outfitter\'s list.',
+      code: [['LoadObjectData', 0x771b0], ['OutfitDialogUpdate', 0x572cb]],
+    },
+    LCName: {
+      note: 'Its name in a sentence, for one: when you buy, sell or plunder it, are caught with it (ScanMask), and in the player info.',
+      code: [['LoadObjectData', 0x771b0], ['DoOutfitDialog', 0x5bacf], ['DoPlunderDialog', 0x9302b], ['ScanPlayer', 0x7e46e], ['SetupPlayerInfoText', 0x53cb8]],
+    },
+    LCPlural: {
+      note: 'Its name in a sentence for more than one, where LCName is for one.',
+      code: [['LoadObjectData', 0x771b0], ['DoOutfitDialog', 0x5bacf], ['DoPlunderDialog', 0x9302b], ['ScanPlayer', 0x7e46e], ['SetupPlayerInfoText', 0x53cb8]],
+    },
+    ItemClass: {
+      note: 'Its class for a përs\'s GrantClass: plundering that përs\'s ship may give you outfits of one item of this class.',
+      code: [['DoPlunderDialog', 0x9302b]],
+    },
+    ScanMask: {
+      note: 'When a ship of a government whose ScanMask shares a bit with this scans you while you carry one, it is smuggling: your record with that government suffers and you pay its ScanFine, and the ship tells you so, naming it.',
+      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
+    },
+    RequireGovt: {
+      note: 'Where its Requires apply when you are landed: -1, everywhere; 128 to 383, at stellars of that gövt or its allies; 1128 to 1383, those and independent stellars; 2128 to 2383, everywhere but stellars of that gövt or its allies; 3128 to 3383, everywhere but those and independent stellars. Anything else: everywhere.',
+      code: [['CanBuyOutfitItem', 0x4e7c4], ['GovtAllies', 0x4e3d]],
+    },
     TechLevel: {
       note: 'Offered at an outfitter whose stellar\'s TechLevel is at least this, or one of whose SpecialTech is this. Below 0, or 32767: nowhere by its TechLevel.',
       code: [['SetupPortAvailableItems', 0xbedb]],
@@ -969,6 +1029,11 @@ function novaModValRead(game, t, v) {
   if (t === 17) return novaBitsRead(v & 0x100e, { 2: 'on radar', 4: 'drops shields', 8: 'drops when hit', 0x1000: 'area' }) + `; fuel ${(v >> 4) & 15}, shield ${(v >> 8) & 15}`;
   return t === -1 || t === 0 ? 'not read' : `${v}`;
 }
+// Which governments' scans find a ScanMask, grouped by name.
+const novaScanRead = (g, v) => !(v & 0xffff) ? 'never smuggling'
+  : (by => by.size ? 'smuggling where scanned by ' + [...by].map(([n, ids]) => `${n} (gövt ${ids.join(', ')})`).join('; ')
+    : 'never caught: no government\'s ScanMask shares a bit')(novaAll(g, 'gövt').filter(gv => gv.ScanMask & v)
+    .reduce((by, gv) => by.set(novaNameParts(gv.name).name, [...(by.get(novaNameParts(gv.name).name) || []), gv.id]), new Map()));
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -1028,10 +1093,7 @@ const NOVA_FIELD_READS = {
     SoldAt: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
     BasePrice: v => `${Math.trunc(v / 1.25)} to ${Math.trunc(v * 1.25)} credits at most stellars (÷ or × 1.25)`,
     Flags: v => novaBitsRead(v, { 1: 'grows', 2: 'shrinks' }),
-    ScanMask: (v, r, g) => !(v & 0xffff) ? 'never smuggling'
-      : (by => by.size ? 'smuggling where scanned by ' + [...by].map(([n, ids]) => `${n} (gövt ${ids.join(', ')})`).join('; ')
-        : 'never caught: no government\'s ScanMask shares a bit')(novaAll(g, 'gövt').filter(gv => gv.ScanMask & v)
-        .reduce((by, gv) => by.set(novaNameParts(gv.name).name, [...(by.get(novaNameParts(gv.name).name) || []), gv.id]), new Map())),
+    ScanMask: (v, r, g) => novaScanRead(g, v),
   },
   'öops': {
     Commodity: (v, r, g) => v >= 0 && v <= 5 ? novaString(g, 4000, v, 9000) ?? `standard commodity ${v}` : 'none',
@@ -1120,6 +1182,16 @@ const NOVA_FIELD_READS = {
     Flags3: v => novaBitsRead(v, { 1: 'a miner, parking', 2: 'a miner, going between stellars', 0x20: 'no gravity or deadly stellars', 0x40: 'turret shots above ships', 0x100: 'hidden while Availability fails', 0x200: 'hidden while Require is not met', 0x4000: 'hides later classes of its DispWeight' }),
   },
   'oütf': {
+    DispWeight: v => `listed by ${v}, highest first`,
+    Mass: (v, r) => r.Flags & 0x0400 && v > 0 ? `${v}% of the ship class's Mass, at least ${v} tons` : `${v} tons`,
+    Max: v => `${v}, before ModType 27 outfits`,
+    Cost: (v, r) => v <= 0 ? 'free' : `${v.toLocaleString('en-US')} credits${r.Flags & 0x0200 ? ', × the ship class\'s Mass' : ''}`,
+    Flags: v => novaBitsRead(v, { 1: 'fixed gun', 2: 'turret', 4: 'kept on a new ship', 8: 'cannot be sold', 0x10: 'taken on leaving', 0x20: 'kept on a mission\'s new ship',
+      0x100: 'hidden without Requires', 0x200: 'price by ship mass', 0x400: 'mass by ship mass', 0x800: 'sold anywhere', 0x1000: 'hides later items of its DispWeight',
+      0x2000: 'shown among ranks', 0x4000: 'hidden without Availability' }),
+    ScanMask: (v, r, g) => novaScanRead(g, v),
+    RequireGovt: (v, r, g) => v >= 128 && v <= 383 ? 'at stellars of ' + novaGovtText(g, v) + ' or its allies' : v >= 1128 && v <= 1383 ? 'at independent stellars and those of ' + novaGovtText(g, v - 1000) + ' or its allies'
+      : v >= 2128 && v <= 2383 ? 'except at stellars of ' + novaGovtText(g, v - 2000) + ' or its allies' : v >= 3128 && v <= 3383 ? 'except at independent stellars and those of ' + novaGovtText(g, v - 3000) + ' or its allies' : 'everywhere',
     ModType: v => novaModTypeRead(v),
     ModType2: v => novaModTypeRead(v),
     ModType3: v => novaModTypeRead(v),

@@ -490,6 +490,15 @@ const NOVA_FIELD_NOTES = {
       note: 'Its ships\' spoken messages: snd resources from 1000 + 100 × VoiceType, ten more for each kind of message, one of those there picked at random. -1: none.',
       code: [['HandleVoiceSound', 0x31e20]],
     },
+    Flags: {
+      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002, 0x0020 and 0x8000 are read in choosing targets and in the hail, not yet traced here.',
+      code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
+      bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
+    },
+    Flags2: {
+      note: '0x0001: the hail dialog\'s request for help is not offered with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not call for help. 0x0010 is read in the hail dialog, and 0x0020, 0x0040 and 0x0080 in docking, not yet traced here.',
+      code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['HandlePlayerDockRequest', 0x66691]],
+    },
     CrimeTol: {
       note: 'Below -CrimeTol your record makes you a criminal to it, and its warships go for you. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
       code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
@@ -1299,6 +1308,10 @@ const NOVA_FIELD_READS = {
   },
   'gövt': {
     VoiceType: v => v >= 0 ? `snd ${1000 + 100 * v} on` : 'silent',
+    Flags: v => novaBitsRead(v, { 1: 'xenophobic', 2: 'read, not yet traced', 4: 'always attacks you', 8: 'your shots miss it', 0x10: 'warships run when hurt', 0x20: 'read, not yet traced',
+      0x40: 'never attacks you', 0x80: 'jamming halved', 0x100: 'no escape pods', 0x200: 'warships take bribes', 0x400: 'cannot be hailed', 0x800: 'derelicts',
+      0x1000: 'pirate warships', 0x2000: 'freighters take bribes', 0x4000: 'stellars take bribes', 0x8000: 'read, not yet traced' }),
+    Flags2: v => novaBitsRead(v, { 1: 'no request for help', 2: 'map boundaries', 4: 'map boundaries', 8: 'never calls for help', 0x10: 'read, not yet traced', 0x20: 'read, not yet traced', 0x40: 'read, not yet traced', 0x80: 'read, not yet traced' }),
     CrimeTol: v => `a criminal below ${-v}`,
     SmugPenalty: v => `${novaNum(-v / 2)} where it happens`,
     DisabPenalty: v => `${novaNum(-v / 2)} where it happens`,

@@ -600,13 +600,13 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleVoiceSound', 0x31e20]],
     },
     Flags: {
-      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020 and 0x8000 are read in helping ships under attack and in the hail, not yet traced here.',
+      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020: other governments\' warships do not come to help its ships when they are attacked. 0x8000: its ships ask a bigger bribe, 10,000 + 1,000 × a number to your credits ÷ 10,000 (else 3,000 + 1,000 × one to your credits ÷ 2,000,000), and its stellars half as much again and always take one; a bribe is at most a third of your credits.',
       code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
     Flags2: {
-      note: '0x0001: the hail dialog\'s request for help is not offered with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not call for help. 0x0010 is read in the hail dialog, and 0x0020, 0x0040 and 0x0080 in docking, not yet traced here.',
-      code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['HandlePlayerDockRequest', 0x66691]],
+      note: '0x0001: the hail dialog\'s request for help is not offered with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not call for help. 0x0010: its ships help you, repairing or refuelling, without asking payment (as does a ränk with Flags 0x0800 held with an ally). When its ships pick a stellar to go to: 0x0020, never a hypergate; 0x0040, a hypergate whenever the system has one; 0x0080, a wormhole whenever it has one (without it, never a wormhole). Mission ships of it arriving in your system come through a hypergate always with 0x0040 (half the time without, never with 0x0020), and through a wormhole always with 0x0080 (else one time in four).',
+      code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCommPayment', 0x920f3], ['SelectRandomStellarDest', 0x805de], ['HandlePlayerDockRequest', 0x66691]],
     },
     CrimeTol: {
       note: 'Whether its warships go for you, by your record in the system you are in: in its own systems, below -CrimeTol; in an ally\'s, below -1.5 × CrimeTol; in an enemy\'s, above CrimeTol; elsewhere only with Flags 0x0002, below -2 × CrimeTol. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
@@ -1070,8 +1070,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {
-      note: '0x0001: its shots\' frames step on (BeamWidth steps a frame) rather than follow their heading; 0x0004: from the first frame. 0x0008: a homing one is chosen only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire at once, reloading together. 0x0080: point defence passes its shots by. 0x0100: its blast does not hurt you. 0x1000, 0x2000, 0x4000: a turret blind ahead, abeam, astern. 0x8000: a shot goes off, blast and all, when its life ends. 0x0010: its Sound loops. 0x0200, 0x0400: small or big smoke (SmokeSet), 0x0800 lasting longer. 0x0002 (the second trigger) is yours alone, not traced here.',
-      code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
+      note: '0x0001: its shots\' frames step on (BeamWidth steps a frame) rather than follow their heading; 0x0004: from the first frame. 0x0008: a homing one is chosen only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire at once, reloading together. 0x0080: point defence passes its shots by. 0x0100: its blast does not hurt you. 0x1000, 0x2000, 0x4000: a turret blind ahead, abeam, astern. 0x8000: a shot goes off, blast and all, when its life ends. 0x0010: its Sound loops. 0x0200, 0x0400: small or big smoke (SmokeSet), 0x0800 lasting longer. 0x0002: yours, fired by the second trigger; a ship not yours, once it chooses one, keeps firing it step after step, where it chooses a primary weapon afresh each time.',
+      code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['HandleShip', 0x33581], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
     },
     Seeker: {
       note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship is fully ionized. For a homing shot: 0x0002 decoyed onto an asteroid ahead; 0x0008 lost, spiralling, by the system\'s interference as it is fired; 0x0010 jammed, it turns away; 0x4000 its target lost once more than 45° off its nose within 250; 0x8000 jammed or lost, now and then it turns on its own ship.',
@@ -1122,8 +1122,9 @@ const NOVA_FIELD_NOTES = {
       code: [['CheckShotProximities', 0x371bc], ['HandleShot', 0x35586]],
     },
     Flags2: {
-      note: '0x0001: the first frame while not yet armed; 0x0002: frames held at the last. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: ships not yours never fire it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type: it hits only planet-type ships (shïp Flags 0x0400), and they nothing else. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defence reads it). 0x8000: ten times the damage to asteroids. 0x0004, 0x0040, 0x0800 and 0x2000 are not traced here.',
-      code: [['HandleShot', 0x35586], ['ShotCanHitShip', 0x4477e], ['SpawnShotSubmunitions', 0x3f1d5], ['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['DamageShip', 0x3a807], ['HandleShipPointDefense', 0x392c4], ['HandleAsteroidHit', 0x36637]],
+      note: '0x0001: the first frame while not yet armed; 0x0002: frames held at the last. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: ships not yours never fire it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type: it hits only planet-type ships (shïp Flags 0x0400), and they nothing else. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defence reads it). 0x8000: ten times the damage to asteroids. 0x0040: its ammunition is not shown on the status display. 0x0800: not offered as your secondary weapon while out of ammunition. 0x2000: a beam drawn beneath the ships. 0x0004 is read by nothing: an asteroid sets off its proximity fuse all the same.',
+      code: [['HandleShot', 0x35586], ['ShotCanHitShip', 0x4477e], ['SpawnShotSubmunitions', 0x3f1d5], ['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['DamageShip', 0x3a807], ['HandleShipPointDefense', 0x392c4], ['HandleAsteroidHit', 0x36637], ['DrawStatusWeap', 0x4c00a], ['BeamDrawCallback', 0x37952], ['CheckShotProximities', 0x371bc], ['HandlePlayer', 0x68390]],
+      bible: '0x0004: proximity detonator ignores asteroids.',
     },
     HitParticles: {
       note: 'Particles where a shot or beam hits a ship or asteroid, lasting HitPartLife to 1.25 × that, at HitPartVel, in HitPartColor. 0: none.',
@@ -1162,7 +1163,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['ShipECM', 0x3aff]],
     },
     Flags3: {
-      note: '0x0001: ammunition is used once a burst, not each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads, no other weapon of the ship fires. 0x0002 is not traced here.',
+      note: '0x0001: ammunition is used once a burst, not each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads, no other weapon of the ship fires. 0x0002: its shots are drawn translucent, in thousands of colours or more.',
       code: [['FireAIShipWeapon', 0x8873d], ['HandleShot', 0x35586], ['ModifyShotStartPosition', 0x7348]],
     },
     Durability: {
@@ -1439,8 +1440,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['EnterMoreShips', 0x43459], ['SpawnStellarDefenseShip', 0x3d2c9], ['DoPlanetCommDialog', 0x96949]],
     },
     Flags2: {
-      note: '0x0001: frame 0 comes between every other; 0x0002: frames picked at random; 0x0080: it animates only while destroyed. 0x0020: always dominated. 0x0040: it starts destroyed. 0x0100: a ship that touches it is destroyed. 0x0400: its outfitter lists every outfit you carry that can be sold, to buy it back. 0x1000: a hypergate; 0x2000: a wormhole (HyperLink). 0x0010 and 0x0200 are not traced here.',
-      code: [['HandleStellarSprites', 0x2e6f1], ['DoStellarTimePassage', 0x40867], ['DoNewPilot', 0x18b0a], ['HandleDeadlyStellars', 0x39ccd], ['SetupPortAvailableItems', 0xbedb], ['HandlePlayerDockRequest', 0x66691], ['PlayerEnterWormhole', 0x64005]],
+      note: '0x0001: frame 0 comes between every other; 0x0002: frames picked at random; 0x0080: it animates only while destroyed. 0x0020: always dominated. 0x0040: it starts destroyed. 0x0100: a ship that touches it is destroyed. 0x0400: its outfitter lists every outfit you carry that can be sold, to buy it back. 0x1000: a hypergate; 0x2000: a wormhole (HyperLink). 0x0010: its sound loops while you are landed. 0x0200: it fires only once provoked, and then only at you and ships flying with you.',
+      code: [['HandleStellarSprites', 0x2e6f1], ['DoStellarTimePassage', 0x40867], ['DoNewPilot', 0x18b0a], ['HandleDeadlyStellars', 0x39ccd], ['SetupPortAvailableItems', 0xbedb], ['HandlePlayerDockRequest', 0x66691], ['PlayerEnterWormhole', 0x64005], ['PlanetSoundCallback', 0x55f5d], ['IsThreatToStellar', 0x9ef7]],
     },
     AnimDelay: {
       note: 'How many 30ths of a second each frame of its sprite shows.',
@@ -1780,10 +1781,10 @@ const NOVA_FIELD_READS = {
   },
   'gövt': {
     VoiceType: v => v >= 0 ? `snd ${1000 + 100 * v} on` : 'silent',
-    Flags: v => novaBitsRead(v, { 1: 'xenophobic', 2: 'hunts criminals anywhere', 4: 'always attacks you', 8: 'your shots miss it', 0x10: 'warships run when hurt', 0x20: 'read, not yet traced',
+    Flags: v => novaBitsRead(v, { 1: 'xenophobic', 2: 'hunts criminals anywhere', 4: 'always attacks you', 8: 'your shots miss it', 0x10: 'warships run when hurt', 0x20: 'its ships not helped',
       0x40: 'never attacks you', 0x80: 'jamming halved', 0x100: 'no escape pods', 0x200: 'warships take bribes', 0x400: 'cannot be hailed', 0x800: 'derelicts',
-      0x1000: 'pirate warships', 0x2000: 'freighters take bribes', 0x4000: 'stellars take bribes', 0x8000: 'read, not yet traced' }),
-    Flags2: v => novaBitsRead(v, { 1: 'no request for help', 2: 'map boundaries', 4: 'map boundaries', 8: 'never calls for help', 0x10: 'read, not yet traced', 0x20: 'read, not yet traced', 0x40: 'read, not yet traced', 0x80: 'read, not yet traced' }),
+      0x1000: 'pirate warships', 0x2000: 'freighters take bribes', 0x4000: 'stellars take bribes', 0x8000: 'bigger bribes' }),
+    Flags2: v => novaBitsRead(v, { 1: 'no request for help', 2: 'map boundaries', 4: 'map boundaries', 8: 'never calls for help', 0x10: 'free help', 0x20: 'no hypergates', 0x40: 'prefers hypergates', 0x80: 'prefers wormholes' }),
     CrimeTol: v => `attacks you below ${-v} in its systems`,
     SmugPenalty: v => `${novaNum(-v / 2)} where it happens`,
     DisabPenalty: v => `${novaNum(-v / 2)} where it happens`,
@@ -1811,8 +1812,8 @@ const NOVA_FIELD_READS = {
     CustSndID: v => v >= 128 ? `snd ${v} when landed` : v >= 0 && v <= 359 ? `leaving gates at ${v}°` : 'none',
     DefenseDude: (v, r, g) => novaDudeRead(g, v),
     DefCount: v => v <= 1000 ? `${v} ship${v === 1 ? '' : 's'}` : `${Math.trunc(v / 10) - (v > 10000 ? 1000 : 100)} ships, ${v % 10} at a time`,
-    Flags2: v => novaBitsRead(v, { 1: 'frame 0 between', 2: 'frames at random', 0x10: 'not traced', 0x20: 'always dominated', 0x40: 'starts destroyed', 0x80: 'animates destroyed',
-      0x100: 'deadly', 0x200: 'not traced', 0x400: 'buys back any outfit', 0x1000: 'hypergate', 0x2000: 'wormhole' }),
+    Flags2: v => novaBitsRead(v, { 1: 'frame 0 between', 2: 'frames at random', 0x10: 'sound loops', 0x20: 'always dominated', 0x40: 'starts destroyed', 0x80: 'animates destroyed',
+      0x100: 'deadly', 0x200: 'fires when provoked', 0x400: 'buys back any outfit', 0x1000: 'hypergate', 0x2000: 'wormhole' }),
     AnimDelay: v => `${novaNum(Math.max(0, v) / 30)} s a frame`,
     HyperLink: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'spöb', id) : null)),
     DeadTime: v => v < 0 ? 'never regenerates' : `${v} day${v === 1 ? '' : 's'}`,
@@ -1834,12 +1835,12 @@ const NOVA_FIELD_READS = {
     ExplodType: (v, r, g) => novaBoomRead(g, v),
     ProxRadius: v => v > 0 ? `${v}, plus a third of the target` : 'hits only',
     BlastRadius: v => v > 0 ? `${v}` : 'none',
-    Flags: v => novaBitsRead(v, { 1: 'frames step', 2: 'second trigger (not traced)', 4: 'first frame first', 8: 'only at slow ships', 0x10: 'sound loops', 0x20: 'through shields', 0x40: 'all at once',
+    Flags: v => novaBitsRead(v, { 1: 'frames step', 2: 'second trigger', 4: 'first frame first', 8: 'only at slow ships', 0x10: 'sound loops', 0x20: 'through shields', 0x40: 'all at once',
       0x80: 'point defence passes it', 0x100: 'blast spares you', 0x200: 'small smoke', 0x400: 'big smoke', 0x800: 'lasting smoke', 0x1000: 'blind ahead', 0x2000: 'blind abeam', 0x4000: 'blind astern', 0x8000: 'goes off at its end' }),
     Seeker: v => novaBitsRead(v, { 1: 'over asteroids', 2: 'decoyed by asteroids', 8: 'confused by interference', 0x10: 'turns away jammed', 0x20: 'not when ionized', 0x4000: 'loses lock off the nose', 0x8000: 'may turn on its ship' }),
-    Flags2: v => novaBitsRead(v, { 1: 'first frame till armed', 2: 'holds last frame', 4: 'not traced', 8: 'hits others than its target', 0x10: 'submunitions seek', 0x20: 'no submunitions at its end', 0x40: 'not traced',
-      0x80: 'needs KeyCarried', 0x100: 'yours alone', 0x200: 'weapon sprite', 0x400: 'planet-type', 0x800: 'not traced', 0x1000: 'disables only', 0x2000: 'not traced', 0x4000: 'fires cloaked', 0x8000: 'x10 on asteroids' }),
-    Flags3: v => novaBitsRead(v, { 1: 'ammunition a burst', 2: 'not traced', 4: 'one shot at a time', 0x10: 'nearest exit', 0x20: 'exclusive' }),
+    Flags2: v => novaBitsRead(v, { 1: 'first frame till armed', 2: 'holds last frame', 4: 'not read', 8: 'hits others than its target', 0x10: 'submunitions seek', 0x20: 'no submunitions at its end', 0x40: 'ammunition not shown',
+      0x80: 'needs KeyCarried', 0x100: 'yours alone', 0x200: 'weapon sprite', 0x400: 'planet-type', 0x800: 'hidden when empty', 0x1000: 'disables only', 0x2000: 'beam under ships', 0x4000: 'fires cloaked', 0x8000: 'x10 on asteroids' }),
+    Flags3: v => novaBitsRead(v, { 1: 'ammunition a burst', 2: 'translucent', 4: 'one shot at a time', 0x10: 'nearest exit', 0x20: 'exclusive' }),
     SubType: (v, r, g) => r.SubCount > 0 && v >= 128 && v <= 383 ? novaRefText(g, 'wëap', v) : 'none',
     Recoil: v => v > 0 ? `${v} back, over the ship's Mass` : v < -1 ? `${-v} forward, over the ship's Mass` : 'none',
     ExitType: v => ({ 0: 'gun points', 1: 'turret points', 2: 'guided points', 3: 'beam points' })[v] || 'the middle',

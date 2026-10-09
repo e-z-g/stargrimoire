@@ -564,16 +564,16 @@ function novaBitsRead(v, words) {
 const novaDescRead = (game, v) => v <= 0 ? 'none' : novaRefText(game, 'dësc', v);
 const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düde', v) : 'none';
 
-const novaList = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
+const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
-function novaWeighted(game, type, ids, weights, lo, hi, sharesOnly) {
+function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
   const ok = ids.map((id, i) => id >= lo && id <= hi ? i : -1).filter(i => i >= 0);
   const total = ok.reduce((t, i) => t + weights[i], 0);
   if (!(total > 0)) return 'none';
   return ok.map(i => (sharesOnly ? `${type} ${ids[i]}` : novaRefText(game, type, ids[i])) + ` ${Math.round(100 * weights[i] / total)}%`).join('; ');
 }
 // Outfits and counts ("oütf 130, Afterburner ×1"), as a ship comes with them.
-const novaItems = (game, ids, counts) => novaList(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
+const novaItemsRead = (game, ids, counts) => novaListRead(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
 
 const NOVA_FIELD_READS = {
   'mïsn': {
@@ -619,10 +619,10 @@ const NOVA_FIELD_READS = {
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
   },
   'sÿst': {
-    DudeTypes: (v, r, g) => novaWeighted(g, 'düde', v, r.Probs, 128, 639),
-    Probs: (v, r) => novaWeighted(null, 'düde', r.DudeTypes, v, 128, 639, true),
-    Person: (v, r, g) => novaList(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'përs', id)} (${r.PersonProb[i]} in 100)` : null)),
-    AstTypes: (v, r, g) => r.Asteroids > 0 && v & 0xffff ? novaList([...Array(16).keys()].filter(i => (v >> i) & 1).map(i => novaRefText(g, 'röid', 128 + i))) : 'no asteroids',
+    DudeTypes: (v, r, g) => novaWeightedRead(g, 'düde', v, r.Probs, 128, 639),
+    Probs: (v, r) => novaWeightedRead(null, 'düde', r.DudeTypes, v, 128, 639, true),
+    Person: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'përs', id)} (${r.PersonProb[i]} in 100)` : null)),
+    AstTypes: (v, r, g) => r.Asteroids > 0 && v & 0xffff ? novaListRead([...Array(16).keys()].filter(i => (v >> i) & 1).map(i => novaRefText(g, 'röid', 128 + i))) : 'no asteroids',
     Asteroids: v => v > 0 ? `${Math.min(v, 16)} kept about you` : 'none',
     Interference: v => `${Math.max(0, Math.min(100, v))} in 100, before your anti-interference`,
     Murk: v => `${Math.max(0, Math.min(100, v))}, before your outfits`,
@@ -636,8 +636,8 @@ const NOVA_FIELD_READS = {
     HireRandom: v => v <= 0 ? 'never for hire' : `${Math.min(v, 100)} in 100 a day`,
     UpgradeTo: (v, r, g) => v >= 128 ? novaRefText(g, 'shïp', v) : 'cannot be upgraded',
     EscSellValue: (v, r) => `${(v > 0 ? v : Math.trunc(r.Cost / 10)).toLocaleString('en-US')} credits`,
-    DefaultItems: (v, r, g) => novaItems(g, v, r.ItemCount),
-    DefaultItms2: (v, r, g) => novaItems(g, v, r.ItemCount2),
+    DefaultItems: (v, r, g) => novaItemsRead(g, v, r.ItemCount),
+    DefaultItms2: (v, r, g) => novaItemsRead(g, v, r.ItemCount2),
     FuelRegen: (v, r) => v > 0 ? `a unit every ${v} steps${r.Flags & 8 ? '' : ' (not yours: Flags 0x0008 clear)'}` : 'none',
     Flags3: v => v & 0x20 ? 'gravity does not pull it' : 'gravity pulls it',
   },
@@ -673,7 +673,7 @@ const NOVA_FIELD_READS = {
     AIType: v => ({ 1: 'WimpyTraderAI', 2: 'BraveTraderAI', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : 'never picked by LinkSyst'),
     Aggress: v => `kept as ${v < 1 ? 1 : v > 2 ? 4 : v}`,
     ShipType: (v, r, g) => novaRefText(g, 'shïp', v >= 128 && v <= 895 ? v : 128),
-    WeapType: (v, r, g) => novaList(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'wëap', id)} ×${r.WeapCount[i]}${r.AmmoLoad[i] ? `, ammunition ${r.AmmoLoad[i]}` : ''}` : null)),
+    WeapType: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaRefText(g, 'wëap', id)} ×${r.WeapCount[i]}${r.AmmoLoad[i] ? `, ammunition ${r.AmmoLoad[i]}` : ''}` : null)),
     Credits: v => { const k = Math.trunc(v / 1000) * 0.5; return k <= 0 ? 'none' : k > 2 ? `${(k * 1000).toLocaleString('en-US')} to ${((k + Math.trunc(k) - 1) * 1000).toLocaleString('en-US')} credits` : `${(k * 1000).toLocaleString('en-US')} credits`; },
     ShieldMod: v => v > 0 ? `${v}% of its class's` : "its class's",
     HailPict: v => v >= 128 ? `PICT ${v}` : "its ship class's",

@@ -268,6 +268,47 @@ const NOVA_FIELD_NOTES = {
       note: 'The shipyard lists the classes on offer highest DispWeight first, classes of equal DispWeight by id (but see Flags3 0x4000).',
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
+    DeathDelay: {
+      note: 'Steps its ships break up for once their armor is gone, with small explosions (Explode1) over them, 1 in 8 a step while 60 or more are left, 1 in 4 from 40, 1 in 2 from 20, then every step. At the end a ship of Mass 100 or more, without Flags 0x0400, blasts every ship within Mass × 0.075 + 50 for Mass × 0.0375 + 25 damage, which can disable but not kill; then Explode2, and it is gone.',
+      code: [['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['CreateExplosion', 0x3f698]],
+      bible: '0 to 59: the ship disintegrates for this number of frames and then disappears in a single fireball. 60 and up: then a huge explosion, its size proportional to the ship\'s mass.',
+    },
+    Explode1: {
+      note: 'The explosion shown over its ships as they break up (DeathDelay): 0 to 63, bööm 128 + n; 1000 to 1063, a big one with smaller ones round it; anything else, none.',
+      code: [['HandleShipDisplay', 0x2b514], ['CreateExplosion', 0x3f698]],
+    },
+    Explode2: {
+      note: 'The explosion when one of its ships is gone, after DeathDelay, or at once when it touches a deadly stellar: values as Explode1; the big kind spreads over the blast of a ship of Mass 100 or more.',
+      code: [['HandleShipDisplay', 0x2b514], ['HandleDeadlyStellars', 0x39ccd], ['CreateExplosion', 0x3f698]],
+    },
+    Length: {
+      note: 'Shown in the ship\'s description; nothing else reads it.',
+      code: [['ShipDescDialogUpdate', 0x4f915]],
+    },
+    PodCount: {
+      note: 'How many escape pods its ships launch as they break up (DeathDelay): the first at once, then one every DeathDelay ÷ PodCount × 0.4 frames, at least 10 apart. 0 or less: none.',
+      code: [['RandomShipSpawn', 0x3c0f3], ['HandleShip', 0x33581], ['SpawnEscapePod', 0x45547]],
+    },
+    Mass: {
+      note: 'Days a jump takes: 1 under 100, 2 from 100 to 199, 3 from 200; yours plus each ModType 22 outfit\'s ModVal, at least 1. From 100 it is a larger blip on the radar. A tractor beam takes hold of it only when the firing ship\'s Mass is at least ¾ of this; 0 or less, or Flags 0x0400, and it is never held. Only a ship of 100 or more is tested for giving up a hopeless chase.',
+      code: [['ShipHyperTransitTime', 0x43d0], ['DrawStatusRadar', 0x496e0], ['HandleBeams', 0x30295], ['AIEvalHopelessChase', 0x80ea9]],
+    },
+    InherentAI: {
+      note: 'The AI of its ships wherever a düde, mission or përs leaves it 0 or less (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI; 0 or less, none runs). 2 or less is a trading ship: as your escort it carries cargo for you (Holds), a fleet\'s ship starts with cargo (flët Flags), and missions and persons can ask for one in your ship (mïsn Flags, përs Flags); above 2, as your escort it adds to your capture odds (Crew).',
+      code: [['RandomShipSpawn', 0x3c0f3], ['AIDispatch', 0x8fb52], ['TotalFleetHolds', 0xc24d], ['HyperSpawnFleet', 0x41c8d], ['SetPlunderValues', 0x92219]],
+    },
+    InherentGovt: {
+      note: 'Two governments for every ship of the class: 128 to 383, that gövt as both; 1128 to 1383, less 1000, the attributes government only; 2128 to 2383, less 2000, the combat government only; anything else, neither. The combat government is what others take it for: a warship picks it as a target, and a stellar as a threat, when it is their enemy, and it counts among a ship\'s friends when it is an ally. The attributes government gives it that government\'s jamming and decides whether it calls for help, and is read where it hails, is captured or flies as an escort.',
+      code: [['LoadObjectData', 0x771b0], ['SelectWarshipTarget', 0x89d5e], ['IsThreatToStellar', 0x9ef7], ['AIShipFriendStrength', 0x825a8], ['ShipECM', 0x3aff], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCapture', 0x41120], ['IssueNewEscortCommand', 0x660d5]],
+    },
+    Crew: {
+      note: 'Your odds of capturing a ship you board, in percent: 10 × your crew ÷ its Crew, your crew being your class\'s Crew, plus each ModType 25 outfit\'s ModVal, plus a tenth of the Crew of each escort flying with you under AI 6 whose class has an InherentAI above 2. Then + 10 if your Strength, so counted, is more than 5 × its Strength; + each negative ModType 25 outfit\'s ModVal made positive; ± 5 at random; 1 to 75. 0 against a ship of a government with Flags 0x0800, while the game is unregistered, or when you cannot take on another escort.',
+      code: [['SetPlunderValues', 0x92219], ['CanHireEscorts', 0x5795], ['Rand', 0xa4c76]],
+    },
+    Strength: {
+      note: 'Its weight in the odds ships weigh before fighting or running: its Strength × the share of its shield left (¼ to 1), with its friends\', against the Strength of those against it (a warship runs when they pass its government\'s MaxOdds). Yours counts × your kills ÷ (6,400 × shïp 128\'s Strength), 1 to 2. In boarding, see Crew.',
+      code: [['AIShipFriendStrength', 0x825a8], ['AICalculateOddsAgainst', 0x84a2e], ['SetPlunderValues', 0x92219]],
+    },
     MaxGun: {
       note: 'How many fixed guns, outfits with Flags 0x0001, you can carry. Yours: plus each ModType 45 outfit\'s ModVal. 0 or less: none.',
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
@@ -811,6 +852,8 @@ const novaDudeRead = (game, v) => v >= 128 && v <= 639 ? novaRefText(game, 'düd
 
 // A rate in words: up to four decimals, no trailing zeros.
 const novaNum = x => (+x.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+// An explosion type: 0 to 63, a bööm; 1000 to 1063, the big kind (CreateExplosion).
+const novaBoomRead = (game, v) => v >= 0 && v <= 63 ? novaRefText(game, 'bööm', 128 + v) : v >= 1000 && v <= 1063 ? novaRefText(game, 'bööm', 128 + v - 1000) + ', the big kind' : 'none';
 const novaListRead = xs => (xs = xs.filter(x => x)).length ? xs.join('; ') : 'none';
 // Up to eight ids with weights, as the share of the total each gets ("düde 130, Pirates 40%").
 function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
@@ -930,6 +973,14 @@ const NOVA_FIELD_READS = {
     Fuel: v => `${Math.max(0, Math.trunc(v / 100))} jump${Math.trunc(v / 100) === 1 ? '' : 's'}`,
     FreeMass: v => `${v} tons`,
     DispWeight: v => `listed by ${v}, highest first`,
+    InherentGovt: (v, r, g) => v >= 128 && v <= 383 ? novaGovtText(g, v) + ', in combat and attributes' : v >= 1128 && v <= 1383 ? novaGovtText(g, v - 1000) + ', attributes only'
+      : v >= 2128 && v <= 2383 ? novaGovtText(g, v - 2000) + ', in combat only' : 'none',
+    DeathDelay: (v, r) => `${Math.max(0, v)} steps${r.Mass >= 100 && !(r.Flags & 0x0400) ? `, then a blast ${Math.trunc(r.Mass * 0.075 + 50)} across, ${Math.trunc(r.Mass * 0.0375 + 25)} damage` : ''}`,
+    Explode1: (v, r, g) => novaBoomRead(g, v),
+    Explode2: (v, r, g) => novaBoomRead(g, v),
+    PodCount: v => v > 0 ? `${v} pod${v === 1 ? '' : 's'}` : 'none',
+    Mass: v => (d => `${d} day${d === 1 ? '' : 's'} a jump${v >= 100 ? ', a larger radar blip' : ''}`)(v < 100 ? 1 : v < 200 ? 2 : 3),
+    InherentAI: v => ({ 1: 'WimpyTraderAI, a trading ship', 2: 'BraveTraderAI, a trading ship', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : 'none: its ships run no AI, and count as trading ships'),
     MaxGun: v => v > 0 ? `${v} fixed gun${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',
     MaxTur: v => v > 0 ? `${v} turret${v === 1 ? '' : 's'}, before outfits` : 'none, before outfits',
     ShieldRech: v => v > 0 ? `${novaNum(v * 0.03)} points a second` : 'none',

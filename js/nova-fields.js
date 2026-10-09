@@ -19,6 +19,24 @@
    nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
+  'chär': {
+    startCash: { note: 'Your credits as a new pilot; below 0, none. With no chär at all: 10,000.', code: [['ActivateCharResource', 0x76cb6]] },
+    startShipType: { note: 'Your first ship: 128 and up, that shïp; below, shïp 128.', code: [['ActivateCharResource', 0x76cb6]] },
+    startSystem: { note: 'Up to four systems you may start in, one of those 128 and up picked at random; with none, sÿst 128.', code: [['ActivateCharResource', 0x76cb6], ['Rand', 0xa4c76]] },
+    startGovt: { note: 'Up to four governments (128 and up): in every system of a government allied to one, your record starts at the startStatus beside it; in every system of one at war with it, at minus that. A later slot overwrites an earlier.', code: [['ActivateCharResource', 0x76cb6], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]] },
+    startStatus: { note: 'Your starting record with the startGovt beside it, and minus it with that government\'s enemies.', code: [['ActivateCharResource', 0x76cb6]] },
+    startKills: { note: 'Your combat rating as a new pilot.', code: [['ActivateCharResource', 0x76cb6]] },
+    introPictID: { note: 'Up to four pictures shown in turn as the new pilot starts; below 128, none.', code: [['GetCharResourceIntroIDs', 0x76fa9], ['ShowIntroScreen', 0x16cf1]] },
+    introPictDelay: { note: 'Seconds the introPictID beside it is shown, 0 to 300.', code: [['GetCharResourceIntroIDs', 0x76fa9], ['ShowIntroScreen', 0x16cf1]] },
+    introTextID: { note: 'The dësc shown in a text dialog after the pictures.', code: [['GetCharResourceIntroIDs', 0x76fa9], ['ShowIntroScreen', 0x16cf1], ['LoadDescription', 0x717fe]] },
+    onStart: { note: 'Control bits set as the pilot starts. Empty: none.', code: [['ActivateCharResource', 0x76cb6], ['EvalMissionBitSetString', 0x99dc5]] },
+    Flags: { note: '0x0001: the scenario offered first in the new pilot dialog (the first chär with it). No other bit is read.', code: [['GetDefaultCharResourceName', 0x77100], ['DoNewPilotNameDialog', 0x165cc]] },
+    startDay: { note: 'The day of the month the game starts. With no chär: 1.', code: [['ActivateCharResource', 0x76cb6]] },
+    startMonth: { note: 'The month the game starts. With no chär: 1.', code: [['ActivateCharResource', 0x76cb6]] },
+    startYear: { note: 'The year the game starts. With no chär: 2250.', code: [['ActivateCharResource', 0x76cb6]] },
+    DatePrefix: { note: 'Kept as the words written before the game\'s date.', code: [['ActivateCharResource', 0x76cb6]] },
+    DateSuffix: { note: 'Kept as the words written after the game\'s date.', code: [['ActivateCharResource', 0x76cb6]] },
+  },
   'jünk': {
     BoughtAt: {
       note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while BuyOn holds. Of the commodities a stellar so names, the highest-numbered is the one traded there. It takes the trade screen\'s seventh row, where you may buy it or sell it at that one price.',
@@ -895,6 +913,30 @@ const NOVA_FIELD_NOTES = {
     },
   },
   'wëap': {
+    Sound: {
+      note: 'The sound when it fires: 0 and up, snd 200 + Sound; with Flags 0x0010 it is not started again while still playing, so it loops. Below 0: silent.',
+      code: [['LoadSounds', 0x1c036], ['FireAIShipWeapon', 0x8873d]],
+    },
+    SmokeSet: {
+      note: 'Which set of smoke pictures its shots leave behind them, eight to a set: small with Flags 0x0200, big with 0x0400, lasting longer with 0x0800. Without those, no smoke.',
+      code: [['HandleShot', 0x35586], ['SpawnSmoke', 0x3f927], ['HandleSmoke', 0x2e29f]],
+    },
+    BeamColor: {
+      note: 'The colour of a beam\'s core as drawn.',
+      code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
+    },
+    CoronaColor: {
+      note: 'The colour of a beam\'s glow round its core, as drawn; a lightning beam has none.',
+      code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
+    },
+    LiDensity: {
+      note: 'Above 0, the beam is drawn as lightning, zig-zagging this often (1 counts as 2), with no glow (Falloff 0) and a BeamWidth of at least 1. It strikes as a straight beam would.',
+      code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
+    },
+    LiAmplitude: {
+      note: 'How far a lightning beam\'s zig-zags swing, as drawn (LiDensity).',
+      code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
+    },
     MaxAmmo: {
       note: 'Above 0, the most ammunition you can carry for it is MaxAmmo × the launchers you carry, whatever the ammunition outfit\'s Max. 0 or less: the outfit\'s Max.',
       code: [['HasMaxOfItem', 0x4512]],
@@ -937,7 +979,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {
-      note: '0x0001: its shots\' frames step on (BeamWidth steps a frame) rather than follow their heading; 0x0004: from the first frame. 0x0008: a homing one is chosen only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire at once, reloading together. 0x0080: point defence passes its shots by. 0x0100: its blast does not hurt you. 0x1000, 0x2000, 0x4000: a turret blind ahead, abeam, astern. 0x8000: a shot goes off, blast and all, when its life ends. 0x0002 (the second trigger), 0x0010 and the smoke bits are yours alone or drawing, not traced here.',
+      note: '0x0001: its shots\' frames step on (BeamWidth steps a frame) rather than follow their heading; 0x0004: from the first frame. 0x0008: a homing one is chosen only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire at once, reloading together. 0x0080: point defence passes its shots by. 0x0100: its blast does not hurt you. 0x1000, 0x2000, 0x4000: a turret blind ahead, abeam, astern. 0x8000: a shot goes off, blast and all, when its life ends. 0x0010: its Sound loops. 0x0200, 0x0400: small or big smoke (SmokeSet), 0x0800 lasting longer. 0x0002 (the second trigger) is yours alone, not traced here.',
       code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
     },
     Seeker: {
@@ -1464,6 +1506,15 @@ function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
 const novaItemsRead = (game, ids, counts) => novaListRead(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
 
 const NOVA_FIELD_READS = {
+  'chär': {
+    startCash: v => `${Math.max(0, v).toLocaleString('en-US')} credits`,
+    startShipType: (v, r, g) => novaRefText(g, 'shïp', v >= 128 ? v : 128),
+    startSystem: (v, r, g) => novaListRead(v.map(id => id >= 128 ? novaRefText(g, 'sÿst', id) : null)).replace(/^none$/, novaRefText(g, 'sÿst', 128)),
+    startGovt: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaGovtText(g, id)}: ${r.startStatus[i]}` : null)),
+    introPictID: (v, r) => novaListRead(v.map((id, i) => id >= 128 ? `PICT ${id}, ${Math.min(300, Math.max(0, r.introPictDelay[i]))} s` : null)),
+    introTextID: (v, r, g) => v > 0 ? novaRefText(g, 'dësc', v) : 'none',
+    Flags: v => novaBitsRead(v, { 1: 'offered first' }),
+  },
   'mïsn': {
     AvailStel: (v, r, g) => novaPlaceRead(g, 'avail', v),
     AvailLoc: v => NOVA_AVAIL_LOC[v] || 'nowhere',
@@ -1669,6 +1720,7 @@ const NOVA_FIELD_READS = {
     ExplodType: v => v < 0 ? 'none' : `${v}`,
   },
   'wëap': {
+    Sound: (v, r, g) => v >= 0 ? novaRefText(g, 'snd ', 200 + v) : 'silent',
     Guidance: v => ({ [-1]: 'forward gun', 0: 'beam', 1: 'homing', 3: 'turreted beam', 4: 'turret', 5: 'bomb', 6: 'rocket', 7: 'front quadrant turret', 8: 'rear quadrant turret', 9: 'point defence shot', 10: 'point defence beam', 99: 'fighter bay' })[v] || `${v}: not fired`,
     AmmoType: (v, r, g) => r.Guidance === 99 ? novaRefText(g, 'shïp', v) : v === -1 ? 'none' : v >= 0 && v <= 255 ? 'ammunition of ' + novaRefText(g, 'wëap', 128 + v) : v === -999 ? 'wrecks its own ship' : v <= -1000 ? `${novaNum((Math.abs(v) - 1000) / 10)} fuel a shot` : 'none',
     Graphic: (v, r, g) => v >= 0 && v <= 255 ? novaRefText(g, 'spïn', 3000 + v) : 'no shot',
@@ -1676,8 +1728,8 @@ const NOVA_FIELD_READS = {
     ExplodType: (v, r, g) => novaBoomRead(g, v),
     ProxRadius: v => v > 0 ? `${v}, plus a third of the target` : 'hits only',
     BlastRadius: v => v > 0 ? `${v}` : 'none',
-    Flags: v => novaBitsRead(v, { 1: 'frames step', 2: 'second trigger (not traced)', 4: 'first frame first', 8: 'only at slow ships', 0x10: 'not traced', 0x20: 'through shields', 0x40: 'all at once',
-      0x80: 'point defence passes it', 0x100: 'blast spares you', 0x200: 'smoke (not traced)', 0x400: 'smoke (not traced)', 0x800: 'smoke (not traced)', 0x1000: 'blind ahead', 0x2000: 'blind abeam', 0x4000: 'blind astern', 0x8000: 'goes off at its end' }),
+    Flags: v => novaBitsRead(v, { 1: 'frames step', 2: 'second trigger (not traced)', 4: 'first frame first', 8: 'only at slow ships', 0x10: 'sound loops', 0x20: 'through shields', 0x40: 'all at once',
+      0x80: 'point defence passes it', 0x100: 'blast spares you', 0x200: 'small smoke', 0x400: 'big smoke', 0x800: 'lasting smoke', 0x1000: 'blind ahead', 0x2000: 'blind abeam', 0x4000: 'blind astern', 0x8000: 'goes off at its end' }),
     Seeker: v => novaBitsRead(v, { 1: 'over asteroids', 2: 'decoyed by asteroids', 8: 'confused by interference', 0x10: 'turns away jammed', 0x20: 'not when ionized', 0x4000: 'loses lock off the nose', 0x8000: 'may turn on its ship' }),
     Flags2: v => novaBitsRead(v, { 1: 'first frame till armed', 2: 'holds last frame', 4: 'not traced', 8: 'hits others than its target', 0x10: 'submunitions seek', 0x20: 'no submunitions at its end', 0x40: 'not traced',
       0x80: 'needs KeyCarried', 0x100: 'yours alone', 0x200: 'weapon sprite', 0x400: 'planet-type', 0x800: 'not traced', 0x1000: 'disables only', 0x2000: 'not traced', 0x4000: 'fires cloaked', 0x8000: 'x10 on asteroids' }),

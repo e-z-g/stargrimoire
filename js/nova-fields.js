@@ -17,6 +17,40 @@
    nova-missions.js. */
 
 const NOVA_FIELD_NOTES = {
+  'flët': {
+    LinkSyst: {
+      note: 'Where this fleet may be met, as a system\'s AvgShips ships are placed (1 time in 7 each, after the përs chance) or as ships jump in later: -1, anywhere; 128 to 9999, that sÿst (0 to 127 count as 128 to 255); 10000 + n, systems of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Each time, one of the 256 fleet places is drawn at random, and the fleet comes only if the place drawn is one that may be met here, so a fleet is likelier where more fleets may be.',
+      code: [['SpawnFleet', 0x42704], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['Rand', 0xa4c76]],
+    },
+    ActivateOn: {
+      note: 'A test of control bits: while it fails, this fleet is not met. Empty: no test.',
+      code: [['PropagateMissionBitEffects', 0x99676], ['SpawnFleet', 0x42704], ['HyperSpawnFleet', 0x41c8d]],
+    },
+    LeadShipType: {
+      note: 'The class of the fleet\'s lead ship: 128 to 895. Below 128: shïp 128.',
+      code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
+    },
+    EscortType: {
+      note: 'Up to four classes of escort: 128 to 895, each coming Min to Max strong. Below 128: none.',
+      code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
+    },
+    Min: {
+      note: 'The fewest of the EscortType beside it: Min plus a number from 0 to Max - Min drawn at random.',
+      code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76]],
+    },
+    Max: {
+      note: 'The most of the EscortType beside it.',
+      code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76]],
+    },
+    Govt: {
+      note: 'The government of every ship in the fleet: 128 and up, that gövt; below, none.',
+      code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
+    },
+    Quote: {
+      note: 'Above 0: when the fleet jumps in while you are there, a string picked at random from the STR# of this number, each # in it a random digit, is shown. 0 or less: none.',
+      code: [['HyperSpawnFleet', 0x41c8d], ['GetRandomIndString', 0x72ef7], ['DisplayComm', 0x90201]],
+    },
+  },
   'sÿst': {
     xPos: {
       note: 'With yPos, where the system is on the galaxy map. Systems at the same place are versions of one another: the lowest-numbered of them whose Visibility holds is the one used.',
@@ -645,6 +679,15 @@ const NOVA_FIELD_READS = {
       0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
       0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if you are disabled' }),
+  },
+  'flët': {
+    LinkSyst: (v, r, g) => v === -1 ? 'anywhere' : v >= 0 && v <= 127 ? novaRefText(g, 'sÿst', v + 128) : v >= 10000 && v <= 14999 ? 'systems of ' + novaGovtText(g, v - 10000 + 128) : v >= 128 && v <= 9999 ? novaRefText(g, 'sÿst', v)
+       : v >= 15000 && v <= 19999 ? 'systems of an ally of ' + novaGovtText(g, v - 15000 + 128)
+      : v >= 20000 && v <= 24999 ? 'systems of a government other than ' + novaGovtText(g, v - 20000 + 128) : v >= 25000 && v <= 29999 ? 'systems of an enemy of ' + novaGovtText(g, v - 25000 + 128) : 'nowhere',
+    LeadShipType: (v, r, g) => novaRefText(g, 'shïp', v >= 128 && v <= 895 ? v : 128),
+    EscortType: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 && id <= 895 ? `${novaRefText(g, 'shïp', id)} ×${r.Min[i]}${r.Max[i] > r.Min[i] ? ' to ' + r.Max[i] : ''}` : null)),
+    Govt: (v, r, g) => novaGovtText(g, v),
+    Quote: (v, r, g) => v > 0 ? (g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `no STR# ${v}: none`) : 'none',
   },
   'sÿst': {
     Con: (v, r, g) => novaListRead(v.map(id => id >= 128 && id <= 2175 ? novaRefText(g, 'sÿst', id) : null)),

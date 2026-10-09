@@ -57,6 +57,13 @@ const NOVA_FIELD_NOTES = {
     Mass: { note: 'How hard it is to push: a hit pushes it by the weapon\'s Impact ÷ Mass, to at most 2 a step; a tractor beam on one of more than twice the firer\'s Mass pulls the ship to it instead.', code: [['HandleAsteroidHit', 0x36637], ['HandleBeams', 0x30295]] },
   },
   'shän': {
+    BaseTransp: { note: 'How transparent the base picture is drawn.', code: [['LoadExtendedShipSprites', 0x226af], ['HandleShipDisplay', 0x2b514]] },
+    WeapDecay: { note: 'How fast the weapon flash fades once shown, kept × 0.333 a step.', code: [['LoadExtendedShipSprites', 0x226af], ['HandleShipDisplay', 0x2b514]] },
+    BlinkMode: { note: 'How its lights blink: 1, in groups (BlinkA steps between blinks, BlinkC blinks a group, BlinkD steps between groups, BlinkB as the lit time); 2, brightening by BlinkB ÷ 100 a step to BlinkC (at most 31) and dimming by BlinkD ÷ 100 to BlinkA; 3, flickering between BlinkA and BlinkB (at most 31); anything else, steady.', code: [['LoadExtendedShipSprites', 0x226af], ['HandleShipDisplay', 0x2b514]] },
+    BlinkA: { note: 'Read by BlinkMode: in groups, the steps between blinks; otherwise the dimmest.', code: [['HandleShipDisplay', 0x2b514]] },
+    BlinkB: { note: 'Read by BlinkMode: in groups, the lit time; 2, the rise a step × 100; 3, the brightest.', code: [['HandleShipDisplay', 0x2b514]] },
+    BlinkC: { note: 'Read by BlinkMode: in groups, the blinks a group; 2, the brightest.', code: [['HandleShipDisplay', 0x2b514]] },
+    BlinkD: { note: 'Read by BlinkMode: in groups, the steps between groups; 2, the fall a step × 100.', code: [['HandleShipDisplay', 0x2b514]] },
     BaseImageID: { note: 'The sprite of its base picture: an rlë of this id, else PICT of this id with BaseMaskID as its mask. Below 128: none.', code: [['LoadExtendedShipSprites', 0x226af]] },
     BaseMaskID: { note: 'For a PICT base sprite, the PICT masking its frames.', code: [['LoadExtendedShipSprites', 0x226af]] },
     BaseXSize: { note: 'For a PICT base sprite, a frame\'s width.', code: [['LoadExtendedShipSprites', 0x226af]] },
@@ -393,7 +400,7 @@ const NOVA_FIELD_NOTES = {
       bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
     },
     Flags2: {
-      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: it cannot be targeted: your targeting keys and mouse pass it over, and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as your escort it speaks no reply to your orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), while flying about (0x0800); 0x1000: it stays cloaked until near its target. 0x2000 and 0x4000 are read by the cloaking and damage code, not yet traced here.',
+      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: it cannot be targeted: your targeting keys and mouse pass it over, and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as your escort it speaks no reply to your orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), while flying about (0x0800); 0x1000: it stays cloaked while attacking until within 165 of its target on both axes, or while mining. 0x2000: it cloaks while idle. 0x4000: attacked by a ship it is not fighting, it cloaks at once, its burst weapons put into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
       code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807]],
     },
     PodCount: {
@@ -593,7 +600,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleVoiceSound', 0x31e20]],
     },
     Flags: {
-      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002, 0x0020 and 0x8000 are read in choosing targets and in the hail, not yet traced here.',
+      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020 and 0x8000 are read in helping ships under attack and in the hail, not yet traced here.',
       code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
@@ -602,7 +609,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['HandlePlayerDockRequest', 0x66691]],
     },
     CrimeTol: {
-      note: 'Below -CrimeTol your record makes you a criminal to it, and its warships go for you. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
+      note: 'Whether its warships go for you, by your record in the system you are in: in its own systems, below -CrimeTol; in an ally\'s, below -1.5 × CrimeTol; in an enemy\'s, above CrimeTol; elsewhere only with Flags 0x0002, below -2 × CrimeTol. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
       code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
     },
     SmugPenalty: {
@@ -1727,7 +1734,7 @@ const NOVA_FIELD_READS = {
     EscortType: (v, r) => (t => ['fighter', 'medium', 'warship', 'freighter'][t] + (v >= 0 && v <= 3 ? '' : ', worked out'))(v >= 0 && v <= 3 ? v : r.InherentAI <= 2 ? 3 : r.Mass < 50 ? 0 : r.Mass < 200 ? 1 : 2),
     KeyCarried: (v, r, g) => v >= 128 && v <= 895 ? novaRefText(g, 'shïp', v) : 'none',
     Flags: v => novaBitsRead(v, { 1: 'jumps at 0.7', 2: 'jumps at 1.3', 4: 'jumps at 1.6', 8: 'FuelRegen yours too', 0x10: 'disabled at a tenth', 0x20: 'afterburner for good pilots', 0x40: 'afterburner always', 0x100: 'target display', 0x200: 'target display', 0x400: 'planet-type', 0x1000: 'no turret fire ahead', 0x2000: 'no turret fire abeam', 0x4000: 'no turret fire astern', 0x8000: 'escape ship' }),
-    Flags2: v => novaBitsRead(v, { 1: 'swarms', 2: 'stands off', 4: 'cannot be targeted', 8: 'point defense fires on it', 0x10: 'no spoken replies', 0x20: 'jumps without slowing', 0x40: 'inertialess', 0x80: 'minds its ammunition', 0x100: 'cloaks in burst reload', 0x200: 'cloaks running away', 0x400: 'cloaks jumping', 0x800: 'cloaks flying about', 0x1000: 'cloaked until near', 0x2000: 'read, not yet traced', 0x4000: 'read, not yet traced' }),
+    Flags2: v => novaBitsRead(v, { 1: 'swarms', 2: 'stands off', 4: 'cannot be targeted', 8: 'point defense fires on it', 0x10: 'no spoken replies', 0x20: 'jumps without slowing', 0x40: 'inertialess', 0x80: 'minds its ammunition', 0x100: 'cloaks in burst reload', 0x200: 'cloaks running away', 0x400: 'cloaks jumping', 0x800: 'cloaks flying about', 0x1000: 'cloaked until near', 0x2000: 'cloaks idle', 0x4000: 'cloaks when attacked' }),
     WeapType: (v, r, g) => novaStockRead(g, v, r.WeapCount, r.AmmoLoad),
     WeapType2: (v, r, g) => novaStockRead(g, v, r.WeapCount2, r.AmmoLoad2),
     Mass: v => (d => `${d} day${d === 1 ? '' : 's'} a jump${v >= 100 ? ', a larger radar blip' : ''}`)(v < 100 ? 1 : v < 200 ? 2 : 3),
@@ -1773,11 +1780,11 @@ const NOVA_FIELD_READS = {
   },
   'gövt': {
     VoiceType: v => v >= 0 ? `snd ${1000 + 100 * v} on` : 'silent',
-    Flags: v => novaBitsRead(v, { 1: 'xenophobic', 2: 'read, not yet traced', 4: 'always attacks you', 8: 'your shots miss it', 0x10: 'warships run when hurt', 0x20: 'read, not yet traced',
+    Flags: v => novaBitsRead(v, { 1: 'xenophobic', 2: 'hunts criminals anywhere', 4: 'always attacks you', 8: 'your shots miss it', 0x10: 'warships run when hurt', 0x20: 'read, not yet traced',
       0x40: 'never attacks you', 0x80: 'jamming halved', 0x100: 'no escape pods', 0x200: 'warships take bribes', 0x400: 'cannot be hailed', 0x800: 'derelicts',
       0x1000: 'pirate warships', 0x2000: 'freighters take bribes', 0x4000: 'stellars take bribes', 0x8000: 'read, not yet traced' }),
     Flags2: v => novaBitsRead(v, { 1: 'no request for help', 2: 'map boundaries', 4: 'map boundaries', 8: 'never calls for help', 0x10: 'read, not yet traced', 0x20: 'read, not yet traced', 0x40: 'read, not yet traced', 0x80: 'read, not yet traced' }),
-    CrimeTol: v => `a criminal below ${-v}`,
+    CrimeTol: v => `attacks you below ${-v} in its systems`,
     SmugPenalty: v => `${novaNum(-v / 2)} where it happens`,
     DisabPenalty: v => `${novaNum(-v / 2)} where it happens`,
     BoardPenalty: v => `${novaNum(-v / 2)} where it happens`,

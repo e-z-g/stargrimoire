@@ -471,3 +471,28 @@ function novaDescBits(text) {
   }
   return [...out].sort((a, b) => a - b);
 }
+
+/* THE VIPER RACE, the bar's Gamble button (DoRaceDialog 0x489ca, read in
+   ../evnova-workbench/doc/viper-race.md). Four colours, 0 to 3. The bet
+   is taken first; Rand(4) draws the winner, and a draw that is the last
+   race's winner is drawn again until it is neither that nor the colour
+   bet on; the winner wins four times the bet. The last winner is
+   forgotten each time the bar is opened (DoBarDialog), so within a visit
+   no colour wins twice running and a bet on the last winner never wins. */
+// The credits a new pilot starts with: the scenario the new pilot dialog offers first (chär Flags 0x0001,
+// else the first), its startCash, 0 below 0; with no chär, 10,000 (ActivateCharResource 0x76cb6).
+function novaStartCash(game) {
+  const all = novaAll(game, 'chär').sort((a, b) => a.id - b.id);
+  const c = all.find(r => r.Flags & 1) || all[0];
+  return c ? Math.max(0, c.startCash) : 10000;
+}
+// A race: `race` is { credits, last }, last -1 for none; `rand(n)` the program's Rand. Returns the winner and the winnings.
+function novaRaceRun(race, colour, bet, rand) {
+  race.credits -= bet;
+  let w = rand(4);
+  if (w === race.last) do w = rand(4); while (w === race.last || w === colour);
+  race.last = w;
+  const won = w === colour ? bet * 4 : 0;
+  race.credits += won;
+  return { winner: w, won };
+}

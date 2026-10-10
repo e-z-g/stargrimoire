@@ -151,6 +151,18 @@ try {
                      desc: document.querySelector('#planet .desc').textContent.slice(0, 30) };
           })()`);
           await shot('planet');
+          // the bar's Viper race: Gamble, a bet of 1,000 on colour 1, the report and the board
+          out.race = await p.evaluate(`(async () => {
+            const q = sel => document.querySelector('#planet ' + sel), pause = () => new Promise(r => setTimeout(r, 50));
+            q('[data-gamble]').click(); await pause();
+            const before = RACE.credits, pics = document.querySelectorAll('#planet .race canvas').length;
+            q('[data-race="0"]').click(); await pause();
+            const after = RACE.credits, report = (q('.race .desc') || {}).textContent || '', shown = RACE.shown;
+            q('[data-race="1"]').click(); await pause();
+            const cleared = RACE.shown;
+            q('[data-gamble-done]').click(); await pause();
+            return { before, after, pics, report: report.slice(0, 40), won: report.includes('winnings'), shown, cleared, closed: !q('.race') };
+          })()`);
           out.wide = await p.evaluate('document.documentElement.scrollWidth - window.innerWidth');
           // Out of the landing page by pinching in on it: two fingers on the
           // phone, a trackpad's ctrl-wheel on the desktop.
@@ -520,6 +532,9 @@ try {
       if (z.after.mode !== 'galaxy' || z.after.sys !== null) fail(`${dev.name}: zooming out of Sol: ${JSON.stringify(z.after)}`);
       if (o.system.mode !== 'system' || !/Sol/.test(o.system.panel)) fail(`${dev.name}: going to Sol: ${JSON.stringify(o.system)}`);
       if (!o.planet.pict || o.planet.lit < 0.2) fail(`${dev.name}: landing on Earth: ${JSON.stringify(o.planet)}`);
+      const ra = o.race;
+      if (ra.before !== 25000 || ra.pics < 5 || ra.after !== (ra.shown === 0 ? 28000 : 24000) || !ra.report || ra.won !== (ra.shown === 0) || ra.cleared !== -1 || !ra.closed)
+        fail(`${dev.name}: the Viper race at Earth's bar: ${JSON.stringify(ra)}`);
       if (o.wide > 0) fail(`${dev.name}: the page is ${o.wide} px wider than the screen`);
       if (o.pinch.mode !== 'system' || o.pinch.sys !== 130 || o.pinch.page || o.pinch.hash !== '#system=130&stellar=128&at=1')
         fail(`${dev.name}: pinching in on Earth's landing page: ${JSON.stringify(o.pinch)}`);

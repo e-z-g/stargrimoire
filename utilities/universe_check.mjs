@@ -15,6 +15,21 @@ const fail = m => { console.log('FAIL ' + m); fails++; };
 const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fail(`${what}: ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`); };
 
 // ---- the rules -------------------------------------------------------------
+// The Viper race (DoRaceDialog): a draw of the last winner drawn again until neither it nor the colour bet on;
+// four times the bet; over many races a bet on the last winner never wins and any other wins about one in four.
+{
+  const seq = a => { let i = 0; return () => a[i++]; };
+  const r1 = { credits: 5000, last: -1 }, o1 = S.novaRaceRun(r1, 2, 1000, seq([2]));
+  const r2 = { credits: 5000, last: 2 }, o2 = S.novaRaceRun(r2, 1, 1000, seq([2, 1, 2, 3]));
+  eq('the Viper race: a first race won, then the last winner and the colour bet on drawn again', [o1, r1.credits, o2, r2.credits, r2.last], [{ winner: 2, won: 4000 }, 8000, { winner: 3, won: 0 }, 4000, 3]);
+  const rng = S.novaRandom(12345), race = { credits: 1e9, last: -1 };
+  let onLast = 0, onLastWins = 0, other = 0, otherWins = 0;
+  for (let i = 0; i < 20000; i++) {
+    const last = race.last, c = i % 4, o = S.novaRaceRun(race, c, 1, n => rng.rand(n));
+    if (last === c) { onLast++; if (o.won) onLastWins++; } else { other++; if (o.won) otherWins++; }
+  }
+  if (onLastWins || Math.abs(otherWins / other - 0.25) > 0.02) fail(`the Viper race's odds: ${onLastWins} of ${onLast} on the last winner won, ${otherWins} of ${other} on another`);
+}
 // The Bible's examples of DefCount, and the two branches of Mac 0x124fb4.
 eq('DefCount 1082', S.novaDefense({ DefenseDude: 128, DefCount: 1082 }), { dude: 128, total: 8, wave: 2 });
 eq('DefCount 2005', S.novaDefense({ DefenseDude: 128, DefCount: 2005 }), { dude: 128, total: 100, wave: 5 });

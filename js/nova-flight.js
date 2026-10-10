@@ -154,7 +154,7 @@ function novaBoardingMods(items, counts, outfits) {
   return out;
 }
 function novaFlightData(u) {
-  const game = u.game, test = text => { try { return ncbParseTest(text || '').tree; } catch (e) { return { op: 'true' }; } };
+  const game = u.game, test = text => ncbCompile(text);
   const outfits = new Map(novaAll(game, 'oütf').map(o => [o.id, o]));
   const modTypes = o => o ? [o.ModType, o.ModType2, o.ModType3, o.ModType4] : [];
   const classes = new Map();

@@ -69,7 +69,7 @@ function novaUniverse(game) {
   const byId = new Map();
   for (const r of novaAll(game, 'sÿst')) {
     let test;
-    try { test = ncbParseTest(r.Visibility); } catch (e) { test = { tree: { op: 'true' }, mixed: false, error: e.message }; }
+    try { test = { tree: ncbCompile(r.Visibility), mixed: ncbParseTest(r.Visibility).mixed }; } catch (e) { test = { tree: ncbCompile(r.Visibility), mixed: false, error: e.message }; }
     const sys = {
       id: r.id, name: novaNameParts(r.name).name, note: novaNameParts(r.name).note, x: r.xPos, y: r.yPos, govt: r.Govt,
       links: (r.Con || []).filter(c => c >= 128),

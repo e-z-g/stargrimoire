@@ -50,6 +50,7 @@
 //     mission that sets it, the map shown with it set and then without;
 //     the storylines listed, Take Polaris Home opened from b147's panel as
 //     Rebel I's step 22 and its last, and Rebel I's missions and places;
+//     Federation Resupply's test as the game reads it, its bare 467 passed over;
 //   - on the phone, nothing is wider than the screen;
 //   - the ships, opened at #ship=154 (the Aurora Cruiser): the list has a
 //     row and a drawn picture for every ship class, the ship turns and is
@@ -388,6 +389,9 @@ try {
               Object.assign(o, { story: document.querySelector('#panel h2').textContent, rows: document.querySelectorAll('#panel table.kv tr').length, ringed: (storyPlaces() || new Set()).size });
               draw();
             }
+            // Federation Resupply's test holds a bare 467, which the game passes over
+            VIEW.sel = { kind: 'mission', id: 428, back: null }; renderPanel();
+            o.reads = (document.querySelector('#panel .warn[title]') || {}).textContent || null;
             return o;
           })()`);
           await shot('story');
@@ -624,6 +628,7 @@ try {
       const sy = o.story;
       if (!(sy.list > 20) || !sy.fromBit || sy.mission !== 'Take Polaris Home' || !sy.step || !sy.last || !sy.offer || !sy.follows || sy.story !== 'Rebel I' || !(sy.rows >= 15) || !(sy.ringed > 3))
         fail(`${dev.name}: the mission Take Polaris Home and its storyline: ${JSON.stringify(sy)}`);
+      if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       const nb = o.nebula, op = o.options;
       if (!nb.frames || nb.worst > 0.5 || !nb.sel || nb.sel.kind !== 'nebula') fail(`${dev.name}: going to a nebula from the panel: ${JSON.stringify(nb)}`);

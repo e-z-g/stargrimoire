@@ -44,6 +44,21 @@ eq('empty test', S.ncbTest('', st([])), true);
 eq('mixed flagged', S.ncbParseTest('b1 & b2 | b3').mixed, true);
 eq('bits of a test', S.ncbTestBits('!(b147 | b305) | !b148'), [147, 148, 305]);
 let threw = false; try { S.ncbParseTest('b1 &'); } catch (e) { threw = true; } eq('a broken test throws', threw, true);
+// The game's reading (ncbRead, Mac 1.1.1 EvalTestExp 0x15cd4): evnova-decomp's two examples of the
+// Windows evaluator (docs/known_original_bugs.md), then cases worked by hand from the Mac code.
+const gameReads = [
+  ['b1 | b2 | b3', [1], false], ['b1 & b2 & b3', [2, 3], true],
+  ['(b1 & b2) & b3', [2, 3], false], ['(b1 & b2 & b3)', [2, 3], true], ['b1 & (b2) & (b3)', [2, 3], false],
+  ['b1 & b2 | b3', [2], true], ['b1 & b2 | b3', [1], false], ['b1 & (b2 | b3)', [1, 3], true],
+  [' b1', [1], false], ['612', [], false], ['b611 & 612', [611], true], ['b611 & 612', [], false], ['!!b1', [1], false], ['b1 x', [1], true],
+  // a count and a comparison; inside brackets the game reads on from the ]
+  ['[b1 b2 b3] > 1', [1, 2], false], ['([b1 b2 b3] > 1)', [1, 2], false], ['([b1 b2 b3] < 2)', [1, 2], true],
+];
+for (const [t, bits, want] of gameReads) eq(`the game reads "${t}" with ${bits.join(',') || 'no bits'}`, S.ncbTest(t, st(bits)), want);
+eq('the game\'s readings as text', ['b1 & b2 & b3', 'b1 & b2 | b3', '(b1 & b2) | b3', '!!b1', '612', '!(b511 | b515) & !((b50 | 467) | b6666)', '!((b6029 | b6030) | b333( & (b6005 | b6012)']
+  .map(t => S.ncbTreeText(S.ncbGameTree(t))), ['b2 & b3', 'b2 | b3', '(b1 & b2) | b3', '!b1', 'never', '!(b511 | b515) & !(b50 | b6666)', '!b333']);
+eq('a count has no tree', S.ncbGameTree('([b1 b2] = 2)'), null);
+eq('as written', ['b13 & (b15 | !b72)', 'b1 & b2 & b3', '467 | b1'].map(t => S.ncbAsWritten(t).same), [true, false, false]);
 // The Bible's dësc example, and a {G} choice.
 const t = 'This is a {b001 "great and terrific" "lousy, terrible"} example.';
 eq('dësc bit set', S.novaDescText(t, st([1])), 'This is a great and terrific example.');
@@ -162,6 +177,19 @@ for (const v of Object.keys(RELEASES)) {
     }
   }
   if (problems.length) fail(`${v}: ${problems.length} problems: ${problems.slice(0, 6).join('; ')}`);
+  // every test: the game's reading as a tree agrees with ncbTest in every state of its bits; those read otherwise than written
+  const otherwise = [];
+  for (const [type, , fields] of S.NOVA_BIT_SOURCES) for (const rec of S.novaAll(game, type)) for (const [field, how] of fields) {
+    const text = rec[field];
+    if (how !== 'test' || !text) continue;
+    if (S.ncbAsWritten(text).same !== true) otherwise.push(`${type} ${rec.id} ${field}`);
+    const tree = S.ncbGameTree(text), bits = [...new Set([...text.matchAll(/[Bb](\d+)/g)].map(m => +m[1]))];
+    if (!tree || bits.length > 14) { fail(`${v} ${type} ${rec.id} ${field}: no game tree to hold to the game's reading`); continue; }
+    for (let m = 0; m < 1 << bits.length; m++) {
+      const state = st(bits.filter((b, i) => m >> i & 1));
+      if (S.ncbEval(tree, state) !== S.ncbTest(text, state)) { fail(`${v} ${type} ${rec.id} ${field}: the game tree ${S.ncbTreeText(tree)} and the game's reading differ`); break; }
+    }
+  }
   const shown = S.novaShownSystems(u, { bits: new Set() });
   const links = S.novaShownLinks(u, shown);
   const places = new Set(u.systems.map(s => s.x + ',' + s.y));
@@ -169,7 +197,7 @@ for (const v of Object.keys(RELEASES)) {
   console.log(`${v}: ${u.systems.length} systems at ${places.size} places, ${shown.size} shown at a new game with ${links.length} links` +
               ` (${links.filter(l => l.oneWay).length} one way); ${u.stellars.size} stellars, ${sprites} sprites decoded,` +
               ` ${pictures} of ${landable} landing pictures, ${descs} descriptions; ${u.nebulae.length} nebulae;` +
-              ` ${mixed} tests mix & and |; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
+              ` ${mixed} tests mix & and |; ${otherwise.length} tests the game reads otherwise than written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
               ` ${S.novaPlanetWeapons(game).length} planet-type weapons; at a new game ${gates.links.length} ways by gate` +
               ` (${gates.links.filter(l => l.oneWay).length} one way), ${gates.random.length} random wormholes, ${gates.dead.length} gates leading nowhere,` +
               ` with every version ${every.links.length} (${every.links.filter(l => l.oneWay).length}), ${every.random.length} and ${every.dead.length}`);

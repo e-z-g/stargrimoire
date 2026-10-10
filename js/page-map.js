@@ -2116,13 +2116,18 @@ const stellarLink = (id, sys) => `<a data-stellar="${id}"${sys !== undefined ? `
 const chip = color => `<span class="chip" style="background:${color}"></span>`;
 const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr><td>${esc(k)}</td><td>${v}</td></tr>`;
 
+// How the game reads a test, where that is not as it is written (ncbAsWritten), kept by text.
+const AS_WRITTEN = new Map();
+const GAME_READS = 'Mac 1.1.1 reads tests its own way: at each & or | it keeps only the last term, so in a run of bare terms only the last two count; it passes over a lone number or a character it does not know; and a test that does not start with b, (, !, p, g, o or e is never true.';
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
-  let holds, parse;
-  try { parse = ncbParseTest(text); holds = ncbEval(parse.tree, STATE); } catch (e) { return `<span class="test">${bitText(text)}</span> <span class="warn">${esc(e.message)}</span>`; }
+  const holds = ncbTest(text, STATE);
+  if (!AS_WRITTEN.has(text)) AS_WRITTEN.set(text, ncbAsWritten(text));
+  const r = AS_WRITTEN.get(text), g = r.game;
+  const reads = r.same !== false ? '' : !g ? 'not as written' : g.op === 'true' ? 'as always true' : g.op === 'false' ? 'as never true' : `as <span class="test">${bitText(ncbTreeText(g))}</span>`;
   const where = SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game';
   return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'holds' : 'does not hold'} ${where}</span>` +
-         (parse.mixed ? ' <span class="warn">(mixes &amp; and | without brackets; read left to right)</span>' : '');
+         (reads ? ` <span class="warn" title="${esc(GAME_READS)}">(the game reads it ${reads})</span>` : '');
 }
 
 /* ---- control bits: what each is for (nova-bits.js) --------------------- */

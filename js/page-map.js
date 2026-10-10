@@ -600,10 +600,29 @@ function settle() {
     VIEW.mode = 'system'; VIEW.sys = id;
   }
   VIEW.hover = null;
-  writeHash(true);
+  settleHash();
   renderCrumbs();
   renderPanel();
 }
+/* A system zoomed into, or zoomed out of, is a step back and forward walk,
+   as going to it by a tap is: the first change of a zoom gets an entry of
+   its own and those following within a second take it over, so zooming
+   through a system on the way past it makes no step; and a zoom that ends
+   where it began takes back the entry it made. */
+let SETTLE_FROM = null, SETTLE_TIMER = null, SKIP_POP = false;
+function settleHash() {
+  if (SETTLE_TIMER === null) {
+    const from = location.hash;
+    if (!writeHash(false)) return;
+    SETTLE_FROM = from;
+  } else { clearTimeout(SETTLE_TIMER); writeHash(true); }
+  SETTLE_TIMER = setTimeout(() => {
+    SETTLE_TIMER = null;
+    if (location.hash === SETTLE_FROM) { SKIP_POP = true; history.back(); }
+  }, 1000);
+}
+// Any other step ends a zoom's: its entry is not taken back.
+function settleEnd() { clearTimeout(SETTLE_TIMER); SETTLE_TIMER = null; }
 
 /* ---- drawing ------------------------------------------------------------- */
 
@@ -1971,16 +1990,23 @@ function hashFor() {
 }
 function viewHash() {
   if (VIEW.mode === 'planet') return `#stellar=${VIEW.stellar}&system=${VIEW.sys}`;
-  if (VIEW.mode === 'system') return `#system=${VIEW.sys}` + (VIEW.sel && VIEW.sel.kind === 'stellar' ? `&stellar=${VIEW.sel.id}&at=1` : '');
-  if (VIEW.sel && VIEW.sel.kind === 'system') return `#galaxy&system=${VIEW.sel.id}`;
-  return '#galaxy';
+  // a bit, a mission or a storyline open over the panel, after what is under it
+  let sel = VIEW.sel, over = '';
+  if (sel && OVER_KINDS.has(sel.kind)) over = `&${sel.kind}=${encodeURIComponent(sel.id)}`;
+  while (sel && OVER_KINDS.has(sel.kind)) sel = sel.back;
+  if (VIEW.mode === 'system') return `#system=${VIEW.sys}` + (sel && sel.kind === 'stellar' ? `&stellar=${sel.id}&at=1` : '') + over;
+  if (sel && sel.kind === 'system') return `#galaxy&system=${sel.id}` + over;
+  return '#galaxy' + over;
 }
 function writeHash(replace) {
   // the map hidden behind the ships or the battle leaves their address alone
-  if (SHIPS.on || BATTLE.on) return;
+  if (SHIPS.on || BATTLE.on) return false;
   const h = hashFor();
-  if (location.hash === h) return;
-  if (replace) history.replaceState(null, '', h); else history.pushState(null, '', h);
+  if (location.hash === h) return false;
+  // an entry made here says so: Back over the panel goes back through it
+  if (!replace) settleEnd();
+  if (replace) history.replaceState(history.state, '', h); else history.pushState({ map: 1 }, '', h);
+  return !replace;
 }
 function applyHash() {
   const p = new URLSearchParams(location.hash.slice(1));
@@ -1995,12 +2021,21 @@ function applyHash() {
     const s = where.includes(sys) ? sys : (where.find(id => SHOWN.has(id)) ?? where[0]);
     if (s !== undefined) { show('planet', { sys: s, stellar: st, fromHash: true }, true); return true; }
   }
+  // what is open over the panel, over what is selected under it
+  const overKind = ['bit', 'mission', 'story'].find(k => p.has(k));
+  const withOver = base => !overKind ? base : { kind: overKind, id: overKind === 'story' ? p.get('story') : +p.get(overKind), back: base };
+  // back or forward to the view already shown changes only the panel, the camera left where it is
+  const inPlace = sel => { VIEW.sel = sel; renderCrumbs(); renderPanel(); redraw(); return true; };
   if (p.has('system') && !p.has('galaxy') && U.byId.has(sys)) {
-    show('system', { sys, sel: p.has('stellar') && U.stellars.has(st) ? { kind: 'stellar', id: st } : null, fromHash: true }, true);
+    const sel = withOver(p.has('stellar') && U.stellars.has(st) ? { kind: 'stellar', id: st } : null);
+    if (VIEW.mode === 'system' && VIEW.sys === sys && !MOVING) return inPlace(sel);
+    show('system', { sys, sel, fromHash: true }, true);
     return true;
   }
   if (p.has('galaxy')) {
-    show('galaxy', { sel: U.byId.has(sys) ? { kind: 'system', id: sys } : null, fromHash: true }, true);
+    const sel = withOver(U.byId.has(sys) ? { kind: 'system', id: sys } : null);
+    if (VIEW.mode === 'galaxy' && !MOVING) return inPlace(sel);
+    show('galaxy', { sel, fromHash: true }, true);
     return true;
   }
   return false;
@@ -2624,11 +2659,14 @@ function wirePanel() {
     e.preventDefault();
     const d = a.dataset;
     // a bit, a mission or a storyline opens over the panel; Back goes to what was under it
-    const over = (kind, id) => { VIEW.sel = { kind, id, back: VIEW.sel }; renderPanel(); redraw(); $('panel').scrollTop = 0; };
+    const over = (kind, id) => { VIEW.sel = { kind, id, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; };
     if (d.bit !== undefined) return over('bit', +d.bit);
     if (d.mission !== undefined) return over('mission', +d.mission);
     if (d.story !== undefined) return over('story', d.story);
-    if (d.bitBack !== undefined) { VIEW.sel = VIEW.sel.back || null; renderPanel(); redraw(); return; }
+    if (d.bitBack !== undefined) {
+      if (history.state && history.state.map) { history.back(); return; }
+      VIEW.sel = VIEW.sel.back || null; writeHash(true); renderPanel(); redraw(); return;
+    }
     if (d.bitMap !== undefined) { bitOnMap(+d.bitMap); return; }
     if (d.ship !== undefined) { shipsShow(+d.ship); return; }
     if (d.gateTo !== undefined) { hypergateGo(+d.gateTo); return; }
@@ -2804,7 +2842,11 @@ function wireTools() {
       else if (VIEW.mode === 'system' && VIEW.sel.kind === 'stellar') show('planet', { sys: VIEW.sys, stellar: VIEW.sel.id });
     }
   });
-  window.addEventListener('popstate', () => { if (U && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); } });
+  window.addEventListener('popstate', () => {
+    if (SKIP_POP) { SKIP_POP = false; return; }
+    settleEnd();
+    if (U && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
+  });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
 }
 

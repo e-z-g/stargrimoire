@@ -12,7 +12,8 @@
 //     time opens it and puts you in it and zooming out takes you back to
 //     the galaxy, and going to Sol and landing on Earth draws the landing
 //     picture, pinching in on the landing page rises back to Sol, and
-//     scrolling in on Earth lands on it again --
+//     scrolling in on Earth lands on it again, and back and forward walk
+//     Earth, a mission over Sol's panel and a zoom out to the galaxy --
 //     on a desktop window and a phone's;
 //   - the subway map, switched to in Sol, keeps you in Sol with every place
 //     moved, and in the galaxy draws links with bends; switched back, the
@@ -185,6 +186,31 @@ try {
             await show('system', { sys: 130 }, true); await idle();
             return got;
           })()`);
+          // Back and forward: Earth's landing page and back to Sol; a
+          // mission over Sol's panel and back, the camera left where it was;
+          // Sol zoomed out of to the galaxy and back.
+          out.history = await p.evaluate(`(async () => {
+            const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
+            const step = async dir => { const popped = new Promise(r => addEventListener('popstate', r, { once: true })); history[dir](); await popped; await new Promise(r => setTimeout(r, 30)); await idle(); };
+            const at = () => ({ mode: VIEW.mode, sys: VIEW.sys, stellar: VIEW.stellar, sel: VIEW.sel && VIEW.sel.kind, hash: location.hash });
+            const out = {};
+            await show('planet', { sys: 130, stellar: 128 }, true); await idle();
+            await step('back'); out.back = at();
+            await step('forward'); out.forward = at();
+            await step('back');
+            const a = document.createElement('a'); a.dataset.mission = '128'; document.getElementById('panel').appendChild(a); a.click();
+            out.mission = at();
+            const cam = JSON.stringify(CAM);
+            await step('back'); out.missionBack = { ...at(), still: JSON.stringify(CAM) === cam };
+            await step('forward'); out.missionForward = at();
+            const cv = document.getElementById('map');
+            for (let k = 0; k < 120 && VIEW.mode !== 'galaxy'; k++) { cv.dispatchEvent(new WheelEvent('wheel', { deltaY: 80, clientX: cv.getBoundingClientRect().left + cv.clientWidth / 2, clientY: cv.getBoundingClientRect().top + cv.clientHeight / 2, bubbles: true, cancelable: true })); await new Promise(r => requestAnimationFrame(r)); }
+            out.zoomedOut = at();
+            await new Promise(r => setTimeout(r, 1200));
+            await step('back'); out.zoomBack = at();
+            await show('system', { sys: 130 }, true); await idle();
+            return out;
+          })()`);
           // The subway map, switched to inside Sol and back from the galaxy,
           // and asked for by the address.
           out.subway = await p.evaluate(`(async () => {
@@ -305,7 +331,7 @@ try {
             $('optGates').checked = false; $('optGates').onchange(); draw(); gates.off = GATES_DRAWN.links + GATES_DRAWN.random;
             $('optGates').checked = true; $('optGates').onchange();
             // A bit: b147 from Sol's visibility, what sets it, and the map with it set and without
-            VIEW.sel = { kind: 'system', id: 130 }; renderPanel();
+            VIEW.sel = { kind: 'system', id: 130 }; writeHash(true); renderPanel();
             const link = document.querySelector('#panel [data-bit="147"]');
             const bits = { link: !!link };
             if (link) {
@@ -315,7 +341,10 @@ try {
               document.querySelector('#panel [data-bit-map="147"]').click();
               Object.assign(bits, { mode: SHOW_MODE, typed: $('bitsIn').value, changed: SHOWN.size !== was || !SHOWN.has(130), still: VIEW.sel && VIEW.sel.kind === 'bit' });
               document.querySelector('#panel [data-bit-map="147"]').click();
+              // Back over the panel is the browser's back, the bit having an entry of its own
+              const popped = new Promise(r => addEventListener('popstate', r, { once: true }));
               document.querySelector('#panel [data-bit-back]').click();
+              await Promise.race([popped, new Promise(r => setTimeout(r, 2000))]);
               Object.assign(bits, { off: $('bitsIn').value === '', back: VIEW.sel && VIEW.sel.kind === 'system' });
               $('showSel').value = 'new'; applyShowMode();
             }
@@ -494,6 +523,13 @@ try {
       if (o.wide > 0) fail(`${dev.name}: the page is ${o.wide} px wider than the screen`);
       if (o.pinch.mode !== 'system' || o.pinch.sys !== 130 || o.pinch.page || o.pinch.hash !== '#system=130&stellar=128&at=1')
         fail(`${dev.name}: pinching in on Earth's landing page: ${JSON.stringify(o.pinch)}`);
+      const hi = o.history;
+      if (hi.back.mode !== 'system' || hi.back.sys !== 130 || hi.forward.mode !== 'planet' || hi.forward.stellar !== 128)
+        fail(`${dev.name}: back from Earth and forward again: ${JSON.stringify([hi.back, hi.forward])}`);
+      if (!/&mission=128$/.test(hi.mission.hash) || hi.mission.sel !== 'mission' || hi.missionBack.sel === 'mission' || !hi.missionBack.still || /mission/.test(hi.missionBack.hash) || hi.missionForward.sel !== 'mission')
+        fail(`${dev.name}: back and forward over a mission: ${JSON.stringify([hi.mission, hi.missionBack, hi.missionForward])}`);
+      if (hi.zoomedOut.mode !== 'galaxy' || hi.zoomBack.mode !== 'system' || hi.zoomBack.sys !== 130)
+        fail(`${dev.name}: back after zooming out of Sol: ${JSON.stringify([hi.zoomedOut, hi.zoomBack])}`);
       if (o.zoomLand.mode !== 'planet' || o.zoomLand.stellar !== 128) fail(`${dev.name}: scrolling in on Earth: ${JSON.stringify(o.zoomLand)}`);
       const sw = o.subway, so = o.subwayOff;
       if (sw.inSol.mode !== 'system' || sw.inSol.sys !== 130 || sw.inSol.mix !== 1 || !sw.inSol.moved || !/&subway$/.test(sw.inSol.hash))

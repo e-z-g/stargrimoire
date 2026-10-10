@@ -54,6 +54,8 @@
 //     the Light Blaster's panel from its address, with its picture, its
 //     outfitters folded and ringed, the list of outfits from it, and a
 //     weapon's panel from the Aurora Cruiser's in the Ships view;
+//     the Library: the ships' table sorted by a column, a description
+//     named through the program, pictures drawn, a compressed sound read;
 //     the search box finding an outfit, a bit and a rank by name and
 //     opening each one's panel;
 //     its picture's and description's bases, read from the program, each
@@ -441,6 +443,24 @@ try {
             return o;
           })()`);
           await shot('record');
+          // the Library: the ships' table sorted, a description named by the program, pictures drawn, a compressed sound decoded
+          out.lib = await p.evaluate(`(async () => {
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            document.querySelector('#views [data-view=library]').click(); await wait(200);
+            const th = () => document.querySelector('#library th[data-lib-sort=Holds]');
+            th().click(); th().click(); await wait(50);
+            const o = { hash: location.hash, rows: document.querySelectorAll('#library tbody tr').length, top: +document.querySelector('#library tbody tr td:nth-child(5)').textContent, most: Math.max(...novaAll(GAME, 'shïp').map(r => r.Holds)) };
+            libShow('text'); LIB.q = 'Fusion Pulse'; renderLibrary(); await wait(100);
+            const role = [...document.querySelectorAll('#library details.libItem p.note')].find(p => p.querySelector('a.codeNum'));
+            o.role = role ? role.textContent : null;
+            LIB.q = ''; libShow('pict'); for (let i = 0; i < 40 && !document.querySelector('#library figure canvas'); i++) await wait(100);
+            o.pict = document.querySelectorAll('#library figure canvas').length;
+            libShow('snd'); for (let i = 0; i < 120 && !GAME.list('snd ').length; i++) await wait(250);
+            const cmp = GAME.list('snd ').find(e => { try { return !novaSndSamples(GAME.get('snd ', e.id).bytes).plain; } catch (err) { return false; } });
+            o.snd = cmp ? novaSndToWav(GAME.get('snd ', cmp.id).bytes).frames : null;
+            libLeave();
+            return o;
+          })()`);
           await p.evaluate(`(() => { VIEW.sel = null; renderPanel(); redraw(); })()`);
           // A nebula in the panel, from a view zoomed in elsewhere: the view
           // goes there without swinging away (it once flew thousands of units
@@ -683,6 +703,10 @@ try {
       else if (!rc.nums || rc.nums.length !== 2 || !rc.code || !rc.code.on || !/^#code=0x[0-9a-f]+&at=0x[0-9a-f]+$/.test(rc.code.hash) || !rc.code.ringed || !rc.code.ringed.includes(rc.nums[0]) || !rc.code.read || !rc.code.named)
         fail(`${dev.name}: the Light Blaster's figures read from the program: ${JSON.stringify({ nums: rc.nums, code: rc.code })}`);
       else console.log(`${dev.name}: the Light Blaster's panel from its address, its picture, ${rc.outfitters} outfitters, ${rc.ringed} places ringed; ${rc.list} outfits listed; ${rc.shipTo.h2} from the Aurora Cruiser's panel; its picture's base ${rc.nums && rc.nums[0]} opens the Code view at ${rc.code && rc.code.hash}`);
+      const lb = o.lib;
+      if (!lb || lb.hash !== '#library=table.ship' || lb.rows < 200 || lb.top !== lb.most || !/description of .*dësc \d+ \+ \d+/.test(lb.role || '') || !(lb.pict > 0) || !(lb.snd > 0))
+        fail(`${dev.name}: the Library: ${JSON.stringify(lb)}`);
+      else console.log(`${dev.name}: the Library's ${lb.rows} ships sorted by Holds, ${lb.role}, ${lb.pict} pictures drawn, a compressed sound of ${lb.snd} frames`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       const nb = o.nebula, op = o.options;

@@ -282,6 +282,7 @@ function mapStart(fresh) {
   if (/(^#|&)(ships|ship=)/.test(location.hash)) { show('galaxy', { fromHash: true }, true); shipsFromHash(); }
   else if (/(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
   else if (/(^#|&)code\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); codeFromHash(); }
+  else if (/(^#|&)library\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); libFromHash(); }
   else if (!applyHash()) show('galaxy', {}, true);
 }
 
@@ -2946,7 +2947,7 @@ function wireTools() {
   window.addEventListener('popstate', () => {
     if (SKIP_POP) { SKIP_POP = false; return; }
     settleEnd();
-    if (U && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
+    if (U && !libFromHash() && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
   });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
 }

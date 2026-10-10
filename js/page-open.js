@@ -67,6 +67,7 @@ function setStatus(text, bad) {
   el.textContent = text || '';
   el.title = text || '';
   el.classList.toggle('bad', !!bad);
+  el.classList.remove('idle');
 }
 
 /* Let the page paint before the next piece of synchronous work. */
@@ -251,7 +252,7 @@ async function pumpPending(refused) {
   if (!SHIP_FILES.length) unpackerDone();
   PUMPING = false;
   if (refused && refused.length) setStatus(refused.join('; '), true);
-  else setStatus(GAME.files.length + ' files open');
+  else { setStatus(GAME.files.length + ' files open'); document.getElementById('status').classList.add('idle'); }
 }
 
 function wireOpening() {

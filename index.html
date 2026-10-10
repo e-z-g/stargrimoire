@@ -207,6 +207,25 @@ table.fields.editing input { width: 100%; box-sizing: border-box; background: va
 /* ---- the ships ---- */
 #ships { flex: 1; display: flex; min-height: 0; }
 #code { flex: 1; display: flex; min-height: 0; }
+#library { flex: 1; min-height: 0; overflow: auto; padding: 12px 18px 40px; }
+#library .libTop { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; position: sticky; top: -12px; background: var(--bg); padding: 6px 0; z-index: 1; }
+#library .libTop button.on { background: var(--raise); color: var(--text); }
+#library .libTop input { flex: 1; min-width: 120px; }
+#library .libScroll { overflow-x: auto; }
+#library table.libTable { border-collapse: collapse; font-size: 12.5px; }
+#library table.libTable th { text-align: left; padding: 4px 8px; color: var(--dim); cursor: pointer; white-space: nowrap; border-bottom: 1px solid var(--line); }
+#library table.libTable th.up::after { content: ' ▲'; } #library table.libTable th.down::after { content: ' ▼'; }
+#library table.libTable td { padding: 3px 8px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.04); }
+#library table.libTable td:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; }
+#library details.libItem { border-bottom: 1px solid var(--line); padding: 4px 0; }
+#library details.libItem summary { cursor: pointer; }
+#library details.libItem summary small { display: block; color: var(--dim); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#library .desc { white-space: pre-wrap; margin: 6px 0 10px; max-width: 760px; }
+#library .libPicts { display: flex; flex-wrap: wrap; gap: 12px; }
+#library .libPicts figure { margin: 0; width: 180px; }
+#library .libPicts canvas { max-width: 180px; max-height: 180px; display: block; background: #080a0f; border-radius: 4px; }
+#library .libPicts .nopict { width: 180px; height: 100px; display: flex; align-items: center; justify-content: center; color: var(--dim); background: #080a0f; border-radius: 4px; font-size: 12px; }
+#library .libPicts figcaption { font-size: 11.5px; color: var(--dim); margin-top: 3px; }
 #codeList { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
 #codeList .listTools { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
 #codeList .listTools input { flex: 1; min-width: 0; }
@@ -287,6 +306,8 @@ details.inline .list { margin-top: 4px; }
   /* the crumbs and the status shrink rather than wrap, so the first row holds whatever they say */
   #crumbs { flex: 1 1 0; }
   #status { max-width: 30vw; }
+  /* the count of files open, all the status says once reading is done, gives the bar's room to the buttons */
+  #status.idle { display: none; }
   #ships { flex-direction: column; }
   #code { flex-direction: column; }
   #codeList { width: auto; flex: 1; border-right: 0; }
@@ -308,7 +329,7 @@ details.inline .list { margin-top: 4px; }
 <body>
 <header id="bar">
   <button id="creditsBtn" aria-expanded="false" aria-controls="creditsMenu" title="Credits"><span id="brand">StarGrimoire</span></button>
-  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a><a data-view="code" href="#code">Code</a></nav>
+  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a><a data-view="code" href="#code">Code</a><a data-view="library" href="#library=table">Library</a></nav>
   <nav id="crumbs"></nav>
   <span id="status"></span>
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
@@ -384,6 +405,7 @@ details.inline .list { margin-top: 4px; }
   <div id="battleStage"><canvas id="battleCanvas"></canvas></div>
 </main>
 
+<main id="library" hidden></main>
 <main id="code" hidden>
   <nav id="codeList">
     <div class="listTools">
@@ -522,15 +544,17 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-plugin.js?v=01001151"></script>
 <script src="js/nova-refs.js?v=da05899e"></script>
 <script src="js/nova-program.js?v=4f0a9308"></script>
-<script src="js/page-open.js?v=344287c2"></script>
+<script src="js/nova-sound.js?v=b413dfc2"></script>
+<script src="js/page-open.js?v=49699df0"></script>
 <script src="js/page-compare.js?v=bfe95a5e"></script>
 <script src="js/page-plugin.js?v=5e944caf"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=3f53247d"></script>
-<script src="js/page-ships.js?v=676f39aa"></script>
+<script src="js/page-map.js?v=1aa122a0"></script>
+<script src="js/page-ships.js?v=e9f85c6e"></script>
 <script src="js/page-flight.js?v=e909f2bb"></script>
-<script src="js/page-battle.js?v=d93ae1a7"></script>
+<script src="js/page-battle.js?v=ef98bfeb"></script>
 <script src="js/page-records.js?v=19ee28dc"></script>
-<script src="js/page-code.js?v=3cef4049"></script>
+<script src="js/page-code.js?v=3e29b703"></script>
+<script src="js/page-library.js?v=8e26be84"></script>
 </body>
 </html>

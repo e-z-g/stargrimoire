@@ -50,8 +50,10 @@ const MIN_STELLAR = 26;
    settled on a real screen: the fall onto a stellar and the rise from it,
    and seven tenths of it a zoom into a system. The two sizes are not
    settled yet. They were 36 and 150 until the maintainer found the
-   stellars came in too soon (28 September 2026). */
-const TUNE = { fadeFrom: 100, fadeTo: 200, animMs: 1000, room: 0.42, roomCap: 30 };
+   stellars came in too soon (28 September 2026). Zooming in on a stellar
+   lands on it once its sprite is landAt of the screen's shorter side
+   across. */
+const TUNE = { fadeFrom: 100, fadeTo: 200, animMs: 1000, room: 0.42, roomCap: 30, landAt: 0.5 };
 /* Whether the stellars come in as you zoom in (a switch in Map options).
    Without them a system stays a dot at any zoom, and only the one you go to
    -- by a tap, a link, a search, the address -- opens, until you have
@@ -2513,11 +2515,13 @@ function wireMap() {
       const [a, b] = [...pointers.values()];
       const k = Math.hypot(a.x - b.x, a.y - b.y) / pinch.d;
       const [wx, wy] = toWorld(pinch.mx, pinch.my, pinch.c);
+      const s0 = CAM.s;
       CAM.s = clampNum(pinch.c.s * k, sMin(), S_MAX);
       const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       CAM.x = wx - (mx - CW / 2) / CAM.s; CAM.y = wy - (my - CH / 2) / CAM.s;
       moved = true;
       redraw();
+      if (CAM.s > s0 && landOnZoom(mx, my)) { pointers.clear(); pinch = null; drag = null; }
       return;
     }
     if (drag) {
@@ -2557,6 +2561,20 @@ function zoomAt(sx, sy, k) {
   CAM.s = clampNum(CAM.s * k, sMin(), S_MAX);
   CAM.x = wx - (sx - CW / 2) / CAM.s; CAM.y = wy - (sy - CH / 2) / CAM.s;
   redraw();
+  if (k > 1) landOnZoom(sx, sy);
+}
+
+/* Zooming in on a stellar lands on it, as zooming out of the landing page
+   rises from it: once the stellar under the pointer is TUNE.landAt of the
+   screen across, or the zoom can go no closer. */
+function landOnZoom(sx, sy) {
+  if (VIEW.mode !== 'system' || MOVING) return false;
+  const d = DRAWN.find(d => d.sys.id === VIEW.sys);
+  if (!d || d.t < 0.5) return false;
+  const b = stellarBoxes(d).find(b => Math.abs(sx - b.x) <= b.w / 2 && Math.abs(sy - b.y) <= b.h / 2);
+  if (!b || (Math.max(b.w, b.h) < TUNE.landAt * Math.min(CW, CH) && CAM.s < S_MAX)) return false;
+  show('planet', { sys: d.sys.id, stellar: b.sp.id });
+  return true;
 }
 
 function hoverAt(sx, sy) {

@@ -11,7 +11,8 @@
 //     up, every picture file is read, zooming in on Sol a wheel step at a
 //     time opens it and puts you in it and zooming out takes you back to
 //     the galaxy, and going to Sol and landing on Earth draws the landing
-//     picture, and pinching in on the landing page rises back to Sol --
+//     picture, pinching in on the landing page rises back to Sol, and
+//     scrolling in on Earth lands on it again --
 //     on a desktop window and a phone's;
 //   - the subway map, switched to in Sol, keeps you in Sol with every place
 //     moved, and in the galaxy draws links with bends; switched back, the
@@ -166,6 +167,23 @@ try {
             }
             for (let i = 0; i < 100 && (MOVING || VIEW.mode === 'planet'); i++) await new Promise(r => setTimeout(r, 50));
             return { mode: VIEW.mode, sys: VIEW.sys, sel: VIEW.sel, hash: location.hash, page: document.getElementById('planet').classList.contains('on') };
+          })()`);
+          // Scrolling in on Earth lands on it, and the system is gone back to.
+          out.zoomLand = await p.evaluate(`(async () => {
+            const cv = document.getElementById('map'), frame = () => new Promise(r => requestAnimationFrame(r));
+            const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
+            let steps = 0;
+            for (; steps < 80 && VIEW.mode === 'system' && !MOVING; steps++) {
+              const d = DRAWN.find(d => d.sys.id === 130), b = d && stellarBoxes(d).find(b => b.sp.id === 128);
+              if (!b) break;
+              const r = cv.getBoundingClientRect();
+              cv.dispatchEvent(new WheelEvent('wheel', { deltaY: -60, clientX: r.left + b.x, clientY: r.top + b.y, bubbles: true, cancelable: true }));
+              await frame();
+            }
+            await idle();
+            const got = { mode: VIEW.mode, stellar: VIEW.stellar, steps };
+            await show('system', { sys: 130 }, true); await idle();
+            return got;
           })()`);
           // The subway map, switched to inside Sol and back from the galaxy,
           // and asked for by the address.
@@ -476,6 +494,7 @@ try {
       if (o.wide > 0) fail(`${dev.name}: the page is ${o.wide} px wider than the screen`);
       if (o.pinch.mode !== 'system' || o.pinch.sys !== 130 || o.pinch.page || o.pinch.hash !== '#system=130&stellar=128&at=1')
         fail(`${dev.name}: pinching in on Earth's landing page: ${JSON.stringify(o.pinch)}`);
+      if (o.zoomLand.mode !== 'planet' || o.zoomLand.stellar !== 128) fail(`${dev.name}: scrolling in on Earth: ${JSON.stringify(o.zoomLand)}`);
       const sw = o.subway, so = o.subwayOff;
       if (sw.inSol.mode !== 'system' || sw.inSol.sys !== 130 || sw.inSol.mix !== 1 || !sw.inSol.moved || !/&subway$/.test(sw.inSol.hash))
         fail(`${dev.name}: the subway map, switched to in Sol: ${JSON.stringify(sw.inSol)}`);

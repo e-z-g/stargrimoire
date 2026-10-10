@@ -777,6 +777,24 @@ try {
         out.off = await p.evaluate(lit);
         await p.evaluate("document.querySelector('#shipCtl [data-c=glow]').click()");
         out.on = await p.evaluate(lit);
+        // the exit points, the Cruiser's gun at heading 90 (frame 16 of 64): 56 along the heading to the right,
+        // its Z of -7 below; then firing a Fed Destroyer (141, WeapDecay 5): the weapon glow at 32, fading
+        await p.evaluate("document.querySelector('#shipCtl [data-c=glow]').click()");
+        out.fire = await p.evaluate(`(async () => {
+          document.querySelector('#shipCtl [data-c=exits]').click();
+          const gun = shipExits(SHIP_ANIM.shan, SHIP_ANIM.per, 16)[0][0], key = /exit points/.test(document.getElementById('shipAt').textContent);
+          shipsShow(141);
+          for (let i = 0; i < 40 && !(SHIP_ANIM && SHIP_ANIM.ship.id === 141 && document.querySelector('#shipCtl [data-c=fire]')); i++) await new Promise(r => setTimeout(r, 100));
+          SHIP_ANIM.spin = false;
+          const before = (${lit}).sum;
+          document.querySelector('#shipCtl [data-c=fire]').click(); drawShip(SHIP_ANIM, document.getElementById('shipCanvas'));
+          const lit1 = (${lit}).sum, f0 = SHIP_ANIM.flash;
+          await new Promise(r => setTimeout(r, 300));
+          const f1 = SHIP_ANIM.flash;
+          shipsShow(154);
+          for (let i = 0; i < 40 && !(SHIP_ANIM && SHIP_ANIM.ship.id === 154); i++) await new Promise(r => setTimeout(r, 100));
+          return { gun: [Math.round(gun.x), Math.round(gun.y)], key, brighter: lit1 > before, f0, fading: f1 < 32 && f1 > -1 };
+        })()`);
         out.pics = await p.evaluate("[...document.querySelectorAll('#shipPics figure')].map(f => !!f.querySelector('canvas'))");
         out.wide = await p.evaluate('document.documentElement.scrollWidth - window.innerWidth');
         out.picked = await p.evaluate("getComputedStyle(document.getElementById('shipList')).display");
@@ -897,6 +915,7 @@ try {
       fail(`ships, ${dev.name}: the list: ${JSON.stringify(o.list)}`);
     if (!o.turn.spin || o.turn.a === o.turn.b) fail(`ships, ${dev.name}: the Aurora Cruiser does not turn: ${JSON.stringify(o.turn)}`);
     if (o.off.n < 500) fail(`ships, ${dev.name}: the Aurora Cruiser is not drawn: ${o.off.n} lit pixels`);
+    if (!o.fire.brighter || o.fire.f0 !== 32 || !o.fire.fading || o.fire.gun[0] !== 56 || o.fire.gun[1] !== 7 || !o.fire.key) fail(`ships, ${dev.name}: firing and the exit points: ${JSON.stringify(o.fire)}`);
     if (!(o.on.sum > o.off.sum)) fail(`ships, ${dev.name}: the engines add no light: ${o.off.sum} off, ${o.on.sum} on`);
     if (o.pics.length !== 3 || o.pics.some(x => !x)) fail(`ships, ${dev.name}: its pictures: ${JSON.stringify(o.pics)}`);
     if (o.wide > 0) fail(`ships, ${dev.name}: the page is ${o.wide} px wider than the screen`);

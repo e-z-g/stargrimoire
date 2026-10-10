@@ -423,7 +423,9 @@ function startShipAnim(ship, shan) {
   const A = {
     ship, shan, layers, per, mode,
     heading: 0, spin: true, turn: Math.max(ship.Maneuver, 1) * 3 / 360 * per / 30,   // frames a tick
-    show: { alt: true, glow: false, light: true, weap: false, shield: false },
+    show: { alt: true, glow: false, light: true, weap: false, shield: false, exits: false },
+    // the weapon flash (HandleShipDisplay 0x2c6bb): 32 on firing, down by WeapDecay x 0.333 a step while above 0, never below -1
+    flash: -1, decay: Math.fround(shan.WeapDecay * 0.333),
     bank: 0, fold: 0, foldTo: 0, carrying: true, seq: 0, altSet: 0, ticks: 0,
     blink: { alpha: 1, phase: 'on', t: 0, count: 0, up: true },
     last: performance.now(), acc: 0, raf: 0,
@@ -465,6 +467,7 @@ function shipTick(A) {
   const s = A.shan, delay = Math.max(1, s.AnimDelay);
   A.ticks++;
   if (A.spin) A.heading = (A.heading + A.turn) % A.per;
+  if (A.flash > 0) { A.flash = Math.fround(A.flash - A.decay); if (!(A.flash >= -1)) A.flash = -1; }
   if (A.ticks % delay === 0) {
     if (s.AltSetCount > 0) A.altSet = (A.altSet + 1) % s.AltSetCount;
     if (A.mode & 8 && !(A.mode & 3)) A.seq = (A.seq + 1) % Math.max(1, s.BaseSetCount);
@@ -505,22 +508,56 @@ function drawShip(A, c) {
   const baseAlpha = clampNum(32 - A.shan.BaseTransp, 0, 32) / 32;
   for (const l of A.layers) {
     if (!l.spr || l.spr.kind !== 'rle') continue;
-    if (l.layer !== 'base' && !A.show[l.layer]) continue;
+    const flashing = l.layer === 'weap' && A.flash > 0;
+    if (l.layer !== 'base' && !A.show[l.layer] && !flashing) continue;
     const f = novaShipFrameIndex(A.per, h, l.layer === 'alt' ? A.altSet : set, l.spr.count);
     const img = shipFrame(l.spr, f);
     if (!img) continue;
     const additive = l.layer === 'glow' || l.layer === 'light' || l.layer === 'weap' || l.layer === 'shield';
     ctx.globalCompositeOperation = additive ? 'lighter' : 'source-over';
-    ctx.globalAlpha = additive ? (l.layer === 'light' ? A.blink.alpha : 1) : baseAlpha;
+    ctx.globalAlpha = additive ? (l.layer === 'light' ? A.blink.alpha : flashing && !A.show.weap ? Math.trunc(Math.min(A.flash, 32)) / 32 : 1) : baseAlpha;
     ctx.drawImage(img, Math.round((c.width - l.spr.width) / 2), Math.round((c.height - l.spr.height) / 2));
   }
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
+  if (A.show.exits) drawExits(A, ctx, c, h);
   const at = $('shipAt');
   if (at && A.layers[0] && A.layers[0].spr && A.layers[0].spr.kind === 'rle') {
     const sets = Math.max(1, A.shan.BaseSetCount);
-    at.textContent = `Heading ${Math.round(h * 360 / A.per)}°, frame ${h + 1} of ${A.per}` + (sets > 1 ? `, set ${set + 1} of ${sets}` : '');
+    const all = A.show.exits ? shipExits(A.shan, A.per, h) : [];
+    const key = EXIT_KINDS.filter((_, k) => all[k] && all[k].some(p => p.set)).map(([n, col]) => `<span style="color:${col}">■</span> ${n.toLowerCase()}`).join(', ');
+    at.innerHTML = esc(`Heading ${Math.round(h * 360 / A.per)}°, frame ${h + 1} of ${A.per}` + (sets > 1 ? `, set ${set + 1} of ${sets}` : '')) + (key ? `; exit points: ${key}` : '') +
+      (A.flash > 0 && !A.show.weap ? esc(`; weapon glow ${Math.trunc(Math.min(A.flash, 32))} of 32${A.decay > 0 ? '' : ', WeapDecay 0: it stays'}`) : '');
   }
+}
+
+/* Where each kind of weapon's shots start, on the frame shown
+   (ModifyShotStartPosition2 0x706e): the point's Y along the ship's
+   heading and its X across it, then squashed by UpCompress where it lies
+   toward the top of the screen and by DnCompress below (percent, 100 for
+   0 or less), and its Z taken off the height on screen. The heading is
+   the frame's, frame × 360 ÷ FramesPer, whole degrees. The four points of
+   a kind are taken in turn as it fires. */
+const EXIT_KINDS = [['Gun', '#ffd23f'], ['Turret', '#4fd1ff'], ['Guided', '#ff6b6b'], ['Beam', '#9dff6b']];
+function shipExits(shan, per, h) {
+  const deg = Math.trunc(h * (360 / per)), pc = v => Math.fround((v > 0 ? v : 100) / 100);
+  return EXIT_KINDS.map(([kind]) => [0, 1, 2, 3].map(i => {
+    const X = (shan[kind + 'PosX'] || [])[i] || 0, Y = (shan[kind + 'PosY'] || [])[i] || 0, Z = (shan[kind + 'PosZ'] || [])[i] || 0;
+    const v = { x: 0, y: 0 };
+    novaAccel(deg, Y, v); novaAccel((deg + 90) % 360, X, v);
+    const up = v.y < 0;
+    v.x = Math.fround(v.x * pc(up ? shan.UpCompressX : shan.DnCompressX)); v.y = Math.fround(v.y * pc(up ? shan.UpCompressY : shan.DnCompressY));
+    v.y = Math.fround(v.y - Z);
+    return { x: v.x, y: v.y, set: !!(X || Y || Z) };
+  }));
+}
+function drawExits(A, ctx, c, h) {
+  const all = shipExits(A.shan, A.per, h), cx = c.width / 2, cy = c.height / 2;
+  all.forEach((pts, k) => {
+    if (!pts.some(p => p.set)) return;
+    ctx.fillStyle = EXIT_KINDS[k][1];
+    for (const p of pts) ctx.fillRect(Math.round(cx + p.x) - 1, Math.round(cy + p.y) - 1, 3, 3);
+  });
 }
 
 function shipControls(A) {
@@ -532,6 +569,10 @@ function shipControls(A) {
   ];
   const toggle = (k, label) => has(k) ? `<button data-c="${k}" aria-pressed="${A.show[k]}">${label}</button>` : '';
   parts.push(toggle('glow', 'Engines'), toggle('light', 'Lights'), toggle('alt', 'Alternating'), toggle('weap', 'Weapon glow'), toggle('shield', 'Shield'));
+  // firing: the weapon glow flashes and fades by WeapDecay; the exit points, coloured by the kind of weapon
+  if (has('weap')) parts.push(`<button data-c="fire" title="The weapon glow at full, fading by WeapDecay">Fire</button>`);
+  const kinds = EXIT_KINDS.filter((_, k) => shipExits(s, A.per, 0)[k].some(p => p.set));
+  if (kinds.length) parts.push(`<button data-c="exits" aria-pressed="false" title="${kinds.map(([n, col]) => n.toLowerCase()).join(', ')}">Exit points</button>`);
   if (A.mode & 1 && s.BaseSetCount > 1) parts.push(`<select data-c="bank"><option value="0">Level</option><option value="1">Banking left</option><option value="2">Banking right</option></select>`);
   else if (A.mode & 2 && s.BaseSetCount > 1) parts.push(`<button data-c="fold" aria-pressed="false">Fold / unfold</button>`);
   else if (A.mode & 4 && s.BaseSetCount > 1) parts.push(`<button data-c="carry" aria-pressed="true">Carrying ${A.ship.KeyCarried > 0 ? esc(shipName(A.ship.KeyCarried)) : 'its ships'}</button>`);
@@ -545,6 +586,7 @@ function shipControls(A) {
     else if (k === 'left' || k === 'right') { A.spin = false; A.heading = (Math.floor(A.heading) + (k === 'left' ? A.per - 1 : 1)) % A.per; }
     else if (k === 'fold') A.foldTo = A.foldTo ? 0 : Math.max(0, s.BaseSetCount - 1);
     else if (k === 'carry') A.carrying = !A.carrying;
+    else if (k === 'fire') A.flash = 32;
     else A.show[k] = !A.show[k];
     el.querySelector('[data-c="spin"]').setAttribute('aria-pressed', String(A.spin));
     if (k in A.show) b.setAttribute('aria-pressed', String(A.show[k]));

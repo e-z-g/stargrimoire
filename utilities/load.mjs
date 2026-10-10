@@ -62,6 +62,24 @@ export function site(opts = {}) {
   return ctx;
 }
 
+/* The names each script gives the others, in page order: what is new on the
+   global object after it runs, and its top-level const and let. For
+   check_all, to know which scripts a check can reach. */
+export function scriptGlobals() {
+  const files = pageScripts().filter(f => f.startsWith('js/') && !f.startsWith('js/page-'));
+  const ctx = site({ files: [] }), out = new Map();
+  let seen = new Set(Object.getOwnPropertyNames(ctx));
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    vm.runInContext(src, ctx, { filename: f });
+    const names = new Set([...src.matchAll(/^(?:const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]));
+    for (const n of Object.getOwnPropertyNames(ctx)) if (!seen.has(n)) names.add(n);
+    seen = new Set([...seen, ...names]);
+    out.set(f, { names, src });
+  }
+  return out;
+}
+
 export const RELEASES = {
   '1.0.2': { sit: 'game/EV_Nova_1.0.2.sit' },
   '1.0.8': { sit: 'game/EV_Nova_1.0.8.sit' },
@@ -83,7 +101,7 @@ const MAP_ROLES = new Set(['data', 'graphics', 'titles']);
 const FORK_CACHE = path.join(os.tmpdir(), 'stargrimoire-forks');
 function cached(archive, f) {
   const st = fs.statSync(archive);
-  const key = crypto.createHash('sha1').update([archive, st.size, st.mtimeMs, f.path, f.size].join('\0')).digest('hex');
+  const key = crypto.createHash('sha1').update([fs.realpathSync(archive), st.size, st.mtimeMs, f.path, f.size].join('\0')).digest('hex');
   const file = path.join(FORK_CACHE, key + '.rsrc');
   const read = f.read;
   return () => {

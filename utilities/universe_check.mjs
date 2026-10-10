@@ -58,6 +58,9 @@ for (const [t, bits, want] of gameReads) eq(`the game reads "${t}" with ${bits.j
 eq('the game\'s readings as text', ['b1 & b2 & b3', 'b1 & b2 | b3', '(b1 & b2) | b3', '!!b1', '612', '!(b511 | b515) & !((b50 | 467) | b6666)', '!((b6029 | b6030) | b333( & (b6005 | b6012)']
   .map(t => S.ncbTreeText(S.ncbGameTree(t))), ['b2 & b3', 'b2 | b3', '(b1 & b2) | b3', '!b1', 'never', '!(b511 | b515) & !(b50 | b6666)', '!b333']);
 eq('a count has no tree', S.ncbGameTree('([b1 b2] = 2)'), null);
+// nova-refs.js: outfits given and taken by a set expression (EvalSetExp's G and D), contribute bits by number.
+eq('outfits in a set expression', S.novaSetOutfits('b5 G128 d129 R(G130 b2) G700 Q128'), [{ op: 'give', id: 128, random: false }, { op: 'take', id: 129, random: false }, { op: 'give', id: 130, random: true }]);
+eq('contribute bits', S.novaMaskBits([0x80000001, 0x00000002]), [0, 31, 62]);
 eq('as written', ['b13 & (b15 | !b72)', 'b1 & b2 & b3', '467 | b1'].map(t => S.ncbAsWritten(t).same), [true, false, false]);
 // The Bible's dësc example, and a {G} choice.
 const t = 'This is a {b001 "great and terrific" "lousy, terrible"} example.';
@@ -190,6 +193,21 @@ for (const v of Object.keys(RELEASES)) {
       if (S.ncbEval(tree, state) !== S.ncbTest(text, state)) { fail(`${v} ${type} ${rec.id} ${field}: the game tree ${S.ncbTreeText(tree)} and the game's reading differ`); break; }
     }
   }
+  // every record with a panel of its own followed to what names it: an outfit sold only at outfitters of its tech
+  // level, a weapon fired only by outfits of ModType 1 naming it, every system named one there is
+  const refs = S.novaRefs(game, u), refProblems = [];
+  let soldSomewhere = 0;
+  for (const [type] of S.NOVA_REC_TYPES) for (const rec of S.novaAll(game, type)) {
+    const r = refs.of(type, rec.id);
+    if (type === 'oütf') {
+      if (r.soldAt.length) soldSomewhere++;
+      for (const id of r.soldAt) { const sp = u.stellars.get(id), sp8 = [...sp.SpecialTech, ...(sp.SpecialTech4to8 || [])];
+        if (!(sp.Flags & 0x04) || !(rec.TechLevel <= sp.TechLevel || sp8.includes(rec.TechLevel)) || rec.TechLevel < 0) refProblems.push(`oütf ${rec.id} sold at spöb ${id}`); }
+    }
+    if (type === 'wëap') for (const o of r.firedBy) { const out = S.novaGet(game, 'oütf', o); if (![1, 2, 3, 4].some(k => out[k === 1 ? 'ModType' : 'ModType' + k] === 1 && out[k === 1 ? 'ModVal' : 'ModVal' + k] === rec.id)) refProblems.push(`wëap ${rec.id} fired by oütf ${o}`); }
+    for (const list of [r.linked, r.reinforces, r.systems && r.systems.map(x => x.id ?? x)]) for (const id of list || []) if (!u.byId.has(id)) refProblems.push(`${type} ${rec.id} names sÿst ${id}`);
+  }
+  if (refProblems.length) fail(`${v}: cross-references: ${refProblems.length}: ${refProblems.slice(0, 5).join('; ')}`);
   const shown = S.novaShownSystems(u, { bits: new Set() });
   const links = S.novaShownLinks(u, shown);
   const places = new Set(u.systems.map(s => s.x + ',' + s.y));
@@ -197,7 +215,7 @@ for (const v of Object.keys(RELEASES)) {
   console.log(`${v}: ${u.systems.length} systems at ${places.size} places, ${shown.size} shown at a new game with ${links.length} links` +
               ` (${links.filter(l => l.oneWay).length} one way); ${u.stellars.size} stellars, ${sprites} sprites decoded,` +
               ` ${pictures} of ${landable} landing pictures, ${descs} descriptions; ${u.nebulae.length} nebulae;` +
-              ` ${mixed} tests mix & and |; ${otherwise.length} tests the game reads otherwise than written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
+              ` ${mixed} tests mix & and |; outfits sold somewhere ${soldSomewhere} of ${S.novaAll(game, 'oütf').length}; ${otherwise.length} tests the game reads otherwise than written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
               ` ${S.novaPlanetWeapons(game).length} planet-type weapons; at a new game ${gates.links.length} ways by gate` +
               ` (${gates.links.filter(l => l.oneWay).length} one way), ${gates.random.length} random wormholes, ${gates.dead.length} gates leading nowhere,` +
               ` with every version ${every.links.length} (${every.links.filter(l => l.oneWay).length}), ${every.random.length} and ${every.dead.length}`);

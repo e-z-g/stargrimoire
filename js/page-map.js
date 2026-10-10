@@ -259,6 +259,7 @@ function mapStart(fresh) {
   NEB_BRIGHT.clear();
   BITS = null;
   MISSIONS = null;
+  REFS = null;
   setTimeout(() => { if (!BITS && GAME) { bitCatalog(); renderPanel(); } }, 300);
   // other files: the subway map is worked out again, the true positions shown meanwhile
   const kind = LAYOUT.want;
@@ -2023,8 +2024,8 @@ function applyHash() {
     if (s !== undefined) { show('planet', { sys: s, stellar: st, fromHash: true }, true); return true; }
   }
   // what is open over the panel, over what is selected under it
-  const overKind = ['bit', 'mission', 'story'].find(k => p.has(k));
-  const withOver = base => !overKind ? base : { kind: overKind, id: overKind === 'story' ? p.get('story') : +p.get(overKind), back: base };
+  const overKind = ['bit', 'mission', 'story', 'rec'].find(k => p.has(k));
+  const withOver = base => !overKind ? base : { kind: overKind, id: overKind === 'story' || overKind === 'rec' ? p.get(overKind) : +p.get(overKind), back: base };
   // back or forward to the view already shown changes only the panel, the camera left where it is
   const inPlace = sel => { VIEW.sel = sel; renderCrumbs(); renderPanel(); redraw(); return true; };
   if (p.has('system') && !p.has('galaxy') && U.byId.has(sys)) {
@@ -2065,6 +2066,7 @@ function renderPanel() {
   if (sel && sel.kind === 'bit') html = bitPanel(sel.id);
   else if (sel && sel.kind === 'mission') html = missionPanel(sel.id);
   else if (sel && sel.kind === 'story') html = storyPanel(sel.id);
+  else if (sel && sel.kind === 'rec') html = recPanel(sel.id);
   else if (VIEW.mode === 'planet') html = stellarPanel(U.stellars.get(VIEW.stellar));
   else if (sel && sel.kind === 'stellar') html = stellarPanel(U.stellars.get(sel.id));
   else if (sel && sel.kind === 'system') html = systemPanel(U.byId.get(sel.id));
@@ -2072,6 +2074,7 @@ function renderPanel() {
   else if (VIEW.mode === 'system') html = systemPanel(U.byId.get(VIEW.sys));
   else html = galaxyPanel();
   el.innerHTML = html;
+  if (sel && sel.kind === 'rec') recPictures();
   renderLegend();
 }
 
@@ -2152,6 +2155,7 @@ function bitRefLink(r) {
   if (r.type === 'spöb' && U.stellars.has(r.id)) return stellarLink(r.id);
   if (r.type === 'nëbu') return `<a data-nebula="${r.id}">${esc(r.name)}</a>`;
   if (r.type === 'shïp') return `<a data-ship="${r.id}">${esc(r.name)}</a>`;
+  if (NOVA_REC_WORD.has(r.type)) return recLink(r.type, r.id, r.name);
   return esc(r.name);
 }
 /* The map with a bit set, or without it: the bits typed in, changed, and
@@ -2187,7 +2191,7 @@ function bitPanel(n) {
 /* ---- missions and storylines (nova-missions.js) ------------------------ */
 
 // Panels that open over the one beneath, with a Back to it.
-const OVER_KINDS = new Set(['bit', 'mission', 'story']);
+const OVER_KINDS = new Set(['bit', 'mission', 'story', 'rec']);
 let MISSIONS = null;
 function missionData() { return MISSIONS || (MISSIONS = novaMissions(GAME)); }
 // A mission by name, with its storyline and step from Ambrosia's note.
@@ -2265,6 +2269,7 @@ function storyPanel(key) {
 // The places the open storyline's missions are offered at, go to or return to.
 let STORY_PLACES = { key: null, set: null };
 function storyPlaces() {
+  if (VIEW.sel && VIEW.sel.kind === 'rec') return recPlaces();
   const key = VIEW.sel && VIEW.sel.kind === 'story' ? VIEW.sel.id : null;
   if (key === null) return null;
   if (STORY_PLACES.key === key && STORY_PLACES.shown === SHOWN) return STORY_PLACES.set;
@@ -2309,6 +2314,7 @@ function galaxyPanel() {
     <h3>Governments</h3><div class="legend">${legend}</div>
     ${storyList()}
     <h3>Nebulae</h3><div class="list">${neb || '<span class="note">none</span>'}</div>
+    ${recTypesBlock()}
     ${compareList()}
     <details><summary>Files open</summary><table class="kv">${files}</table></details>`;
 }
@@ -2341,9 +2347,9 @@ function systemPanel(sys) {
   const stellars = sys.stellars.map(id => stellarLink(id, sys.id)).join('');
   const gates = gateRows(sys);
   const dudes = [];
-  (r.DudeTypes || []).forEach((d, i) => { if (d >= 128) dudes.push(`${esc(resName('düde', d))} <span class="note">${r.Probs[i]}%</span>`); });
+  (r.DudeTypes || []).forEach((d, i) => { if (d >= 128) dudes.push(`${recLink('düde', d)} <span class="note">${r.Probs[i]}%</span>`); });
   const pers = [];
-  (r.Person || []).forEach((p, i) => { if (p >= 128) pers.push(`${esc(resName('përs', p))} <span class="note">${r.PersonProb[i]}%</span>`); });
+  (r.Person || []).forEach((p, i) => { if (p >= 128) pers.push(`${recLink('përs', p)} <span class="note">${r.PersonProb[i]}%</span>`); });
   const roids = [];
   for (let b = 0; b < 16; b++) if (r.AstTypes & (1 << b)) roids.push(esc(resName('röid', 128 + b)));
   const buoy = r.Message >= 1 ? novaStrings(GAME, 1000)[r.Message - 1] : null;
@@ -2365,7 +2371,7 @@ function systemPanel(sys) {
       ${kvRow('Ships', r.AvgShips ? `about ${r.AvgShips}, ± half` : 'none')}
       ${kvRow('Of these kinds', dudes.join('<br>'))}
       ${kvRow('People', pers.join('<br>'))}
-      ${kvRow('Reinforcements', r.ReinfFleet >= 128 ? `${esc(resName('flët', r.ReinfFleet))}, after ${(r.ReinfTime / 30).toFixed(1)} s, again after ${r.ReinfIntrval} day${r.ReinfIntrval === 1 ? '' : 's'}` : '')}
+      ${kvRow('Reinforcements', r.ReinfFleet >= 128 ? `${recLink('flët', r.ReinfFleet)}, after ${(r.ReinfTime / 30).toFixed(1)} s, again after ${r.ReinfIntrval} day${r.ReinfIntrval === 1 ? '' : 's'}` : '')}
     </table>
     ${flightPanel(sys)}
     <h3>Space</h3>
@@ -2726,15 +2732,16 @@ function tapAt(sx, sy, dbl) {
 
 function wirePanel() {
   const onClick = e => {
-    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-gate-to],[data-gate-cancel],[data-flight]');
+    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-rec],[data-gate-to],[data-gate-cancel],[data-flight]');
     if (!a) return;
     e.preventDefault();
     const d = a.dataset;
-    // a bit, a mission or a storyline opens over the panel; Back goes to what was under it
+    // a bit, a mission, a storyline or a record opens over the panel; Back goes to what was under it
     const over = (kind, id) => { VIEW.sel = { kind, id, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; };
     if (d.bit !== undefined) return over('bit', +d.bit);
     if (d.mission !== undefined) return over('mission', +d.mission);
     if (d.story !== undefined) return over('story', d.story);
+    if (d.rec !== undefined) return over('rec', d.rec);
     if (d.bitBack !== undefined) {
       if (history.state && history.state.map) { history.back(); return; }
       VIEW.sel = VIEW.sel.back || null; writeHash(true); renderPanel(); redraw(); return;

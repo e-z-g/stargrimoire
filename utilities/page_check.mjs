@@ -51,6 +51,9 @@
 //     the storylines listed, Take Polaris Home opened from b147's panel as
 //     Rebel I's step 22 and its last, and Rebel I's missions and places;
 //     Federation Resupply's test as the game reads it, its bare 467 passed over;
+//     the Light Blaster's panel from its address, with its picture, its
+//     outfitters folded and ringed, the list of outfits from it, and a
+//     weapon's panel from the Aurora Cruiser's in the Ships view;
 //   - on the phone, nothing is wider than the screen;
 //   - the ships, opened at #ship=154 (the Aurora Cruiser): the list has a
 //     row and a drawn picture for every ship class, the ship turns and is
@@ -395,6 +398,29 @@ try {
             return o;
           })()`);
           await shot('story');
+          // A record's panel from the address: the Light Blaster, its picture, its outfitters ringed;
+          // the list of every outfit from it; a weapon from the Ships view's panel.
+          out.rec = await p.evaluate(`(async () => {
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            history.replaceState(null, '', '#galaxy&rec=outf.128'); applyHash(); await wait(100);
+            for (let i = 0; i < 100 && MOVING; i++) await wait(50);
+            for (let i = 0; i < 40 && !document.querySelector('#panel figure.recPict canvas'); i++) await wait(100);
+            const t = $('panel').innerText;
+            const o = { h2: document.querySelector('#panel h2').textContent, pict: !!document.querySelector('#panel figure.recPict canvas'),
+              sold: /Sold at \\d+/.test(t), outfitters: document.querySelectorAll('#panel details.inline [data-stellar]').length, ringed: (storyPlaces() || new Set()).size,
+              weapon: !!document.querySelector('#panel [data-rec="weap.128"]') };
+            document.querySelector('#panel button[data-rec="outf"]').click();
+            o.list = document.querySelectorAll('#panel [data-rec^="outf."]').length;
+            o.listHash = decodeURIComponent(location.hash);
+            shipsShow(154);
+            await wait(300);
+            const w = document.querySelector('#shipView [data-rec^="weap."]');
+            o.fromShip = w ? w.dataset.rec : null;
+            if (w) { w.click(); await wait(300); o.shipTo = { on: SHIPS.on, sel: VIEW.sel && VIEW.sel.kind + ':' + VIEW.sel.id, h2: document.querySelector('#panel h2').textContent }; }
+            history.replaceState(null, '', '#galaxy'); applyHash(); await wait(100);
+            return o;
+          })()`);
+          await shot('record');
           await p.evaluate(`(() => { VIEW.sel = null; renderPanel(); redraw(); })()`);
           // A nebula in the panel, from a view zoomed in elsewhere: the view
           // goes there without swinging away (it once flew thousands of units
@@ -628,6 +654,11 @@ try {
       const sy = o.story;
       if (!(sy.list > 20) || !sy.fromBit || sy.mission !== 'Take Polaris Home' || !sy.step || !sy.last || !sy.offer || !sy.follows || sy.story !== 'Rebel I' || !(sy.rows >= 15) || !(sy.ringed > 3))
         fail(`${dev.name}: the mission Take Polaris Home and its storyline: ${JSON.stringify(sy)}`);
+      const rc = o.rec;
+      if (!rc || rc.h2 !== 'Light Blaster' || !rc.pict || !rc.sold || !(rc.outfitters > 12) || !(rc.ringed > 0) || !rc.weapon || !(rc.list > 200) || !/&rec=outf$/.test(rc.listHash)
+          || !rc.fromShip || !rc.shipTo || rc.shipTo.on || rc.shipTo.sel !== 'rec:' + rc.fromShip)
+        fail(`${dev.name}: a record's panel: ${JSON.stringify(rc)}`);
+      else console.log(`${dev.name}: the Light Blaster's panel from its address, its picture, ${rc.outfitters} outfitters, ${rc.ringed} places ringed; ${rc.list} outfits listed; ${rc.shipTo.h2} from the Aurora Cruiser's panel`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       const nb = o.nebula, op = o.options;

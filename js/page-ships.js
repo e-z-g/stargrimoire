@@ -294,8 +294,8 @@ function shipHtml(ship, shan) {
   const perSec = v => fmtNum(Math.round(v * 30 / 10) / 100);
   const days = novaShipJumpDays(ship.Mass);
   const holds = ship.Holds < 0 ? `${fmtNum(-ship.Holds)} tons, and no mass expansions` : `${fmtNum(ship.Holds)} tons`;
-  const weapons = novaShipWeapons(ship).map(w => `${w.count} × ${esc(resName('wëap', w.id))}${w.ammo ? ` <span class="note">with ${fmtNum(w.ammo)} rounds</span>` : ''}`);
-  const items = novaShipItems(ship).map(it => `${it.count > 1 ? it.count + ' × ' : ''}${esc(resName('oütf', it.id))}`);
+  const weapons = novaShipWeapons(ship).map(w => `${w.count} × ${recLink('wëap', w.id)}${w.ammo ? ` <span class="note">with ${fmtNum(w.ammo)} rounds</span>` : ''}`);
+  const items = novaShipItems(ship).map(it => `${it.count > 1 ? it.count + ' × ' : ''}${recLink('oütf', it.id)}`);
   const flags = [...novaFlagWords(ship.Flags, NOVA_SHIP_FLAGS), ...novaFlagWords(ship.Flags2, NOVA_SHIP_FLAGS2), ...novaFlagWords(ship.Flags3, NOVA_SHIP_FLAGS3)];
   const yards = ship.BuyRandom > 0 ? novaShipyards(U.stellars.values(), ship).filter(s => U.inSystems.has(s)) : [];
   const sale = ship.BuyRandom <= 0 ? 'Never: BuyRandom is 0'
@@ -634,12 +634,13 @@ function wireShips() {
       renderShipList();
       return;
     }
-    const a = e.target.closest('[data-ship],[data-ships],[data-stellar]');
+    const a = e.target.closest('[data-ship],[data-ships],[data-stellar],[data-rec]');
     if (!a || !SHIPS.on) return;
     e.preventDefault();
     if (a.dataset.ships === 'list') shipsShow(null);
     else if (a.dataset.ship) shipsShow(+a.dataset.ship);
     else if (a.dataset.stellar) { shipsLeave(); goStellar(+a.dataset.stellar); }
+    else if (a.dataset.rec) { shipsLeave(); recOpen(a.dataset.rec); }
   };
   $('ships').addEventListener('click', onClick);
   $('crumbs').addEventListener('click', onClick);

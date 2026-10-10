@@ -5,7 +5,9 @@
 // every stellar you can land on has its landing picture, every nebula a
 // picture, every gate is in a system and links only to gates in one. The
 // figures are printed, not asserted.
-import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { site, openRelease, haveRelease, RELEASES, REF } from './load.mjs';
 
 const S = site();
 let fails = 0;
@@ -156,5 +158,31 @@ for (const v of Object.keys(RELEASES)) {
               ` ${S.novaPlanetWeapons(game).length} planet-type weapons; at a new game ${gates.links.length} ways by gate` +
               ` (${gates.links.filter(l => l.oneWay).length} one way), ${gates.random.length} random wormholes, ${gates.dead.length} gates leading nowhere,` +
               ` with every version ${every.links.length} (${every.links.filter(l => l.oneWay).length}), ${every.random.length} and ${every.dead.length}`);
+}
+
+// A total conversion in a zip of MacBinary copies, named as it likes:
+// Starfleet Adventures alpha 0.50 from the plug-in collection.
+const SFA = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/Extras/Starfleet Adventures/starfleetalpha050.zip');
+if (!fs.existsSync(SFA)) console.log('SKIP Starfleet Adventures: not in reference/');
+else {
+  const files = S.novaArchiveFiles(new Uint8Array(fs.readFileSync(SFA)));
+  const data = files.filter(f => f.role === 'data' && !f.plugin), plugins = files.filter(f => f.plugin);
+  const game = S.novaGame();
+  for (const f of data) game.add(f, f.read());
+  const u = S.novaUniverse(game);
+  if (data.length !== 19 || plugins.length !== 4 || u.systems.length < 1000) fail(`Starfleet Adventures' zip: ${data.length} data files, ${plugins.length} plug-ins, ${u.systems.length} systems`);
+  console.log(`Starfleet Adventures' zip of MacBinary copies: ${files.length} files, ${data.length} of them data, ${plugins.length} plug-ins; ${u.systems.length} systems`);
+}
+// And one in Mac form: 1.0.10 with every file in its Nova Files renamed, so
+// that only its Mac type says which part of the game it is.
+if (haveRelease('1.0.10')) {
+  const bytes = new Uint8Array(fs.readFileSync(path.join(REF, RELEASES['1.0.10'].sit)));
+  const roles = fs => fs.filter(f => !f.plugin).map(f => f.role).sort().join(' ');
+  const want = roles(S.novaArchiveFiles(bytes)), parse = S.parseStuffItArchive;
+  S.parseStuffItArchive = b => { const c = parse(b); for (const e of Array.isArray(c) ? c : c.entries) if (/Nova Files\//.test(e.path || '')) e.name = e.name.replace(/^Nova (Data|Graphics|Titles|Ships|Sounds)/, 'TC Part'); return c; };
+  const got = roles(S.novaArchiveFiles(bytes));
+  S.parseStuffItArchive = parse;
+  if (got !== want) fail(`1.0.10 renamed: the parts ${got}, expected ${want}`);
+  else console.log(`1.0.10 with its Nova Files renamed: each file the same part by its Mac type`);
 }
 process.exit(fails ? 1 : 0);

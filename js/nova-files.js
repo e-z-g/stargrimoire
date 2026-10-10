@@ -49,6 +49,9 @@ function novaFileRole(name) {
   const m = /\b(Data|Graphics|Titles|Ships|Sounds)\b/i.exec(name);
   return m ? m[1].toLowerCase() : null;
 }
+// The part a file is by its Mac file type, as the shipped Nova Files have
+// them (non-ASCII letters read as ?), for a file whose name does not say.
+const NOVA_TYPE_ROLE = { 'ND?t': 'data', 'NGr?': 'graphics', 'NT?t': 'titles', 'NSh?': 'ships', 'NS?d': 'sounds' };
 const NOVA_BASE_NAME = /^Nova (Data|Graphics|Titles|Ships|Sounds) ?\d*(\.(ndat|rez))?$/i;
 
 /* THE WINDOWS FORMAT, `.rez`, which is also how plug-ins are passed round
@@ -135,24 +138,38 @@ function novaArchiveFiles(bytes) {
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
     const dataFile = /\.(rez|ndat)$/i.test(name);
-    if (!hasRsrc && !dataFile) continue;
+    // a MacBinary or BinHex copy, its resource fork inside its data
+    const wrapped = !hasRsrc && /\.(bin|hqx)$/i.test(name);
+    if (!hasRsrc && !dataFile && !wrapped) continue;
     const parts = (e.path || e.name).split('/');
     const folders = parts.slice(0, -1);
     const inFiles = folders.some(f => /^Nova Files$/i.test(f));
     const inPlugins = folders.some(f => /^Nova Plug-?ins$/i.test(f));
     const besideGame = !inFiles && !inPlugins && gameDirs.has(folders.join('/'));
-    const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || (dataFile && !NOVA_BASE_NAME.test(name)));
+    const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || ((dataFile || wrapped) && !NOVA_BASE_NAME.test(name)));
     if (!inFiles && !plugin && !NOVA_BASE_NAME.test(name)) continue;
     // In Nova Files, a file whose name says no part of the game counts only
-    // as a .rez or .ndat: the race movies carry resource forks of their own.
-    if (!plugin && !novaFileRole(name) && !dataFile) continue;
+    // as a .rez, an .ndat or a MacBinary or BinHex copy: the race movies
+    // carry resource forks of their own. A total conversion's files, named
+    // as it likes, are the part their Mac type says, else, as Starfleet
+    // Adventures' SFA Galaxy 1.bin, data.
+    const role = novaFileRole(name) || NOVA_TYPE_ROLE[e.type];
+    if (!plugin && !role && !dataFile && !wrapped) continue;
     const which = hasRsrc ? 'rsrc' : 'data';
-    out.push({ name: name.replace(/\.(ndat|rez)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
-               role: plugin ? null : (novaFileRole(name) || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
-               read: () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which),
-               unpack: dmg ? null : { archive: bytes, entry: e, which, zip } });
+    const raw = () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which);
+    out.push({ name: name.replace(/\.(ndat|rez|bin|hqx)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
+               role: plugin ? null : (role || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
+               read: wrapped ? () => novaUnwrapFork(raw()) : raw,
+               unpack: dmg ? null : { archive: bytes, entry: e, which, zip, wrapped } });
   }
   return out;
+}
+
+// The resource fork inside a MacBinary or BinHex copy.
+function novaUnwrapFork(bytes) {
+  const w = sniffMacContainer(bytes);
+  if (!w || !w.rsrc || !w.rsrc.length) throw new Error('not a MacBinary or BinHex copy with a resource fork');
+  return w.rsrc;
 }
 
 /* One file handed over on its own: a 1.1.1 `.ndat`, a `.rez`, a MacBinary

@@ -179,7 +179,10 @@ onmessage = e => {
   const m = e.data;
   if (m.archive) { ARCHIVES.set(m.id, m.archive); return; }
   try {
-    const a = ARCHIVES.get(m.id), f = m.zip ? zipFork(a, m.entry, m.which) : stuffItFork(a, m.entry, m.which);
+    const a = ARCHIVES.get(m.id), raw = m.zip ? zipFork(a, m.entry, m.which) : stuffItFork(a, m.entry, m.which);
+    const w = m.wrapped ? sniffMacContainer(raw) : null;
+    if (m.wrapped && !(w && w.rsrc && w.rsrc.length)) throw new Error('not a MacBinary or BinHex copy with a resource fork');
+    const f = m.wrapped ? w.rsrc : raw;
     const out = f.byteOffset || f.buffer.byteLength !== f.length ? f.slice() : f;
     postMessage({ n: m.n, fork: out }, [out.buffer]);
   } catch (err) { postMessage({ n: m.n, error: String(err && err.message || err) }); }
@@ -204,10 +207,10 @@ async function readFile(f) {
   if (!f.unpack) return f.read();
   const u = unpacker();
   if (!(await u.ready)) return f.read();
-  const { archive, entry, which, zip } = f.unpack;
+  const { archive, entry, which, zip, wrapped } = f.unpack;
   if (!u.sent.has(archive)) { u.sent.set(archive, u.sent.size + 1); u.worker.postMessage({ id: u.sent.get(archive), archive }); }
   const n = ++u.n;
-  try { return await new Promise((yes, no) => { u.waiting.set(n, { yes, no }); u.worker.postMessage({ n, id: u.sent.get(archive), entry, which, zip }); }); }
+  try { return await new Promise((yes, no) => { u.waiting.set(n, { yes, no }); u.worker.postMessage({ n, id: u.sent.get(archive), entry, which, zip, wrapped }); }); }
   catch (e) { return f.read(); }
 }
 // Nothing left to read: the thread and its copies of the archives go.

@@ -54,6 +54,8 @@
 //     the Light Blaster's panel from its address, with its picture, its
 //     outfitters folded and ringed, the list of outfits from it, and a
 //     weapon's panel from the Aurora Cruiser's in the Ships view;
+//     the search box finding an outfit, a bit and a rank by name and
+//     opening each one's panel;
 //     its picture's and description's bases, read from the program, each
 //     opening the Code view at its instruction, ringed and noted;
 //   - on the phone, nothing is wider than the screen;
@@ -419,6 +421,12 @@ try {
             const w = document.querySelector('#shipView [data-rec^="weap."]');
             o.fromShip = w ? w.dataset.rec : null;
             if (w) { w.click(); await wait(300); o.shipTo = { on: SHIPS.on, sel: VIEW.sel && VIEW.sel.kind + ':' + VIEW.sel.id, h2: document.querySelector('#panel h2').textContent }; }
+            // the search box: an outfit by name opens its panel, a bit by its number its panel
+            const find = async (q, what) => { const s = $('search'); s.value = q; s.dispatchEvent(new Event('input')); await wait(50);
+              const d = [...document.querySelectorAll('#found div')].find(x => x.querySelector('small') && x.querySelector('small').textContent.startsWith(what));
+              if (!d) return null; d.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await wait(200); return document.querySelector('#panel h2').textContent; };
+            o.found = { outfit: await find('light blaster t', 'outfit'), bit: await find('b147', 'set when'), rank: await find('commander', 'rank') };
+            history.replaceState(null, '', '#galaxy'); applyHash(); await wait(100);
             // a figure read from the program: the outfit's picture and description bases, each a link to its instruction
             history.replaceState(null, '', '#galaxy&rec=outf.128'); applyHash(); await wait(200);
             const nums = [...document.querySelectorAll('#panel a.codeNum')];
@@ -670,6 +678,8 @@ try {
       if (!rc || rc.h2 !== 'Light Blaster' || !rc.pict || !rc.sold || !(rc.outfitters > 12) || !(rc.ringed > 0) || !rc.weapon || !(rc.list > 200) || !/&rec=outf$/.test(rc.listHash)
           || !rc.fromShip || !rc.shipTo || rc.shipTo.on || rc.shipTo.sel !== 'rec:' + rc.fromShip)
         fail(`${dev.name}: a record's panel: ${JSON.stringify(rc)}`);
+      else if (!rc.found || rc.found.outfit !== 'Light Blaster Turret' || rc.found.bit !== 'b147' || !/Commander/.test(rc.found.rank || ''))
+        fail(`${dev.name}: the search box: ${JSON.stringify(rc.found)}`);
       else if (!rc.nums || rc.nums.length !== 2 || !rc.code || !rc.code.on || !/^#code=0x[0-9a-f]+&at=0x[0-9a-f]+$/.test(rc.code.hash) || !rc.code.ringed || !rc.code.ringed.includes(rc.nums[0]) || !rc.code.read || !rc.code.named)
         fail(`${dev.name}: the Light Blaster's figures read from the program: ${JSON.stringify({ nums: rc.nums, code: rc.code })}`);
       else console.log(`${dev.name}: the Light Blaster's panel from its address, its picture, ${rc.outfitters} outfitters, ${rc.ringed} places ringed; ${rc.list} outfits listed; ${rc.shipTo.h2} from the Aurora Cruiser's panel; its picture's base ${rc.nums && rc.nums[0]} opens the Code view at ${rc.code && rc.code.hash}`);

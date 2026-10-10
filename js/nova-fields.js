@@ -1306,6 +1306,44 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e]],
     },
   },
+  'ränk': {
+    Weight: {
+      note: 'Of the ranks you hold that have a ConvName, the heaviest gives <PRK> in the game\'s texts, and of those with a ShortName, <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
+      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0]],
+    },
+    Govt: {
+      note: 'Its government: 128 and up, that gövt; below 128, none. Its PriceMod applies, and Flags 0x0004, 0x0040, 0x0100 and 0x0200 act, at the stellars and ships of every government allied with it (GovtAllies, so this one too); Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
+      code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['GovtAllies', 0x4e3d]],
+    },
+    PriceMod: {
+      note: 'A percentage: at a stellar whose government is allied with this rank\'s, prices are multiplied by it while you hold it, one rank\'s after another\'s. 0 or less: 100.',
+      code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['ApplyPriceAndTechnologyFlux', 0x4e6cd]],
+    },
+    Salary: {
+      note: 'Credits added each day while you hold it, when your credits are below SalaryCap or SalaryCap is 0 or less; below 0, taken, but never below 0 credits in all.',
+      code: [['IncrementGameTime', 0xb516]],
+    },
+    SalaryCap: {
+      note: 'Salary is paid only while your credits are below this; 0 or less, always.',
+      code: [['IncrementGameTime', 0xb516]],
+    },
+    Contrib: {
+      note: 'Contribute bits it gives while you hold it, joined with your ship\'s, your outfits\' and running events\' for any Require.',
+      code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
+    },
+    Flags: {
+      note: '0x0001: gaining it takes away every other rank you hold of its government, but those with 0x0008. 0x0010: gaining it takes away those of its government with less Weight, but those with 0x0008. 0x0008: never taken away so, nor for crimes. 0x0040: lost on any crime against a government allied with its own; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with its own do not count you a threat (IsThreatToShip) and are asked whether you are, in choosing targets and in coming to help. 0x0200: while held, the stellars of a government allied with its own are asked whether you are, when you hail and land, and in their colours on the map. 0x0400 and 0x0800 are read when you hail a ship of an allied government (DoCommDialog), not traced.',
+      code: [['ActivateRank', 0x452f0], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['PlayerBlessedByGovt', 0x2732], ['IsThreatToShip', 0x81faf], ['SelectWarshipTarget', 0x89d5e], ['HandlePlayerDockRequest', 0x66691], ['DoPlanetCommDialog', 0x96949], ['ColorCodeStellar', 0xaa26], ['DoCommDialog', 0x956d5]],
+    },
+    ConvName: {
+      note: 'What <PRK> says in the game\'s texts while this is the heaviest rank you hold with one (Weight); with none, STR# 2002\'s 341st string.',
+      code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
+    },
+    ShortName: {
+      note: 'What <SRK> says in the game\'s texts while this is the heaviest rank you hold with one (Weight).',
+      code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
+    },
+  },
   'crön': {
     FirstDay: {
       note: 'The day of the month from which it may start. The program does not read the dates as one: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
@@ -1598,6 +1636,12 @@ function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
 const novaItemsRead = (game, ids, counts) => novaListRead(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
 
 const NOVA_FIELD_READS = {
+  'ränk': {
+    Govt: (v, r, g) => novaGovtText(g, v),
+    PriceMod: v => `${v > 0 ? v : 100}% of the price`,
+    Salary: v => `${v.toLocaleString('en-US')} credits a day`,
+    SalaryCap: v => (v > 0 ? `while you have under ${v.toLocaleString('en-US')} credits` : 'always'),
+  },
   'bööm': {
     FrameAdvance: v => `${novaNum(v / 100)} frames a step`,
     SoundIndex: (v, r, g) => v >= 0 && v <= 63 ? novaRefText(g, 'snd ', 300 + v) : 'silent',

@@ -61,6 +61,7 @@ eq('a count has no tree', S.ncbGameTree('([b1 b2] = 2)'), null);
 // nova-refs.js: outfits given and taken by a set expression (EvalSetExp's G and D), contribute bits by number.
 eq('outfits in a set expression', S.novaSetOutfits('b5 G128 d129 R(G130 b2) G700 Q128'), [{ op: 'give', id: 128, random: false }, { op: 'take', id: 129, random: false }, { op: 'give', id: 130, random: true }]);
 eq('contribute bits', S.novaMaskBits([0x80000001, 0x00000002]), [0, 31, 62]);
+eq('ranks in a set expression', S.novaSetRanks('K128 l129 R(K130 b2) G128'), [{ op: 'give', id: 128, random: false }, { op: 'take', id: 129, random: false }, { op: 'give', id: 130, random: true }]);
 eq('as written', ['b13 & (b15 | !b72)', 'b1 & b2 & b3', '467 | b1'].map(t => S.ncbAsWritten(t).same), [true, false, false]);
 // The Bible's dësc example, and a {G} choice.
 const t = 'This is a {b001 "great and terrific" "lousy, terrible"} example.';
@@ -204,6 +205,7 @@ for (const v of Object.keys(RELEASES)) {
       for (const id of r.soldAt) { const sp = u.stellars.get(id), sp8 = [...sp.SpecialTech, ...(sp.SpecialTech4to8 || [])];
         if (!(sp.Flags & 0x04) || !(rec.TechLevel <= sp.TechLevel || sp8.includes(rec.TechLevel)) || rec.TechLevel < 0) refProblems.push(`oütf ${rec.id} sold at spöb ${id}`); }
     }
+    if (type === 'ränk') for (const g of r.given) { const src = S.novaGet(game, g.type, g.id); if (!src || !S.novaSetRanks(src[g.field]).some(x => x.id === rec.id)) refProblems.push(`ränk ${rec.id} given by ${g.type} ${g.id} ${g.field}`); }
     if (type === 'wëap') for (const o of r.firedBy) { const out = S.novaGet(game, 'oütf', o); if (![1, 2, 3, 4].some(k => out[k === 1 ? 'ModType' : 'ModType' + k] === 1 && out[k === 1 ? 'ModVal' : 'ModVal' + k] === rec.id)) refProblems.push(`wëap ${rec.id} fired by oütf ${o}`); }
     for (const list of [r.linked, r.reinforces, r.systems && r.systems.map(x => x.id ?? x)]) for (const id of list || []) if (!u.byId.has(id)) refProblems.push(`${type} ${rec.id} names sÿst ${id}`);
   }

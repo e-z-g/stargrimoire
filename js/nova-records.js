@@ -208,6 +208,10 @@ const NOVA_RECORDS = {
     ['Govt', 'i16'], ['LinkSyst', 'i16'], ['ActivateOn', 'str', 256], ['Quote', 'i16'],
     ['Flags', 'h16'], ['Unused', 'pad', 16],
   ],
+  'ränk': [
+    ['Weight', 'i16'], ['Govt', 'i16'], ['PriceMod', 'i16'], ['Salary', 'i32'], ['SalaryCap', 'i32'],
+    ['Contrib', 'h32', 2], ['Flags', 'h16'], ['ConvName', 'str', 64], ['ShortName', 'str', 64],
+  ],
   'bööm': [['FrameAdvance', 'i16'], ['SoundIndex', 'i16'], ['GraphicIndex', 'i16']],
   'röid': [
     ['Strength', 'i16'], ['SpinRate', 'i16'], ['YieldType', 'i16'], ['YieldQty', 'i16'],

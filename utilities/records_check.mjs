@@ -117,9 +117,13 @@ const ALIAS = { Visiblility: 'Visibility', spobType: 'Type', MinCoolness: 'MinSt
                 DefaultItems2: 'DefaultItms2', AvailShipType: 'AvailShipTyp', HailPICT: 'HailPict',
                 EscortShipType: 'EscortType', EscortMin: 'Min', EscortMax: 'Max' };
 // Names the dump gives one type's field that another type uses for its own.
-const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' },
+const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' }, ränk: { Contributes: 'Contrib', flags: 'Flags' },
   röid: { spinRate: 'SpinRate', yieldType: 'YieldType', yieldQty: 'YieldQty', partCount: 'PartCount', partColor: 'PartColor',
           fragType1: 'FragType1', fragType2: 'FragType2', fragCount: 'FragCount', ExplodeType: 'ExplodType' } };
+// Columns the dump's header names and its rows leave out: every ränk row
+// ends after flags with the end-of-record mark, so its names are held to
+// the template's layout alone.
+const DUMP_OMITS = { ränk: ['ConvName', 'ShortName'] };
 // The dump writes a quotation mark as \q and CR and LF as \r and \n, and a
 // backslash as itself, so a ShortName's own two characters \n (the Bible's
 // line break in the shipyard) read back as LF. Our value is escaped the
@@ -181,7 +185,7 @@ else {
     const sec = sections.get(type);
     if (!sec || !sec.recs.length) { console.log(`values: ${type}: the dump has no records of it`); continue; }
     const kinds = new Map(S.NOVA_RECORDS[type].map(([n, k]) => [n, k]));
-    const cols = sec.head.filter(h => !['Type', 'ID', 'Name', 'Res. Name', 'File', 'EOR'].includes(h));
+    const cols = sec.head.filter(h => !['Type', 'ID', 'Name', 'Res. Name', 'File', 'EOR', ...(DUMP_OMITS[type] || [])].includes(h));
     const where = new Map();
     for (const c of cols) { const p = place(type, c, sec.head); if (!p) fail(`${type}: the dump's column ${c} has no field here`); else where.set(c, p); }
     const covered = new Set([...where.values()].map(p => p[0]));

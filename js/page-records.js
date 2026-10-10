@@ -31,7 +31,7 @@ const missionRef = id => (missionData().byId.has(id) ? missionLink(id) : esc(`m�
 
 // What a record of a type is called in a sentence, from nova-bits' words where it has them.
 const REC_KIND = { 'oütf': 'Outfits', 'wëap': 'Weapons', 'përs': 'People', 'flët': 'Fleets', 'gövt': 'Governments',
-  'düde': 'Düdes', 'crön': 'Events', 'öops': 'Disasters', 'jünk': 'Commodities', 'chär': 'New-game starts' };
+  'düde': 'Düdes', 'crön': 'Events', 'öops': 'Disasters', 'jünk': 'Commodities', 'chär': 'New-game starts', 'ränk': 'Ranks' };
 
 /* A record's panel opened over the map's, from elsewhere (the ships). */
 function recOpen(key) {
@@ -39,6 +39,10 @@ function recOpen(key) {
   writeHash(); renderPanel(); redraw();
   $('panel').scrollTop = 0;
 }
+
+// One record of each type, in a word.
+const REC_ONE = { 'oütf': 'outfit', 'wëap': 'weapon', 'përs': 'person', 'flët': 'fleet', 'gövt': 'government', 'düde': 'düde',
+  'crön': 'event', 'öops': 'disaster', 'jünk': 'commodity', 'chär': 'new-game start', 'ränk': 'rank' };
 
 /* The galaxy panel's list of the types, each a link to its list. */
 function recTypesBlock() {
@@ -233,6 +237,7 @@ const REC_BODY = {
         ${kvRow('Düdes', short(refs.dudes, x => recLink('düde', x), 'düdes'))}
         ${kvRow('Fleets', short(refs.fleets, x => recLink('flët', x), 'fleets'))}
         ${kvRow('People', short(refs.persons, x => recLink('përs', x), 'people'))}
+        ${kvRow('Ranks', short(refs.ranks, x => recLink('ränk', x), 'ranks'))}
       </table>
       <p class="note">Allied and at war as the program reads the classes (GovtAllies, GovtEnemies).</p>`;
   },
@@ -265,6 +270,21 @@ const REC_BODY = {
         ${kvRow('At base price ÷ 1.25', listOr(refs.soldAt.map(stellarRef), 'nowhere'))}
         ${kvRow('while', testLine(r.SellOn))}
       </table>`;
+  },
+  'ränk'(r, refs) {
+    const given = refs.given.map(g => `${g.op === 'give' ? 'given' : 'taken'} when ${bitRefLink(g)} is ${esc(g.event)}${g.random ? ' <span class="note">(one side of a random choice)</span>' : ''} <span class="note">${esc(g.field)}</span>`);
+    const bits = novaMaskBits(r.Contrib);
+    return `<table class="kv">
+        ${kvRow('Government', govtRef(r.Govt))}
+        ${kvRow('Prices', `${r.PriceMod > 0 ? r.PriceMod : 100}% at the stellars of its government and its allies`)}
+        ${kvRow('Salary', r.Salary ? `${r.Salary.toLocaleString()} credits a day${r.SalaryCap > 0 ? `, while you have under ${r.SalaryCap.toLocaleString()}` : ''}` : '')}
+        ${kvRow('<PRK> says', r.ConvName ? esc(r.ConvName) : '')}
+        ${kvRow('<SRK> says', r.ShortName ? esc(r.ShortName) : '')}
+        ${kvRow('Weight', String(r.Weight))}
+        ${kvRow('Contributes', bits.length ? bits.map(maskText).join('<br>') : '')}
+      </table>
+      ${given.length ? `<h3>Given and taken</h3><table class="kv">${given.map(g => `<tr><td colspan="2">${g}</td></tr>`).join('')}</table>` : ''}
+      ${refs.sameGovt.length ? `<h3>Other ranks of its government</h3>${many(refs.sameGovt.map(x => recLink('ränk', x)), 'ranks')}` : ''}`;
   },
   'chär'(r) {
     const systems = (r.startSystem || []).filter(s => s >= 128).map(s => (U.byId.has(s) ? sysLink(s) : esc(`sÿst ${s}`)));

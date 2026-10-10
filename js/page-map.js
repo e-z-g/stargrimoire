@@ -2137,6 +2137,7 @@ function testLine(text) {
 /* ---- control bits: what each is for (nova-bits.js) --------------------- */
 
 let BITS = null;
+let SEARCH_INDEX = null;
 function bitCatalog() { return BITS || (BITS = novaBitCatalog(GAME)); }
 // What a bit is for in a word, once the catalog is built ('' before).
 function bitTitle(n) {
@@ -2866,6 +2867,18 @@ function wireTools() {
     $('map').toBlob(b => { if (b) dlBlob(b, `stargrimoire-${where.replace(/[^\w'-]+/g, '-')}.png`); }, 'image/png');
   };
   const search = $('search'), found = $('found');
+  // what has a name and somewhere to show it, built once for the files open
+  const searchIndex = () => {
+    if (SEARCH_INDEX && SEARCH_INDEX.game === GAME && SEARCH_INDEX.prog === program()) return SEARCH_INDEX.list;
+    const list = [], add = (kind, id, name, what, order) => { if (name) list.push({ kind, id, name, what, order, low: name.toLowerCase() }); };
+    for (const r of novaAll(GAME, 'shïp')) add('ship', r.id, novaNameParts(r.name).name, 'ship', 1);
+    for (const m of missionData().byId.values()) add('mission', m.id, m.name, 'mission' + (m.story ? ', ' + m.story.story : ''), 3);
+    NOVA_REC_TYPES.forEach(([t, w], i) => { for (const r of novaAll(GAME, t)) add('rec', `${w}.${r.id}`, novaNameParts(r.name).name, REC_ONE[t], 2 + i * 0.01); });
+    const p = program();
+    if (p) for (const n of novaNamedRoutines(p, GAME)) if (!n.routine.glue) add('code', n.routine.start, n.name, 'in the program', 9);
+    SEARCH_INDEX = { game: GAME, prog: p, list };
+    return list;
+  };
   let hits = [], on = 0;
   const paint = () => {
     found.innerHTML = hits.map((h, i) => `<div class="${i === on ? 'on' : ''}" data-i="${i}">${esc(h.name)}<small>${esc(h.what)}</small></div>`).join('');
@@ -2873,7 +2886,11 @@ function wireTools() {
   };
   const pick = h => {
     search.value = ''; hits = []; paint(); search.blur();
-    if (h.kind === 'system') goSystem(h.id); else goStellar(h.id);
+    if (h.kind === 'system') goSystem(h.id);
+    else if (h.kind === 'stellar') goStellar(h.id);
+    else if (h.kind === 'ship') shipsShow(h.id);
+    else if (h.kind === 'code') codeShow(h.id, null);
+    else { VIEW.sel = { kind: h.kind, id: h.id, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; }
   };
   search.addEventListener('input', () => {
     const q = search.value.trim().toLowerCase();
@@ -2893,8 +2910,12 @@ function wireTools() {
         const sysName = U.byId.get(U.inSystems.get(sp.id)[0]).name;
         hits.push({ kind: 'stellar', id: sp.id, name: sp.name, what: 'in ' + sysName, rank: sp.name.toLowerCase().startsWith(q) ? 0 : 1 });
       }
-      hits.sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
-      hits = hits.slice(0, 12);
+      // and everything else with a name: ships, missions, the records with panels, the program's named routines; a bit by its number
+      for (const e of searchIndex()) if (e.low.includes(q)) hits.push({ ...e, rank: e.low.startsWith(q) ? 0 : 1 });
+      const bit = /^b?(\d{1,4})$/.exec(q);
+      if (bit) hits.push({ kind: 'bit', id: +bit[1], name: 'b' + +bit[1], what: bitTitle(+bit[1]) || 'control bit', rank: 0, order: -1 });
+      hits.sort((a, b) => a.rank - b.rank || (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
+      hits = hits.slice(0, 20);
     }
     on = 0;
     paint();

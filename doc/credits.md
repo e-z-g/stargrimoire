@@ -1,8 +1,11 @@
 # What StarGrimoire is built from
 
 Listed on 28 September 2026 so that a fuller credits section, which the
-maintainer wants later, starts from it. The page itself credits no one yet;
-`NOTICE` names Ambrosia and ATMOS, grimoire and ResForge. These are the sources
+maintainer wants later, starts from it. Since 10 October 2026 the page has
+one: the name in the bar opens Credits, which names the game's crew as its
+documentation does (`EV Nova Documentation.pdf`, page 3, "The crew behind
+the scenes") and what follows here. `NOTICE` names Ambrosia and ATMOS,
+grimoire and ResForge. These are the sources
 of what is built. The sources used only to check it (the ConText dump in
 evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
 § What plays delvmod's part.
@@ -60,6 +63,9 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   read, how a test's negations and a set's random choices count, and a
   bit's name from what sets it.
 - **pypdf**: the Bible's text, taken out of the PDF.
+- **evnova-decomp**, Lancelot de Ferrière (`wraitii/evnova-decomp`): the
+  Community Edition's function names, by which its program was read beside
+  Mac 1.1.1's (`tools/exenames.py` in the workbench). No code copied.
 - Everything else -- the `nova-*` readers, the sprite decoder (written from
   the bytes), the map and the ships view -- was written by Claude in the
   StarGrimoire sessions, at the maintainer's direction.

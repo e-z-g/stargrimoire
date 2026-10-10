@@ -95,10 +95,19 @@ const srv = await serve();
 const describe = l => (l.where ? l.where + ' ' : '') + l.text.split('\n')[0].slice(0, 200);
 try {
   const bare = await loadPage(srv.base + 'index.html', "document.readyState === 'complete'", 20000, { chrome,
-    then: async p => p.evaluate("!document.getElementById('start').hidden && document.getElementById('app').hidden") });
+    then: async p => p.evaluate(`(async () => {
+      const shown = !document.getElementById('start').hidden && document.getElementById('app').hidden;
+      // Credits: opened by its button, the game's crew in it and on the screen, shut by Escape
+      const m = document.getElementById('creditsMenu');
+      document.getElementById('creditsBtn').click();
+      const r = m.getBoundingClientRect(), open = !m.hidden && /ATMOS/.test(m.textContent) && r.right <= innerWidth + 1 && r.top >= document.getElementById('bar').getBoundingClientRect().bottom;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      return { shown, credits: open && m.hidden };
+    })()`) });
   for (const e of pageErrors(bare.console)) fail('index.html: ' + describe(e));
-  if (!bare.more) fail('index.html does not show its start with nothing open');
+  if (!bare.more || !bare.more.shown) fail('index.html does not show its start with nothing open');
   else console.log('index.html loads with nothing open, no errors');
+  if (bare.more && !bare.more.credits) fail('Credits: not opened by its button with the game\'s crew, under the bar, or not shut by Escape');
 
   const v = ['1.0.10', '1.1.1'].find(haveRelease);
   if (!v) console.log('SKIP the map: no release in reference/');

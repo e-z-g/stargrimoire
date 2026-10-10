@@ -277,6 +277,15 @@ function wireOpening() {
   const params = new URLSearchParams(location.search);
   const srcs = params.getAll('src');
   document.getElementById('useRemote').addEventListener('click', () => fetchAndOpen([ARCHIVE_ORG.url]));
+  // Credits: the panel under the bar, shut by the button again, Escape or a click elsewhere
+  const credits = document.getElementById('creditsMenu'), creditsBtn = document.getElementById('creditsBtn');
+  const creditsShow = on => {
+    credits.hidden = !on; creditsBtn.setAttribute('aria-expanded', String(on));
+    if (on) credits.style.top = Math.round(document.getElementById('bar').getBoundingClientRect().bottom + 4) + 'px';
+  };
+  creditsBtn.addEventListener('click', e => { e.stopPropagation(); creditsShow(credits.hidden); });
+  document.addEventListener('click', e => { if (!credits.hidden && !credits.contains(e.target)) creditsShow(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !credits.hidden) creditsShow(false); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
                      () => setStatus('Nothing was remembered to forget.'));

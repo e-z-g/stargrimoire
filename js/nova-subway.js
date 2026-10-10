@@ -501,8 +501,15 @@ function subwayModule() {
       at(key(i, j)); at(key(gi[w], gj[w]));
       return out;
     };
-    function score(v, i, j, pp) {
+    /* Every term is a cost of 0 or more, added in a fixed order, so the sum
+       so far is never more than the whole: once it reaches bound, a place the
+       caller would only take below bound is not, and the sum so far is given
+       back with the rest left out. pp is the points each link passes, or a
+       function giving them, called only when they are wanted. */
+    function score(v, i, j, ppIn, bound = Infinity) {
       let s = P.move * ((i - want[v].x) ** 2 + (j - want[v].y) ** 2) / (len * len);
+      if (s >= bound) return s;
+      let pp = typeof ppIn === 'function' ? null : ppIn;
       for (let q = 0; q < adj[v].length; q++) {
         const w = adj[v][q].to, e = adj[v][q].e;
         const [si, sj] = endOf(e, v, i, j), [ti, tj] = endOf(e, w, gi[w], gj[w]);
@@ -521,6 +528,8 @@ function subwayModule() {
         // a place with one link is free to hang off at any angle: not level, where its name would
         // sit on its line (the maintainer's asking, for Molliari)
         if (dy === 0 && (adj[v].length === 1 || adj[w].length === 1)) s += P.flatLeaf || 0;
+        if (s >= bound) return s;
+        if (!pp) pp = ppIn();
         for (const f of near(pp[q], i, j, w)) {
           const [a, b] = links[f];
           if (a === v || b === v || a === w || b === w) continue;
@@ -534,6 +543,8 @@ function subwayModule() {
           if (o !== undefined && o !== v) s += heading ? SUBWAY_HEADING.way : P.over;
         }
       }
+      if (s >= bound) return s;
+      if (!pp) pp = ppIn();
       // on the map that keeps each link's heading, a straight link's way taken by another link, or
       // v on another link's straight way: one of them could not keep its heading
       if (heading) {
@@ -552,8 +563,10 @@ function subwayModule() {
         const x = angDiff(Math.atan2(gj[w] - j, gi[w] - i), ang) - SUBWAY_HEADING.cone;
         if (x > 0) s += P.near.weight * (x / SUBWAY_HEADING.cone) ** 2;
       }
+      if (s >= bound) return s;
       s += straightness(v, i, j, -1, 0, 0);
       for (const { to: w } of adj[v]) s += straightness(w, gi[w], gj[w], v, i, j);
+      if (s >= bound) return s;
       // a place in a nebula kept within a box four fifths the nebula's size, round the middle of its
       // places, and out of every other nebula's full size and a gap round it
       for (const g of groupOf[v]) {
@@ -612,9 +625,17 @@ function subwayModule() {
           tried.add(key(i, j));
           if (!spaced(v, i, j, v) || !orderKept(v, i, j, -1, 0, 0)) return;
           if (adj[v].some(({ to: w }) => !orderKept(w, gi[w], gj[w], v, i, j))) return;
+          // a place is taken only below cur - 1e-9 and below the best so far, and the side of its name adds
+          // nothing below 0, so the score stops there (score, above); the sides and the points the links
+          // pass are worked out only for a place still in the running
+          const bound = Math.min(cur - 1e-9, best ? best.s : Infinity);
+          let pp = null;
+          const getPP = () => pp || (pp = ppOf(i, j));
+          const base = score(v, i, j, getPP, bound);
+          if (base >= bound) return;
           const sds = SIDES.filter(x => (di || dj || x !== side[v]) && nameFits(v, i, j, x));
           if (!sds.length) return;
-          const pp = ppOf(i, j), base = score(v, i, j, pp);
+          getPP();
           for (const sd of sds) {
             const s = base + nameScore(v, i, j, sd, pp);
             if (s < cur - 1e-9 && (!best || s < best.s)) best = { i, j, sd, s };
@@ -684,10 +705,12 @@ function subwayModule() {
     const paths = new Array(links.length).fill(null);
     const dirOf = (k, nk) => SUBWAY_DIRS.findIndex(([x, y]) => x === (nk % W) - (k % W) && y === ((nk / W) | 0) - ((k / W) | 0));
     // the link on the other diagonal of the cell a diagonal step crosses
+    // (the other diagonal's direction from a table, which the router's inner loop looked up seconds' worth)
+    const OTHER_DIAG = SUBWAY_DIRS.map(([dx, dy]) => SUBWAY_DIRS.findIndex(([x, y]) => x === -dx && y === dy));
     const diagOwner = (i, j, d) => {
       const [dx, dy] = SUBWAY_DIRS[d];
       if (!dx || !dy || !inGrid(i + dx, j)) return -1;
-      return edgeUse[id(i + dx, j) * 8 + SUBWAY_DIRS.findIndex(([x, y]) => x === -dx && y === dy)];
+      return edgeUse[id(i + dx, j) * 8 + OTHER_DIAG[d]];
     };
 
     // the links round each system in their true clockwise order, and the port each leaves by
@@ -717,6 +740,8 @@ function subwayModule() {
     // the search's arrays, kept between searches; a state is a grid point and the direction it was reached in
     const gArr = new Float64Array(N * 8), hArr = new Float64Array(N * 8), prev = new Int32Array(N * 8), seen = new Int32Array(N * 8);
     const hf = new Float64Array(N * 64), hs = new Int32Array(N * 64);
+    // the estimate at each grid point, kept for the search it was worked out in
+    const hMemo = new Float64Array(N), hSeen = new Int32Array(N);
     let stamp = 0;
     const portCost = (d, want) => C.port * Math.abs(((d * Math.PI / 4 - want + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) / (Math.PI / 4);
 
@@ -747,34 +772,77 @@ function subwayModule() {
     }
     // whether steps that keep link e's heading, to within slack more, can reach grid point b from a
     const reachable = (e, a, b, slack = 0) => subwayGridStray(Math.atan2(((b / W) | 0) - ((a / W) | 0), b % W - a % W), heading[e], SUBWAY_HEADING.cone + slack) === 0;
-    // Whether the search for link e could reach v at all: a flood from u's ports over the grid points it
-    // could stand on, by the steps it may take, that lets through everything the search might (turns,
-    // and lines it may cross straight over, are not looked at), so that where this finds no way, none
-    // is. A search of the whole grid that finds none costs seconds (Starfleet Adventures had over a
-    // thousand); this, a small part of that.
-    const floodSeen = new Int32Array(N), floodQ = new Int32Array(N);
+    // Whether the search for link e could reach v at all, worked out exactly, so that a search that
+    // would find nothing is not made: the states the search might stand in, a grid point and the
+    // direction it was reached in, by the very steps the search may take (its expand, below, with the
+    // costs left out), flooded from u's ports and, backwards, from v's, a state from each in turn. A
+    // way is there when the two meet, and none once either has run out. A search of the whole grid
+    // that finds nothing goes through every state it can reach: Starfleet Adventures' map with room
+    // for names had over four hundred, a hundred million states in all, most with v shut in, which
+    // the backward flood finds in a few states.
+    const fSeen = new Int32Array(N * 8), bSeen = new Int32Array(N * 8), fQ = new Int32Array(N * 8), bQ = new Int32Array(N * 8);
     let floodStamp = 0;
     function canReach(e, u, v, okU, okV, dirOk, soft, box) {
       const fs = ++floodStamp;
       const x0 = box ? box[0] : 0, y0 = box ? box[1] : 0, x1 = box ? box[2] : W - 1, y1 = box ? box[3] : H - 1;
-      let qn = 0;
-      for (let q = 0; q < okU.length; q++) if (okU[q]) { const k = portCell(u, q); if (floodSeen[k] !== fs) { floodSeen[k] = fs; floodQ[qn++] = k; } }
-      for (let h = 0; h < qn; h++) {
-        const k = floodQ[h], i = k % W, j = (k / W) | 0;
-        for (let d = 0; d < 8; d++) {
-          if (!dirOk[d] || (barCross.size && barCross.has(k * 8 + d))) continue;
-          if (edgeUse[k * 8 + d] >= 0 && !soft) continue;
-          const ni = i + SUBWAY_DIRS[d][0], nj = j + SUBWAY_DIRS[d][1];
-          if (ni < x0 || nj < y0 || ni > x1 || nj > y1 || !inGrid(ni, nj)) continue;
-          const nk = id(ni, nj);
-          if (stationAt[nk] >= 0) {
-            if (stationAt[nk] === v) { const q = slotOf(v, nk, (d + 4) % 8); if (q >= 0 && okV[q]) return true; }
-            continue;
+      // the step from grid point k leaving in d, as the search takes it: the point reached, -2 where
+      // it is v by a port it may take, -1 where the search may not take it
+      const enter = (k, d) => {
+        if (!dirOk[d] || (barCross.size && barCross.has(k * 8 + d))) return -1;
+        const ni = k % W + SUBWAY_DIRS[d][0], nj = ((k / W) | 0) + SUBWAY_DIRS[d][1];
+        if (ni < x0 || nj < y0 || ni > x1 || nj > y1 || !inGrid(ni, nj)) return -1;
+        const nk = id(ni, nj);
+        if (edgeUse[k * 8 + d] >= 0 && !soft) return -1;
+        if (stationAt[nk] >= 0) {
+          if (stationAt[nk] === v) { const q = slotOf(v, nk, (d + 4) % 8); if (q >= 0 && okV[q]) return -2; }
+          return -1;
+        }
+        if (labelAt[nk] >= 0 && !C.nameStep) return -1;
+        if (pathAt[nk] >= 0 && (crossAt[nk] >= 0 || axisAt[nk] === 9 || axisAt[nk] === d % 4) && !soft) return -1;
+        return nk;
+      };
+      // the point a step in d came from, or -1 off the grid
+      const from = (k, d) => { const pi = k % W - SUBWAY_DIRS[d][0], pj = ((k / W) | 0) - SUBWAY_DIRS[d][1]; return inGrid(pi, pj) ? id(pi, pj) : -1; };
+      // whether the search, standing at k reached in din, may leave in d
+      const turnOk = (k, din, d) => (pathAt[k] >= 0 ? d === din : subwayTurn(din, d) !== 4);
+      // whether the search can stand at k reached in din: the step into it is one it may take
+      const stands = (k, din) => { const p = from(k, din); return p >= 0 && enter(p, din) === k; };
+      const starts = new Set();
+      for (let q = 0; q < okU.length; q++) if (okU[q]) starts.add(portCell(u, q) * 8 + portsOf[u][q][1]);
+      let fn = 0, bn = 0, fh = 0, bh = 0;
+      const markF = st => { if (fSeen[st] === fs) return false; fSeen[st] = fs; fQ[fn++] = st; return bSeen[st] === fs; };
+      // a state from which v can be reached: met where the flood from u has it, or where a step from
+      // one of u's ports goes into it
+      const markB = st => {
+        if (bSeen[st] === fs) return false;
+        bSeen[st] = fs; bQ[bn++] = st;
+        const k = st >> 3, din = st & 7, p = from(k, din);
+        return fSeen[st] === fs || (p >= 0 && starts.has(p * 8 + din));
+      };
+      for (const sd of starts) { const r = enter(sd >> 3, sd & 7); if (r === -2) return true; if (r >= 0 && markF(r * 8 + (sd & 7))) return true; }
+      // backwards from each port of v it may take: the point before it, in each direction the search
+      // may stand there and step on into v
+      for (let q = 0; q < okV.length; q++) {
+        if (!okV[q]) continue;
+        const d = (portsOf[v][q][1] + 4) % 8, k = from(portCell(v, q), d);
+        if (k < 0 || enter(k, d) !== -2) continue;
+        for (let din = 0; din < 8; din++) if (turnOk(k, din, d) && stands(k, din) && markB(k * 8 + din)) return true;
+      }
+      while (fh < fn && bh < bn) {
+        // forwards one state
+        {
+          const st = fQ[fh++], k = st >> 3, din = st & 7;
+          for (let d = 0; d < 8; d++) {
+            if (!turnOk(k, din, d)) continue;
+            const r = enter(k, d);
+            if (r === -2) return true;
+            if (r >= 0 && markF(r * 8 + d)) return true;
           }
-          if (floodSeen[nk] === fs) continue;
-          if (labelAt[nk] >= 0 && !C.nameStep) continue;
-          if (!soft && pathAt[nk] >= 0 && (crossAt[nk] >= 0 || axisAt[nk] === 9)) continue;
-          floodSeen[nk] = fs; floodQ[qn++] = nk;
+        }
+        // backwards one state: the states the search could step into it from
+        {
+          const st = bQ[bh++], k = st >> 3, din = st & 7, p = from(k, din);
+          if (p >= 0 && stationAt[p] < 0) for (let dp = 0; dp < 8; dp++) if (turnOk(p, dp, din) && stands(p, dp) && markB(p * 8 + dp)) return true;
         }
       }
       return false;
@@ -790,17 +858,19 @@ function subwayModule() {
       const thrU = throughAt(e, u), thrV = throughAt(e, v);
       // no step costs less than C.hop, and a diagonal C.diag more: a lower bound, so the path found is the cheapest
       const endI = Int32Array.from(ends, e => e[0]), endJ = Int32Array.from(ends, e => e[1]), hop = C.hop, diag = C.diag;
+      const x0 = box ? box[0] : 0, y0 = box ? box[1] : 0, x1 = box ? box[2] : W - 1, y1 = box ? box[3] : H - 1;
+      stamp++;
       const hcost = k => {
+        if (hSeen[k] === stamp) return hMemo[k];
         const ki = k % W, kj = (k / W) | 0;
         let h = Infinity;
         for (let q = 0; q < endI.length; q++) {
           const dx = Math.abs(endI[q] - ki), dy = Math.abs(endJ[q] - kj), c = hop * (dx > dy ? dx + diag * dy : dy + diag * dx);
           if (c < h) h = c;
         }
+        hSeen[k] = stamp; hMemo[k] = h;
         return h;
       };
-      const x0 = box ? box[0] : 0, y0 = box ? box[1] : 0, x1 = box ? box[2] : W - 1, y1 = box ? box[3] : H - 1;
-      stamp++;
       const G = st => (seen[st] === stamp ? gArr[st] : Infinity);
       let hn = 0, popF = 0;
       // h, the estimate at st, is kept so that a stale entry is known without working it out again
@@ -1097,7 +1167,9 @@ function subwayModule() {
      is not drawn so. Where no such bend will do, two bends. */
   const SUBWAY_FINE = { minLen: 1.5, anchor: 0.02, iters: 400, rounds: 12, eps: 0.004, clear: 0.4, minSep: 1.4, minLeg: 0.5, bendCost: 1, crossCost: 8 };
   const FINE_STEP = Math.PI / 8;
-  const fineUnit = k => [Math.cos(k * FINE_STEP), Math.sin(k * FINE_STEP)];
+  // the sixteen directions worked out once, by the same sums (the layout spent seconds on them); read, never changed
+  const FINE_UNITS = Array.from({ length: 16 }, (_, k) => [Math.cos(k * FINE_STEP), Math.sin(k * FINE_STEP)]);
+  const fineUnit = k => FINE_UNITS[k] || [Math.cos(k * FINE_STEP), Math.sin(k * FINE_STEP)];
   const fineClass = (dx, dy) => ((Math.round(Math.atan2(dy, dx) / FINE_STEP) % 16) + 16) % 16;
   const fineAngErr = (dx, dy, k) => { const d = Math.atan2(dy, dx) - k * FINE_STEP; return Math.abs(((d + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI); };
   const nearSegment = (v, a, b) => { const vx = b.x - a.x, vy = b.y - a.y, L2 = vx * vx + vy * vy || 1e-12, t = Math.max(0, Math.min(1, ((v.x - a.x) * vx + (v.y - a.y) * vy) / L2)); return Math.hypot(v.x - a.x - t * vx, v.y - a.y - t * vy); };
@@ -1373,6 +1445,14 @@ function subwayModule() {
       for (let k = 0; k + 1 < pts.length; k++) if (nearSegment(p, pts[k], pts[k + 1]) > 1e-9 && nearSegment(q, pts[k], pts[k + 1]) > 1e-9 && subwayCross(p.x, p.y, q.x, q.y, pts[k].x, pts[k].y, pts[k + 1].x, pts[k + 1].y)) return true;
       return false;
     };
+    // a quick no first: each place's points within a box round its point (its bar's cells), and over
+    // can be true only for a place whose box comes within clear of the piece's, the crossing and the
+    // running along only for pieces whose boxes meet; the slack keeps rounding from deciding
+    const barBox = at.map((_, v) => { const c = bars && bars[v] ? subwayBarCells(bars[v], 0, 0) : [[0, 0]]; return { x0: Math.min(...c.map(q => q[0])), x1: Math.max(...c.map(q => q[0])), y0: Math.min(...c.map(q => q[1])), y1: Math.max(...c.map(q => q[1])) }; });
+    const SLACK = 1e-6;
+    const pieceBox = (p, q, m) => ({ x0: Math.min(p.x, q.x) - m, x1: Math.max(p.x, q.x) + m, y0: Math.min(p.y, q.y) - m, y1: Math.max(p.y, q.y) + m });
+    const placeOut = (w, r) => P[w].x + barBox[w].x1 < r.x0 || P[w].x + barBox[w].x0 > r.x1 || P[w].y + barBox[w].y1 < r.y0 || P[w].y + barBox[w].y0 > r.y1;
+    const boxOut = (b, r) => b.x1 < r.x0 || b.x0 > r.x1 || b.y1 < r.y0 || b.y0 > r.y1;
     // on the map that keeps each link's heading, whether class k, from the link's first end, keeps it,
     // and whether a drawing of the link does; on the map with 22.5 degrees only where needed, a class
     // between the 45-degree ones only for the links that need it (subwayNeedy), or for one that has
@@ -1476,8 +1556,8 @@ function subwayModule() {
       });
       links.forEach(([a, b], e) => {
         if (cls[e] < 0) return;
-        const A = endA(e), B = endB(e);
-        for (let w = 0; w < n; w++) if ((w !== a && w !== b) || (bars && bars[w]) ? over(w, A, B) : false) { blame(w); blame(a); blame(b); }
+        const A = endA(e), B = endB(e), r = pieceBox(A, B, o.clear + SLACK);
+        for (let w = 0; w < n; w++) if (((w !== a && w !== b) || (bars && bars[w])) && !placeOut(w, r) && over(w, A, B)) { blame(w); blame(a); blame(b); }
       });
       for (let v = 0; v < n; v++) for (let w = v + 1; w < n; w++) if (ptsOf(v).some(p => ptsOf(w).some(q => Math.hypot(p.x - q.x, p.y - q.y) < o.minSep))) { blame(v); blame(w); }
       if (names) {
@@ -1510,9 +1590,11 @@ function subwayModule() {
       const [u, v] = links[e];
       let x = 0;
       for (let k = 0; k + 1 < l.length; k++) {
-        for (let w = 0; w < n; w++) if (((w !== u && w !== v) || (bars && bars[w])) && over(w, l[k], l[k + 1])) return null;
-        if (names) for (let w = 0; w < n; w++) if (B[w] && subwaySegmentInBox(l[k], l[k + 1], B[w])) return null;
+        const r = pieceBox(l[k], l[k + 1], o.clear + SLACK), rb = pieceBox(l[k], l[k + 1], SLACK);
+        for (let w = 0; w < n; w++) if (((w !== u && w !== v) || (bars && bars[w])) && !placeOut(w, r) && over(w, l[k], l[k + 1])) return null;
+        if (names) for (let w = 0; w < n; w++) if (B[w] && !boxOut(B[w], rb) && subwaySegmentInBox(l[k], l[k + 1], B[w])) return null;
         for (const s2 of segs) {
+          if (boxOut(s2.box || (s2.box = pieceBox(s2.a, s2.b, 0)), rb)) continue;
           if (runAlong(l[k], l[k + 1], s2.a, s2.b)) return null;
           const [c, d] = links[s2.e];
           if (c === u || c === v || d === u || d === v) continue;

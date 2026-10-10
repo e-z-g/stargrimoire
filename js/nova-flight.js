@@ -178,6 +178,18 @@ function novaFlightData(u) {
       // ShipCanScoop 0x?: a default outfit of ModType 31
       scoops: items.some((id, i) => counts[i] > 0 && modTypes(outfits.get(id)).includes(31)),
       board: novaBoardingMods(items, counts, outfits),
+      // ShipFuelGenRate 0x2ffb, a ship not yours: a unit every FuelRegen steps, and each default outfit of
+      // ModType 18 a unit every ModVal steps, as many times as it is carried; null for none
+      fuelGen: (() => {
+        let on = false, rate = 0;
+        if (s.FuelRegen > 0) { on = true; rate = f32(1 / s.FuelRegen); }
+        for (let i = 0; i < Math.min(items.length, 8); i++) {
+          const o = outfits.get(items[i]);
+          if (!(counts[i] > 0) || !o || items[i] - 128 > 0x1ff) continue;
+          for (const [t, v] of [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]]) if (t === 18) { on = true; rate = f32(rate + counts[i] * (1 / v)); }
+        }
+        return on ? rate : null;
+      })(),
       // ShipCanTargetUntargetableShips 0x238f: a default outfit of ModType 30 whose ModVal has 0x0004
       // HasCloak 0x95f2: the first default outfit of ModType 17, its ModVal (fuel x 16, shields x 256, 0x0004 zeroes the shields); -1 for none
       cloak: (() => { for (let i = 0; i < items.length; i++) { const o = outfits.get(items[i]); if (counts[i] > 0 && o) for (const [t, v] of [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]]) if (t === 17) return v & 0xffff; } return -1; })(),
@@ -368,6 +380,8 @@ function novaFlightWorld(D, sys, state, seed, view) {
               roids: Array.from({ length: 16 }, () => ({ active: false })), view: view || { x: 0, y: 0, hw: 320, hh: 240 } };
   w.shots = new Array(128).fill(null);
   w.booms = new Array(32).fill(null);
+  // the escape pods' 32 slots (podData), a slot free while its life is below 0
+  w.pods = Array.from({ length: 32 }, () => ({ x: 0, y: 0, vx: 0, vy: 0, life: -1, frame: 0 }));
   w.beams = new Array(64).fill(null);
   w.rand = n => w.random.rand(n);
   w.holds = tree => { try { return ncbEval(tree, w.state); } catch (e) { return true; } };
@@ -780,6 +794,7 @@ function novaFlightStep(w) {
     novaHandleShip(w, s);
     if (w.ships[s.slot] !== s) continue;
     novaShipFire(w, s);
+    novaHandleShipLate(w, s);
     novaFoldStep(w, s);
     novaPutInLayer(w, 's', s.slot, s.disabled ? 'disabled' : s.leader === 0 ? 'escort' : 'ship');
     novaIonTint(w, s);
@@ -790,6 +805,7 @@ function novaFlightStep(w) {
   novaHandleExplods(w);
   novaHandleBoxes(w);
   novaHandleAsteroids(w);
+  novaHandleEscapePods(w);
   novaHandleBeams(w);
   novaMoveParticles(w);
   w.t++;
@@ -1527,6 +1543,14 @@ function novaHandleShip(w, s) {
     s.timer = f32(s.timer - 1);
     if (s.glow > 0) s.glow--;
   }
+  // gone into a gate once its 16 steps are down to under one (HandleShipDisplay 0x2bfa5)
+  if (s.mode === 0x17 && s.timer < 1) novaGone(w, s, 'gate');
+}
+
+/* HandleShip 0x353ba on, after the death throes' pods and the fuel: a
+   tractor beam's hold lapsing, and an escape ship launched. */
+function novaHandleShipLate(w, s) {
+  const D = w.D, c = s.cls;
   /* A tractor beam's hold lapses with its holder gone, disabled or dying, or
      30 ticks after it last held (the velocity matching while held is to
      the player's thrust, so is not done here). */
@@ -1548,8 +1572,6 @@ function novaHandleShip(w, s) {
       for (const r of s.weap) { r.count = 0; r.ammo = 0; }
     }
   }
-  // gone into a gate once its 16 steps are down to under one (HandleShipDisplay 0x2bfa5)
-  if (s.mode === 0x17 && s.timer < 1) novaGone(w, s, 'gate');
 }
 
 // AdjustInertialessShipVelocity 0x3349c: the velocity steered toward the speed along the heading, four times the thrust a step on each axis.

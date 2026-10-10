@@ -290,6 +290,15 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
       ctx.fillRect(x - r / 2, y - r / 2, r, r);
     }
   }
+  // escape pods, in shïp 895's sprite, fading over their last 32 steps (transparency 32 - life of 32)
+  const podCls = w.pods && w.D.classes.get(895);
+  if (podCls) for (const pod of w.pods) {
+    if (!(pod.life > 0)) continue;
+    const [x, y] = at(pod.x, pod.y);
+    ctx.globalAlpha = alpha * (pod.life >= 32 ? 1 : 1 - Math.trunc(32 - pod.life) / 32);
+    sprite(podCls.sprite, pod.frame, x, y, MIN_SHOT);
+    ctx.globalAlpha = alpha;
+  }
   if (w.booms) for (const b of w.booms) {
     const B = b && w.D.fight.booms[b.boom];
     if (!B || b.delay > 0) continue;

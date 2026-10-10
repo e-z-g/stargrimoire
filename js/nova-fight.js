@@ -16,7 +16,7 @@
    the boxes they leave, mining and scooping, and SpriteWorld's layers,
    whose order is the order hits are taken in.
 
-   Not here yet: escape pods, reinforcements, shots against
+   Not here yet: reinforcements, shots against
    stellars, and the trail particles' preference (taken as on).
 
    The player is in none of it: every branch about the player is left
@@ -1706,15 +1706,69 @@ function novaShipUpkeep(w, s) {
 }
 /* HandleShip, after the ship moves: the chosen weapon fired (and chosen
    again for one that keeps firing, Flags 0x0002), the death throes
-   counted down, the hit flash fading. */
+   counted down and their escape pods launched, fuel regained, the hit
+   flash fading. */
 function novaShipFire(w, s) {
   if (s.latch && s.lastW !== -1) {
     const W = novaWeapOf(w.D, s.lastW);
     novaFireShipWeapon(w, s);
     if (!(W && (W.flags & 2))) { s.lastW = -1; s.latch = false; }
   }
-  if (s.death > 0) s.death = f32(s.death - 1);
+  if (s.death > 0) { s.death = f32(s.death - 1); novaShipPods(w, s); }
+  novaFuelRegen(w, s);
   if (s.hitFlash > 0) s.hitFlash--;
+}
+
+/* ---- escape pods and fuel --------------------------------------------------- */
+
+/* HandleShip 0x35141, in the death throes: a përs's ship of Flags 0x0002,
+   of no government or one without Flags 0x0100, launches a pod as the
+   throes reach half their length; and from then on a class's PodCount
+   pods, the first at once and then one every DeathDelay ÷ PodCount × 0.4
+   steps (whole numbers, at least 10), counted on the frame counter. */
+function novaShipPods(w, s) {
+  const D = w.D, c = novaClassFight(D, s.cls), half = c.deathDelay * 0.5;
+  const p = s.pers ? D.persons.get(s.pers) : null, g = D.govts.get(s.govt);
+  if (s.death === half && p && (p.Flags & 2) && !(g && (g.flags & 0x100))) novaSpawnEscapePod(w, s);
+  if (s.podsLeft > 0 && s.death <= half && c.podCount > 0) {
+    let every = (Math.trunc(Math.trunc(c.deathDelay / c.podCount) * 0.4) << 16) >> 16;
+    if (every <= 9) every = 10;
+    if (novaFrameCounter(w) % every === 0 || s.podsLeft === c.podCount) { s.podsLeft--; novaSpawnEscapePod(w, s); }
+  }
+}
+/* SpawnEscapePod 0x45547: into the first slot whose life is below 0, at
+   the ship and moving with it, for 150 to 249 steps, pushed off a tenth
+   of 10 to 19 a step in a heading drawn for it, and drawn in shïp 895's
+   sprite (the class at index 767) at the frame of the way it moves, of
+   that class's FramesPer (shän +0x34, 36 for 0). */
+function novaSpawnEscapePod(w, s) {
+  const pod = w.pods.find(q => q.life < 0);
+  if (!pod) return;
+  pod.life = f32(w.rand(100) + 150);
+  pod.x = s.x; pod.y = s.y; pod.vx = s.vx; pod.vy = s.vy;
+  const h = w.rand(360), v = { x: pod.vx, y: pod.vy };
+  novaAccel(h, f32((w.rand(10) + 10) * 0.1), v);
+  pod.vx = v.x; pod.vy = v.y;
+  const pc = w.D.classes.get(895), per = pc ? pc.framesPer : 0;
+  pod.frame = (Math.trunc(novaBearing(0, 0, f32(pod.vx * 100), f32(pod.vy * 100)) * per / 360) << 16) >> 16;
+}
+/* HandleEscapePods 0x39e48, each step: a pod moves by its velocity and its
+   life runs down a step, drawn whole from 32 up, fading over its last 32,
+   gone at 0. Nothing hits it. */
+function novaHandleEscapePods(w) {
+  for (const pod of w.pods) {
+    if (!(pod.life >= 0)) continue;
+    pod.x = f32(pod.x + pod.vx); pod.y = f32(pod.y + pod.vy);
+    pod.life = f32(pod.life - 1);
+  }
+}
+/* HandleShip 0x35305: fuel regained by the class's rate (novaFlightData's
+   fuelGen), held to what the class holds and to 0 or more. */
+function novaFuelRegen(w, s) {
+  const rate = s.cls.fuelGen;
+  if (rate !== null && rate !== undefined) s.fuel = f32(s.fuel + rate);
+  if (s.fuel > s.cls.fuel) s.fuel = f32(s.cls.fuel);
+  if (s.fuel < 0) s.fuel = 0;
 }
 
 /* ---- the battle simulator --------------------------------------------------- */

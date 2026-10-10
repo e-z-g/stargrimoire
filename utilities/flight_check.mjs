@@ -242,6 +242,50 @@ if (haveRelease('1.0.10')) {
   let steps = 0;
   while (w.ships[d.slot] === d && steps < 1000) { S.novaFlightStep(w); steps++; }
   near('a destroyer dies in its DeathDelay steps', steps, delay, 2);
+  // escape pods (HandleShip 0x35141, SpawnEscapePod, HandleEscapePods): an Aurora Cruiser's five (PodCount 5,
+  // DeathDelay 125), the first as the throes reach half (62 left), then on the frame counter's tens; each
+  // 150 to 249 steps, fading, gone; a përs of Flags 0x0002 in a Viper (no PodCount) one as the throes are
+  // exactly half done, and none in a government of Flags 0x0100
+  {
+    const w4 = empty(7), cr = S.novaPlaceShip(w4, CRUISER, AUR, 0, 0, 3);
+    cr.shield = 0; cr.armor = 0; S.novaSetDisabled(D, cr);
+    const launched = [];
+    let lives = [], n = 0;
+    for (let k = 0; k < 400; k++) {
+      const before = w4.pods.filter(q => q.life >= 0).length;
+      S.novaFlightStep(w4);
+      const now = w4.pods.filter(q => q.life >= 0);
+      if (now.length > before) { launched.push({ death: cr.death, frame: (w4.t - 1) % 1025 }); lives.push(...now.slice(-1).map(q => q.life)); }
+      if (k === 399) n = now.length;
+    }
+    eq('an Aurora Cruiser\'s pods: five, the first with 62 steps of its throes left, the rest on the frame counter\'s tens, all gone in time',
+      [launched.length, launched[0] && launched[0].death, launched.slice(1).every(l => l.frame % 10 === 0), n], [5, 62, true, 0]);
+    if (lives.some(l => l < 149 || l > 249)) fail(`escape pods' lives ${lives}, not 150 to 249 less a step`);
+    const personPods = noPodGovt => {
+      const w5 = empty(8), vp = S.novaPlaceShip(w5, VIPER, 157, 0, 0, 3), gv = D.govts.get(157), was = gv.flags;
+      vp.pers = 128;
+      if (noPodGovt) gv.flags |= 0x100;
+      vp.shield = 0; vp.armor = 0; S.novaSetDisabled(D, vp);
+      let most = 0;
+      for (let k = 0; k < 30; k++) { S.novaFlightStep(w5); most = Math.max(most, w5.pods.filter(q => q.life >= 0).length); }
+      gv.flags = was;
+      return most;
+    };
+    eq('a përs of Flags 0x0002 launches one pod, none in a government of Flags 0x0100', [personPods(false), personPods(true)], [1, 0]);
+  }
+  // fuel regained (ShipFuelGenRate, HandleShip 0x35305): a Vell-os Dart a unit every 8 steps; a Scarab its
+  // FuelRegen 10 and its Matter/Antimatter Reactor (ModType 18, ModVal 4), 0.35 a step; a Raven held to its 1,500
+  {
+    const fuelAfter = (id, start, k) => {
+      const w6 = empty(9), sh = S.novaPlaceShip(w6, id, 128, 0, 0, 3);
+      sh.fuel = start;
+      for (let i = 0; i < k; i++) S.novaFlightStep(w6);
+      return sh.fuel;
+    };
+    const f32 = Math.fround, sum = (rate, k) => { let f = 0; for (let i = 0; i < k; i++) f = f32(f + rate); return f; };
+    eq('fuel a step: a Vell-os Dart, a Scarab', [D.classes.get(173).fuelGen, D.classes.get(162).fuelGen, D.classes.get(DESTROYER).fuelGen], [f32(1 / 8), f32(f32(0.1) + 1 / 4), null]);
+    eq('a Vell-os Dart\'s fuel from 0 after 40 steps; a Raven\'s from 1,499.5 after 3; a destroyer\'s none', [fuelAfter(173, 0, 40), fuelAfter(164, 1499.5, 3), fuelAfter(DESTROYER, 10, 5)], [sum(f32(1 / 8), 40), 1500, 10]);
+  }
   // out of ammunition: Raven Rockets spent, a Viper (Flags2 0x0080) runs; without the flag it fights on
   const spent = (flag, noRetreat) => {
     const w2 = empty(4);

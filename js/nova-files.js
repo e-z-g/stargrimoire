@@ -167,6 +167,23 @@ function novaArchiveFiles(bytes) {
   return out;
 }
 
+/* The game's program in a release's archive or disk image: a classic Mac
+   application (Finder type APPL, its code a PEF container in the data
+   fork) named EV Nova, as 1.0.2 to 1.0.10 ship it, or an EV Nova.app's
+   Mach-O program, as 1.1.1 does. { name, path, size, read() } giving the
+   data fork, or null. */
+function novaArchiveProgram(bytes) {
+  const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
+  if (zip) return null;
+  const cat = dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
+  const all = Array.isArray(cat) ? cat : cat.entries;
+  const e = all.find(x => !x.isFolder && x.type === 'APPL' && /^EV Nova/.test(x.name) && x.dataLen > 100000) ||
+            all.find(x => !x.isFolder && /(^|\/)EV Nova\.app\/Contents\/MacOS\/[^/]+$/.test(x.path || '') && x.dataLen > 100000);
+  if (!e) return null;
+  const fork = which => (dmg ? e.read(which) : stuffItFork(bytes, e, which));
+  return { name: e.name.replace(/\r$/, ''), path: e.path || e.name, size: e.dataLen, read: () => fork('data'), readRsrc: () => ((dmg ? e.rsrcLen : e.rsrcLen) > 0 ? fork('rsrc') : null) };
+}
+
 // The resource fork inside a MacBinary or BinHex copy.
 function novaUnwrapFork(bytes) {
   const w = sniffMacContainer(bytes);

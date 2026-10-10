@@ -118,7 +118,17 @@ function recDesc(id, what) {
   return d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div>` : `<p class="note">No ${what}: the files have no dësc ${id}.</p>`;
 }
 // A place for a PICT, filled in by recPictures once the panel is drawn.
-const recPict = (id, label) => (GAME.has('PICT', id) ? `<figure class="recPict" data-pict="${id}"><div class="nopict wait">Reading PICT ${id}…</div><figcaption>${esc(label)}</figcaption></figure>` : '');
+const recPict = (id, caption) => (GAME.has('PICT', id) ? `<figure class="recPict" data-pict="${id}"><div class="nopict wait">Reading PICT ${id}…</div><figcaption>${caption}</figcaption></figure>` : '');
+/* A picture and a description whose ids are a base read from the program
+   (fig) plus the record's number less 128, each base a link to where it
+   was read; or a note that the program is needed. */
+function recFromProgram(id, pictFig, descFig, what) {
+  const p = fig(pictFig), d = fig(descFig), n = id - 128;
+  if (!p && !d) return `<p class="note">Its ${what} picture and description are found through the game's program, which ${program() ? 'does not say where here' : 'the files open do not include'}.</p>`;
+  const pid = p ? p.value + n : null, did = d ? d.value + n : null;
+  return (p ? recPict(pid, `${esc(what[0].toUpperCase() + what.slice(1))}, PICT ${pid} (${codeNum(p)} + ${n})`) : '') +
+    (d ? `${recDesc(did, 'description')}<p class="note">dësc ${did} (${codeNum(d)} + ${n}), as the ${esc(what)} loads it.</p>` : '');
+}
 function recPictures() {
   for (const fig of document.querySelectorAll('#panel figure.recPict')) {
     const id = +fig.dataset.pict, img = pictImage(id), box = fig.querySelector('.nopict, canvas');
@@ -144,8 +154,7 @@ const REC_BODY = {
     }
     const soldAt = refs.soldAt.filter(sp => U.inSystems.has(sp));
     const given = refs.given.map(g => `${g.op === 'give' ? 'given' : 'taken'} when ${bitRefLink(g)} is ${esc(g.event)}${g.random ? ' <span class="note">(one side of a random choice)</span>' : ''} <span class="note">${esc(g.field)}</span>`);
-    return `${recPict(6000 + id - 128, `Outfitter, PICT ${6000 + id - 128}`)}
-      ${recDesc(3000 + id - 128, 'description')}
+    return `${recFromProgram(id, 'outfitPict', 'outfitDesc', 'outfitter')}
       <table class="kv">
         ${kvRow('What it does', does.join('<br>') || '<span class="note">nothing</span>')}
         ${kvRow('Cost', r.Cost > 0 ? r.Cost.toLocaleString() + ' credits' : 'nothing')}

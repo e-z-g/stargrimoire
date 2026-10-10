@@ -80,6 +80,7 @@ function shipsFromHash() {
 }
 
 function shipsShow(id, opts = {}) {
+  if (CODE.on) codeLeave(true);
   const first = !SHIPS.on;
   SHIPS.on = true;
   SHIPS.id = id;
@@ -290,7 +291,9 @@ function shipHtml(ship, shan) {
   const govtLine = govts.combat === -1 && govts.attrs === -1 ? '' : govts.combat === govts.attrs ? esc(govtName(govts.combat))
     : govts.combat === -1 ? `${esc(govtName(govts.attrs))}'s attributes, of no government in combat` : `${esc(govtName(govts.combat))} in combat, with no government's attributes`;
   const sub = [`shïp ${id}`, ship.Subtitle, govtLine, ship.file].filter(Boolean).map(s => s === govtLine ? s : esc(s)).join(' · ');
-  const d = descText(novaShipDescId(id)), pd = descText(novaShipPilotDescId(id));
+  // its descriptions' ids, a base read from the program plus its number less 128
+  const fd = fig('shipDesc'), fe = fig('escortDesc'), n = id - 128;
+  const d = fd ? descText(fd.value + n) : null, pd = fe ? descText(fe.value + n) : null;
   const perSec = v => fmtNum(Math.round(v * 30 / 10) / 100);
   const days = novaShipJumpDays(ship.Mass);
   const holds = ship.Holds < 0 ? `${fmtNum(-ship.Holds)} tons, and no mass expansions` : `${fmtNum(ship.Holds)} tons`;
@@ -314,8 +317,9 @@ function shipHtml(ship, shan) {
         : `<div class="nopict">${GAME.list('shän').length ? `No shän ${id} in these files, so no sprites.` : 'The sprites are in the ships files.'}</div>`}</div>
       <div id="shipPics" class="shipPics"></div>
     </div>
-    ${d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div>` : `<p class="note">No description: the files have no dësc ${novaShipDescId(id)}.</p>`}
-    ${pd ? `<h3>As an escort for hire</h3><div class="desc">${esc(novaDescText(pd.Description, STATE))}</div>` : ''}
+    ${!fd ? `<p class="note">Its description is found through the game's program, which ${program() ? 'does not say where here' : 'the files open do not include'}.</p>`
+      : d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">dësc ${fd.value + n} (${codeNum(fd)} + ${n}), as the shipyard loads it.</p>` : `<p class="note">No description: the files have no dësc ${fd.value + n} (${codeNum(fd)} + ${n}).</p>`}
+    ${pd ? `<h3>As an escort for hire</h3><div class="desc">${esc(novaDescText(pd.Description, STATE))}</div><p class="note">dësc ${fe.value + n} (${codeNum(fe)} + ${n}).</p>` : ''}
     <div class="shipCols">
       <div><h3>Performance</h3><table class="kv">
         ${kvRow('Speed', fmtNum(ship.Speed))}
@@ -384,7 +388,7 @@ function shanHtml(shan) {
 function renderShipPictures() {
   const host = $('shipPics');
   if (!host || SHIPS.id === null) return;
-  const id = SHIPS.id, d = descText(novaShipDescId(id));
+  const id = SHIPS.id, fd = fig('shipDesc'), d = fd ? descText(fd.value + id - 128) : null;
   const list = [];
   const t = novaShipPict(GAME, id, 3000), y = novaShipPict(GAME, id, 5000);
   const whose = p => p.from !== id ? `, shïp ${p.from}'s` : '';

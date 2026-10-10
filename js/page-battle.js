@@ -57,6 +57,7 @@ function battleReset() { BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []
 function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
   if (SHIPS.on) shipsLeave(true);
+  if (CODE.on) codeLeave(true);
   BATTLE.on = true;
   $('app').hidden = true;
   $('ships').hidden = true;

@@ -206,6 +206,22 @@ table.fields.editing input { width: 100%; box-sizing: border-box; background: va
 
 /* ---- the ships ---- */
 #ships { flex: 1; display: flex; min-height: 0; }
+#code { flex: 1; display: flex; min-height: 0; }
+#codeList { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+#codeList .listTools { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
+#codeList .listTools input { flex: 1; min-width: 0; }
+#codeCount { color: var(--dim); font-size: 12px; }
+#codeRows { overflow: auto; flex: 1; padding: 4px 0; }
+#codeRows a { display: block; padding: 5px 12px; color: var(--text); text-decoration: none; cursor: pointer; }
+#codeRows a small { display: block; color: var(--dim); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#codeRows a.on { background: var(--sel, rgba(255,255,255,0.08)); }
+#codeView { flex: 1; min-width: 0; overflow: auto; padding: 16px 20px 40px; }
+#codeView table.code { border-collapse: collapse; font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 10px; }
+#codeView table.code td { padding: 0 14px 0 4px; white-space: pre; vertical-align: top; }
+#codeView table.code td:first-child { color: var(--dim); }
+#codeView table.code tr.at td { background: rgba(255, 207, 74, 0.18); outline: 1px solid #ffcf4a; }
+a.codeNum { text-decoration: underline dotted; text-underline-offset: 2px; }
+#codeView .codeRead { color: #ffcf4a; margin-left: 8px; white-space: normal; }
 #shipList { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
 #shipList .listTools { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
 #shipSearch { flex: 1; min-width: 120px; }
@@ -268,7 +284,15 @@ details.inline .list { margin-top: 4px; }
   /* the views and four buttons are wider than a phone: the buttons wrap under */
   #bar { flex-wrap: wrap; gap: 6px 8px; padding: 6px 10px; }
   #bar > button, #bar > .btn { padding: 4px 9px; }
+  /* the crumbs and the status shrink rather than wrap, so the first row holds whatever they say */
+  #crumbs { flex: 1 1 0; }
+  #status { max-width: 30vw; }
   #ships { flex-direction: column; }
+  #code { flex-direction: column; }
+  #codeList { width: auto; flex: 1; border-right: 0; }
+  #code.picked #codeList { display: none; }
+  #code:not(.picked) #codeView { display: none; }
+  #codeView { padding: 12px 14px 40px; }
   #battle { flex-direction: column-reverse; }
   #battleSide { width: auto; flex: 1 1 50%; border-right: 0; border-top: 1px solid var(--line); overflow: auto; display: block; }
   #battleHangar { display: block; }
@@ -284,7 +308,7 @@ details.inline .list { margin-top: 4px; }
 <body>
 <header id="bar">
   <button id="creditsBtn" aria-expanded="false" aria-controls="creditsMenu" title="Credits"><span id="brand">StarGrimoire</span></button>
-  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a></nav>
+  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a><a data-view="code" href="#code">Code</a></nav>
   <nav id="crumbs"></nav>
   <span id="status"></span>
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
@@ -360,6 +384,16 @@ details.inline .list { margin-top: 4px; }
   <div id="battleStage"><canvas id="battleCanvas"></canvas></div>
 </main>
 
+<main id="code" hidden>
+  <nav id="codeList">
+    <div class="listTools">
+      <input type="search" id="codeSearch" placeholder="Find in the program" autocomplete="off">
+      <span id="codeCount"></span>
+    </div>
+    <div id="codeRows"></div>
+  </nav>
+  <section id="codeView"></section>
+</main>
 <main id="ships" hidden>
   <nav id="shipList">
     <div class="listTools">
@@ -468,8 +502,10 @@ details.inline .list { margin-top: 4px; }
 <script src="js/mac-stuffit.js?v=dacdb7f2"></script>
 <script src="js/mac-vise.js?v=fcf4feff"></script>
 <script src="js/mac-zip.js?v=388f5cc5"></script>
+<script src="js/mac-ppc.js?v=e9c95587"></script>
+<script src="js/mac-pef.js?v=25d7ab76"></script>
 <script src="js/disk-image.js?v=a041dbaf"></script>
-<script src="js/nova-files.js?v=c8699f17"></script>
+<script src="js/nova-files.js?v=37fbc89c"></script>
 <script src="js/nova-records.js?v=75d6acca"></script>
 <script src="js/nova-ncb.js?v=7b29dabd"></script>
 <script src="js/nova-sprites.js?v=944def6a"></script>
@@ -485,14 +521,16 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-fields.js?v=95399547"></script>
 <script src="js/nova-plugin.js?v=01001151"></script>
 <script src="js/nova-refs.js?v=637ebb54"></script>
-<script src="js/page-open.js?v=d9aae614"></script>
+<script src="js/nova-program.js?v=4f0a9308"></script>
+<script src="js/page-open.js?v=344287c2"></script>
 <script src="js/page-compare.js?v=bfe95a5e"></script>
 <script src="js/page-plugin.js?v=5e944caf"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=ee2a0bc4"></script>
-<script src="js/page-ships.js?v=e4e99cc6"></script>
+<script src="js/page-map.js?v=3d6bbf51"></script>
+<script src="js/page-ships.js?v=676f39aa"></script>
 <script src="js/page-flight.js?v=e909f2bb"></script>
-<script src="js/page-battle.js?v=b391ec60"></script>
-<script src="js/page-records.js?v=ce2cb265"></script>
+<script src="js/page-battle.js?v=d93ae1a7"></script>
+<script src="js/page-records.js?v=31ea51fa"></script>
+<script src="js/page-code.js?v=3cef4049"></script>
 </body>
 </html>

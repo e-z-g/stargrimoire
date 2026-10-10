@@ -54,6 +54,8 @@
 //     the Light Blaster's panel from its address, with its picture, its
 //     outfitters folded and ringed, the list of outfits from it, and a
 //     weapon's panel from the Aurora Cruiser's in the Ships view;
+//     its picture's and description's bases, read from the program, each
+//     opening the Code view at its instruction, ringed and noted;
 //   - on the phone, nothing is wider than the screen;
 //   - the ships, opened at #ship=154 (the Aurora Cruiser): the list has a
 //     row and a drawn picture for every ship class, the ship turns and is
@@ -417,6 +419,16 @@ try {
             const w = document.querySelector('#shipView [data-rec^="weap."]');
             o.fromShip = w ? w.dataset.rec : null;
             if (w) { w.click(); await wait(300); o.shipTo = { on: SHIPS.on, sel: VIEW.sel && VIEW.sel.kind + ':' + VIEW.sel.id, h2: document.querySelector('#panel h2').textContent }; }
+            // a figure read from the program: the outfit's picture and description bases, each a link to its instruction
+            history.replaceState(null, '', '#galaxy&rec=outf.128'); applyHash(); await wait(200);
+            const nums = [...document.querySelectorAll('#panel a.codeNum')];
+            o.nums = nums.map(a => a.textContent);
+            if (nums[0]) {
+              nums[0].click(); await wait(300);
+              const tr = document.querySelector('#codeView tr.at');
+              o.code = { on: CODE.on, hash: location.hash, ringed: tr ? tr.innerText : null, read: tr ? !!tr.querySelector('.codeRead') : false, named: [...document.querySelectorAll('#codeRows a')].some(a => /^Opens "Outfit"/.test(a.textContent)) };
+              codeLeave(true);
+            }
             history.replaceState(null, '', '#galaxy'); applyHash(); await wait(100);
             return o;
           })()`);
@@ -658,7 +670,9 @@ try {
       if (!rc || rc.h2 !== 'Light Blaster' || !rc.pict || !rc.sold || !(rc.outfitters > 12) || !(rc.ringed > 0) || !rc.weapon || !(rc.list > 200) || !/&rec=outf$/.test(rc.listHash)
           || !rc.fromShip || !rc.shipTo || rc.shipTo.on || rc.shipTo.sel !== 'rec:' + rc.fromShip)
         fail(`${dev.name}: a record's panel: ${JSON.stringify(rc)}`);
-      else console.log(`${dev.name}: the Light Blaster's panel from its address, its picture, ${rc.outfitters} outfitters, ${rc.ringed} places ringed; ${rc.list} outfits listed; ${rc.shipTo.h2} from the Aurora Cruiser's panel`);
+      else if (!rc.nums || rc.nums.length !== 2 || !rc.code || !rc.code.on || !/^#code=0x[0-9a-f]+&at=0x[0-9a-f]+$/.test(rc.code.hash) || !rc.code.ringed || !rc.code.ringed.includes(rc.nums[0]) || !rc.code.read || !rc.code.named)
+        fail(`${dev.name}: the Light Blaster's figures read from the program: ${JSON.stringify({ nums: rc.nums, code: rc.code })}`);
+      else console.log(`${dev.name}: the Light Blaster's panel from its address, its picture, ${rc.outfitters} outfitters, ${rc.ringed} places ringed; ${rc.list} outfits listed; ${rc.shipTo.h2} from the Aurora Cruiser's panel; its picture's base ${rc.nums && rc.nums[0]} opens the Code view at ${rc.code && rc.code.hash}`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       const nb = o.nebula, op = o.options;

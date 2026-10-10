@@ -84,12 +84,14 @@ async function readPicked(files) {
 async function openGameFiles(picked, opts = {}) {
   if (!picked.length) return;
   const found = [], refused = [];
+  let program = null;
   for (const { name, bytes } of picked) {
     setStatus('Looking inside ' + name);
     await nextPaint();
     try {
       if (looksLikeStuffIt(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes)) {
         const list = novaArchiveFiles(bytes);
+        if (!program) { try { program = novaArchiveProgram(bytes); } catch (e) { program = null; } }
         if (list.length) found.push(...list); else refused.push(name + ' holds no Nova files');
       } else {
         const one = novaLooseFile(name, bytes);
@@ -130,6 +132,7 @@ async function openGameFiles(picked, opts = {}) {
   }
   if (fresh) { PENDING.length = 0; OPENED_NAMES = []; SHIP_FILES = []; }
   GAME = game;
+  if (fresh || program) programReset(program);
   if (!opts.remembered) {
     KEPT = (fresh ? [] : KEPT).concat(picked.map(({ name, bytes }) => ({ name, bytes })));
     keptPut({ files: KEPT, savedAt: Date.now() }).then(() => showForget(true), () => {});

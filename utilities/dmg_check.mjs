@@ -4,9 +4,12 @@
 // Every .ndat novaArchiveFiles finds in the image must be byte for byte the
 // one hdiutil gave, and none of those may be missing. Then the negative
 // control: the image with a byte changed in every compressed chunk must not
-// read back the same.
+// read back the same. And 1.1 beta 2.10.7's image, whose game is inside an
+// installer package, held to macOS's xar, gzip and cpio.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { site, REF } from './load.mjs';
 
 const S = site();
@@ -49,4 +52,35 @@ if (refused) console.log(`a byte changed in each compressed chunk: the volume no
 else if (!changed) fail('a byte changed in every compressed chunk reads back as nothing changed');
 else console.log(`a byte changed in each compressed chunk: ${changed} file${changed === 1 ? '' : 's'} read differently or not at all`);
 if (good.length !== one.size) fail('Nova Data 1 is not its catalog length');
+
+// 1.1 beta 2.10.7: its image holds an installer package (pkgFiles); each .rez read through the image, the package and
+// its payload is byte for byte what macOS's xar, gzip and cpio give from the same package; and a byte changed in the
+// payload's compressed stream does not read back the same
+{
+  const BETA = path.join(REF, 'game', 'EVNova_1.1_b2.10.7_Mac.dmg');
+  const PKG = path.join(REF, 'unpacked', 'game', 'EVNova_1.1_b2.10.7_Mac', 'Install EV Nova 1.1_b2.10.7', 'EV Nova 1.1_b2.10.7.pkg');
+  if (!fs.existsSync(BETA) || !fs.existsSync(PKG)) console.log('SKIP 1.1 beta 2.10.7: its image or its package is not in reference/');
+  else {
+    const t1 = Date.now(), beta = S.novaArchiveFiles(new Uint8Array(fs.readFileSync(BETA)));
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'stargrimoire-pkg-'));
+    execFileSync('xar', ['-xf', PKG, '-C', tmp, 'Data.pkg/Payload']);
+    execFileSync('sh', ['-c', 'gzip -dc Data.pkg/Payload | cpio -id --quiet 2>/dev/null'], { cwd: tmp });
+    const dir = path.join(tmp, 'EV Nova', 'Nova Files'), theirs = fs.readdirSync(dir).filter(n => n.endsWith('.rez')).sort();
+    let same = 0;
+    for (const n of theirs) {
+      const f = beta.find(x => x.name + '.rez' === n);
+      if (!f) fail(`1.1 beta: ${n} is not found through the image`);
+      else if (Buffer.from(f.read()).equals(fs.readFileSync(path.join(dir, n)))) same++;
+      else fail(`1.1 beta: ${n} reads differently from cpio's copy`);
+    }
+    console.log(`1.1 beta 2.10.7: ${beta.length} Nova files through its image's package; ${same} of ${theirs.length} .rez byte for byte cpio's, in ${Date.now() - t1} ms`);
+    fs.rmSync(tmp, { recursive: true, force: true });
+    const pk = new Uint8Array(fs.readFileSync(PKG)), spoilt = pk.slice();
+    spoilt[Math.floor(pk.length * 0.5)] ^= 0x55;
+    let differs = false;
+    try { const a = S.pkgFiles(pk).filter(e => /\.rez$/.test(e.name)), b = S.pkgFiles(spoilt).filter(e => /\.rez$/.test(e.name)); differs = a.length !== b.length || a.some((e, i) => !Buffer.from(e.read('data')).equals(Buffer.from(b[i].read('data')))); }
+    catch (e) { differs = true; }
+    if (!differs) fail('1.1 beta: a byte changed in the package reads back as nothing changed');
+  }
+}
 process.exit(fails ? 1 : 0);

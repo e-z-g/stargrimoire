@@ -124,7 +124,9 @@ function novaArchiveFiles(bytes) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
   const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
   const out = [];
-  const all = Array.isArray(cat) ? cat : cat.entries;
+  let all = Array.isArray(cat) ? cat : cat.entries;
+  // an installer package on an image (1.1 beta 2.10.7's): the files of its payloads in its place
+  if (dmg) all = all.flatMap(e => (!e.isFolder && /\.pkg$/i.test(e.name) && e.dataLen > 0 ? pkgFiles(e.read('data')) : [e]));
   const gameDirs = new Set();
   for (const e of all) {
     const parts = (e.path || e.name).replace(/\/$/, '').split('/');

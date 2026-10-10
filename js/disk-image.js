@@ -197,3 +197,79 @@ function udifFiles(bytes) {
   const r = udifReader(bytes, part);
   return hfspVolume((pos, n) => r.read(pos, n)).files;
 }
+
+/* ---- an installer package inside an image (.pkg) -------------------------
+
+   EV Nova 1.1 beta 2.10.7 for the Mac ships as an image holding one
+   installer package, whose payload holds the game's Windows files beside
+   a wrapper that runs them. `pkgFiles(bytes)` lists the files of every
+   payload in a package, in the shape `udifFiles` gives.
+
+   A flat package is a xar archive: 'xar!', a header of its own length
+   (28), the table of contents' compressed and uncompressed lengths (big
+   endian, 8 bytes each), and the table of contents, zlib-compressed XML,
+   followed by the heap that its <data> entries' offsets count from. Each
+   part's Payload is a gzip stream of a cpio archive in the portable form
+   ('070707': fields in octal, a 76-byte header, then the name with its
+   NUL, then the file). Read off this package on 10 October 2026 and
+   checked against macOS's `xar` and `cpio`; other payload encodings
+   (pbzx, bzip2) are refused by name. */
+function looksLikeXar(b) { return b && b.length > 28 && b[0] === 0x78 && b[1] === 0x61 && b[2] === 0x72 && b[3] === 0x21; }   // 'xar!'
+function pkgFiles(bytes) {
+  if (!looksLikeXar(bytes)) throw new Error('not an installer package (xar)');
+  const be64 = o => ((bytes[o] << 24 | bytes[o + 1] << 16 | bytes[o + 2] << 8 | bytes[o + 3]) >>> 0) * 0x100000000 + ((bytes[o + 4] << 24 | bytes[o + 5] << 16 | bytes[o + 6] << 8 | bytes[o + 7]) >>> 0);
+  const head = bytes[4] << 8 | bytes[5], packed = be64(8), size = be64(16), heap = head + packed;
+  const toc = new TextDecoder().decode(inflateRaw(bytes.subarray(head + 2, head + packed), size));
+  // the <file> elements, nested as folders hold files: each its name and, for a file, its data's place in the heap
+  const files = [];
+  const walk = (xml, prefix) => {
+    const re = /<file\b[^>]*>/g;
+    let m;
+    while ((m = re.exec(xml))) {
+      let depth = 1, i = re.lastIndex;
+      const tag = /<(\/?)file\b[^>]*>/g;
+      tag.lastIndex = i;
+      let t;
+      while (depth && (t = tag.exec(xml))) depth += t[1] ? -1 : 1;
+      const body = xml.slice(i, t.index), own = body.replace(/<file\b[\s\S]*<\/file>/, '');
+      const name = (/<name>([^<]*)<\/name>/.exec(own) || [])[1] || '';
+      const data = /<data>([\s\S]*?)<\/data>/.exec(own);
+      const path = prefix ? prefix + '/' + name : name;
+      if (data) files.push({ path, offset: +(/<offset>(\d+)<\/offset>/.exec(data[1]) || [])[1], length: +(/<length>(\d+)<\/length>/.exec(data[1]) || [])[1],
+                             style: (/<encoding\b[^>]*style="([^"]*)"/.exec(data[1]) || [])[1] || '' });
+      walk(body, path);
+      re.lastIndex = t.index + t[0].length;
+    }
+  };
+  walk(toc, '');
+  const out = [];
+  for (const f of files.filter(f => /(^|\/)Payload$/.test(f.path))) {
+    if (f.style && f.style !== 'application/octet-stream') throw new Error(`a package payload encoded as ${f.style}`);
+    const gz = bytes.subarray(heap + f.offset, heap + f.offset + f.length);
+    if (gz[0] !== 0x1f || gz[1] !== 0x8b) throw new Error('a package payload not gzip (pbzx or bzip2), not read here');
+    // gzip: the flags' optional fields passed over to the DEFLATE stream; its length is the last four bytes
+    const flg = gz[3];
+    let p = 10;
+    if (flg & 4) p += 2 + (gz[p] | gz[p + 1] << 8);
+    if (flg & 8) while (gz[p++]);
+    if (flg & 16) while (gz[p++]);
+    if (flg & 2) p += 2;
+    const n = (gz[gz.length - 4] | gz[gz.length - 3] << 8 | gz[gz.length - 2] << 16 | gz[gz.length - 1] << 24) >>> 0;
+    const cpio = inflateRaw(gz.subarray(p, gz.length - 8), n);
+    const oct = (o, len) => parseInt(String.fromCharCode(...cpio.subarray(o, o + len)), 8);
+    for (let o = 0; o + 76 <= cpio.length;) {
+      if (String.fromCharCode(...cpio.subarray(o, o + 6)) !== '070707') throw new Error('a package payload\'s cpio is not in the portable form');
+      const mode = oct(o + 18, 6), nameLen = oct(o + 59, 6), fileLen = oct(o + 65, 11);
+      const name = new TextDecoder().decode(cpio.subarray(o + 76, o + 76 + nameLen - 1));
+      const at = o + 76 + nameLen;
+      o = at + fileLen;
+      if (name === 'TRAILER!!!') break;
+      const path = name.replace(/^\.\//, '');
+      if (!path || path === '.') continue;
+      const folder = (mode & 0o170000) === 0o040000, data = cpio.subarray(at, at + fileLen);
+      out.push({ path, name: path.replace(/^.*\//, ''), isFolder: folder, type: '', creator: '', dataLen: folder ? 0 : fileLen, rsrcLen: 0,
+                 read: which => (which === 'data' ? data : new Uint8Array(0)) });
+    }
+  }
+  return out;
+}

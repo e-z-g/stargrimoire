@@ -146,6 +146,13 @@ code { font: 12.5px/1.3 ui-monospace, Menlo, monospace; color: var(--text); }
 #panel .sub { color: var(--dim); margin-bottom: 10px; }
 #panel h3 { font-size: 12.5px; font-weight: 600; color: var(--dim); margin: 16px 0 5px; }
 #panel .desc { white-space: pre-wrap; margin: 10px 0; }
+#panel .storyChart { overflow-x: auto; margin: 6px 0 12px; }
+#panel .storyChart path { fill: none; stroke: var(--dim); stroke-width: 1.3; }
+#panel .storyChart path.back { stroke-dasharray: 4 3; }
+#panel .storyChart rect { fill: var(--raise); stroke-width: 1.5; }
+#panel .storyChart rect.yes { stroke: #9fe870; } #panel .storyChart rect.no { stroke: #e87070; }
+#panel .storyChart text { fill: var(--text); font-size: 11.5px; } #panel .storyChart text.step { fill: var(--dim); font-size: 10.5px; }
+#panel .storyChart a { cursor: pointer; }
 #panel figure.recPict { margin: 8px 0; }
 #panel figure.recPict .pict { max-width: 100%; display: block; border-radius: 4px; background: #080a0f; }
 #panel figure.recPict .nopict { color: var(--dim); padding: 20px 0; }
@@ -533,7 +540,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-sprites.js?v=944def6a"></script>
 <script src="js/nova-universe.js?v=421d5fc4"></script>
 <script src="js/nova-bits.js?v=76c791b3"></script>
-<script src="js/nova-missions.js?v=0657fe06"></script>
+<script src="js/nova-missions.js?v=46c3bb8d"></script>
 <script src="js/nova-subway.js?v=54bc4a4f"></script>
 <script src="js/nova-labels.js?v=7d212c2c"></script>
 <script src="js/nova-ships.js?v=44513e72"></script>
@@ -549,7 +556,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/page-compare.js?v=bfe95a5e"></script>
 <script src="js/page-plugin.js?v=5e944caf"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=1aa122a0"></script>
+<script src="js/page-map.js?v=7d2bbc52"></script>
 <script src="js/page-ships.js?v=e9f85c6e"></script>
 <script src="js/page-flight.js?v=e909f2bb"></script>
 <script src="js/page-battle.js?v=ef98bfeb"></script>

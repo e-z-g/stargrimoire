@@ -2267,7 +2267,32 @@ function storyPanel(key) {
     <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}, named in Ambrosia's notes</div>
     <div class="actions"><button data-bit-back>Back</button></div>
     <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● is whether a mission's AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. The places they are offered at and send you to are ringed on the map.</p>
+    ${storyChart(s)}
     <table class="kv">${rows}</table>`;
+}
+/* A storyline as a chart: each mission a box below those of the storyline
+   that lead to it (nova-missions.js, novaStoryLayout), green or red as its
+   AvailBits hold, each box a link to it; a line that loops back dashed. */
+function storyChart(s) {
+  if (s.missions.length < 2) return '';
+  const L = novaStoryLayout(s.missions), W = 150, H = 38, GX = 16, GY = 34;
+  const at = new Map(L.nodes.map(n => [n.id, n]));
+  const x = n => 8 + n.pos * (W + GX), y = n => 8 + n.layer * (H + GY);
+  const width = 16 + L.width * (W + GX) - GX, height = 16 + L.layers * (H + GY) - GY;
+  const short = t => (t.length > 22 ? t.slice(0, 21) + '…' : t);
+  const lines = L.edges.map(e => {
+    const a = at.get(e.from), b = at.get(e.to);
+    if (e.back) { const x1 = x(a) + W, y1 = y(a) + H / 2, x2 = x(b) + W, y2 = y(b) + H / 2, bend = x1 + 26; return `<path d="M${x1},${y1} C${bend},${y1} ${bend},${y2} ${x2},${y2}" class="back"/>`; }
+    const x1 = x(a) + W / 2, y1 = y(a) + H, x2 = x(b) + W / 2, y2 = y(b), mid = (y1 + y2) / 2;
+    return `<path d="M${x1},${y1} C${x1},${mid} ${x2},${mid} ${x2},${y2}"/>`;
+  }).join('');
+  const boxes = L.nodes.map(n => {
+    const m = L.byId.get(n.id), holds = missionHolds(m);
+    return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
+      `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
+  }).join('');
+  return `<h3>Chart</h3><p class="note">Each mission below those of this storyline that lead to it (one turns on a bit the other needs, or starts it); green where its AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
+    <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
 // The places the open storyline's missions are offered at, go to or return to.
 let STORY_PLACES = { key: null, set: null };

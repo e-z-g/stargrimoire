@@ -49,7 +49,8 @@
 //     gate's way; b147, followed from Sol's visibility, named after the
 //     mission that sets it, the map shown with it set and then without;
 //     the storylines listed, Take Polaris Home opened from b147's panel as
-//     Rebel I's step 22 and its last, and Rebel I's missions and places;
+//     Rebel I's step 22 and its last, and Rebel I's missions and places,
+//     and its chart, a box for each mission, a box opening its mission;
 //     Federation Resupply's test as the game reads it, its bare 467 passed over;
 //     the Light Blaster's panel from its address, with its picture, its
 //     outfitters folded and ringed, the list of outfits from it, and a
@@ -396,6 +397,9 @@ try {
               Object.assign(o, { mission: document.querySelector('#panel h2').textContent, step: /Rebel I, step 22/.test(t), last: /its last/.test(t), offer: /The offer/.test(t), follows: !!document.querySelector('#panel [data-mission="353"]') });
               document.querySelector('#panel [data-story]').click();
               Object.assign(o, { story: document.querySelector('#panel h2').textContent, rows: document.querySelectorAll('#panel table.kv tr').length, ringed: (storyPlaces() || new Set()).size });
+              const boxes = document.querySelectorAll('#panel .storyChart a[data-mission]');
+              o.chart = boxes.length;
+              if (boxes[0]) { boxes[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); o.chartTo = VIEW.sel && VIEW.sel.kind === 'mission' ? VIEW.sel.id : null; o.chartFirst = +boxes[0].dataset.mission; VIEW.sel = VIEW.sel.back; renderPanel(); }
               draw();
             }
             // Federation Resupply's test holds a bare 467, which the game passes over
@@ -707,6 +711,7 @@ try {
       if (!lb || lb.hash !== '#library=table.ship' || lb.rows < 200 || lb.top !== lb.most || !/description of .*dësc \d+ \+ \d+/.test(lb.role || '') || !(lb.pict > 0) || !(lb.snd > 0))
         fail(`${dev.name}: the Library: ${JSON.stringify(lb)}`);
       else console.log(`${dev.name}: the Library's ${lb.rows} ships sorted by Holds, ${lb.role}, ${lb.pict} pictures drawn, a compressed sound of ${lb.snd} frames`);
+      if (sy.chart !== sy.rows || sy.chartTo !== sy.chartFirst) fail(`${dev.name}: Rebel I's chart: ${sy.chart} boxes for ${sy.rows} missions, a box opening ${sy.chartTo}`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       const nb = o.nebula, op = o.options;

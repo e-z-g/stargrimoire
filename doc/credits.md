@@ -42,6 +42,11 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   put greedily and then moved while that helps (Christensen, Marks and
   Shieber, "An empirical study of algorithms for point-feature label
   placement", ACM TOG, 1995).
+- **Storyline charts**, from a paper, no code taken: rows by the longest
+  path, loops cut, and each row ordered by its neighbours' mean place
+  (Sugiyama, Tagawa and Toda, "Methods for visual understanding of
+  hierarchical system structures", IEEE Transactions on Systems, Man, and
+  Cybernetics, 1981).
 - **turbo** (Anton Mikhailov, Google, 2019), the colour scale for jumps,
   in the polynomial fit `d3-scale-chromatic` gives it (ISC).
 - **The maintainer**: the release files, from the Macintosh Garden, and

@@ -87,4 +87,25 @@ for (const v of Object.keys(RELEASES)) {
   if (agree < AGREE) fail(`the wiki: ${agree} of ${tried} bit names agree with the notes, fewer than the ${AGREE} that did`);
   console.log(`the wiki: ${agree} of ${tried} bit names that give a storyline's step agree with the notes; the others:\n  ${differ.join('\n  ')}`);
 }
+// The storyline charts (novaStoryLayout): every mission placed once, no two in one place, every line that is
+// not marked back going down a row, and a line marked back only where following lines alone would loop.
+for (const v of ['1.0.10', '1.1.1']) {
+  if (!haveRelease(v)) continue;
+  const data = S.novaMissions(openRelease(S, v));
+  let charts = 0, backs = 0;
+  for (const st of data.stories.values()) {
+    if (st.missions.length < 2) continue;
+    const L = S.novaStoryLayout(st.missions);
+    charts++;
+    const at = new Map(L.nodes.map(n => [n.id, n])), spots = new Set(L.nodes.map(n => n.layer + ',' + n.pos));
+    if (at.size !== st.missions.length || spots.size !== L.nodes.length) fail(`${v} ${st.name}: missions placed ${at.size} of ${st.missions.length}, ${spots.size} places for ${L.nodes.length}`);
+    for (const e of L.edges) {
+      if (e.back) { backs++; continue; }
+      if (!(at.get(e.to).layer > at.get(e.from).layer)) fail(`${v} ${st.name}: a line from ${e.from} to ${e.to} that does not go down`);
+    }
+    // the forward lines alone have no loop: a mission's row is above all it leads to, which the test above holds
+  }
+  console.log(`${v}: ${charts} storyline charts, ${backs} lines going back up a loop`);
+}
+
 process.exit(fails ? 1 : 0);

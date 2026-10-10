@@ -151,3 +151,57 @@ function novaMissions(game) {
   }
   return { byId, stories };
 }
+
+/* A storyline's missions laid out as a chart: { nodes: [{ id, layer, pos }],
+   edges: [{ from, to, back }], width, layers }. A mission is a row below
+   every mission of the storyline that leads to it (the longest such path
+   from one nothing leads to; a loop is cut where it closes, and the edge
+   that closes it is marked back); each row is ordered by the mean place
+   of its neighbours, a few sweeps down and up, to keep lines short
+   (Sugiyama, Tagawa and Toda's layered drawing, doc/credits.md). */
+function novaStoryLayout(missions) {
+  const ids = missions.map(m => m.id), inS = new Set(ids), byId = new Map(missions.map(m => [m.id, m]));
+  const edges = [];
+  for (const m of missions) for (const t of m.next) if (inS.has(t) && t !== m.id) edges.push({ from: m.id, to: t, back: false });
+  // cut loops: a depth-first walk in step order marks the edges that return to the path
+  const state = new Map(), out = new Map(ids.map(id => [id, []]));
+  for (const e of edges) out.get(e.from).push(e);
+  const walk = id => {
+    state.set(id, 1);
+    for (const e of out.get(id)) {
+      const s = state.get(e.to);
+      if (s === 1) e.back = true; else if (!s) walk(e.to);
+    }
+    state.set(id, 2);
+  };
+  for (const id of ids) if (!state.get(id)) walk(id);
+  // rows: the longest path from a mission nothing leads to, over the edges that go forward
+  const layer = new Map(), into = new Map(ids.map(id => [id, []]));
+  for (const e of edges) if (!e.back) into.get(e.to).push(e.from);
+  const rowOf = id => {
+    if (layer.has(id)) return layer.get(id);
+    layer.set(id, 0);
+    const v = into.get(id).length ? 1 + Math.max(...into.get(id).map(rowOf)) : 0;
+    layer.set(id, v);
+    return v;
+  };
+  ids.forEach(rowOf);
+  const rows = [];
+  for (const id of ids) (rows[layer.get(id)] = rows[layer.get(id)] || []).push(id);
+  const pos = new Map();
+  const place = () => rows.forEach(r => r.forEach((id, i) => pos.set(id, i)));
+  place();
+  const nb = (id, up) => edges.filter(e => !e.back && (up ? e.to === id : e.from === id)).map(e => (up ? e.from : e.to));
+  for (let sweep = 0; sweep < 4; sweep++) {
+    const down = sweep % 2 === 0;
+    const order = down ? rows.map((r, i) => i).slice(1) : rows.map((r, i) => i).reverse().slice(1);
+    for (const i of order) {
+      const r = rows[i];
+      if (!r) continue;
+      const bary = id => { const n = nb(id, down); return n.length ? n.reduce((a, x) => a + pos.get(x), 0) / n.length : pos.get(id); };
+      r.sort((a, b) => bary(a) - bary(b) || pos.get(a) - pos.get(b));
+      r.forEach((id, k) => pos.set(id, k));
+    }
+  }
+  return { nodes: ids.map(id => ({ id, layer: layer.get(id), pos: pos.get(id) })), edges, width: Math.max(1, ...rows.map(r => (r ? r.length : 0))), layers: rows.length, byId };
+}

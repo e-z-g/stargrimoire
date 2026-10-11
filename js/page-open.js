@@ -290,6 +290,16 @@ function wireOpening() {
   creditsBtn.addEventListener('click', e => { e.stopPropagation(); creditsShow(credits.hidden); });
   document.addEventListener('click', e => { if (!credits.hidden && !credits.contains(e.target)) creditsShow(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !credits.hidden) creditsShow(false); });
+  // On a phone the file buttons and Credits sit under More, which any choice or a tap elsewhere shuts.
+  const bar = document.getElementById('bar'), more = document.getElementById('moreBtn'), menu = document.getElementById('fileMenu');
+  const moreShow = on => {
+    bar.classList.toggle('more', on); more.setAttribute('aria-expanded', String(on));
+    if (on) menu.style.top = Math.round(bar.getBoundingClientRect().bottom + 4) + 'px';
+  };
+  more.addEventListener('click', e => { e.stopPropagation(); moreShow(!bar.classList.contains('more')); });
+  menu.addEventListener('click', () => moreShow(false));
+  document.addEventListener('click', e => { if (bar.classList.contains('more') && !menu.contains(e.target)) moreShow(false); });
+  document.getElementById('creditsItem').addEventListener('click', e => { e.stopPropagation(); moreShow(false); creditsShow(credits.hidden); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
                      () => setStatus('Nothing was remembered to forget.'));
@@ -340,4 +350,27 @@ async function fetchAndOpen(urls) {
     }
   }
   openGameFiles(picked);
+}
+
+// On a phone the map, or the battle, sits above its panel, and dragging the grip between them
+// moves the line, which the page remembers for the next visit.
+function wireGrip(grip, box, key) {
+  const MIN = 0.15, MAX = 0.85;
+  let id = null, f = null;
+  const set = v => box.style.setProperty('--split', (v * 100).toFixed(1) + '%');
+  try { const v = parseFloat(localStorage.getItem(key)); if (v >= MIN && v <= MAX) set(v); } catch (e) { /* no storage */ }
+  grip.addEventListener('pointerdown', e => { id = e.pointerId; e.preventDefault(); try { grip.setPointerCapture(id); } catch (e2) { /* not a live pointer */ } });
+  grip.addEventListener('pointermove', e => {
+    if (e.pointerId !== id) return;
+    const r = box.getBoundingClientRect();
+    f = Math.min(MAX, Math.max(MIN, (e.clientY - r.top) / r.height));
+    set(f);
+  });
+  const up = e => {
+    if (e.pointerId !== id) return;
+    id = null;
+    if (f != null) try { localStorage.setItem(key, String(f)); } catch (e2) { /* no storage */ }
+  };
+  grip.addEventListener('pointerup', up);
+  grip.addEventListener('pointercancel', up);
 }

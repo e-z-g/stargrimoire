@@ -687,6 +687,7 @@ function wireBattle() {
   };
   cv.addEventListener('pointerup', up);
   cv.addEventListener('pointercancel', up);
-  window.addEventListener('resize', () => { if (BATTLE.on) battleResize(); });
+  new ResizeObserver(() => { if (BATTLE.on) battleResize(); }).observe($('battleStage'));
+  wireGrip($('battleGrip'), $('battle'), 'stargrimoire-split-battle');
 }
 wireBattle();

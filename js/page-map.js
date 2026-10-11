@@ -2868,6 +2868,14 @@ function wireTools() {
   $('bitsIn').oninput = () => { applyShowMode(); if (VIEW.mode === 'planet') renderPlanet(); };
   // Map options: the switches under Subway map make one kind of subway map between them.
   const opts = $('opts'), btn = $('optsBtn');
+  // On a phone which systems are shown goes at the top of Map options, leaving the tools one row.
+  const phone = matchMedia('(max-width: 820px)');
+  const showHome = () => {
+    const sel = $('showSel'), bits = $('bitsIn');
+    if (phone.matches) { opts.prepend(sel, bits); } else { $('tools').insertBefore(sel, btn); $('tools').insertBefore(bits, btn); }
+  };
+  showHome();
+  phone.addEventListener('change', showHome);
   const place = () => { const t = $('tools'); opts.style.top = (t.offsetTop + t.offsetHeight + 6) + 'px'; };
   btn.onclick = () => { opts.hidden = !opts.hidden; btn.setAttribute('aria-expanded', String(!opts.hidden)); if (!opts.hidden) place(); };
   document.addEventListener('pointerdown', e => { if (!opts.hidden && !opts.contains(e.target) && e.target !== btn) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
@@ -3017,6 +3025,7 @@ function wireTools() {
     if (U && !libFromHash() && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
   });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
+  wireGrip($('appGrip'), $('app'), 'stargrimoire-split-map');
 }
 
 wireOpening();

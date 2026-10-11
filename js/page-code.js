@@ -75,7 +75,8 @@ function codeNum(f, text) {
 }
 
 /* A routine by the name Mac 1.1.1 gives it, as a link into its code when
-   the open program carries that name, else the name alone. */
+   the open program has it (in 1.0.x, matched by js/nova-routines.js), else
+   the name alone. */
 function codeRoutine(name) {
   const p = program(), r = p ? novaRoutineNamed(p, name) : null;
   return r ? `<a class="codeNum" data-code="${hex(r.start)}" data-at="${hex(r.start)}" title="${esc(name)} in the program, at ${hex(r.start)}">${esc(name)}</a>` : esc(name);
@@ -94,7 +95,7 @@ function codeRules(p) {
   for (const s of sites) { if (!by.has(s.routine)) by.set(s.routine, []); by.get(s.routine).push(s); }
   const rows = [...by].map(([name, list]) => `<tr><td><a data-code="${hex(list[0].start)}">${esc(name)}</a></td><td>${list.map(s => `${codeNum({ routine: s.start, addr: s.addr, value: s.value })} <small>${srcLink(s.file, s.line)}</small>`).join(', ')}</td></tr>`);
   return `<h3>The rules the site flies by</h3>
-    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites: a number opens the instruction that holds it, a line the site's code that uses it.</p>
+    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction that holds it, a line the site's code that uses it.</p>
     <table class="kv codeRules">${rows.join('')}</table>`;
 }
 

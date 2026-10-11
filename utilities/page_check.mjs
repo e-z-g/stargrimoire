@@ -483,8 +483,9 @@ try {
             o.found = { outfit: await find('light blaster t', 'outfit'), bit: await find('b147', 'turned on when'), rank: await find('commander', 'rank') };
             history.replaceState(null, '', '#galaxy'); applyHash(); await wait(100);
             // a figure read from the program: the outfit's picture and description bases, each a link to its instruction
+            // (the field notes' routines link too, through js/nova-routines.js, and are not figures)
             history.replaceState(null, '', '#galaxy&rec=outf.128'); applyHash(); await wait(200);
-            const nums = [...document.querySelectorAll('#panel a.codeNum')];
+            const nums = [...document.querySelectorAll('#panel a.codeNum')].filter(a => !a.closest('table.fields'));
             o.nums = nums.map(a => a.textContent);
             if (nums[0]) {
               nums[0].click(); await wait(300);
@@ -848,7 +849,19 @@ try {
           const galaxy = document.getElementById('panel').textContent;
           VIEW.sel = { kind: 'system', id: 288 }; renderPanel();
           const kipa = [...document.querySelectorAll('#panel table.compare tr')].map(tr => tr.textContent.trim());
-          return { count: COMPARE.cmp.count, listed: /Compared with EV_Nova_1\.0\.2\.sit/.test(galaxy), kipa, ring: compareSystem(288) };
+          // 1.0.10's program keeps no names: the field notes' routines and the rules reach it through js/nova-routines.js
+          const prog = program(), div = document.createElement('div');
+          document.body.appendChild(div);
+          div.innerHTML = fieldsTable('spöb', U.stellars.get(128));
+          const links = [...div.querySelectorAll('.fieldCode a.codeNum')], code = { kind: prog && prog.kind, noteLinks: links.length };
+          if (links[0]) { code.clicked = links[0].textContent; links[0].click(); code.title = (document.querySelector('#codeView h2') || {}).textContent; code.hash = location.hash; }
+          div.remove();
+          codeShow(null, null);
+          code.rules = document.querySelectorAll('#codeView .codeRules tr').length;
+          const s = novaRuleSites(prog).find(x => x.routine === 'HyperSpawnFleet' && x.value === 1.165);
+          if (s) { codeShow(s.start, s.addr); const at = document.querySelector('#codeView tr.at'); code.ruleAt = at ? at.innerText : null; }
+          codeLeave(true);
+          return { count: COMPARE.cmp.count, listed: /Compared with EV_Nova_1\.0\.2\.sit/.test(galaxy), kipa, ring: compareSystem(288), code };
         })()`);
         return out;
       } });
@@ -858,6 +871,10 @@ try {
     if (!o.listed) fail('the comparison: the galaxy\'s panel does not list what changed');
     if (o.ring !== 'changed') fail(`the comparison: Kipa is ${o.ring}, not ringed as changed`);
     if (!(o.kipa || []).some(t => /^Govt\s*137\s*170$/.test(t))) fail('the comparison: Kipa\'s panel does not give Govt 137 then 170: ' + JSON.stringify(o.kipa));
+    const c = o.code || {};
+    if (c.kind !== 'pef' || !(c.noteLinks > 5) || !c.clicked || c.title !== c.clicked || !/^#code=0x[0-9a-f]+/.test(c.hash || '') || !(c.rules > 50) || !/the site uses 1\.165: nova-flight\.js \d+/.test(c.ruleAt || ''))
+      fail('1.0.10\'s program, by 1.1.1\'s names: ' + JSON.stringify(c));
+    else console.log(`1.0.10's program, by 1.1.1's names: a stellar's field notes cite ${c.noteLinks} routines, and ${c.clicked} opens at ${c.hash}; ${c.rules} routines in the rules, and HyperSpawnFleet's line ${c.ruleAt}`);
     console.log(`compared with 1.0.2: ${o.count} records differ; Kipa ${o.ring}, ${JSON.stringify(o.kipa)}`);
   }
 

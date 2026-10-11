@@ -97,7 +97,10 @@ function novaProgram(bytes, rsrc) {
     const r = routines[hi];
     return r && addr < r.end ? r : null;
   };
-  const nameOf = r => r.name || 'routine ' + hex(r.start);
+  // the routines js/nova-routines.js found in this release, by the names Mac 1.1.1 gives them (r.as)
+  const release = typeof NOVA_ROUTINES !== 'undefined' ? NOVA_ROUTINES.releases.findIndex(([, n]) => n === code.length) : -1;
+  if (release >= 0) for (const [n, at] of Object.entries(NOVA_ROUTINES.at)) { const r = at[release] ? byStart.get(at[release]) : null; if (r && !r.glue && !r.name) r.as = n; }
+  const nameOf = r => r.name || r.as || 'routine ' + hex(r.start);
 
   // a string at a data offset: C, else Pascal; null for anything else
   const textAt = off => {
@@ -115,14 +118,24 @@ function novaProgram(bytes, rsrc) {
   const printable4 = v => [24, 16, 8, 0].every(k => { const c = (v >>> k) & 255; return c >= 0x20 && c !== 0x7f && c !== 0xff; });
   const four = v => decodeMacRoman(new Uint8Array([v >>> 24, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]));
 
+  // a floating-point constant: CodeWarrior keeps one in the TOC itself, or in the data a TOC word points to
+  const dataView = new DataView(data.buffer, data.byteOffset, data.length);
+  const floatAt = (off, double) => (off >= 0 && off + (double ? 8 : 4) <= data.length ? (double ? dataView.getFloat64(off) : dataView.getFloat32(off)) : null);
+
   // a routine's instructions, with what each names
   const opsCache = new Map();
   function ops(r) {
     if (opsCache.has(r.start)) return opsCache.get(r.start);
-    const out = [], hiOf = new Map();
+    const out = [], hiOf = new Map(), dataOf = new Map();
     for (let off = r.off; off < r.off + r.len; off += 4) {
       const w = word(off >> 2), op = ppcDecode(w);
       const o = { addr: A(off), word: w, op, note: null, target: null };
+      if (op && (op.mn === 'lfs' || op.mn === 'lfd') && (op.ra === 2 ? toc && toc.section === dataIdx : dataOf.has(op.ra))) {
+        const at = (op.ra === 2 ? toc.offset : dataOf.get(op.ra)) + op.d, x = floatAt(at, op.mn === 'lfd');
+        if (x !== null) { o.value = x; o.data = at; o.note = String(+x.toPrecision(7)); }
+      } else if (op && op.op === 18 && (w & 1)) for (const k of [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) dataOf.delete(k);
+      else if (op && op.rd !== undefined) dataOf.delete(op.rd);
+      else if (op && op.rt !== undefined && /^l(?!f)/.test(op.mn)) dataOf.delete(op.rt);
       if (op) {
         if (op.op === 18 && (w & 1)) {
           let d = w & 0x03FFFFFC; if (d & 0x02000000) d -= 0x04000000;
@@ -135,7 +148,7 @@ function novaProgram(bytes, rsrc) {
             // a transition vector in the data: a pointer to a routine
             const tv = dataRel && dataRel.get(p.offset), t = tv && tv.section === codeIdx ? byStart.get(A(u32be(data, p.offset))) : null;
             if (t) { o.target = t.start; o.note = 'pointer to ' + nameOf(t); o.pointer = true; }
-            else { const s = textAt(p.offset); o.note = s !== null ? JSON.stringify(s) : 'data ' + hex(p.offset); o.data = p.offset; o.text = s; }
+            else { const s = textAt(p.offset); o.note = s !== null ? JSON.stringify(s) : 'data ' + hex(p.offset); o.data = p.offset; o.text = s; dataOf.set(op.rt, p.offset); }
           }
           else if (p && p.section === codeIdx) { const t = byStart.get(A(p.offset)); o.note = t ? nameOf(t) : 'code ' + hex(A(p.offset)); if (t) o.target = t.start; }
         } else if (op.mn === 'lis') hiOf.set(op.rd, (op.imm & 0xFFFF) << 16);
@@ -318,9 +331,14 @@ function novaMachOProgram(file) {
 
 function hex(v) { return '0x' + (v >>> 0).toString(16); }
 
-/* A routine by its name, where the program keeps names (1.1.1), or null. */
+/* A routine by the name Mac 1.1.1 gives it: from the program's own names
+   where it keeps them (1.1.1), else where js/nova-routines.js found the
+   routine of that name in this release (1.0.2 to 1.0.10); or null. */
 function novaRoutineNamed(prog, name) {
-  if (!prog.byName) { prog.byName = new Map(); for (const r of prog.routines) if (r.name && !r.glue && !prog.byName.has(r.name)) prog.byName.set(r.name, r); }
+  if (!prog.byName) {
+    prog.byName = new Map();
+    for (const r of prog.routines) if (!r.glue && (r.name || r.as) && !prog.byName.has(r.name || r.as)) prog.byName.set(r.name || r.as, r);
+  }
   return prog.byName.get(name) || null;
 }
 
@@ -342,7 +360,8 @@ function novaSearchProgram(prog, q, limit = 200) {
   const out = [];
   for (const r of prog.routines) {
     if (r.glue) continue;
-    if (r.name && r.name.toLowerCase().includes(want)) { out.push({ routine: r, addr: r.start, note: r.name }); if (out.length >= limit) break; continue; }
+    const name = r.name || r.as;
+    if (name && name.toLowerCase().includes(want)) { out.push({ routine: r, addr: r.start, note: name }); if (out.length >= limit) break; continue; }
     for (const o of prog.ops(r)) {
       const hit = (o.note && o.note.toLowerCase().includes(want)) || (num !== null && o.op && (o.op.imm === num || o.value === num));
       if (hit) { out.push({ routine: r, addr: o.addr, note: o.note || o.op.text }); break; }
@@ -387,6 +406,7 @@ function novaNamedRoutines(prog, game) {
   for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `asks GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
   const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
   for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
+  for (const r of prog.routines) if (r.as && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.as, why: `the routine Mac 1.1.1 names ${r.as}: matched to it by the system calls, strings, numbers and record fields both use, and by their callers and callees` });
   prog.named = out.filter(n => n.routine);
   return prog.named;
 }
@@ -929,10 +949,11 @@ function novaProgramUses(prog, game) {
 /* ---- the rules the site's flying and battles use ---------------------------
 
    NOVA_RULES (js/nova-rules.js) lists each number the flying and battle
-   code uses that the routine its comments cite holds too. In a program
-   that keeps names (1.1.1) each is found there: the first instruction of
-   the routine holding it (novaHeldValues). Found, not read: the number is
-   the site's, and where it is in the routine shows it is the program's.
+   code uses that the routine its comments cite holds too. Each is found
+   there, in 1.1.1 by the routine's name and in 1.0.x where
+   js/nova-routines.js found that routine: the first instruction of the
+   routine holding it (novaHeldValues). Found, not read: the number is the
+   site's, and where it is in the routine shows it is the program's.
    novaRuleSites(prog) -> [{ file, line, value, routine, addr }]. */
 function novaHeldValues(prog, name) {
   if (!prog.held) prog.held = new Map();
@@ -952,7 +973,7 @@ function novaHeldValues(prog, name) {
 }
 function novaRuleSites(prog) {
   if (prog.ruleSites) return prog.ruleSites;
-  prog.ruleSites = prog.kind !== 'macho' || typeof NOVA_RULES === 'undefined' ? [] : NOVA_RULES.map(([file, line, value, routine]) => {
+  prog.ruleSites = typeof NOVA_RULES === 'undefined' ? [] : NOVA_RULES.map(([file, line, value, routine]) => {
     const r = novaRoutineNamed(prog, routine), addr = r ? novaHeldValues(prog, routine).get(Math.fround(value)) : undefined;
     return addr === undefined ? null : { file, line, value, routine, start: r.start, addr };
   }).filter(Boolean);

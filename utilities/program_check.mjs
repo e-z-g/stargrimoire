@@ -27,12 +27,16 @@
 // it, and a number the routine does not hold not found. What the program loads
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
+// js/nova-routines.js, where 1.1.1's routines are in 1.0.x, must be what
+// utilities/match.mjs gives, and is held to what the matcher does not
+// compare: the figures' routines and the decimal rules, in each release.
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { site, REF } from './load.mjs';
+import { site, ROOT, REF } from './load.mjs';
 import { scanRules } from './rules.mjs';
+import { routinePlaces, citedRoutines, routinesFile } from './match.mjs';
 
 const S = site();
 let fails = 0;
@@ -176,7 +180,52 @@ else {
       const again = S.novaFigure(S.novaProgram(broken, null), name, null);
       if (again && again.value === got[name].value) fail(`1.1.1: ${name} read the same from a changed word`);
     }
+    routinesCheck(prog);
   }
+}
+
+// 1.1.1's names in 1.0.x (js/nova-routines.js): the table the matcher gives,
+// each address a routine's start; held out from the matching, every figure
+// whose 1.1.1 routine is in the table found in that routine in each release,
+// and every decimal rule in its routine (decimals are not among what the
+// matcher compares); and a table moved one routine on finding few.
+function routinesCheck(mac) {
+  const pefs = [['1.0.10', 'game/EV_Nova_1.0.10.sit'], ['1.0.8', 'game/EV_Nova_1.0.8.sit'], ['1.0.2', 'game/EV_Nova_1.0.2.sit']]
+    .filter(([, rel]) => fs.existsSync(path.join(REF, rel)))
+    .map(([v, rel]) => { const src = S.novaArchiveProgram(new Uint8Array(fs.readFileSync(path.join(REF, rel)))); return [v, S.novaProgram(src.read(), src.readRsrc())]; });
+  if (pefs.length < 3) { console.log('SKIP js/nova-routines.js: a 1.0.x release is not in reference/'); return; }
+  const t0 = Date.now(), names = citedRoutines(S), releases = routinePlaces(S, mac, pefs, names);
+  if (routinesFile(releases) !== fs.readFileSync(path.join(ROOT, 'js/nova-routines.js'), 'utf8')) fail('js/nova-routines.js is not what the matcher gives; run node utilities/routines_build.mjs');
+  const said = [];
+  for (const [v, p] of pefs) {
+    const k = S.NOVA_ROUTINES.releases.findIndex(([, n]) => n === p.code.length);
+    if (k < 0 || S.NOVA_ROUTINES.releases[k][0] !== v) { fail(`${v}: not known by its code's length in js/nova-routines.js`); continue; }
+    let bad = 0;
+    for (const [n, at] of Object.entries(S.NOVA_ROUTINES.at)) { const r = at[k] && p.byStart.get(at[k]); if (at[k] && (!r || r.glue) && bad++ < 5) fail(`${v}: ${n} at ${S.hex(at[k])}, where no routine starts`); }
+    let figs = 0;
+    for (const f of Object.keys(S.NOVA_FIGURES)) {
+      const fa = S.novaFigure(mac, f, null), fb = S.novaFigure(p, f, null);
+      if (!fa || !fb) continue;
+      const name = mac.nameOf(mac.byStart.get(fa.routine)), r = S.novaRoutineNamed(p, name);
+      if (!r) continue;
+      figs++;
+      if (r.start !== fb.routine) fail(`${v}: ${name} is at ${S.hex(r.start)} by js/nova-routines.js, but ${f} is read from ${S.hex(fb.routine)}`);
+    }
+    const decimals = S.NOVA_RULES.filter(([, , x, n]) => !Number.isInteger(x) && S.novaRoutineNamed(p, n));
+    const missed = decimals.filter(([, , x, n]) => !S.novaHeldValues(p, n).has(Math.fround(x)));
+    for (const [file, line, x, n] of missed.slice(0, 5)) fail(`${v}: the rule ${x} (${file} ${line}) not in ${n}, at ${S.hex(S.novaRoutineNamed(p, n).start)} by js/nova-routines.js`);
+    said.push(`${v} ${releases.find(([w]) => w === v)[2].size} routines, ${figs} figures where read, ${decimals.length - missed.length} of ${decimals.length} decimal rules, ${S.novaRuleSites(p).length} rules found`);
+    if (v === '1.0.10') {
+      // a table moved one routine on: the decimals must not survive it
+      const rs = p.routines.filter(r => !r.glue), next = new Map(rs.map((r, i) => [r.start, rs[i + 1] ? rs[i + 1].start : r.start]));
+      const held = n => { const r = S.novaRoutineNamed(p, n); const m = new Set(); for (const o of p.ops(p.byStart.get(next.get(r.start)))) if (typeof o.value === 'number') m.add(Math.fround(o.value)); return m; };
+      const kept = decimals.filter(([, , x, n]) => held(n).has(Math.fround(x))).length;
+      // neighbours often share a constant, so some survive
+      if (kept > decimals.length / 4) fail(`1.0.10: a table moved one routine on still finds ${kept} of ${decimals.length} decimal rules`);
+      said.push(`moved one routine on, ${kept}`);
+    }
+  }
+  console.log(`js/nova-routines.js, as the matcher gives it in ${((Date.now() - t0) / 1000).toFixed(1)} s: ${said.join('; ')}`);
 }
 // A figure's word as LLVM reads it (a list's words are comparisons, each holding
 // its number or one less; a rule's word is not a number), its words for the

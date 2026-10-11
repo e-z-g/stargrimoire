@@ -13,7 +13,9 @@
    program's own symbols.
 
    The plug-in editor shows a note beside its field (page-plugin.js), and
-   under it, where there is one, what the record's own value means.
+   under it, where there is one, what the record's own value means; until
+   the notes are asked for in full, the few words of NOVA_FIELD_SHORT
+   stand for each.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js and
    nova-missions.js. */
@@ -1635,6 +1637,127 @@ function novaWeightedRead(game, type, ids, weights, lo, hi, sharesOnly) {
 // Outfits and counts ("oütf 130, Afterburner ×1"), as a ship comes with them.
 const novaItemsRead = (game, ids, counts) => novaListRead(ids.map((id, i) => id >= 128 && id <= 639 && counts[i] > 0 ? `${novaRefText(game, 'oütf', id)} ×${counts[i]}` : null));
 
+/* A few words for each note, shown while the notes are not shown in full. */
+const NOVA_FIELD_SHORT = {
+  'nëbu': { XPos: 'Map rectangle, left edge', YPos: 'Map rectangle, top edge', XSize: 'Map rectangle, width', YSize: 'Map rectangle, height', ActiveOn: 'Test: when it is there', OnExplore: 'Bits set on first arrival' },
+  'spïn': { SpritesID: 'Its frames: rlë or PICT', MasksID: 'PICT mask for the frames', xSize: 'Frame width', ySize: 'Frame height', xTiles: 'Frames across', yTiles: 'Frames down' },
+  'dësc': { Description: 'The text shown' },
+  'bööm': { FrameAdvance: 'How fast it plays', SoundIndex: 'Its sound, snd 300 + n', GraphicIndex: 'Its picture, spïn 400 + n' },
+  'röid': { Strength: 'Damage before it breaks', SpinRate: 'How fast it turns', YieldType: 'What it leaves when broken', YieldQty: 'How many boxes it leaves', PartCount: 'Particles when it breaks', PartColor: 'Particle colour', FragType1: 'One fragment kind', FragType2: 'Other fragment kind', FragCount: 'How many fragments', ExplodType: 'Explosion when it breaks', Mass: 'How hard it is to push' },
+  'shän': {
+    BaseTransp: 'Base picture transparency', WeapDecay: 'Weapon flash fade', BlinkMode: 'How its lights blink', BlinkA: 'Blink setting A', BlinkB: 'Blink setting B', BlinkC: 'Blink setting C', BlinkD: 'Blink setting D',
+    BaseImageID: 'Base picture sprite', BaseMaskID: 'Base picture mask', BaseXSize: 'Base frame width', BaseYSize: 'Base frame height',
+    AltImageID: 'Alternating picture sprite', AltMaskID: 'Alternating picture mask', AltXSize: 'Alternating frame width', AltYSize: 'Alternating frame height',
+    GlowImageID: 'Engine glow sprite', GlowMaskID: 'Engine glow mask', GlowXSize: 'Glow frame width', GlowYSize: 'Glow frame height',
+    LightImageID: 'Lights sprite', LightMaskID: 'Lights mask', LightXSize: 'Lights frame width', LightYSize: 'Lights frame height',
+    WeapImageID: 'Weapon flash sprite', WeapMaskID: 'Weapon flash mask', WeapXSize: 'Weapon flash frame width', WeapYSize: 'Weapon flash frame height',
+    ShieldImgID: 'Shield flash sprite', ShieldMaskID: 'Shield flash mask', ShieldXSize: 'Shield flash frame width', ShieldYSize: 'Shield flash frame height',
+    BaseSetCount: 'Sets of base frames', AltSetCount: 'Sets of alternating frames', Flags: 'Banking, folding, key, cycling', AnimDelay: 'Steps between sets', FramesPer: 'Frames to a full turn',
+    GunPosX: 'Gun exit points, across', GunPosY: 'Gun exit points, along', GunPosZ: 'Gun exit heights',
+    TurretPosX: 'Turret exit points, across', TurretPosY: 'Turret exit points, along', TurretPosZ: 'Turret exit heights',
+    GuidedPosX: 'Guided exit points, across', GuidedPosY: 'Guided exit points, along', GuidedPosZ: 'Guided exit heights',
+    BeamPosX: 'Beam exit points, across', BeamPosY: 'Beam exit points, along', BeamPosZ: 'Beam exit heights',
+    UpCompressX: 'Exit point squash, top, across', UpCompressY: 'Exit point squash, top, up-down', DnCompressX: 'Exit point squash, bottom, across', DnCompressY: 'Exit point squash, bottom, up-down',
+  },
+  'chär': {
+    startCash: 'Starting credits', startShipType: 'First ship', startSystem: 'Possible starting systems', startGovt: 'Governments with a starting record', startStatus: 'Starting record with each',
+    startKills: 'Starting combat rating', introPictID: 'Opening pictures', introPictDelay: 'Seconds each picture shows', introTextID: 'Opening text', onStart: 'Bits set at the start',
+    Flags: 'Offered first', startDay: 'Starting day', startMonth: 'Starting month', startYear: 'Starting year', DatePrefix: 'Words before the date', DateSuffix: 'Words after the date',
+  },
+  'jünk': {
+    BoughtAt: 'Where it sells dear', SoldAt: 'Where it sells cheap', BasePrice: 'Price before the stellar\'s factor', BuyOn: 'Test: traded where bought', SellOn: 'Test: traded where sold',
+    Flags: 'Grows or shrinks in the hold', ScanMask: 'Who counts it as smuggling', LCName: 'Name in a sentence', Abbrev: 'Short name on the status bar',
+  },
+  'öops': { Commodity: 'Commodity it changes', PriceDelta: 'Added to the price', Freq: 'Daily chance it starts', ActivateOn: 'Test: when it can start', Stellar: 'Where it strikes', Duration: 'Days it lasts' },
+  'düde': { AIType: 'How its ships fly', Govt: 'Its ships\' government', ShipTypes: 'Classes its ships come from', Probs: 'Weight of each class', Booty: 'What boarding finds', InfoTypes: 'What its ships say when hailed' },
+  'flët': {
+    LinkSyst: 'Where it is met', ActivateOn: 'Test: when it is met', LeadShipType: 'Lead ship class', EscortType: 'Escort classes', Min: 'Fewest of each escort', Max: 'Most of each escort',
+    Govt: 'Government of its ships', Quote: 'Message when it jumps in', Flags: 'Traders start with cargo',
+  },
+  'sÿst': {
+    xPos: 'Place on the map, across', yPos: 'Place on the map, down', Con: 'Linked systems', Nav: 'Its stellars', Govt: 'Its government', BkgndColor: 'Colour of space',
+    Visibility: 'Test: when it is there', Interference: 'Radar jamming chance', Murk: 'How murky', Asteroids: 'Asteroids kept about', AstTypes: 'Asteroid kinds', DudeTypes: 'Düdes its ships come from',
+    Probs: 'Weight of each düde', AvgShips: 'Ships placed on arrival', Person: 'Persons who may be here', PersonProb: 'Chance each person comes', Message: 'Arrival message',
+    ReinfFleet: 'Fleet called for help', ReinfTime: 'How long it takes to come', ReinfIntrval: 'Days before it can come again',
+  },
+  'shïp': {
+    Holds: 'Tons of cargo', Shield: 'Shield points', Accel: 'Acceleration', Speed: 'Top speed', Maneuver: 'Turning', Fuel: 'Fuel; a jump takes 100', FreeMass: 'Tons for outfits', Armor: 'Armor points',
+    DispWeight: 'Order in the shipyard', DeathDelay: 'Steps it breaks up for', Explode1: 'Small explosions as it breaks up', Explode2: 'Final explosion', Length: 'Shown in its description only',
+    Flags: 'Jump pace, afterburner, planet-type and more', Flags2: 'Swarming, targeting, cloaking and more', PodCount: 'Escape pods launched', Mass: 'Days a jump takes; tractor beams',
+    InherentAI: 'Its ships\' AI', InherentGovt: 'Its ships\' governments', Crew: 'Capture odds', Strength: 'Weight in the fight-or-run odds',
+    WeapType: 'Stock weapons', WeapCount: 'How many of each', AmmoLoad: 'Ammunition for each', WeapType2: 'Four more stock weapons', WeapCount2: 'How many of each', AmmoLoad2: 'Ammunition for each',
+    MaxGun: 'Fixed guns allowed', MaxTur: 'Turrets allowed', ShieldRech: 'Shield recharge', ArmorRech: 'Armor recharge', SkillVar: 'Spread of pilot skill', Deionize: 'Ionization wearing off',
+    IonizeMax: 'Ionization capacity', Availability: 'Test: when it can be bought', OnPurchase: 'Bits set on buying', OnCapture: 'Bits set on capturing', OnRetire: 'Bits set on leaving it',
+    ShortName: 'Name in the shipyard list', CommName: 'Name in hail and escort dialogs', LongName: 'Full name', MovieFile: 'Shipyard movie', Subtitle: 'Line under its name',
+    KeyCarried: 'Fighter class it carries', EscortType: 'Group among your escorts', AppearOn: 'Test: when its ships appear', TechLevel: 'Tech level to be offered', Cost: 'Price',
+    BuyRandom: 'Daily chance it is offered', HireRandom: 'Daily chance it is for hire', Require: 'Bits needed to buy it', UpgradeTo: 'Class an escort upgrades to',
+    EscUpgrdCost: 'Upgrade price', EscSellValue: 'What an escort sells for', DefaultItems: 'Outfits it comes with', ItemCount: 'How many of each', DefaultItms2: 'Four more outfits it comes with',
+    ItemCount2: 'How many of each', Contributes: 'Bits it gives while flown', FuelRegen: 'Fuel regained over time', Flags3: 'Mining, gravity, shipyard display',
+  },
+  'gövt': {
+    VoiceType: 'Spoken messages', Flags: 'Who it fights, bribes, hailing and more', Flags2: 'Help, map borders, gates and wormholes', CrimeTol: 'Record before warships attack',
+    SmugPenalty: 'Record lost for smuggling', DisabPenalty: 'Record lost for disabling', BoardPenalty: 'Record lost for boarding', KillPenalty: 'Record lost for destroying', ShootPenalty: 'Record lost for firing on',
+    Classes: 'Class numbers others name it by', Allies: 'Classes it is allied with', Enemies: 'Classes it is at war with', SkillMult: 'Skill of its ships', ScanMask: 'What its scans find',
+    CommName: 'Name in the hail dialog', TargetCode: 'Name in the target display', Require: 'Bits needed to land', InhJam: 'Jamming of its ships', MediumName: 'Name when reinforcements arrive',
+    Color: 'Territory colour on the map', ShipColor: 'Paint on its ships', Intf: 'Status display in its systems', NewsPic: 'News picture', InitialRec: 'Your starting record',
+    ScanFine: 'Fine after a scan', MaxOdds: 'Odds before its warships run',
+  },
+  'mïsn': {
+    Require: 'Bits needed to be offered', AvailStel: 'Where it is offered', AvailLoc: 'Where on the stellar', AvailRecord: 'Record needed', AvailRating: 'Combat rating needed', AvailRandom: 'Chance it is offered',
+    AvailShipTyp: 'Ship class needed', TravelStel: 'Where you must go', ReturnStel: 'Where it is finished', PickupMode: 'When the cargo comes aboard', DropoffMode: 'Where the cargo comes off',
+    PayVal: 'Pay, or another reward', ShipSyst: 'Where its ships are', ShipGoal: 'What to do with its ships', ShipBehav: 'How its ships act', ShipCount: 'How many ships', ShipDude: 'Düde its ships come from',
+    CompGovt: 'Government whose regard changes', CompReward: 'How far the regard changes', DatePostInc: 'Days passing when done', TimeLimit: 'Days you have', CanAbort: 'Whether it can be aborted',
+    BriefText: 'Text on accepting', QuickBrief: 'Text in your mission list', LoadCargText: 'Text when cargo comes aboard', DropCargText: 'Text when cargo comes off', CompText: 'Text when done',
+    FailText: 'Text when it fails', RefuseText: 'Text when refused', ShipDoneText: 'Text when the ship goal is met', ShipNameID: 'Names of its ships', ShipSubtitle: 'Subtitle of its ships',
+    ShipStart: 'Where its ships start', AuxShipCount: 'Ships sent after you', AuxShipDude: 'Düde they come from', AuxShipSyst: 'Where they come', ScanMask: 'Who counts its cargo as smuggling',
+    Flags: 'Ending, map marks, refusing and more', Flags2: 'Room for cargo, pay, disabling', AvailBits: 'Test: when it is offered', OnAccept: 'Bits set on accepting', OnRefuse: 'Bits set on refusing',
+    OnSuccess: 'Bits set when done', OnFailure: 'Bits set when it fails', OnAbort: 'Bits set when aborted', OnShipDone: 'Bits set when the ship goal is met', AcceptButton: 'Accept button label',
+    RefuseButton: 'Refuse button label', DispWeight: 'Order among a port\'s missions', CargoType: 'Its cargo', CargoQty: 'Tons of cargo',
+  },
+  'oütf': {
+    ModType: 'What it does', ModVal: 'How much', ModType2: 'Second effect', ModVal2: 'How much', ModType3: 'Third effect', ModVal3: 'How much', ModType4: 'Fourth effect', ModVal4: 'How much',
+    DispWeight: 'Order in the outfitter', Mass: 'Tons of free mass each', Max: 'Most you can carry', Flags: 'Guns, turrets, selling, listing and more', Cost: 'Price',
+    Requires: 'Bits needed to buy it', Availability: 'Test: when it is sold', OnPurchase: 'Bits set on buying', OnSell: 'Bits set on selling', ShortName: 'Name in the outfitter list',
+    LCName: 'Name in a sentence, one', LCPlural: 'Name in a sentence, several', ItemClass: 'Class for a person\'s gift', ScanMask: 'Who counts it as smuggling', RequireGovt: 'Where Requires apply',
+    TechLevel: 'Tech level to be offered', BuyRandom: 'Daily chance it is offered', Contributes: 'Bits it gives while carried',
+  },
+  'wëap': {
+    Sound: 'Sound when fired', SmokeSet: 'Smoke its shots leave', BeamColor: 'Beam core colour', CoronaColor: 'Beam glow colour', LiDensity: 'Lightning zig-zags', LiAmplitude: 'Lightning swing',
+    MaxAmmo: 'Most ammunition per launcher', MassDmg: 'Armor damage', EnergyDmg: 'Shield damage', Guidance: 'How it flies and is fired', AmmoType: 'What a shot uses', Graphic: 'Shot sprite',
+    Inaccuracy: 'Spread of its shots', ExplodType: 'Explosion where it hits', ProxRadius: 'Proximity fuse reach', BlastRadius: 'Blast reach', Flags: 'Frames, shields, firing together and more',
+    Seeker: 'Asteroids, ionization, decoys, jamming', Decay: 'Damage lost as it flies', Particles: 'Trail particles', PartVel: 'Trail particle speed', PartLifeMin: 'Trail particle life, least',
+    PartLifeMax: 'Trail particle life, most', PartColor: 'Trail particle colour', BeamLength: 'Beam reach', BeamWidth: 'Beam width, or steps a frame', Falloff: 'Beam fade', SubType: 'Submunition weapon',
+    ProxSafety: 'Steps before it is armed', Flags2: 'Frames, hits, submunitions, planet-type and more', HitParticles: 'Particles where it hits', HitPartLife: 'Hit particle life', HitPartVel: 'Hit particle speed',
+    HitPartColor: 'Hit particle colour', Recoil: 'Push back on the firer', ExitType: 'Which exit points', BurstCount: 'Shots a burst', BurstReload: 'Reload after a burst', JamVuln: 'How jamming affects it',
+    Flags3: 'Ammunition, one shot at a time, exit point', Durability: 'What point defence wears down', IonizeColor: 'Colour of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
+    Speed: 'Shot speed', GuidedTurn: 'Homing turn', Impact: 'Push on the ship hit', Ionization: 'Ionization added', SubCount: 'Submunitions a shot', SubTheta: 'Submunition spread', SubLimit: 'Submunition generations',
+  },
+  'përs': {
+    Color: 'Paint on its ship', Coward: 'Shields before it runs', HailPict: 'Picture when hailed', CommQuote: 'Answer when hailed', Subtitle: 'Line in the target display', Credits: 'Credits plundered',
+    GrantClass: 'Outfit class it may give', GrantProb: 'Chance of the gift', GrantCount: 'How many it gives', ShipType: 'Its ship class', Govt: 'Its government', AIType: 'How its ship flies',
+    Aggress: 'Aggression', WeapType: 'Weapons added', WeapCount: 'How many of each', AmmoLoad: 'Ammunition for each', ShieldMod: 'Shields and armor, percent', HailQuote: 'What it says hailing you',
+    LinkMission: 'Mission it offers', Flags: 'Grudges, pods, hails, its mission', Flags2: 'Starts with no fuel', LinkSyst: 'Where it is met', ActivateOn: 'Test: when it is met',
+  },
+  'ränk': {
+    Weight: 'Which rank names you', Govt: 'Its government', PriceMod: 'Price, percent', Salary: 'Daily pay', SalaryCap: 'Pay only below this', Contrib: 'Bits it gives while held',
+    Flags: 'How it is lost and what it does', ConvName: 'What <PRK> says', ShortName: 'What <SRK> says',
+  },
+  'crön': {
+    FirstDay: 'Earliest day', FirstMonth: 'Earliest month', FirstYear: 'Earliest year', LastDay: 'Latest day', LastMonth: 'Latest month', LastYear: 'Latest year', Random: 'Daily chance it starts',
+    Duration: 'Days it runs', PreHoldoff: 'Days before it starts', PostHoldoff: 'Days before it can come again', IndNewsStr: 'News elsewhere', Flags: 'Bits set over and over',
+    EnableOn: 'Test: when it can start', OnStart: 'Bits set when it starts', OnEnd: 'Bits set when it ends', Require: 'Bits needed to start', NewsGovt: 'Governments with news of it',
+    GovtNewsStr: 'Their news', Contrib: 'Bits it gives while running',
+  },
+  'spöb': {
+    xPos: 'Place in its system, across', yPos: 'Place in its system, down', Type: 'Its picture', Flags: 'Landing, services, prices', TechLevel: 'What its shipyard and outfitter offer',
+    SpecialTech: 'Special tech levels', SpecialTech4to8: 'More special tech levels', MinStatus: 'Record below which it hates you', CustPicID: 'Landing picture', CustSndID: 'Landed sound, or gate heading',
+    DefenseDude: 'Düde of its defence ships', DefCount: 'How many defence ships', Flags2: 'Animation, domination, gates and more', AnimDelay: 'How long each frame shows', Frame0Bias: 'How long the first frame shows',
+    HyperLink: 'Where a gate leads', OnDominate: 'Bits set on dominating', OnRelease: 'Bits set on releasing', DeadTime: 'Days it stays destroyed', OnDestroy: 'Bits set when destroyed',
+    OnRegen: 'Bits set when it regenerates', Govt: 'Its government', Tribute: 'Daily tribute once dominated', Fee: 'Landing fee', Gravity: 'Pull on ships', Weapon: 'Its weapon',
+    Strength: 'Strength before it is destroyed', DeadType: 'Picture when destroyed', ExplodType: 'Explosion',
+  },
+};
+
 const NOVA_FIELD_READS = {
   'ränk': {
     Govt: (v, r, g) => novaGovtText(g, v),
@@ -1939,5 +2062,10 @@ function novaFieldRead(game, type, field, rec) {
 /* A field's note, or null. */
 function novaFieldNote(type, field) {
   const t = NOVA_FIELD_NOTES[type];
+  return t && t[field] || null;
+}
+// Its few words, or null.
+function novaFieldShort(type, field) {
+  const t = NOVA_FIELD_SHORT[type];
   return t && t[field] || null;
 }

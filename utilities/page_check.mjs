@@ -171,18 +171,6 @@ try {
                      desc: document.querySelector('#planet .desc').textContent.slice(0, 30) };
           })()`);
           await shot('planet');
-          // the bar's Viper race: Gamble, a bet of 1,000 on colour 1, the report and the board
-          out.race = await p.evaluate(`(async () => {
-            const q = sel => document.querySelector('#planet ' + sel), pause = () => new Promise(r => setTimeout(r, 50));
-            q('[data-gamble]').click(); await pause();
-            const before = RACE.credits, pics = document.querySelectorAll('#planet .race canvas').length;
-            q('[data-race="0"]').click(); await pause();
-            const after = RACE.credits, report = (q('.race .desc') || {}).textContent || '', shown = RACE.shown;
-            q('[data-race="1"]').click(); await pause();
-            const cleared = RACE.shown;
-            q('[data-gamble-done]').click(); await pause();
-            return { before, after, pics, report: report.slice(0, 40), won: report.includes('winnings'), shown, cleared, closed: !q('.race') };
-          })()`);
           out.wide = await p.evaluate('document.documentElement.scrollWidth - window.innerWidth');
           // Out of the landing page by pinching in on it: two fingers on the
           // phone, a trackpad's ctrl-wheel on the desktop.
@@ -408,6 +396,32 @@ try {
             return o;
           })()`);
           await shot('story');
+          // Earth's panel drawn again (as ships coming and going did) keeps its place and its open box;
+          // the moving ships draw only the system's panel; a field's few words until Notes in full.
+          out.keep = await p.evaluate(`(async () => {
+            const wait = ms => new Promise(r => setTimeout(r, ms)), el = $('panel');
+            history.replaceState(null, '', '#system=130'); applyHash(); await wait(100);
+            for (let i = 0; i < 100 && MOVING; i++) await wait(50);
+            VIEW.sel = { kind: 'stellar', id: 128 }; renderPanel();
+            const box = el.querySelector('details.fieldsBox');
+            if (!box) return { box: false };
+            box.open = true; el.scrollTop = el.scrollHeight;
+            const top = el.scrollTop;
+            renderPanel();
+            const flying = FLIGHT.sys; FLIGHT.sys = 130;
+            const o = { top, after: el.scrollTop, open: el.querySelector('details.fieldsBox').open, listed: flightListed() };
+            VIEW.sel = null; renderPanel(); o.fresh = el.scrollTop; o.systemListed = flightListed();
+            FLIGHT.sys = flying;
+            VIEW.sel = { kind: 'stellar', id: 128 }; renderPanel();
+            const shown = c => { const n = el.querySelector('table.fields ' + c); return n ? getComputedStyle(n).display !== 'none' : null; };
+            o.short = [shown('.fieldShort'), shown('.fieldFull')];
+            const tick = el.querySelector('[data-notes-full]');
+            tick.checked = true; tick.dispatchEvent(new Event('change', { bubbles: true }));
+            o.full = [shown('.fieldShort'), shown('.fieldFull'), localStorage.getItem('stargrimoire-notes-full')];
+            tick.checked = false; tick.dispatchEvent(new Event('change', { bubbles: true }));
+            o.back = [shown('.fieldShort'), shown('.fieldFull')];
+            return o;
+          })()`);
           // A record's panel from the address: the Light Blaster, its picture, its outfitters ringed;
           // the list of every outfit from it; a weapon from the Ships view's panel.
           out.rec = await p.evaluate(`(async () => {
@@ -615,9 +629,6 @@ try {
       if (z.after.mode !== 'galaxy' || z.after.sys !== null) fail(`${dev.name}: zooming out of Sol: ${JSON.stringify(z.after)}`);
       if (o.system.mode !== 'system' || !/Sol/.test(o.system.panel)) fail(`${dev.name}: going to Sol: ${JSON.stringify(o.system)}`);
       if (!o.planet.pict || o.planet.lit < 0.2) fail(`${dev.name}: landing on Earth: ${JSON.stringify(o.planet)}`);
-      const ra = o.race;
-      if (ra.before !== 25000 || ra.pics < 5 || ra.after !== (ra.shown === 0 ? 28000 : 24000) || !ra.report || ra.won !== (ra.shown === 0) || ra.cleared !== -1 || !ra.closed)
-        fail(`${dev.name}: the Viper race at Earth's bar: ${JSON.stringify(ra)}`);
       if (o.wide > 0) fail(`${dev.name}: the page is ${o.wide} px wider than the screen`);
       if (o.pinch.mode !== 'system' || o.pinch.sys !== 130 || o.pinch.page || o.pinch.hash !== '#system=130&stellar=128&at=1')
         fail(`${dev.name}: pinching in on Earth's landing page: ${JSON.stringify(o.pinch)}`);
@@ -698,6 +709,10 @@ try {
       const sy = o.story;
       if (!(sy.list > 20) || !sy.fromBit || sy.mission !== 'Take Polaris Home' || !sy.step || !sy.last || !sy.offer || !sy.follows || sy.story !== 'Rebel I' || !(sy.rows >= 15) || !(sy.ringed > 3))
         fail(`${dev.name}: the mission Take Polaris Home and its storyline: ${JSON.stringify(sy)}`);
+      const kp = o.keep;
+      if (kp.box === false || !(kp.top > 0) || kp.after !== kp.top || !kp.open || kp.listed || kp.fresh !== 0 || !kp.systemListed
+          || JSON.stringify(kp.short) !== '[true,false]' || JSON.stringify(kp.full) !== '[false,true,"1"]' || JSON.stringify(kp.back) !== '[true,false]')
+        fail(`${dev.name}: Earth's panel drawn again, and its notes: ${JSON.stringify(kp)}`);
       const rc = o.rec;
       if (!rc || rc.h2 !== 'Light Blaster' || !rc.pict || !rc.sold || !(rc.outfitters > 12) || !(rc.ringed > 0) || !rc.weapon || !(rc.list > 200) || !/&rec=outf$/.test(rc.listHash)
           || !rc.fromShip || !rc.shipTo || rc.shipTo.on || rc.shipTo.sel !== 'rec:' + rc.fromShip)

@@ -12,7 +12,8 @@
    the Windows builds and the Community Edition, or a MacBinary `.bin`
    for the Mac (nova-plugin.js says why a .bin). A field the program has
    been read for has its note under it (nova-fields.js), the routines it was
-   read from on hovering. While comparing, it also
+   read from on hovering; a few words stand for it until Notes in full is
+   ticked. While comparing, it also
    saves what differs from the files compared with.
 
    The page's own script: DOM here. LOAD ORDER: after js/page-compare.js
@@ -23,6 +24,15 @@ const EDITS = new Map();      // 'type id' -> { type, id, name, data }
 let EDITING = null;           // the key of the record whose fields are boxes
 let EDIT_OPEN = null;         // the key of the table to show open when drawn again
 let PLUGIN_NAME = 'My plug-in';
+// A field's note in full, or its few words: one choice for every table, kept for the next visit.
+const NOTES_STORE = 'stargrimoire-notes-full';
+let NOTES_FULL = false;
+function notesFull(on) {
+  NOTES_FULL = on;
+  document.documentElement.classList.toggle('notesFull', on);
+  for (const c of document.querySelectorAll('[data-notes-full]')) c.checked = on;
+  try { localStorage.setItem(NOTES_STORE, on ? '1' : ''); } catch (e) { /* the choice lasts the visit */ }
+}
 const EDITS_STORE = 'stargrimoire-edits';
 const editKey = (type, id) => type + ' ' + id;
 
@@ -70,8 +80,10 @@ function fieldsTable(type, rec) {
     const text = novaFieldText(kind, rec[name]);
     const fn = novaFieldNote(type, name);
     const rd = editing ? null : novaFieldRead(GAME, type, name, rec);
-    const note = (fn ? `<div class="fieldNote" title="${esc(fn.code.map(([f, a]) => f + ' 0x' + a.toString(16)).join(', '))}">${esc(fn.note)}</div>` : '') +
-                 (fn && fn.bible ? `<div class="fieldNote">The Bible: ${esc(fn.bible)}</div>` : '') +
+    const sh = novaFieldShort(type, name);
+    const note = (sh ? `<div class="fieldNote fieldShort">${esc(sh)}</div>` : '') +
+                 (fn ? `<div class="fieldNote fieldFull" title="${esc(fn.code.map(([f, a]) => f + ' 0x' + a.toString(16)).join(', '))}">${esc(fn.note)}</div>` : '') +
+                 (fn && fn.bible ? `<div class="fieldNote fieldFull">The Bible: ${esc(fn.bible)}</div>` : '') +
                  (rd ? `<div class="fieldNote fieldRead">This one: ${esc(rd)}</div>` : '');
     if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}${note}</td></tr>`); continue; }
     const max = kind === 'str' ? ` maxlength="${n - 1}"` : '';
@@ -81,9 +93,10 @@ function fieldsTable(type, rec) {
   const buttons = editing
     ? `<button data-edit-apply>Apply</button> <button data-edit-cancel>Cancel</button> <span class="warn" data-edit-why></span>`
     : `<button data-edit>Change</button>${changed ? ' <button data-edit-undo>Undo the changes</button>' : ''}`;
+  const full = `<label class="notesFull"><input type="checkbox" data-notes-full${NOTES_FULL ? ' checked' : ''}> Notes in full</label>`;
   const open = editing || EDIT_OPEN === key ? ' open' : '';
   return `<details class="fieldsBox" data-type="${esc(type)}" data-id="${rec.id}"${open}><summary>Every field of ${esc(type)} ${rec.id}, from ${esc(rec.file)}</summary>` +
-         `<div class="editBar">${buttons}</div><table class="fields${editing ? ' editing' : ''}">${rows.join('')}</table></details>`;
+         `<div class="editBar">${buttons}${full}</div><table class="fields${editing ? ' editing' : ''}">${rows.join('')}</table></details>`;
 }
 
 // Drawn again in place, for Change and Cancel, which change nothing else.
@@ -132,6 +145,10 @@ function fieldsApply(box) {
 }
 
 function wireFields() {
+  let kept = false;
+  try { kept = localStorage.getItem(NOTES_STORE) === '1'; } catch (e) { /* none kept */ }
+  notesFull(kept);
+  document.addEventListener('change', e => { if (e.target.matches('[data-notes-full]')) notesFull(e.target.checked); });
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-edit],[data-edit-apply],[data-edit-cancel],[data-edit-undo]');
     const box = b && b.closest('.fieldsBox');

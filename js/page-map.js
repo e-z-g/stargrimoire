@@ -1854,7 +1854,6 @@ async function show(mode, opts, instant) {
       Object.assign(CAM, back);
       VIEW.back = back;
       VIEW.mode = 'planet'; VIEW.stellar = sp.id; VIEW.sel = { kind: 'stellar', id: sp.id };
-      raceLanded();
       renderPlanet();
       $('planet').classList.add('on');
       $('stage').classList.add('landed');
@@ -2075,10 +2074,21 @@ function renderPanel() {
   else if (sel && sel.kind === 'nebula') html = nebulaPanel(U.nebulae.find(n => n.id === sel.id));
   else if (VIEW.mode === 'system') html = systemPanel(U.byId.get(VIEW.sys));
   else html = galaxyPanel();
+  // Drawn again with the same thing chosen (ships coming and going, a
+  // file read), the panel keeps its place and what was opened in it.
+  const key = sel ? `${VIEW.mode}:${sel.kind}:${sel.id}` : `${VIEW.mode}:${VIEW.sys}`;
+  const same = key === PANEL_KEY, top = el.scrollTop;
+  const opened = same ? [...el.querySelectorAll('details')].map(d => d.open) : null;
+  PANEL_KEY = key;
   el.innerHTML = html;
+  if (same) {
+    el.querySelectorAll('details').forEach((d, i) => { if (opened[i] !== undefined) d.open = opened[i]; });
+    el.scrollTop = top;
+  } else el.scrollTop = 0;
   if (sel && sel.kind === 'rec') recPictures();
   renderLegend();
 }
+let PANEL_KEY = null;
 
 /* Where a gate leads, for the panels, as novaShownGates has it for what is
    shown now: its stellars and their systems, a random other wormhole, or
@@ -2488,7 +2498,6 @@ function renderPlanet() {
   else parts.push(`<div class="desc dim">No description: the files have no dësc ${novaStellarDescId(sp)}.</div>`);
   if (bar) {
     parts.push(`<h3>The bar</h3><div id="barPict"></div><div class="desc">${esc(novaDescText(bar.Description, STATE))}</div>`);
-    parts.push(raceHtml());
   }
   if (d && novaDescBits(d.Description).length) parts.push(`<p class="note">This description changes with control bits ${novaDescBits(d.Description).map(b => 'b' + b).join(', ')}.</p>`);
   parts.push('</div>');
@@ -2507,65 +2516,6 @@ function renderPlanet() {
     const img = pictImage(bar.Graphic);
     if (img) el.querySelector('#barPict').appendChild(asCanvas(img, 'pict'));
   }
-  if (bar) racePictures(el);
-}
-
-/* ---- the Viper race ------------------------------------------------------- */
-
-/* The bar's Gamble button opens the Galactic Racing Network's race
-   (novaRaceRun): the background, PICT 8529, and a button for each colour
-   in its picture for the moment -- unclicked (8530 + colour), clicked
-   (8540 +), after a race the winner's win state (8550 +) and the others
-   disabled (8560 +), as DrawRaceButtons chooses them -- laid out here
-   under the background, since the dialog's own layout is in the program,
-   not the files. A click bets the amount asked, at first 1,000 (all the
-   credits if fewer), as many as the game's Option-click would allow, up
-   to 10,000; after a race a click clears the board for the next. The
-   credits are the new pilot's (novaStartCash), kept while the page is
-   open; the last winner is forgotten on each landing, as the bar forgets
-   it. The help is dësc 32764, the winners' reports 32760 + the colour. */
-const RACE = { open: false, credits: null, last: -1, shown: -1, bet: 1000, report: null, rng: null };
-function raceLanded() { RACE.last = -1; RACE.shown = -1; RACE.report = null; RACE.open = false; }
-function raceHtml() {
-  if (RACE.credits === null) RACE.credits = novaStartCash(GAME);
-  const can = RACE.credits > 0;
-  if (!RACE.open) return `<div class="actions"><button data-gamble ${can ? '' : 'disabled'}>Gamble</button></div>`;
-  const help = descText(32764), report = RACE.report;
-  const max = Math.min(RACE.credits, 10000), bet = Math.max(1, Math.min(RACE.bet, max));
-  const buttons = [0, 1, 2, 3].map(k => `<button class="raceBtn" data-race="${k}" aria-label="colour ${k + 1}"><span class="racePict" data-pict="${raceButtonPict(k)}">${k + 1}</span></button>`).join('');
-  return `<div class="race">
-    <div class="racePict raceBack" data-pict="8529"></div>
-    <div class="raceBtns">${buttons}</div>
-    <p>${RACE.credits.toLocaleString('en-US')} credits. ${RACE.shown >= 0 ? 'Tap a colour for the next race.' : can ? `Bet <input id="raceBet" type="number" min="1" max="${max}" value="${bet}"> on a colour.` : 'No credits left to bet.'}</p>
-    ${report ? `<div class="desc">${esc(report)}</div>` : ''}
-    ${help ? `<details><summary>Help</summary><div class="desc">${esc(novaDescText(help.Description, STATE))}</div></details>` : ''}
-    <div class="actions"><button data-gamble-done>Done</button></div>
-  </div>`;
-}
-function raceButtonPict(k) { return RACE.shown < 0 ? 8530 + k : RACE.shown === k ? 8550 + k : 8560 + k; }
-function racePictures(el) {
-  for (const host of el.querySelectorAll('.racePict[data-pict]')) {
-    const img = pictImage(+host.dataset.pict);
-    if (!img) continue;
-    host.textContent = '';
-    const c = asCanvas(img);
-    c.className = host.classList.contains('raceBack') ? 'pict' : 'raceImg';
-    host.appendChild(c);
-  }
-}
-function raceClick(k) {
-  if (RACE.shown >= 0) { RACE.shown = -1; RACE.report = null; renderPlanet(); return; }
-  const input = $('raceBet');
-  if (input) RACE.bet = Math.max(1, Math.trunc(+input.value) || 1000);
-  const bet = Math.min(RACE.bet, RACE.credits, 10000);
-  if (!(bet > 0)) return;
-  if (!RACE.rng) RACE.rng = novaRandom((Date.now() & 0x7ffffffe) + 1);
-  const r = novaRaceRun(RACE, k, bet, n => RACE.rng.rand(n));
-  RACE.shown = r.winner;
-  const d = descText(32760 + r.winner), win = gameText(370);
-  RACE.report = (d ? novaDescText(d.Description, STATE) : `Colour ${r.winner + 1} wins.`) +
-    (r.won ? `\n\n${win || 'Your winnings'}:  ${r.won.toLocaleString('en-US')} ${r.won === 1 ? 'credit' : 'credits'}.` : '');
-  renderPlanet();
 }
 
 /* A copy to put in the page: the cached canvas stays where it is. */
@@ -2587,12 +2537,6 @@ function asCanvas(img, cls) {
    the same on a desktop. */
 function wireLanding() {
   const el = $('planet');
-  el.addEventListener('click', e => {
-    const a = e.target.closest('[data-gamble],[data-gamble-done],[data-race]');
-    if (!a) return;
-    if (a.dataset.race !== undefined) raceClick(+a.dataset.race);
-    else { RACE.open = a.dataset.gamble !== undefined; renderPlanet(); }
-  });
   let d0 = 0, r = 1, wheel = 0, wheelTimer = null;
   const land = () => el.querySelector('.land');
   const spread = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);

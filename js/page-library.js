@@ -8,7 +8,8 @@
    are listed by id and name; where the program says what one is for (an
    outfit's description in the outfitter, its picture ...), that is said,
    the base it adds to linked to the instruction it was read from
-   (novaFigure, codeNum).
+   (novaFigure, codeNum). The filter finds those words too: "race"
+   finds the bar's race, which the landing page doesn't offer.
 
    PAGE SCRIPT. LOAD ORDER: after page-map.js, page-ships.js,
    page-battle.js, page-records.js and page-code.js. */
@@ -38,8 +39,24 @@ function libLink(type, id, label) {
   return name;
 }
 
+/* The bar's race, behind its Gamble button, as Mac 1.1.1's DoRaceDialog
+   and DrawRaceButtons use its pictures and texts: four colours, each with
+   a button unclicked, clicked, won and lost. The rules are DoRaceDialog's
+   (../evnova-workbench/doc/viper-race.md). These numbers are typed in, not
+   yet read from the open program. */
+const LIB_RACE_STATES = ['unclicked', 'clicked', 'the winner', 'not the winner'];
+function libRace(res, id) {
+  if (res === 'PICT' && id === 8529) return "the bar's race, behind its Gamble button: the background";
+  if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the bar's race: colour ${id % 10 + 1}'s button, ${LIB_RACE_STATES[Math.floor(id / 10) - 853]}`;
+  if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time the bar is opened), and a winning bet pays four times what was bet";
+  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} wins`;
+  return '';
+}
+
 /* What the program says a dësc or PICT is for: html, or ''. */
 function libRole(res, id) {
+  const race = libRace(res, id);
+  if (race) return esc(race);
   const roles = res === 'dësc' ? [['outfitDesc', 'oütf', "outfitter's description of"], ['shipDesc', 'shïp', "shipyard's description of"], ['escortDesc', 'shïp', 'description for hire of']]
     : res === 'PICT' ? [['outfitPict', 'oütf', "outfitter's picture of"]] : [];
   for (const [name, type, what] of roles) {
@@ -50,6 +67,9 @@ function libRole(res, id) {
   }
   return '';
 }
+
+// Whether what a dësc or PICT is for says the words filtered for.
+const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLowerCase().includes(q);
 
 /* ---- in and out of the view -------------------------------------------- */
 
@@ -130,7 +150,7 @@ function S_KIND(type, field) { const f = NOVA_RECORDS[type].find(x => x[0] === f
 
 function libText(q) {
   const descs = GAME.list('dësc').map(e => ({ e, d: novaGet(GAME, 'dësc', e.id) })).filter(x => x.d);
-  const hits = descs.filter(({ e, d }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || (d.Description || '').toLowerCase().includes(q));
+  const hits = descs.filter(({ e, d }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || (d.Description || '').toLowerCase().includes(q) || libRoleHas('dësc', e.id, q));
   const strs = GAME.list('STR#').map(e => ({ e, list: novaStrings(GAME, e.id) }))
     .filter(({ e, list }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || list.some(s => s.toLowerCase().includes(q)));
   const shown = hits.slice(0, 300);
@@ -144,9 +164,9 @@ function libText(q) {
 }
 
 function libPictures(q) {
-  const all = GAME.list('PICT').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q));
+  const all = GAME.list('PICT').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || libRoleHas('PICT', e.id, q));
   const shown = all.slice(0, 400);
-  return `<p class="note">${all.length} pictures${all.length > shown.length ? `, the first ${shown.length} shown; filter by id or name to find more` : ''}.</p>
+  return `<p class="note">${all.length} pictures${all.length > shown.length ? `, the first ${shown.length} shown; filter by id, name or what it is for to find more` : ''}.</p>
     <div class="libPicts">${shown.map(e => { const role = libRole('PICT', e.id); return `<figure data-pict="${e.id}"><div class="nopict wait">PICT ${e.id}</div><figcaption>PICT ${e.id}${e.name ? ' · ' + esc(e.name) : ''}${role ? `<br>${role}` : ''}</figcaption></figure>`; }).join('')}</div>`;
 }
 // Pictures drawn as they come near the screen, a few at a time.

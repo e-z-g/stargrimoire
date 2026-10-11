@@ -74,7 +74,12 @@ function flightSync() {
     if (id === FLIGHT.sys) made = true;
   }
   if (!FLIGHT.started) { FLIGHT.started = true; FLIGHT.paused = FLIGHT.paused || reducedMotion(); }
-  if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); renderPanel(); }
+  if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); if (flightListed()) renderPanel(); }
+}
+// Whether the panel is the system's, with its ships listed (flightPanel); no other panel is drawn again as they move.
+function flightListed() {
+  const sel = VIEW.sel;
+  return VIEW.mode === 'system' && FLIGHT.sys !== null && (!sel || (sel.kind === 'system' && sel.id === FLIGHT.sys));
 }
 
 /* The player's screen, for the asteroids: the map's view in the system's
@@ -104,7 +109,7 @@ function flightLoop(now) {
     if (FLIGHT.engaged.size && !ANIM_TICK) { ANIM_LAST = 0; ANIM_TICK = requestAnimationFrame(stellarAnimLoop); }
     // the panel's list, when ships have come or gone
     const w = FLIGHT.world, here = w ? w.ships.map(s => (s ? s.cls.id : 0)).join() : '';
-    if (here !== FLIGHT.here) { FLIGHT.here = here; renderPanel(); }
+    if (here !== FLIGHT.here) { FLIGHT.here = here; if (flightListed()) renderPanel(); }
     redraw();
   }
   FLIGHT.tick = requestAnimationFrame(flightLoop);

@@ -38,6 +38,15 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
 }
 console.log(`${notes} field notes, ${cites} routines cited, each a routine of Mac 1.1.1 at its address`);
 
+// Each note has its few words (NOVA_FIELD_SHORT), and no few words stand for a note that is not there.
+for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const field of Object.keys(fields)) {
+  const w = S.novaFieldShort(type, field);
+  if (typeof w !== 'string' || !w) fail(`${type} ${field}: a note with no few words`);
+  else if (w.split(/\s+/).length > 8) fail(`${type} ${field}: "${w}" is more than a few words`);
+}
+for (const [type, fields] of Object.entries(S.NOVA_FIELD_SHORT)) for (const field of Object.keys(fields))
+  if (!S.novaFieldNote(type, field)) fail(`${type} ${field}: few words with no note`);
+
 // Every reading (NOVA_FIELD_READS) run over every record of its type in every
 // release: each must give words, for a field its table names. What the shipped
 // records come to is counted where it is worth knowing: codes the program reads

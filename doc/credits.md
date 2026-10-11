@@ -62,11 +62,6 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   Format Notes" (1990); the 8-bit colours are Apple's standard palette.
 - **cythera-workbench**: `tools/pefreloc_nova.py`, copied from its Cythera
   tool.
-- **Drydock**, geuis (`geuis/drydock`, MIT): what each control bit is for,
-  in `js/nova-bits.js`, ported from its StoryFlagCatalog and
-  NCBSetExpression (29 September 2026): which records' expressions to
-  read, how a test's negations and a set's random choices count, and a
-  bit's name from what sets it.
 - **pypdf**: the Bible's text, taken out of the PDF.
 - **evnova-decomp**, Lancelot de Ferrière (`wraitii/evnova-decomp`): the
   Community Edition's function names, by which its program was read beside

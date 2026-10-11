@@ -34,20 +34,14 @@ const NOVA_REC_WORD = new Map(NOVA_REC_TYPES);
 // The outfits a set expression gives (G) and takes (D): [{ op: 'give'|'take', id }].
 function novaSetOutfits(text) {
   const out = [];
-  for (const st of ncbParseSet(text)) for (const o of st.ops) {
-    const m = o.op === 'other' && /^([GgDd])(\d+)$/.exec(o.text);
-    if (m && +m[2] >= 128 && +m[2] <= 639) out.push({ op: /g/i.test(m[1]) ? 'give' : 'take', id: +m[2], random: st.random });
-  }
+  for (const o of ncbSetOps(text)) if ((o.letter === 'G' || o.letter === 'D') && o.n >= 128 && o.n <= 639) out.push({ op: o.letter === 'G' ? 'give' : 'take', id: o.n, random: o.random });
   return out;
 }
 
 // The ranks a set expression gives (K) and takes (L): [{ op: 'give'|'take', id }] (EvalSetExp, ActivateRank, DeactivateRank).
 function novaSetRanks(text) {
   const out = [];
-  for (const st of ncbParseSet(text)) for (const o of st.ops) {
-    const m = o.op === 'other' && /^([KkLl])(\d+)$/.exec(o.text);
-    if (m && +m[2] >= 128) out.push({ op: /k/i.test(m[1]) ? 'give' : 'take', id: +m[2], random: st.random });
-  }
+  for (const o of ncbSetOps(text)) if ((o.letter === 'K' || o.letter === 'L') && o.n >= 128) out.push({ op: o.letter === 'K' ? 'give' : 'take', id: o.n, random: o.random });
   return out;
 }
 

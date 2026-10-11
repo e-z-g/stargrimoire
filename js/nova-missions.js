@@ -20,12 +20,13 @@
    more is in the files: AvailStel 127, below every stellar id, on seven
    "Silent Mission"s that others start with Sxxx and nothing offers.
 
-   LEADS TO. One mission leads to another when it turns on a bit the
-   other's AvailBits needs on, or starts it (Sxxx in a set expression); on
-   accepting, on success or with its ships dealt with. A bit many missions
-   turn on (a storyline "in progress") joins everything, so a bit counts as
-   a link only when at most three missions turn it on, as nova-bits.js
-   names such a bit.
+   LEADS TO. One mission leads to another when it starts it (S in a set
+   expression), or turns on the bit the other's AvailBits needs on, as the
+   game reads it, that the fewest missions turn on: of the bits a mission
+   needs, the rarest is the step it waits for, where a bit many missions
+   turn on (a storyline "in progress") only says it is under way. Turning
+   on counts on accepting, on success and with its ships dealt with; ties
+   link every mission that turns on any of the tied bits.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-bits.js. */
 
@@ -117,22 +118,23 @@ function novaMissions(game) {
     const parts = novaNameParts(rec.name);
     const m = { id: rec.id, name: parts.name, note: parts.note, story: novaStoryNote(parts.note), rec,
                 needs: ncbTestNeeds(rec.AvailBits || ''), turnsOn: new Set(), starts: [], next: [], prev: [], startedBy: [] };
-    for (const f of ['OnAccept', 'OnSuccess', 'OnShipDone']) for (const st of ncbParseSet(rec[f] || '')) for (const o of st.ops) {
+    for (const f of ['OnAccept', 'OnSuccess', 'OnShipDone']) for (const o of ncbSetOps(rec[f] || '')) {
       if (o.op === 'set') m.turnsOn.add(o.n);
-      const s = /^[Ss](\d+)$/.exec(o.text);
-      if (s && !m.starts.includes(+s[1])) m.starts.push(+s[1]);
+      if (o.letter === 'S' && !m.starts.includes(o.n)) m.starts.push(o.n);
     }
     byId.set(rec.id, m);
   }
-  // bits that at most three missions turn on make links; the rest join everything
+  // who turns on each bit; each mission waits for the rarest bit it needs on
   const setters = new Map();
   for (const m of byId.values()) for (const n of m.turnsOn) { if (!setters.has(n)) setters.set(n, []); setters.get(n).push(m.id); }
+  const next = new Map([...byId.keys()].map(id => [id, new Set()]));
   for (const m of byId.values()) {
-    const from = new Set(m.starts.filter(id => byId.has(id) && id !== m.id));
-    for (const [n, ids] of setters) if (ids.length <= 3 && ids.includes(m.id))
-      for (const o of byId.values()) if (o.id !== m.id && o.needs.some(x => x.n === n && x.on)) from.add(o.id);
-    for (const id of m.starts) if (byId.has(id)) byId.get(id).startedBy.push(m.id);
-    m.next = [...from].sort((a, b) => a - b);
+    for (const id of m.starts) if (byId.has(id) && id !== m.id) { next.get(m.id).add(id); byId.get(id).startedBy.push(m.id); }
+    const waits = m.needs.filter(x => x.on && setters.has(x.n)), fewest = Math.min(...waits.map(x => setters.get(x.n).length));
+    for (const x of waits) if (setters.get(x.n).length === fewest) for (const id of setters.get(x.n)) if (id !== m.id) next.get(id).add(m.id);
+  }
+  for (const m of byId.values()) {
+    m.next = [...next.get(m.id)].sort((a, b) => a - b);
     for (const id of m.next) byId.get(id).prev.push(m.id);
   }
   const stories = new Map();

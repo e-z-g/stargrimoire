@@ -2197,7 +2197,7 @@ function bitPanel(n) {
     <div class="sub">${esc(bitTitle(n))}</div>
     <div class="actions"><button data-bit-back>Back</button>
       <button data-bit-map="${n}">${set ? `Show the map without b${n}` : `Show the map with b${n} set`}</button></div>
-    <p class="note">A control bit means what the records that turn it on and test it make of it; this is every test and set expression in the files open that names b${n}, the way Drydock reads them.</p>
+    <p class="note">A control bit means what the records that turn it on and test it make of it; this is every test and set expression in the files open that names b${n}, as the game reads them.</p>
     ${sections || '<p class="note">No record in these files tests or sets it.</p>'}`;
 }
 
@@ -2257,7 +2257,7 @@ function missionPanel(id) {
       ${kvRow('Started by', m.startedBy.map(missionLink).join('<br>'))}
       ${kvRow('Follows', m.prev.map(missionLink).join('<br>'))}
     </table>
-    <p class="note">Leads to: the missions whose AvailBits need a bit this one turns on (a bit at most three missions turn on), or that it starts.</p>
+    <p class="note">Leads to: the missions it starts, and those whose AvailBits, as the game reads them, need on a bit this one turns on that fewer missions turn on than any other bit they need.</p>
     ${text('The offer', 4000 + id - 128)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
     ${compareBlock('mïsn', id)}
     ${fieldsTable('mïsn', r)}`;
@@ -2301,7 +2301,7 @@ function storyChart(s) {
     return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
       `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
   }).join('');
-  return `<h3>Chart</h3><p class="note">Each mission below those of this storyline that lead to it (one turns on a bit the other needs, or starts it); green where its AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
+  return `<h3>Chart</h3><p class="note">Each mission below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
     <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
 // The places the open storyline's missions are offered at, go to or return to.

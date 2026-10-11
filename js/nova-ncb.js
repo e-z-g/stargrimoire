@@ -276,6 +276,95 @@ function ncbTreeText(t, inside) {
   }
 }
 
+/* What a test needs of each bit it names, as the game reads it: [{ n, on }],
+   on false where the bit is under a negation. A test the game reads as
+   never needs nothing. A bit inside a count ([ ]) cannot be said to be
+   needed either way; it is listed as needed on (no shipped test counts). */
+function ncbTestNeeds(text) {
+  const tree = ncbGameTree(text), out = [];
+  if (!tree) {
+    for (const m of String(text || '').matchAll(/[Bb]\s*(\d+)/g)) out.push({ n: +m[1], on: true });
+    return out;
+  }
+  const walk = (t, neg) => {
+    if (t.op === 'term' && t.letter === 'B') out.push({ n: t.n, on: !neg });
+    if (t.op === 'not') walk(t.arg, !neg);
+    if (t.args) for (const a of t.args) walk(a, neg);
+  };
+  walk(tree, false);
+  return out;
+}
+
+/* SET EXPRESSIONS, as Mac 1.1.1 reads them (EvalMissionBitSetString 0x99dc5,
+   EvalSetExp 0x150fc). The string is read a character at a time, its end
+   included. A letter of !ACDEFGHKLMNPQSTUXY^ (either case) is the operation
+   to come and starts its number afresh; B does the same but keeps a ! or ^
+   already read (so !b5 clears and ^b5 toggles); a digit adds to the number,
+   in 16 bits; R draws Rand(2) for a choice. Any other character ends the
+   token: the operation is carried out on its number, if there is one, and
+   forgotten. So b5 sets bit 5, !b5 clears it, ^b5 turns it over (bits
+   above 9999 are passed over), Sn starts mission n as if accepted, An
+   aborts it (its OnAbort run), Fn fails it, Gn gives outfit n, Dn takes it,
+   Kn gives rank n, Ln takes it (the other letters' operations are not read
+   here); a bare number does nothing; "b1b2" sets b2
+   only, the B before 2 replacing the token before it was ended; and "!123",
+   with no B, clears bit 123.
+
+   The choice: R draws 0 or 1, and the next two tokens ended are counted 0
+   and 1; the one whose count is the draw is passed over, the other carried
+   out. Passing over the first is done by stepping past one character after
+   the token ending R's -- the letter of R(b1 b2)'s first choice -- so its
+   digits come to nothing; a first choice of two characters' operation,
+   R(!b1 b2), loses only the !, and b1 is set as well as b2. A third choice
+   and on is always carried out.
+
+   ncbReadSet(text, draw) gives the operations carried out, in order, for
+   draws from draw() (0 or 1, one for each R): [{ op, letter, n }], op
+   'set', 'clear', 'toggle' or 'other' (letter the operation's, upper case;
+   n its number). */
+const NCB_SET_OPS = '!ACDEFGHKLMNPQSTUXY^';
+function ncbReadSet(text, draw) {
+  const s = String(text || ''), out = [];
+  const i16 = v => (v << 16) >> 16;
+  let op = '?', rnd = -1, cnt = 0, num = 0;
+  for (let i = 0; i <= s.length; i++) {
+    const c = i < s.length ? s.charCodeAt(i) : 0;
+    const u = c >= 97 && c <= 122 ? c - 32 : c, U = String.fromCharCode(u);
+    if (U === 'B') { if (op === '?') op = ' '; num = 0; continue; }
+    if (u < 128 && NCB_SET_OPS.includes(U)) { op = U; num = 0; continue; }
+    if (U === 'R') { rnd = draw() ? 1 : 0; op = '?'; cnt = 0; continue; }
+    if (c >= 48 && c <= 57) { num = i16(num * 10 + c - 48); continue; }
+    // the token ends: passed over by a choice, or carried out
+    if (rnd !== -1 && rnd === cnt) { if (cnt === 0) i++; else cnt++; op = '?'; rnd = -1; continue; }
+    if (op === '?') continue;
+    if (op === ' ' || op === '!' || op === '^') { if (num >= 0 && num <= 9999) out.push({ op: op === ' ' ? 'set' : op === '!' ? 'clear' : 'toggle', letter: 'B', n: num }); }
+    else out.push({ op: 'other', letter: op, n: num });
+    cnt++; op = '?';
+  }
+  return out;
+}
+
+/* Every outcome of a set expression, one for each way its R choices may
+   fall (up to 2^10): arrays of ncbReadSet's operations. */
+function ncbSetOutcomes(text) {
+  const k = Math.min(10, (String(text || '').match(/[Rr]/g) || []).length), outs = [];
+  for (let m = 0; m < 1 << k; m++) { let j = 0; outs.push(ncbReadSet(text, () => (m >> j++) & 1)); }
+  return outs;
+}
+
+/* What a set expression may do: its operations over every outcome, in the
+   order first carried out, each { op, letter, n, random }, random where
+   some outcome does without it. */
+function ncbSetOps(text) {
+  const outs = ncbSetOutcomes(text), seen = new Map();
+  for (const o of outs) for (const x of o) {
+    const key = x.op + x.letter + x.n;
+    if (!seen.has(key)) seen.set(key, { ...x, times: 0 });
+  }
+  for (const o of outs) { const keys = new Set(o.map(x => x.op + x.letter + x.n)); for (const k of keys) seen.get(k).times++; }
+  return [...seen.values()].map(({ times, ...x }) => ({ ...x, random: times < outs.length }));
+}
+
 /* The bits a test mentions, ascending: what a page offers to toggle. */
 function ncbTestBits(text) {
   const out = new Set();

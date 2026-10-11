@@ -1,143 +1,89 @@
-// js/nova-bits.js held to Drydock, the code it was ported from, over every
-// control-bit test and set expression in every release.
+// js/nova-ncb.js's readings of control-bit expressions and js/nova-bits.js's
+// catalog, over every release.
 //
-// The oracle is Drydock's own two parsers (reference/drydock, geuis/drydock,
-// MIT): NCBTestExpression.swift and NCBSetExpression.swift, compiled unchanged
-// with a stub of the pilot state that the first names only for a function
-// the check never calls, and a main that reads each test the way
-// StoryFlagCatalog.collectRequirements does -- flipping on and off at every
-// "!" -- and each set expression into its operations, a random choice's
-// marked. Every expression goes to both, and what each bit is said to need
-// or to have done to it must be the same, in the same order. A test the
-// oracle cannot parse must be one ours cannot either. Needs swiftc; without
-// it, or without the clone, this check skips.
-//
-// Then the catalog: every bit named in the files is in it, and a few bits
-// the map's visibility rests on are named after the missions that set them.
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import crypto from 'node:crypto';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { site, openRelease, haveRelease, REF, RELEASES } from './load.mjs';
+// The set-expression reader (ncbReadSet) on worked cases, each worked by hand
+// from Mac 1.1.1's EvalSetExp (0x150fc): its two jump tables (0xdd204 by
+// character, 0xdd2fc by operation), the choice R(...) makes, the token a
+// following B replaces, a ! with no B. The test needs (ncbTestNeeds) on cases
+// the game reads otherwise than written. Then every test and set expression
+// in every release is read; the set expressions the game reads otherwise than
+// a reading of them as written would are listed, as universe_check lists the
+// tests. Then the catalog: every bit named in the files is in it, and b147,
+// which Sol's visibility rests on, is named after the mission that sets it.
+import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
 
 const S = site();
 let fails = 0;
 const fail = m => { console.log('FAIL ' + m); fails++; };
+const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) fail(`${what}: ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`); };
 
-const SRC = path.join(REF, 'drydock/Sources/Drydock');
-const FILES = ['Diagnostics/NCBTestExpression.swift', 'GameData/NCBSetExpression.swift'];
-const GLUE = `// What NCBTestExpression's explain() names of Drydock's pilot state, which
-// the check never calls: enough for the parser to compile on its own.
-public struct PilotStoryState {
-    public let bits: [Bool]
-    public let outfitCounts: [Int16]
-    public let exploration: [Int16]
-    public let isMale: Bool?
-    public static let outfitIDBase = 128
-    public static let systemIDBase = 128
-}
-`;
-const MAIN = `import Foundation
-// Each line is "t<TAB>test" or "s<TAB>set"; each answer is one line, the
-// test's needs as "on N" / "off N" (StoryFlagCatalog.collectRequirements)
-// or "unparsed", the set's bit operations as "set N" / "clear N" /
-// "toggle N", " r" after one inside R(...).
-func needs(_ node: NCBNode, _ neg: Bool, _ out: inout [String]) {
-    switch node {
-    case .bit(let id): out.append((neg ? "off" : "on") + " \\(id)")
-    case .not(let inner): needs(inner, !neg, &out)
-    case .and(let c), .or(let c): for x in c { needs(x, neg, &out) }
-    case .registered, .male, .outfit, .explored: break
-    }
-}
-while let line = readLine(strippingNewline: true) {
-    let parts = line.split(separator: "\\t", maxSplits: 1, omittingEmptySubsequences: false)
-    let expr = parts.count > 1 ? String(parts[1]) : ""
-    var out: [String] = []
-    if parts[0] == "t" {
-        if let n = NCBTestExpression.parse(expr).node { needs(n, false, &out) } else { out.append("unparsed") }
-    } else {
-        for step in NCBSetExpression.parse(expr) {
-            var random = false
-            if case .randomChoice = step { random = true }
-            for op in step.operations {
-                switch op {
-                case .set(let id): out.append("set \\(id)" + (random ? " r" : ""))
-                case .clear(let id): out.append("clear \\(id)" + (random ? " r" : ""))
-                case .toggle(let id): out.append("toggle \\(id)" + (random ? " r" : ""))
-                case .other: break
-                }
-            }
-        }
-    }
-    print(out.joined(separator: ","))
-}
-`;
+// ---- the set reader, worked by hand from EvalSetExp -------------------------
+const ops = (text, draw) => S.ncbReadSet(text, () => draw).map(o => (o.letter === 'B' ? { set: '', clear: '!', toggle: '^' }[o.op] + 'b' : o.letter) + o.n).join(' ');
+const CASES = [
+  // [text, draw 0, draw 1]
+  ['b5 !b6 ^b7', 'b5 !b6 ^b7', 'b5 !b6 ^b7'],
+  ['B5 !B6', 'b5 !b6', 'b5 !b6'],                         // either case
+  ['b10000 b9999', 'b9999', 'b9999'],                      // above 9999 passed over
+  ['b1b2', 'b2', 'b2'],                                    // B replaces the unended token
+  ['!123', '!b123', '!b123'],                              // ! alone clears
+  ['123', '', ''],                                         // a bare number does nothing
+  ['S801 b204 G147 K151', 'S801 b204 G147 K151', 'S801 b204 G147 K151'],
+  ['R(b1 b2)', 'b2', 'b1'],                                // the draw's count is passed over
+  ['R(!b1 b2)', 'b1 b2', '!b1'],                           // the skip passes one character, the !
+  ['R(b1 b2 b3)', 'b2 b3', 'b1 b3'],                       // a third choice always happens
+  ['b9 R(b1 b2) b4', 'b9 b2 b4', 'b9 b1 b4'],
+];
+for (const [t, d0, d1] of CASES) { eq(`${JSON.stringify(t)} drawing 0`, ops(t, 0), d0); eq(`${JSON.stringify(t)} drawing 1`, ops(t, 1), d1); }
+eq('R(b1 b2) b4 as ops', S.ncbSetOps('R(b1 b2) b4').map(o => [o.n, o.random]).sort((a, b) => a[0] - b[0]), [[1, true], [2, true], [4, false]]);
+// the test needs, as the game reads: mïsn 428's bare 467 passed over; a test starting with a digit needs nothing (never)
+eq('mïsn 428 needs', S.ncbTestNeeds('!(b511 | b515) & !((b50 | 467) | b6666)'), [511, 515, 50, 6666].map(n => ({ n, on: false })));
+eq('a test the game reads as never', S.ncbTestNeeds('612'), []);
+eq('nested negation', S.ncbTestNeeds('!(b1 & !b2)'), [{ n: 1, on: false }, { n: 2, on: true }]);
 
-function buildOracle() {
-  if (!fs.existsSync(SRC)) return { skip: 'no Drydock clone at reference/drydock' };
-  if (spawnSync('swiftc', ['--version']).status !== 0) return { skip: 'no swiftc' };
-  const texts = FILES.map(f => fs.readFileSync(path.join(SRC, f), 'utf8'));
-  const hash = crypto.createHash('sha1').update(texts.join('\0') + GLUE + MAIN).digest('hex').slice(0, 12);
-  const dir = path.join(os.tmpdir(), 'stargrimoire-ddbits-' + hash);
-  const bin = path.join(dir, 'ddbits');
-  // The binary, not the directory, says it is built: macOS empties $TMPDIR's files and keeps its folders.
-  if (!fs.existsSync(bin)) {
-    fs.mkdirSync(dir, { recursive: true });
-    const names = FILES.map(f => path.basename(f));
-    names.forEach((n, i) => fs.writeFileSync(path.join(dir, n), texts[i]));
-    fs.writeFileSync(path.join(dir, 'glue.swift'), GLUE);
-    fs.writeFileSync(path.join(dir, 'main.swift'), MAIN);
-    execFileSync('swiftc', ['-O', '-o', bin, 'main.swift', 'glue.swift', ...names], { cwd: dir, stdio: 'inherit' });
-  }
-  return { bin };
+// A set expression as written: R( ... ) a choice among its tokens, the rest each a token, !b and ^b as their signs.
+function written(text) {
+  const out = [], s = String(text || '');
+  const tok = (t, random) => { const m = /^([!^]?)[Bb](\d+)$/.exec(t); if (m && +m[2] <= 9999) out.push({ op: m[1] === '!' ? 'clear' : m[1] === '^' ? 'toggle' : 'set', n: +m[2], random }); };
+  const rest = s.replace(/[Rr]\(([^)]*)\)/g, (_, inner) => { for (const t of inner.split(/\s+/).filter(Boolean)) tok(t, true); return ' '; });
+  for (const t of rest.split(/[\s()]+/).filter(Boolean)) tok(t, false);
+  return out;
 }
+const key = list => list.map(o => `${o.op} ${o.n}${o.random ? ' r' : ''}`).sort().join(',');
 
-// Ours, in the oracle's words.
-function ours(kind, text) {
-  if (kind === 't') {
-    try { S.ncbParseTest(text); } catch (e) { return 'unparsed'; }
-    return S.ncbTestNeeds(text).map(x => (x.on ? 'on ' : 'off ') + x.n).join(',');
-  }
-  return S.ncbParseSet(text).flatMap(st => st.ops.filter(o => o.n !== null).map(o => `${o.op} ${o.n}${st.random ? ' r' : ''}`)).join(',');
-}
-
-const o = buildOracle();
-if (o.skip) console.log('SKIP the oracle: ' + o.skip);
 for (const v of Object.keys(RELEASES)) {
   if (!haveRelease(v)) { console.log(`SKIP ${v}: not in reference/`); continue; }
   const game = openRelease(S, v);
-  // every test and set expression the catalog reads, but for the descriptions' choices
   const exprs = [];
   for (const [type, , fields] of S.NOVA_BIT_SOURCES) for (const rec of S.novaAll(game, type)) for (const [field, how] of fields) {
     if (how === 'desc' || !rec[field]) continue;
-    exprs.push({ where: `${type} ${rec.id} ${field}`, kind: how === 'test' ? 't' : 's', text: rec[field] });
+    exprs.push({ where: `${type} ${rec.id} ${field}`, kind: how, text: rec[field] });
   }
-  if (!o.skip) {
-    // a line the oracle reads is one line: a tab or line break in an expression would split it
-    const clean = t => t.replace(/[\t\r\n]/g, ' ');
-    const answers = execFileSync(o.bin, { input: exprs.map(e => e.kind + '\t' + clean(e.text)).join('\n') + '\n', maxBuffer: 1 << 28 }).toString().split('\n');
-    let differ = 0, unparsed = 0;
-    const first = [];
-    exprs.forEach((e, i) => {
-      const want = answers[i], got = ours(e.kind, clean(e.text));
-      if (want === 'unparsed') unparsed++;
-      if (want !== got) { differ++; if (first.length < 4) first.push(`${e.where} ${JSON.stringify(e.text)}: ${got} here, ${want} in Drydock`); }
-    });
-    if (differ) fail(`${v}: ${differ} of ${exprs.length} expressions read differently from Drydock: ${first.join('; ')}`);
-    else console.log(`${v}: ${exprs.length} test and set expressions (${exprs.filter(e => e.kind === 't').length} tests), each read as Drydock reads it` +
-                     (unparsed ? `; ${unparsed} tests neither parses` : ''));
+  const otherwise = [];
+  let choices = 0;
+  for (const e of exprs) {
+    try {
+      if (e.kind === 'test') S.ncbTestNeeds(e.text);
+      else {
+        const got = S.ncbSetOps(e.text).filter(o => o.letter === 'B');
+        if (/[Rr]\(/.test(e.text)) choices++;
+        if (key(got) !== key(written(e.text))) otherwise.push(`${e.where} ${JSON.stringify(e.text)}`);
+      }
+    } catch (err) { fail(`${v} ${e.where}: ${err.message}`); }
   }
-  // The catalog: every bit an expression names is in it, and what Sol's visibility rests on is named.
+  const sets = exprs.filter(e => e.kind === 'set').length;
+  console.log(`${v}: ${exprs.length - sets} tests and ${sets} set expressions read, ${choices} with a choice; ${otherwise.length} set expressions the game reads otherwise than written${otherwise.length ? ': ' + otherwise.slice(0, 6).join('; ') : ''}`);
+  // The catalog: every bit an expression names is in it, and b147 is named after Take Polaris Home.
   const cat = S.novaBitCatalog(game);
   const named = new Set();
-  for (const e of exprs) for (const m of e.text.matchAll(/(?:^|[^A-Za-z0-9])[Bb](\d+)/g)) if (+m[1] < 10000) named.add(+m[1]);
+  for (const e of exprs) {
+    if (e.kind === 'test') for (const x of S.ncbTestNeeds(e.text)) named.add(x.n);
+    else for (const o of S.ncbSetOps(e.text)) if (o.letter === 'B') named.add(o.n);
+  }
   const missing = [...named].filter(n => !cat.has(n));
-  if (missing.length) fail(`${v}: bits named in the files and not in the catalog: ${missing.slice(0, 8).join(', ')}`);
+  if (missing.length) fail(`${v}: bits the files use and not in the catalog: ${missing.slice(0, 8).join(', ')}`);
   const b147 = cat.get(147);
   if (!b147 || !/Take Polaris Home/.test(b147.name || '') || !b147.refs.some(r => r.type === 'sÿst' && r.effect === 'on'))
     fail(`${v}: b147 is not named after Take Polaris Home with a system's visibility needing it: ${JSON.stringify(b147 && b147.name)}`);
-  console.log(`${v}: ${cat.size} bits in use, ${[...cat.values()].filter(b => b.name).length} of them set by something; b147 "${b147 && b147.name}"`);
+  console.log(`${v}: ${cat.size} bits in use, ${[...cat.values()].filter(b => b.name).length} of them changed by something; b147 "${b147 && b147.name}"`);
 }
 process.exit(fails ? 1 : 0);

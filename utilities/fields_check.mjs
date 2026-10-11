@@ -47,6 +47,17 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const fiel
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_SHORT)) for (const field of Object.keys(fields))
   if (!S.novaFieldNote(type, field)) fail(`${type} ${field}: few words with no note`);
 
+// The fields nova-bits.js reads are those whose note says they are a test of control bits or control bits set.
+const bitFields = new Map();
+for (const [type, , fields] of S.NOVA_BIT_SOURCES) for (const [field, how] of fields) if (how !== 'desc') bitFields.set(`${type} ${field}`, how);
+for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const [field, n] of Object.entries(fields)) {
+  const how = /^A test of control bits/.test(n.note) ? 'test' : /^Control bits set/.test(n.note) ? 'set' : null, k = `${type} ${field}`;
+  if (how && bitFields.get(k) !== how) fail(`${k}: its note says it is a ${how === 'test' ? 'test' : 'set expression'}, and nova-bits.js reads it ${bitFields.has(k) ? 'as a ' + bitFields.get(k) : 'not at all'}`);
+  if (!how && bitFields.has(k)) fail(`${k}: nova-bits.js reads it as a ${bitFields.get(k)}, and its note does not say so`);
+}
+for (const k of bitFields.keys()) { const [type, field] = k.split(' '); if (!S.novaFieldNote(type, field)) fail(`${k}: nova-bits.js reads it, and it has no note`); }
+console.log(`${bitFields.size} fields of control bits, each as its note says`);
+
 // Every reading (NOVA_FIELD_READS) run over every record of its type in every
 // release: each must give words, for a field its table names. What the shipped
 // records come to is counted where it is worth knowing: codes the program reads

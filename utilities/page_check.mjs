@@ -445,7 +445,7 @@ try {
             const find = async (q, what) => { const s = $('search'); s.value = q; s.dispatchEvent(new Event('input')); await wait(50);
               const d = [...document.querySelectorAll('#found div')].find(x => x.querySelector('small') && x.querySelector('small').textContent.startsWith(what));
               if (!d) return null; d.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); await wait(200); return document.querySelector('#panel h2').textContent; };
-            o.found = { outfit: await find('light blaster t', 'outfit'), bit: await find('b147', 'set when'), rank: await find('commander', 'rank') };
+            o.found = { outfit: await find('light blaster t', 'outfit'), bit: await find('b147', 'turned on when'), rank: await find('commander', 'rank') };
             history.replaceState(null, '', '#galaxy'); applyHash(); await wait(100);
             // a figure read from the program: the outfit's picture and description bases, each a link to its instruction
             history.replaceState(null, '', '#galaxy&rec=outf.128'); applyHash(); await wait(200);

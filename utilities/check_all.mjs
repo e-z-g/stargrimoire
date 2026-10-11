@@ -100,7 +100,7 @@ const CHECKS = [
   ['rez', 'the .rez reader against the workbench\'s rez.py'],
   ['sprite', 'rlëD and rlë8 against ResForge, pixel for pixel'],
   ['universe', 'the map\'s rules, and every release through them'],
-  ['bits', 'every control-bit test and set read as Drydock reads it'],
+  ['bits', 'control-bit set expressions read as Mac 1.1.1 reads them, and every one in every release'],
   ['missions', 'storylines from Ambrosia\'s notes, place codes, and the wiki as a check'],
   ['compare', 'what changed between releases, against the resources\' bytes'],
   ['fields', 'the field notes: every routine they cite is Mac 1.1.1\'s, at its address'],

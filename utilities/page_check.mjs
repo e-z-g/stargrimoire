@@ -793,6 +793,11 @@ try {
           if (links[0]) { o.clicked = links[0].textContent; links[0].click(); }
           o.code = { on: CODE.on, hash: location.hash, title: (document.querySelector('#codeView h2') || {}).textContent };
           div.remove();
+          // the rules: listed on the Code view's first page, and marked in a routine with the site's line
+          codeShow(null, null);
+          o.rules = document.querySelectorAll('#codeView .codeRules tr').length;
+          const s = novaRuleSites(prog).find(x => x.routine === 'HyperSpawnFleet' && x.value === 1.165);
+          if (s) { codeShow(s.start, s.addr); const at = document.querySelector('#codeView tr.at'); o.ruleAt = at ? at.innerText : null; }
           return o;
         })()`) });
     for (const e of pageErrors(r.console)) fail('the disk image: ' + describe(e));
@@ -802,9 +807,9 @@ try {
     const want = ['4000', '10000', '9500', '7', '1000'];
     const nums = (o.nums || []).filter(n => /^\d+$/.test(n));
     if (o.kind !== 'macho' || !want.every(n => nums.includes(n)) || !(o.noteLinks > 5) || !o.code || !o.code.on || o.code.title !== o.clicked || !/^#code=0x[0-9a-f]+/.test(o.code.hash) ||
-        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)))
-      fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles, ratings: o.ratings, prose: o.prose }));
-    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text`);
+        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)) || !(o.rules > 50) || !/the site uses 1\.165: nova-flight\.js \d+/.test(o.ruleAt || ''))
+      fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles, ratings: o.ratings, prose: o.prose, rules: o.rules, ruleAt: o.ruleAt }));
+    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text; ${o.rules} routines in the rules, and HyperSpawnFleet's line ${o.ruleAt}`);
   }
 
   // Compared with 1.0.2 by ?compare=: the galaxy's panel lists what changed,

@@ -21,7 +21,10 @@
 // routine its symbols name, by name and address) and llvm-objdump's
 // indirect symbols (every stub named), and each of its figures to LLVM's
 // reading of the word and to the value the site's own code uses; every
-// routine a field note cites must be there by name. What the program loads
+// routine a field note cites must be there by name. js/nova-rules.js must
+// be the list the flying and battle code gives (utilities/rules_build.mjs),
+// each number found in its routine, a whole number's word as llvm-mc reads
+// it, and a number the routine does not hold not found. What the program loads
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
 import fs from 'node:fs';
@@ -29,6 +32,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { site, REF } from './load.mjs';
+import { scanRules } from './rules.mjs';
 
 const S = site();
 let fails = 0;
@@ -141,6 +145,28 @@ else {
       figureHeld('1.1.1', prog, name, f);
     }
     usesCheck('1.1.1', prog);
+    // the rules: the list the code gives, each found where it says
+    const want = JSON.stringify(scanRules(S, prog)), have = JSON.stringify(S.NOVA_RULES);
+    if (want !== have) fail('1.1.1: js/nova-rules.js is not the list the code gives; run node utilities/rules_build.mjs');
+    const sites = S.novaRuleSites(prog);
+    if (sites.length !== S.NOVA_RULES.length) fail(`1.1.1: ${S.NOVA_RULES.length - sites.length} rules not found in their routines`);
+    let rbad = 0;
+    const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+    for (const s of sites) {
+      const o = prog.ops(prog.routineAt(s.addr)).find(x => x.addr === s.addr);
+      // a float constant: read from the file where the load points, by this check's own offsets
+      if (o.op.mn === 'lfs' || o.op.mn === 'lfd') {
+        const at = fileOffset(bytes, o.data), x = at < 0 ? NaN : o.op.mn === 'lfs' ? dv.getFloat32(at) : dv.getFloat64(at);
+        if (Math.fround(x) !== Math.fround(s.value) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}): the constant at ${S.hex(o.data)} is ${x}`);
+        continue;
+      }
+      if (!LLVM) continue;
+      const w = o.word, text = llvm([w])[0] || '';
+      const n = Math.abs(s.value), hi = s.value / 65536;
+      if (!new RegExp(`(^|[ ,])-?(${n}|${hi})($|[ ,(])`).test(text) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}) at ${S.hex(s.addr)}, where LLVM has "${text}"`);
+    }
+    if (S.novaHeldValues(prog, 'HandleShip').has(Math.fround(1.1651))) fail('1.1.1: HandleShip found holding a number it does not');
+    console.log(`1.1.1: ${sites.length} rules, each found in the routine the code cites (${new Set(sites.map(s => s.routine)).size} routines), whole numbers as LLVM reads them`);
     console.log(`1.1.1: ${cited.size} routines the field notes cite, all there; ` + Object.entries(got).filter(([n]) => n !== 'descLoader').map(([n, f]) => `${n} ${f.value} in ${prog.nameOf(prog.routineAt(f.addr))}`).join(', '));
     // a word changed on purpose: the figure must not survive it
     for (const name of ['missionOffer', 'landingPict']) {

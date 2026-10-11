@@ -925,3 +925,36 @@ function novaProgramUses(prog, game) {
   prog.uses = { fixed, bases };
   return prog.uses;
 }
+
+/* ---- the rules the site's flying and battles use ---------------------------
+
+   NOVA_RULES (js/nova-rules.js) lists each number the flying and battle
+   code uses that the routine its comments cite holds too. In a program
+   that keeps names (1.1.1) each is found there: the first instruction of
+   the routine holding it (novaHeldValues). Found, not read: the number is
+   the site's, and where it is in the routine shows it is the program's.
+   novaRuleSites(prog) -> [{ file, line, value, routine, addr }]. */
+function novaHeldValues(prog, name) {
+  if (!prog.held) prog.held = new Map();
+  if (prog.held.has(name)) return prog.held.get(name);
+  const r = novaRoutineNamed(prog, name), m = new Map();
+  if (r) for (const o of prog.ops(r)) {
+    const op = o.op;
+    if (!op) continue;
+    const vals = [];
+    if (op.imm !== undefined && /^(li|addi|cmpwi|cmplwi|mulli|subfic)$/.test(op.mn)) vals.push(op.imm, -op.imm);
+    if (op.mn === 'lis') vals.push(op.imm * 65536);
+    if ((op.mn === 'lfs' || op.mn === 'lfd') && typeof o.value === 'number') vals.push(o.value);
+    for (const v of vals) { const k = Math.fround(v); if (!m.has(k)) m.set(k, o.addr); }
+  }
+  prog.held.set(name, m);
+  return m;
+}
+function novaRuleSites(prog) {
+  if (prog.ruleSites) return prog.ruleSites;
+  prog.ruleSites = prog.kind !== 'macho' || typeof NOVA_RULES === 'undefined' ? [] : NOVA_RULES.map(([file, line, value, routine]) => {
+    const r = novaRoutineNamed(prog, routine), addr = r ? novaHeldValues(prog, routine).get(Math.fround(value)) : undefined;
+    return addr === undefined ? null : { file, line, value, routine, start: r.start, addr };
+  }).filter(Boolean);
+  return prog.ruleSites;
+}

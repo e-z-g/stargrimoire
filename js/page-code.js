@@ -81,6 +81,23 @@ function codeRoutine(name) {
   return r ? `<a class="codeNum" data-code="${hex(r.start)}" data-at="${hex(r.start)}" title="${esc(name)} in the program, at ${hex(r.start)}">${esc(name)}</a>` : esc(name);
 }
 
+// The site's own code on GitHub, for a line that uses a number the program holds.
+const SITE_SOURCE = 'https://github.com/e-z-g/stargrimoire/blob/main/';
+const srcLink = (file, line) => `<a href="${SITE_SOURCE}${file}#L${line}" target="_blank" rel="noopener" title="The site's ${esc(file)}, line ${line}">${esc(file.replace(/^js\//, ''))} ${line}</a>`;
+
+/* The rules the site's flying and battles use, by routine: each number a
+   link to the instruction holding it, and to the line using it. */
+function codeRules(p) {
+  const sites = novaRuleSites(p);
+  if (!sites.length) return '';
+  const by = new Map();
+  for (const s of sites) { if (!by.has(s.routine)) by.set(s.routine, []); by.get(s.routine).push(s); }
+  const rows = [...by].map(([name, list]) => `<tr><td><a data-code="${hex(list[0].start)}">${esc(name)}</a></td><td>${list.map(s => `${codeNum({ routine: s.start, addr: s.addr, value: s.value })} <small>${srcLink(s.file, s.line)}</small>`).join(', ')}</td></tr>`);
+  return `<h3>The rules the site flies by</h3>
+    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites: a number opens the instruction that holds it, a line the site's code that uses it.</p>
+    <table class="kv codeRules">${rows.join('')}</table>`;
+}
+
 /* ---- in and out of the view -------------------------------------------- */
 
 function codeFromHash() {
@@ -152,16 +169,19 @@ function renderCode() {
   if (CODE.addr === null) {
     el.innerHTML = `<h2>The program</h2>
       <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ', its PowerPC half' : ''} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
-      <p class="note">Search for what a routine names: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>`;
+      <p class="note">Search for what a routine names: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>
+      ${codeRules(p)}`;
     return;
   }
   const r = p.routineAt(CODE.addr), ops = p.ops(r);
   const named = novaNamedRoutines(p, GAME).find(n => n.routine === r);
   const callers = [...new Set(p.callers(r.start).map(a => p.routineAt(a)).filter(Boolean))];
-  const read = novaFiguresByAddr(p, GAME);
+  const read = novaFiguresByAddr(p, GAME), rules = new Map();
+  for (const s of novaRuleSites(p)) if (s.start === r.start) { if (!rules.has(s.addr)) rules.set(s.addr, []); rules.get(s.addr).push(s); }
   const line = o => {
     let note = o.note === null ? '' : o.target !== null ? `<a data-code="${hex(o.target)}">${esc(o.note)}</a>` : esc(o.note);
     if (read.has(o.addr)) note += `<span class="codeRead">the site reads ${esc(read.get(o.addr))}</span>`;
+    if (rules.has(o.addr)) note += `<span class="codeRead">the site uses ${rules.get(o.addr)[0].value}: ${rules.get(o.addr).map(s => srcLink(s.file, s.line)).join(', ')}</span>`;
     return `<tr${o.addr === CODE.at ? ' class="at"' : ''} data-addr="${hex(o.addr)}"><td>${o.addr.toString(16)}</td><td>${esc(o.op ? o.op.text : '.long 0x' + o.word.toString(16).padStart(8, '0'))}</td><td>${note}</td></tr>`;
   };
   el.innerHTML = `<h2>${esc(named ? named.name : p.nameOf(r))}</h2>

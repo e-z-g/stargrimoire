@@ -108,4 +108,34 @@ for (const v of ['1.0.10', '1.1.1']) {
   console.log(`${v}: ${charts} storyline charts, ${backs} lines going back up a loop`);
 }
 
+// The whole game (novaGameOverview): every join held by what it cites, read again from the records'
+// own fields -- a lead by one mission's set expressions or the other's test, a shut by the bit turned on
+// and the opening's test needing it off, a person by its ActivateOn, an event by its OnStart or OnEnd --
+// and a storyline joining itself nowhere; Rebel I leads to Rebel II.
+for (const v of ['1.0.10', '1.1.1']) {
+  if (!haveRelease(v)) continue;
+  const game = openRelease(S, v), data = S.novaMissions(game), O = S.novaGameOverview(game, data);
+  const key = id => { const m = data.byId.get(id); return m && m.story && m.story.key; };
+  const turns = (rec, fields, n) => fields.some(f => S.ncbSetOps(rec[f] || '').some(o => o.op === 'set' && o.n === n));
+  const needs = (test, n, on) => S.ncbTestNeeds(test || '').some(x => x.n === n && x.on === on);
+  let bad = 0;
+  const no = m => { if (bad++ < 5) fail(`${v}: the whole game: ${m}`); };
+  for (const j of [...O.leads, ...O.shuts]) if (j.from === j.to) no(`${j.from} joins itself`);
+  for (const j of O.leads) for (const [a, b] of j.via) if (key(a) !== j.from || key(b) !== j.to || !data.byId.get(a).next.includes(b)) no(`lead ${a} to ${b}`);
+  for (const j of O.shuts) for (const [a, o, n] of j.via) {
+    const A = data.byId.get(a), B = data.byId.get(o);
+    if (key(a) !== j.from || key(o) !== j.to || !turns(A.rec, ['OnAccept', 'OnSuccess', 'OnShipDone'], n) || !needs(B.rec.AvailBits, n, false)) no(`shut ${a} b${n} ${o}`);
+    if (B.prev.some(p => key(p) === j.to)) no(`shut ${o} is not an opening of ${j.to}`);
+  }
+  for (const p of O.people) for (const [list, on] of [[p.appears, true], [p.goes, false]]) for (const x of list) for (const [m, n] of x.via) {
+    if (key(m) !== x.story || !needs(S.novaGet(game, 'përs', p.pers).ActivateOn, n, on) || !data.byId.get(m).turnsOn.has(n)) no(`person ${p.pers} b${n}`);
+  }
+  for (const e of O.events) for (const [list, on] of [[e.opens, true], [e.shuts, false]]) for (const x of list) for (const [m, n] of x.via) {
+    if (key(m) !== x.story || !turns(S.novaGet(game, 'crön', e.cron), ['OnStart', 'OnEnd'], n) || !needs(data.byId.get(m).rec.AvailBits, n, on)) no(`event ${e.cron} b${n}`);
+  }
+  const rebel = [...data.stories.values()], r1 = rebel.find(s => s.name === 'Rebel I'), r2 = rebel.find(s => s.name === 'Rebel II');
+  if (!r1 || !r2 || !O.leads.some(j => j.from === r1.key && j.to === r2.key)) no('Rebel I does not lead to Rebel II');
+  console.log(`${v}: the whole game: ${data.stories.size} storylines, ${O.leads.length} leads and ${O.shuts.length} shuts between them, ${O.people.length} people and ${O.events.length} events joining them, each held by its records`);
+}
+
 process.exit(fails ? 1 : 0);

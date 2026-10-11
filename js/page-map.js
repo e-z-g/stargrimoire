@@ -2266,7 +2266,101 @@ function missionPanel(id) {
 /* A storyline's missions in step order, each with where it is offered; the
    places its missions are offered at, go to or return to are ringed on the
    map while it is open (storyPlaces). */
+/* ---- the whole game: the storylines and how they join (novaGameOverview) -- */
+
+const OVERVIEW = { pick: null };
+let OVERVIEW_DATA = null;
+function overviewData() { return OVERVIEW_DATA && OVERVIEW_DATA.m === missionData() ? OVERVIEW_DATA.o : (OVERVIEW_DATA = { m: missionData(), o: novaGameOverview(GAME, missionData()) }).o; }
+// A storyline's openings: its missions no mission of its own leads to.
+function storyOpenings(s) { const M = missionData(); return s.missions.filter(m => !m.prev.some(p => { const q = M.byId.get(p); return q && q.story && q.story.key === s.key; })); }
+
+/* The whole game as a chart, over the page (#storyMap): the storylines that
+   lead to one another left to right, each in a column after every one that
+   leads to it (novaStoryLayout), the rest in a last column; what a storyline
+   picked shuts, and what shuts it, drawn over. A box opens its storyline. */
+function storyMapRender() {
+  const M = missionData(), O = overviewData(), st = k => M.stories.get(k), el = $('storyMap');
+  const led = O.stories.filter(k => O.leads.some(j => j.from === k || j.to === k)), rest = O.stories.filter(k => !led.includes(k)).sort((a, b) => st(a).name.localeCompare(st(b).name));
+  const idx = new Map(led.map((k, i) => [k, i]));
+  const L = novaStoryLayout(led.map((k, i) => ({ id: i, next: [...new Set(O.leads.filter(j => j.from === k).map(j => idx.get(j.to)))] })));
+  const W = 168, H = 40, GX = 64, GY = 14, TOP = 30;
+  const pos = new Map();
+  for (const n of L.nodes) pos.set(led[n.id], { col: n.layer, row: n.pos });
+  rest.forEach((k, i) => pos.set(k, { col: L.layers, row: i }));
+  const x = k => 10 + pos.get(k).col * (W + GX), y = k => TOP + pos.get(k).row * (H + GY);
+  const width = 20 + (L.layers + (rest.length ? 1 : 0)) * (W + GX) - GX, height = TOP + 20 + Math.max(L.width, rest.length) * (H + GY);
+  const line = (a, b, cls) => {
+    if (pos.get(b).col > pos.get(a).col) { const x1 = x(a) + W, y1 = y(a) + H / 2, x2 = x(b), y2 = y(b) + H / 2, m = (x1 + x2) / 2; return `<path d="M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}" class="${cls}"/>`; }
+    const x1 = x(a) + W / 2, y1 = y(a) + H, x2 = x(b) + W / 2, y2 = y(b) + H, d = 18 + 4 * Math.abs(pos.get(a).row - pos.get(b).row);
+    return `<path d="M${x1},${y1} C${x1},${Math.max(y1, y2) + d} ${x2},${Math.max(y1, y2) + d} ${x2},${y2}" class="${cls} back"/>`;
+  };
+  const pick = OVERVIEW.pick, shuts = pick ? O.shuts.filter(j => j.from === pick) : [], shutBy = pick ? O.shuts.filter(j => j.to === pick) : [];
+  const marks = new Map(shuts.map(j => [j.to, 'shut']));
+  for (const j of shutBy) marks.set(j.from, marks.has(j.from) ? 'both' : 'shutter');
+  const both = [...marks.values()].filter(v => v === 'both').length;
+  const lines = O.leads.map(j => line(j.from, j.to, '')).join('') + shutBy.map(j => line(j.from, j.to, 'shutter')).join('') + shuts.map(j => line(j.from, j.to, 'shut')).join('');
+  const short = t => (t.length > 24 ? t.slice(0, 23) + '…' : t);
+  const boxes = O.stories.map(k => {
+    const s = st(k), open = storyOpenings(s).some(missionHolds), cls = [open ? 'yes' : 'no', marks.get(k) || '', k === pick ? 'picked' : ''].join(' ');
+    return `<a data-sm-story="${esc(k)}"><title>${esc(s.name)}: ${s.missions.length} missions</title><rect x="${x(k)}" y="${y(k)}" width="${W}" height="${H}" rx="5" class="${cls}"/>` +
+      `<text x="${x(k) + 8}" y="${y(k) + 16}">${esc(short(s.name))}</text><text x="${x(k) + 8}" y="${y(k) + 31}" class="step">${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}</text></a>`;
+  }).join('');
+  const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
+  el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
+      <button data-sm-close>Close</button></div>
+    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its own${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
+}
+function storyMapOpen() { $('storyMap').hidden = false; storyMapRender(); }
+function storyMapClose() { $('storyMap').hidden = true; }
+function wireStoryMap() {
+  const el = $('storyMap');
+  el.addEventListener('click', e => {
+    const a = e.target.closest('[data-sm-story],[data-sm-close]');
+    if (!a) return;
+    e.preventDefault();
+    storyMapClose();
+    if (a.dataset.smStory !== undefined) { VIEW.sel = { kind: 'story', id: a.dataset.smStory, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; }
+  });
+  el.addEventListener('change', e => { if (e.target.matches('[data-sm-pick]')) { OVERVIEW.pick = e.target.value || null; storyMapRender(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !el.hidden) storyMapClose(); });
+}
+
+function overviewPanel() {
+  const M = missionData(), O = overviewData(), keys = O.stories;
+  const st = k => M.stories.get(k);
+  // what joins each storyline, with the missions and bits that make it
+  const via = list => list.map(v => v.length === 2 ? `${missionLink(v[0])} → ${missionLink(v[1])}` : `${missionLink(v[0])} turns on ${bitText('b' + v[2])}, which ${missionLink(v[1])} needs off`).join('<br>');
+  const joinsOf = k => {
+    const out = O.leads.filter(j => j.from === k), shut = O.shuts.filter(j => j.from === k), into = O.leads.filter(j => j.to === k), shutBy = O.shuts.filter(j => j.to === k);
+    if (!out.length && !shut.length && !into.length && !shutBy.length) return '';
+    const part = (label, list, end) => list.length ? `<p><b>${label}</b> ${list.map(j => `${storyLink(j[end])} <span class="note">${j.via.length}</span>`).join(', ')}</p>${list.map(j => `<details><summary>${storyLink(j.from)} and ${storyLink(j.to)}</summary><p class="note">${via(j.via)}</p></details>`).join('')}` : '';
+    return `<details class="ovStory"><summary>${storyLink(k)} <span class="note">leads to ${out.length}, shuts ${shut.length}; led to from ${into.length}, shut by ${shutBy.length}</span></summary>
+      ${part('Leads to', out, 'to')}${part('Shuts the openings of', shut, 'to')}${part('Led to from', into, 'from')}${part('Its openings shut by', shutBy, 'from')}</details>`;
+  };
+  const order = keys.slice().sort((a, b) => st(b).missions.length - st(a).missions.length || st(a).name.localeCompare(st(b).name));
+  const alone = order.filter(k => !O.leads.some(j => j.from === k || j.to === k) && !O.shuts.some(j => j.from === k || j.to === k));
+  // people and events, a name once with every record of it
+  const names = (type, ids) => ids.map(id => recLink(type, id, novaGet(GAME, type, id) ? novaGet(GAME, type, id).name : `${type} ${id}`));
+  const storiesOf = list => [...new Set(list.map(x => x.story))].map(storyLink).join(', ');
+  const byName = new Map();
+  for (const p of O.people) { const r = novaGet(GAME, 'përs', p.pers), k = (r ? r.name : p.pers) + '|' + storiesOf(p.appears) + '|' + storiesOf(p.goes); if (!byName.has(k)) byName.set(k, { ids: [], p }); byName.get(k).ids.push(p.pers); }
+  const people = [...byName.values()].map(({ ids, p }) => `<tr><td>${names('përs', ids.slice(0, 1))}${ids.length > 1 ? ` <span class="note">and ${ids.length - 1} more of the name</span>` : ''}</td><td>${p.appears.length ? 'appears with ' + storiesOf(p.appears) : ''}${p.appears.length && p.goes.length ? '; ' : ''}${p.goes.length ? 'gone with ' + storiesOf(p.goes) : ''}</td></tr>`).join('');
+  const events = O.events.map(e => `<tr><td>${names('crön', [e.cron])}</td><td>${e.opens.length ? 'opens ' + storiesOf(e.opens) : ''}${e.opens.length && e.shuts.length ? '; ' : ''}${e.shuts.length ? 'shuts ' + storiesOf(e.shuts) : ''}</td></tr>`).join('');
+  return `<h2>The whole game</h2>
+    <div class="sub">${keys.length} storylines, from Ambrosia's notes in the missions' names, and how they join</div>
+    <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
+    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions none of its own lead to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
+    <h3>What joins each</h3>
+    <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. ${[...M.byId.values()].filter(m => !m.story).length} missions belong to no storyline and are left out.</p>
+    ${order.map(joinsOf).join('')}
+    ${people ? `<h3>People</h3><p class="note">A person whose ActivateOn needs on a bit a storyline's missions turn on appears with it, and one that needs it off is gone with it.</p><table class="kv">${people}</table>` : ''}
+    ${events ? `<h3>Events</h3><p class="note">An event that turns on, as it starts or ends, a bit a storyline's missions need on opens them, or off shuts them.</p><table class="kv">${events}</table>` : ''}`;
+}
+
 function storyPanel(key) {
+  if (key === '*') return overviewPanel();
   const s = missionData().stories.get(key);
   if (!s) return '<h2>No such storyline</h2>';
   const rows = s.missions.map(m => `<tr><td>${esc(m.story.step || '')}</td><td>${missionLink(m.id).replace(/ <span class="note">.*<\/span>$/, '')}` +
@@ -2323,7 +2417,7 @@ function storyPlaces() {
 // The storylines, longest first, for the galaxy's panel.
 function storyList() {
   const list = [...missionData().stories.values()].sort((a, b) => b.missions.length - a.missions.length || a.name.localeCompare(b.name));
-  return `<h3>Storylines <span class="note">${list.length}, from the notes in the missions' names</span></h3><div class="list">${list.map(s => `<a data-story="${esc(s.key)}">${esc(s.name)}</a> <span class="note">${s.missions.length}</span>`).join(' ')}</div>`;
+  return `<h3>Storylines <span class="note">${list.length}, from the notes in the missions' names</span></h3><div class="actions"><button data-story="*">The whole game</button></div><div class="list">${list.map(s => `<a data-story="${esc(s.key)}">${esc(s.name)}</a> <span class="note">${s.missions.length}</span>`).join(' ')}</div>`;
 }
 // The missions offered at a stellar, and those that send you there, for its panel.
 function stellarMissions(sp) {
@@ -2707,7 +2801,7 @@ function tapAt(sx, sy, dbl) {
 
 function wirePanel() {
   const onClick = e => {
-    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-rec],[data-gate-to],[data-gate-cancel],[data-flight]');
+    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-rec],[data-gate-to],[data-gate-cancel],[data-flight],[data-ov]');
     if (!a) return;
     e.preventDefault();
     const d = a.dataset;
@@ -2726,6 +2820,7 @@ function wirePanel() {
     if (d.gateTo !== undefined) { hypergateGo(+d.gateTo); return; }
     if (d.gateCancel !== undefined) { gatePickEnd(); renderPanel(); redraw(); return; }
     if (d.flight !== undefined) { flightControl(d.flight); return; }
+    if (d.ov === 'map') { storyMapOpen(); return; }
     while (VIEW.sel && OVER_KINDS.has(VIEW.sel.kind)) VIEW.sel = VIEW.sel.back || null;
     if (d.routeFrom !== undefined) setRoute(+d.routeFrom, null);
     else if (d.routeTo !== undefined) setRoute(ROUTE.from, +d.routeTo);
@@ -2930,4 +3025,5 @@ wirePlugin();
 wireMap();
 wireLanding();
 wirePanel();
+wireStoryMap();
 wireTools();

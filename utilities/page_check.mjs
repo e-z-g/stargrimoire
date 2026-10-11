@@ -405,6 +405,26 @@ try {
               if (boxes[0]) { boxes[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); o.chartTo = VIEW.sel && VIEW.sel.kind === 'mission' ? VIEW.sel.id : null; o.chartFirst = +boxes[0].dataset.mission; VIEW.sel = VIEW.sel.back; renderPanel(); }
               draw();
             }
+            // the whole game: every storyline a box, what shuts what drawn when asked, a box opening its storyline and Back to the whole
+            VIEW.sel = null; renderPanel();
+            const whole = document.querySelector('#panel button[data-story="*"]');
+            if (whole) {
+              whole.click();
+              const ov = { title: document.querySelector('#panel h2').textContent, stories: missionData().stories.size, hash: location.hash, joins: document.querySelectorAll('#panel details.ovStory').length };
+              document.querySelector('#panel [data-ov="map"]').click();
+              ov.boxes = document.querySelectorAll('#storyMap a[data-sm-story]').length;
+              const sel = document.querySelector('#storyMap [data-sm-pick]'), pol = [...sel.options].find(x => x.textContent === 'Polaris');
+              sel.value = pol.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
+              ov.shut = document.querySelectorAll('#storyMap path.shut').length;
+              const box = document.querySelector('#storyMap a[data-sm-story]');
+              box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+              ov.opened = $('storyMap').hidden && document.querySelector('#panel h2').textContent === missionData().stories.get(box.dataset.smStory).name;
+              document.querySelector('#panel [data-bit-back]').click();
+              for (let i = 0; i < 20 && document.querySelector('#panel h2').textContent !== 'The whole game'; i++) await new Promise(r => setTimeout(r, 50));
+              ov.back = document.querySelector('#panel h2').textContent;
+              OVERVIEW.pick = null;
+              o.overview = ov;
+            }
             // Federation Resupply's test holds a bare 467, which the game passes over
             VIEW.sel = { kind: 'mission', id: 428, back: null }; renderPanel();
             o.reads = (document.querySelector('#panel .warn[title]') || {}).textContent || null;
@@ -747,6 +767,10 @@ try {
       if (sy.chart !== sy.rows || sy.chartTo !== sy.chartFirst) fail(`${dev.name}: Rebel I's chart: ${sy.chart} boxes for ${sy.rows} missions, a box opening ${sy.chartTo}`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
+      const ov = sy.overview;
+      if (!ov || ov.title !== 'The whole game' || ov.boxes !== ov.stories || !(ov.shut > 5) || !(ov.joins > 40) || !ov.opened || ov.back !== 'The whole game' || !/(^#|&)story=\*$/.test(ov.hash))
+        fail(`${dev.name}: the whole game: ${JSON.stringify(ov)}`);
+      else console.log(`${dev.name}: the whole game at ${ov.hash}, ${ov.boxes} storylines in its chart, ${ov.shut} lines of what Polaris shuts, ${ov.joins} storylines' joins listed, a box opening its storyline and Back`);
       const nb = o.nebula, op = o.options;
       if (!nb.frames || nb.worst > 0.5 || !nb.sel || nb.sel.kind !== 'nebula') fail(`${dev.name}: going to a nebula from the panel: ${JSON.stringify(nb)}`);
       if (!(op.jumps.max > 1) || op.jumps.reached < op.jumps.shown / 2 || op.jumps.hidden || !/^Jumps from Sol/.test(op.jumps.legend) || !op.legendAfter)

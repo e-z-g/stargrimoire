@@ -207,3 +207,53 @@ function novaStoryLayout(missions) {
   }
   return { nodes: ids.map(id => ({ id, layer: layer.get(id), pos: pos.get(id) })), edges, width: Math.max(1, ...rows.map(r => (r ? r.length : 0))), layers: rows.length, byId };
 }
+
+/* The whole game: how the storylines join. { stories, leads, shuts, people,
+   events }, each join a list of what makes it:
+     leads: a mission of one storyline leads to a mission of another (LEADS
+       TO above): [{ from, to, via: [[mission, mission]] }];
+     shuts: a mission of one turns on a bit that an opening of another (one
+       no mission of its own storyline leads to) needs off:
+       [{ from, to, via: [[mission, opening, bit]] }];
+     people: a përs whose ActivateOn needs on a bit a storyline's missions
+       turn on (it appears with that storyline) or needs it off (it goes):
+       [{ pers, appears: [{ story, via: [[mission, bit]] }], goes }] (no
+       shipped përs offers a storyline's mission, its LinkMission);
+     events: a crön that turns on, at its start or end, a bit a storyline's
+       missions need on (opens) or off (shuts): [{ cron, opens: [{ story,
+       via: [[mission, bit]] }], shuts }].
+   A storyline is { key, name, missions }; stories are the keys of
+   M.stories. */
+function novaGameOverview(game, M) {
+  const storyOf = id => { const m = M.byId.get(id); return m && m.story ? m.story.key : null; };
+  const joins = () => new Map(), add = (map, a, b, why) => { const k = a + '\u0000' + b; if (!map.has(k)) map.set(k, { from: a, to: b, via: [] }); map.get(k).via.push(why); };
+  const leads = joins(), shuts = joins();
+  for (const m of M.byId.values()) {
+    const a = storyOf(m.id);
+    if (a) for (const t of m.next) { const b = storyOf(t); if (b && b !== a) add(leads, a, b, [m.id, t]); }
+  }
+  const openings = new Map([...M.stories.values()].map(s => [s.key, s.missions.filter(m => !m.prev.some(p => storyOf(p) === s.key))]));
+  for (const m of M.byId.values()) {
+    const a = storyOf(m.id);
+    if (a) for (const [b, list] of openings) if (b !== a) for (const o of list) for (const x of o.needs) if (!x.on && m.turnsOn.has(x.n)) add(shuts, a, b, [m.id, o.id, x.n]);
+  }
+  // who turns on each bit, by storyline
+  const turners = new Map();
+  for (const m of M.byId.values()) { const k = storyOf(m.id); if (k) for (const n of m.turnsOn) { if (!turners.has(n)) turners.set(n, []); turners.get(n).push(m); } }
+  const people = [];
+  for (const p of novaAll(game, 'përs')) {
+    const appears = joins(), goes = joins();
+    for (const x of ncbTestNeeds(p.ActivateOn || '')) for (const m of turners.get(x.n) || []) add(x.on ? appears : goes, p.id, storyOf(m.id), [m.id, x.n]);
+    if (appears.size || goes.size) people.push({ pers: p.id, appears: [...appears.values()].map(j => ({ story: j.to, via: j.via })), goes: [...goes.values()].map(j => ({ story: j.to, via: j.via })) });
+  }
+  const events = [];
+  for (const c of novaAll(game, 'crön')) {
+    const on = new Set();
+    for (const f of ['OnStart', 'OnEnd']) for (const o of ncbSetOps(c[f] || '')) if (o.op === 'set') on.add(o.n);
+    if (!on.size) continue;
+    const opens = joins(), shut = joins();
+    for (const m of M.byId.values()) { const k = storyOf(m.id); if (k) for (const x of m.needs) if (on.has(x.n)) add(x.on ? opens : shut, c.id, k, [m.id, x.n]); }
+    if (opens.size || shut.size) events.push({ cron: c.id, opens: [...opens.values()].map(j => ({ story: j.to, via: j.via })), shuts: [...shut.values()].map(j => ({ story: j.to, via: j.via })) });
+  }
+  return { stories: [...M.stories.keys()], leads: [...leads.values()], shuts: [...shuts.values()], people, events };
+}

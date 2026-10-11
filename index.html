@@ -147,6 +147,18 @@ code { font: 12.5px/1.3 ui-monospace, Menlo, monospace; color: var(--text); }
 #panel .storyChart rect.yes { stroke: #9fe870; } #panel .storyChart rect.no { stroke: #e87070; }
 #panel .storyChart text { fill: var(--text); font-size: 11.5px; } #panel .storyChart text.step { fill: var(--dim); font-size: 10.5px; }
 #panel .storyChart a { cursor: pointer; }
+#storyMap { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; }
+#storyMap .smTop { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 16px 0; }
+#storyMap .smTop button { margin-left: auto; }
+#storyMap .smNote { padding: 0 16px; margin: 6px 0; }
+#storyMap .smScroll { flex: 1; overflow: auto; padding: 0 6px 16px; }
+#storyMap path { fill: none; stroke: var(--dim); stroke-width: 1.3; } #storyMap path.back { stroke-dasharray: 4 3; }
+#storyMap path.shut { stroke: #e87070; stroke-width: 1.6; } #storyMap path.shutter { stroke: #ffb347; stroke-width: 1.6; }
+#storyMap rect { fill: var(--raise); stroke-width: 1.5; } #storyMap rect.yes { stroke: #9fe870; } #storyMap rect.no { stroke: #e87070; }
+#storyMap rect.shut { fill: rgba(232,112,112,0.25); } #storyMap rect.shutter { fill: rgba(255,179,71,0.25); } #storyMap rect.both { fill: rgba(190,120,230,0.32); } #storyMap rect.picked { stroke: var(--text); stroke-width: 3; }
+#storyMap text { fill: var(--text); font-size: 12px; } #storyMap text.step { fill: var(--dim); font-size: 11px; } #storyMap a { cursor: pointer; }
+#panel details.ovStory > summary { cursor: pointer; padding: 3px 0; }
+#panel details.ovStory details { margin-left: 12px; }
 #panel figure.recPict { margin: 8px 0; }
 #panel figure.recPict .pict { max-width: 100%; display: block; border-radius: 4px; background: #080a0f; }
 #panel figure.recPict .nopict { color: var(--dim); padding: 20px 0; }
@@ -410,6 +422,7 @@ details.inline .list { margin-top: 4px; }
 </main>
 
 <main id="library" hidden></main>
+<div id="storyMap" hidden></div>
 <main id="code" hidden>
   <nav id="codeList">
     <div class="listTools">
@@ -537,7 +550,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-sprites.js?v=944def6a"></script>
 <script src="js/nova-universe.js?v=a810f939"></script>
 <script src="js/nova-bits.js?v=2f9179b9"></script>
-<script src="js/nova-missions.js?v=6e8d2b3e"></script>
+<script src="js/nova-missions.js?v=7f959b30"></script>
 <script src="js/nova-subway.js?v=54bc4a4f"></script>
 <script src="js/nova-labels.js?v=7d212c2c"></script>
 <script src="js/nova-ships.js?v=f08fb24e"></script>
@@ -554,7 +567,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/page-compare.js?v=bfe95a5e"></script>
 <script src="js/page-plugin.js?v=cc78ec4d"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=41ae08c4"></script>
+<script src="js/page-map.js?v=4138d87f"></script>
 <script src="js/page-ships.js?v=6ee5030e"></script>
 <script src="js/page-flight.js?v=c3eb5a89"></script>
 <script src="js/page-battle.js?v=14626b5a"></script>

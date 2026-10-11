@@ -168,7 +168,13 @@ function novaNebulaPict(u, neb, scale) {
 
 // A nebula's pictures, PICT 9500 + 7(n - 128) and the six after (1.1.1's DoSystemMap; novaFigure's nebulaPict and nebulaPicts).
 function novaNebulaPictIds(neb) { return Array.from({ length: 7 }, (_, i) => 9500 + 7 * (neb.id - 128) + i); }
-function novaStellarSpin(spob) { return 1000 + spob.Type; }
+/* The sprites the program numbers from a base: a weapon's shot, spïn 3000 +
+   its Graphic; an explosion's, 400 + its GraphicIndex; the boxes', 500 + n;
+   an asteroid's, 800 + n; a stellar's, 1000 + its Type (1.1.1's
+   LoadSprites and LoadMasterStellarSprite; novaFigure's shotSpin ...
+   stellarSpin, which program_check holds these to). */
+const NOVA_SPIN_BASE = { shot: 3000, explod: 400, box: 500, asteroid: 800, stellar: 1000 };
+function novaStellarSpin(spob) { return NOVA_SPIN_BASE.stellar + spob.Type; }
 function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID : 10000 + spob.Type; }
 
 /* ANIMATION, read from Mac 1.1.1's HandleStellarSprites (the Intel half,

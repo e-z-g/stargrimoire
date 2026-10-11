@@ -131,13 +131,16 @@ else {
       if (!f) { fail(`1.1.1: ${name} not found`); continue; }
       got[name] = f;
       if (name === 'descLoader') continue;
-      if (LLVM) {
-        const w = prog.ops(prog.routineAt(f.addr)).find(o => o.addr === f.addr).word, text = llvm([w])[0] || '';
-        if (!new RegExp(`(^|[ ,])${f.value}($|[ ,(])`).test(text)) fail(`1.1.1: ${name}: LLVM reads the word at ${S.hex(f.addr)} as "${text}", not holding ${f.value}`);
+      // a list's words are comparisons, each holding its number or one less
+      const each = Array.isArray(f.value) ? f.value.map((v, i) => [f.addrs[i], v]).filter(([a]) => a !== null) : [[f.addr, f.value]];
+      if (LLVM) for (const [a, v] of each) {
+        const w = prog.ops(prog.routineAt(a)).find(o => o.addr === a).word, text = llvm([w])[0] || '';
+        const holds = n => new RegExp(`(^|[ ,])${n}($|[ ,(])`).test(text);
+        if (!holds(v) && !(Array.isArray(f.value) && holds(v - 1))) fail(`1.1.1: ${name}: LLVM reads the word at ${S.hex(a)} as "${text}", not holding ${v}`);
       }
       const words = S.NOVA_FIGURE_WORDS[name];
       if (!words) fail(`1.1.1: ${name} has no words for the Code view`);
-      else if (words[1] && words[1]() !== f.value) fail(`1.1.1: ${name}: the program has ${f.value}, the site's own code ${words[1]()}`);
+      else if (words[1] && JSON.stringify(words[1]()) !== JSON.stringify(f.value)) fail(`1.1.1: ${name}: the program has ${f.value}, the site's own code ${words[1]()}`);
     }
     usesCheck('1.1.1', prog);
     console.log(`1.1.1: ${cited.size} routines the field notes cite, all there; ` + Object.entries(got).filter(([n]) => n !== 'descLoader').map(([n, f]) => `${n} ${f.value} in ${prog.nameOf(prog.routineAt(f.addr))}`).join(', '));

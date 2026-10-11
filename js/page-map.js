@@ -2467,7 +2467,7 @@ function stellarPanel(sp) {
       ${kvRow('Also', esc(flags2))}
       ${kvRow(gate & 0x2000 ? 'Wormhole to' : 'Hypergate to', gateTo(sp, sysHere))}
       ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ', its CustPicID' : ` (${figText('landingPict', 10000)} + its Type, ${sp.Type})`}` : '')}
-      ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)}`)}
+      ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${figText('stellarSpin', NOVA_SPIN_BASE.stellar)} + its Type, ${sp.Type})`)}
     </table>
     ${prices ? `<h3>Commodities</h3><table class="kv">${prices}</table>` : ''}
     <h3>In ${inSys.length === 1 ? 'the system' : 'the systems'}</h3><div class="list">${inSys.map(id => sysLink(id)).join('') || '<span class="note">none: in no system\'s navigation list</span>'}</div>

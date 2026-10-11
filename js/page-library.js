@@ -61,7 +61,7 @@ function libRace(res, id) {
 const LIB_BASES = {
   'dësc': [['outfitDesc', 'oütf', "outfitter's description of"], ['shipDesc', 'shïp', "shipyard's description of"], ['escortDesc', 'shïp', 'description for hire of'],
            ['missionOffer', 'mïsn', 'offer of'], ['barDesc', 'spöb', 'bar of'], ['stellarDesc', 'spöb', 'spaceport description of']],
-  'PICT': [['outfitPict', 'oütf', "outfitter's picture of"]],
+  'PICT': [['outfitPict', 'oütf', "outfitter's picture of"], ['shipTargetPict', 'shïp', 'target display of'], ['shipyardPict', 'shïp', 'shipyard picture of']],
 };
 function libRole(res, id) {
   const parts = [];

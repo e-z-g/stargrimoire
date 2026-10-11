@@ -781,11 +781,15 @@ try {
           document.body.appendChild(div);
           const plain = [...U.stellars.values()].find(sp => (sp.Flags & 1) && !(sp.Flags2 & 0x3000) && sp.CustPicID < 128);
           div.innerHTML = missionPanel(mis.id) + stellarPanel(plain) + nebulaPanel(U.nebulae[0]);
-          o.roles = ['PICT 8502', 'dësc 13999'].map(k => libRole(...k.split(' ').map((x, i) => (i ? Number(x) : x))).replace(/<[^>]*>/g, ''));
+          o.roles = [['PICT', 8502], ['dësc', 13999], ['PICT', U.nebulae[0].picts[3].id]].map(([r, i]) => libRole(r, i).replace(/<[^>]*>/g, ''));
+          o.ratings = (fig('combatRatings') || {}).value;
           o.nums = [...div.querySelectorAll('a.codeNum')].map(a => a.textContent);
           div.innerHTML = fieldsTable('spöb', U.stellars.get(128));
           const links = [...div.querySelectorAll('.fieldCode a.codeNum')];
           o.noteLinks = links.length;
+          const boom = document.createElement('div');
+          boom.innerHTML = fieldsTable('bööm', novaGet(GAME, 'bööm', 128));
+          o.prose = [...boom.querySelectorAll('.fieldFull > a.codeNum')].map(a => a.textContent);
           if (links[0]) { o.clicked = links[0].textContent; links[0].click(); }
           o.code = { on: CODE.on, hash: location.hash, title: (document.querySelector('#codeView h2') || {}).textContent };
           div.remove();
@@ -795,12 +799,12 @@ try {
     const o = r.more || {};
     if (!r.met || o.systems !== 545 || !((o.files || []).length >= 13)) fail('the disk image: ' + JSON.stringify(o));
     else console.log(`1.1.1's disk image: ${o.files.length} files open, ${o.systems} systems, ${o.picts} PICTs, in ${(r.ms / 1000).toFixed(1)} s`);
-    const want = ['4000', '10000', '9500', '7'];
+    const want = ['4000', '10000', '9500', '7', '1000'];
     const nums = (o.nums || []).filter(n => /^\d+$/.test(n));
     if (o.kind !== 'macho' || !want.every(n => nums.includes(n)) || !(o.noteLinks > 5) || !o.code || !o.code.on || o.code.title !== o.clicked || !/^#code=0x[0-9a-f]+/.test(o.code.hash) ||
-        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]))
-      fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles }));
-    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}`);
+        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)))
+      fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles, ratings: o.ratings, prose: o.prose }));
+    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text`);
   }
 
   // Compared with 1.0.2 by ?compare=: the galaxy's panel lists what changed,

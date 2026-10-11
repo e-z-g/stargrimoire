@@ -391,10 +391,11 @@ function renderShipPictures() {
   if (!host || SHIPS.id === null) return;
   const id = SHIPS.id, fd = fig('shipDesc'), d = fd ? descText(fd.value + id - 128) : null;
   const list = [];
-  const t = novaShipPict(GAME, id, 3000), y = novaShipPict(GAME, id, 5000);
+  const t = novaShipPict(GAME, id, NOVA_SHIP_PICT.target), y = novaShipPict(GAME, id, NOVA_SHIP_PICT.shipyard);
   const whose = p => p.from !== id ? `, shïp ${p.from}'s` : '';
-  if (y) list.push({ pict: y.id, label: `Shipyard, PICT ${y.id}${whose(y)}` });
-  if (t) list.push({ pict: t.id, label: `Target display, PICT ${t.id}${whose(t)}` });
+  const n = p => p.from - 128;
+  if (y) list.push({ pict: y.id, label: `Shipyard, PICT ${y.id} (${figText('shipyardPict', NOVA_SHIP_PICT.shipyard)} + ${n(y)}${whose(y)})` });
+  if (t) list.push({ pict: t.id, label: `Target display, PICT ${t.id} (${figText('shipTargetPict', NOVA_SHIP_PICT.target)} + ${n(t)}${whose(t)})` });
   if (d && d.Graphic >= 128 && GAME.has('PICT', d.Graphic)) list.push({ pict: d.Graphic, label: `Named by its description, PICT ${d.Graphic}` });
   const key = list.map(p => p.pict).join(',');
   const done = host.dataset.key === key && !host.querySelector('.wait');
@@ -408,7 +409,7 @@ function renderShipPictures() {
     if (img) fig.appendChild(asCanvas(img));
     else fig.innerHTML = PICT_CACHE.get(p.pict) === 'failed' ? `<div class="nopict">PICT ${p.pict} does not read.</div>` : '<div class="nopict wait">Reading…</div>';
     const cap = document.createElement('figcaption');
-    cap.textContent = p.label;
+    cap.innerHTML = p.label;
     fig.appendChild(cap);
     host.appendChild(fig);
   }

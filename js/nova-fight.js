@@ -56,7 +56,7 @@ function novaFightData(D) {
       partVels: [], partColors: [],
       burstCount: r.BurstCount > 0 ? r.BurstCount : -1, burstReload: r.BurstReload,
       jam: (r.JamVuln || [0, 0, 0, 0]).map(v => Math.min(100, Math.max(0, v))),
-      spin: r.Graphic >= 0 ? 3000 + r.Graphic : 0, range: 0,
+      spin: r.Graphic >= 0 ? NOVA_SPIN_BASE.shot + r.Graphic : 0, range: 0,
     });
   }
   for (const w of F.weaps) if (w) w.range = novaWeaponRange(F, w);
@@ -68,7 +68,7 @@ function novaFightData(D) {
   }
   for (let i = 0; i < 64; i++) {
     const r = novaGet(game, 'bööm', 128 + i);
-    F.booms.push(r ? { adv: f32(f32(r.FrameAdvance) * 0.01), sound: r.SoundIndex, spin: 400 + r.GraphicIndex } : null);
+    F.booms.push(r ? { adv: f32(f32(r.FrameAdvance) * 0.01), sound: r.SoundIndex, spin: NOVA_SPIN_BASE.explod + r.GraphicIndex } : null);
   }
   for (const g of D.govts.values()) {
     const raw = D.u.govts.get(g.id);
@@ -93,6 +93,10 @@ function novaWeaponRange(F, w) {
   }
   return r;
 }
+// The least kills for each combat rating, whose names are STR# 138 (1.1.1's DrawCombatRatingString;
+// novaFigure's combatRatings, which program_check holds this to).
+const NOVA_COMBAT_RATINGS = [0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
+
 /* The sprite a spïn names (a weapon's 3000 + Graphic, an explosion's 400 +
    GraphicIndex), looked up when wanted, since the graphics files may come
    after the rest. */
@@ -2579,7 +2583,7 @@ function novaHandleBoxes(w) {
 }
 // The boxes' sprites (spïn 500 + n), placed a whole width and height up and left of the box (HandleBoxes).
 function novaBoxHit(D, t, x) {
-  const ts = novaFightSprite(D, t.cls.sprite), bs = novaFightSprite(D, novaSpinSprite(D, 500 + x.sprite));
+  const ts = novaFightSprite(D, t.cls.sprite), bs = novaFightSprite(D, novaSpinSprite(D, NOVA_SPIN_BASE.box + x.sprite));
   if (!ts || !bs) return false;
   return novaMaskHit(ts, t.frame || 0, Math.trunc(t.x) - Math.trunc(ts.w / 2), Math.trunc(t.y) - Math.trunc(ts.h / 2),
                      bs, Math.trunc(x.frame), Math.trunc(x.x) - bs.w, Math.trunc(x.y) - bs.h);

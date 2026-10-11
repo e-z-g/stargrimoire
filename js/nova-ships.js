@@ -91,6 +91,9 @@ function novaShipSpriteOwner(game, id) {
   return id;
 }
 
+// The two pictures numbered from a ship's: the target display's and the shipyard's (1.1.1's LoadSprites and
+// LoadShipSprites; novaFigure's shipTargetPict and shipyardPict, which program_check holds these to).
+const NOVA_SHIP_PICT = { target: 3000, shipyard: 5000 };
 /* A ship's picture in the 3000 (target) or 5000 (beside its description)
    series: { id, from } with `from` the ship whose picture it is, or null
    when neither it nor the ship it shares sprites with has one. */

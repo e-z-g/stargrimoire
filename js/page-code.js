@@ -43,6 +43,20 @@ function fig(name) {
    where the open program gives it; else the site's own, which
    program_check holds to the program. */
 function figText(name, own) { const f = fig(name); return f ? codeNum(f) : esc(String(own)); }
+/* Prose (already escaped) with each resource number in it that the open
+   program gives -- a figure's base or a resource it loads by number --
+   made a link to where it does. */
+function codeLinkProse(html) {
+  const p = program();
+  if (!p) return html;
+  return html.replace(/(spïn|snd|PICT|dësc|STR#) (\d{3,5})/g, (m, res, num) => {
+    const key = res === 'snd' ? 'snd ' : res, n = Number(num);
+    const name = Object.keys(NOVA_FIGURE_RES).find(k => NOVA_FIGURE_RES[k] === key && fig(k) && fig(k).value === n);
+    if (name) return `${res} ${codeNum(fig(name))}`;
+    const u = novaProgramUses(p, GAME).fixed.get(`${key} ${n}`);
+    return u ? `${res} <a class="codeNum" data-code="${hex(u[0].routine)}" data-at="${hex(u[0].addr)}" title="Read from the program at ${hex(u[0].addr)}">${num}</a>` : m;
+  });
+}
 /* A figure as text that links to the instruction holding it. */
 function codeNum(f, text) {
   return `<a class="codeNum" data-code="${hex(f.routine)}" data-at="${hex(f.addr)}" title="Read from the program at ${hex(f.addr)}">${esc(text ?? String(f.value))}</a>`;

@@ -433,8 +433,24 @@ const NOVA_FIGURE_WORDS = {
   stellarDesc: [v => `a stellar's description in its spaceport: dësc ${v} + the spöb's number less 128`, () => novaStellarDescId({ id: 128 })],
   barDesc: [v => `a stellar's bar: dësc ${v} + the spöb's number less 128`, () => novaStellarBarDescId({ id: 128 })],
   landingPict: [v => `a stellar's landing picture: PICT ${v} + its Type, where CustPicID is under 128`, () => novaLandingPict({ CustPicID: 0, Type: 0 })],
+  shipTargetPict: [v => `a ship's target display: PICT ${v} + the shïp's number less 128`, () => NOVA_SHIP_PICT.target],
+  shipyardPict: [v => `a ship's picture in the shipyard: PICT ${v} + the shïp's number less 128`, () => NOVA_SHIP_PICT.shipyard],
+  shotSpin: [v => `a weapon's shot: spïn ${v} + its Graphic`, () => NOVA_SPIN_BASE.shot],
+  explodSpin: [v => `an explosion: spïn ${v} + its GraphicIndex`, () => NOVA_SPIN_BASE.explod],
+  boxSpin: [v => `a box to scoop: spïn ${v} + its kind`, () => NOVA_SPIN_BASE.box],
+  asteroidSpin: [v => `an asteroid: spïn ${v} + the röid's number less 128`, () => NOVA_SPIN_BASE.asteroid],
+  stellarSpin: [v => `a stellar: spïn ${v} + its Type`, () => NOVA_SPIN_BASE.stellar],
+  shotSnd: [v => `a weapon's sound: snd ${v} + its Sound`],
+  explodSnd: [v => `an explosion's sound: snd ${v} + its SoundIndex`],
+  combatRatings: [v => `the least kills for each combat rating: ${v.join(', ')}`, () => NOVA_COMBAT_RATINGS],
   nebulaPict: [v => `a nebula's pictures: PICT ${v} + 7 × the nëbu's number less 128, and the six after`, () => novaNebulaPictIds({ id: 128 })[0]],
   nebulaPicts: [v => `pictures to a nebula: ${v}`, () => novaNebulaPictIds({ id: 128 }).length],
+};
+// The resource type each figure is a base for, so a number in prose ("spïn 400 + n") can be linked to it.
+const NOVA_FIGURE_RES = {
+  outfitDesc: 'dësc', shipDesc: 'dësc', escortDesc: 'dësc', missionOffer: 'dësc', stellarDesc: 'dësc', barDesc: 'dësc',
+  outfitPict: 'PICT', landingPict: 'PICT', nebulaPict: 'PICT', shipTargetPict: 'PICT', shipyardPict: 'PICT',
+  shotSpin: 'spïn', explodSpin: 'spïn', boxSpin: 'spïn', asteroidSpin: 'spïn', stellarSpin: 'spïn', shotSnd: 'snd ', explodSnd: 'snd ',
 };
 // The figures read from a program, by the address of the instruction holding each.
 function novaFiguresByAddr(prog, game) {
@@ -561,6 +577,17 @@ function novaArgFigure(prog, inName, toName, reg, nth = 0, back = 16) {
   if (!s || !((s.o.op.mn === 'addi' && s.o.op.imm > 0) || s.o.op.mn === 'li')) return null;
   return { value: s.o.op.imm, addr: s.o.addr, routine: c.r.start, k: s.k, ops: c.ops };
 }
+// The first call in a named routine to `toName` beside an instruction that loads the address of the global `g`.
+function novaCallNearGlobal(prog, inName, toName, g) {
+  const c = novaNamedCalls(prog, inName, toName);
+  const hit = c && c.calls.find(({ i }) => c.ops.slice(Math.max(0, i - 40), i + 5).some(o => o.note === 'address of ' + g));
+  return hit ? { r: c.r, ops: c.ops, i: hit.i } : null;
+}
+// What a register holds at that call, where an `li` or an `addi` of a positive number set it, however far back.
+function novaGlobalArgFigure(prog, inName, toName, g, reg) {
+  const c = novaCallNearGlobal(prog, inName, toName, g), s = c && novaTraceArg(c.ops, c.i, reg, 80);
+  return s && (s.o.op.mn === 'li' || (s.o.op.mn === 'addi' && s.o.op.imm > 0)) ? { value: s.o.op.imm, addr: s.o.addr, routine: c.r.start } : null;
+}
 const NOVA_MACHO_FIGURES = {
   descLoader(prog) {
     const r = novaRoutineNamed(prog, 'LoadDescription');
@@ -599,6 +626,42 @@ const NOVA_MACHO_FIGURES = {
       }
     }
     return null;
+  },
+  // a ship's target picture, a loop from this into targetInfoPic; its shipyard picture, the PICT a loop
+  // from this asks ResourceExists for as the ships load
+  shipTargetPict(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetPicture', 'targetInfoPic', 3); },
+  shipyardPict(prog) {
+    const c = novaNamedCalls(prog, 'LoadShipSprites', 'ResourceExists');
+    for (const { i } of (c && c.calls) || []) {
+      const t = novaTraceArg(c.ops, i, 3, 8), n = novaTraceArg(c.ops, i, 4, 80);
+      if (t && t.o.note === "'PICT'" && n && n.o.op.mn === 'li' && n.o.op.imm >= 128) return { value: n.o.op.imm, addr: n.o.addr, routine: c.r.start };
+    }
+    return null;
+  },
+  // the sprites LoadSprites loads in runs, each into the global named for what it is
+  shotSpin(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetSpriteInfo', 'masterShotSprite', 3); },
+  explodSpin(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetSpriteInfo', 'masterExplodSprite', 3); },
+  boxSpin(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetSpriteInfo', 'masterBoxSprite', 3); },
+  asteroidSpin(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetSpriteInfo', 'masterAsteroidSprite', 3); },
+  // the sounds LoadSounds loads in runs into shotSnd and explodSnd: a weapon's, snd 200 + its Sound; an explosion's, 300 + its SoundIndex
+  shotSnd(prog) { return novaGlobalArgFigure(prog, 'LoadSounds', 'ST_LoadSndResource', 'shotSnd', 3); },
+  explodSnd(prog) { return novaGlobalArgFigure(prog, 'LoadSounds', 'ST_LoadSndResource', 'explodSnd', 3); },
+  // a stellar's sprite: its Type plus this
+  stellarSpin(prog) { return novaArgFigure(prog, 'LoadMasterStellarSprite', 'GetSpriteInfo', 3); },
+  // the least kills for each combat rating: DrawCombatRatingString compares the kills with each in turn,
+  // more than the number (bt/bf on GT) or, the last, not less than it (the LT bit taken from the CR)
+  combatRatings(prog) {
+    const r = novaRoutineNamed(prog, 'DrawCombatRatingString');
+    if (!r) return null;
+    const ops = prog.ops(r), out = [0], addrs = [null];
+    for (let k = 0; k < ops.length - 1; k++) {
+      const c = ops[k].op;
+      if (!c || c.mn !== 'cmpwi' || c.crf !== 7) continue;
+      const nx = ops.slice(k + 1, k + 3).map(o => o.op).filter(Boolean);
+      if (nx.some(o => /^b[tf]/.test(o.mn) && o.args[0] === 29)) { out.push(c.imm + 1); addrs.push(ops[k].addr); }
+      else if (nx.some(o => o.mn === 'mfcr')) { out.push(c.imm); addrs.push(ops[k].addr); break; }
+    }
+    return out.length > 2 ? { value: out, addrs, addr: addrs[1], routine: r.start } : null;
   },
   // a nebula's pictures: a loop from this, counted down from nebulaPicts for each nebula
   nebulaPict(prog) { return novaArgFigure(prog, 'DoSystemMap', 'GetPicture', 3, 0, 32); },

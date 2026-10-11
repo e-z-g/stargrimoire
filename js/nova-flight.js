@@ -211,7 +211,7 @@ function novaFlightData(u) {
 function novaFlightRoids(game) {
   const roids = [];
   for (let t = 0; t < 16; t++) {
-    const r = novaGet(game, 'röid', 128 + t), spin = novaGet(game, 'spïn', 800 + t);
+    const r = novaGet(game, 'röid', 128 + t), spin = novaGet(game, 'spïn', NOVA_SPIN_BASE.asteroid + t);
     const spr = spin && (game.get('rlëD', spin.SpritesID) || game.get('rlë8', spin.SpritesID));
     let ix = null;
     if (spr) try { ix = novaRleIndex(spr.bytes).header; } catch (e) { ix = null; }

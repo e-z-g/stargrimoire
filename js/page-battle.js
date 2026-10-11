@@ -39,8 +39,8 @@ const BATTLE = {
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
 const BATTLE_GAP = 120;            // between ships dropped together, in a column
-// The least kills for each combat rating, whose names are STR# 138 (DrawCombatRatingString 0x57e5).
-const BATTLE_RATINGS = [0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
+// The least kills for each combat rating, whose names are STR# 138 (nova-fight.js).
+const BATTLE_RATINGS = NOVA_COMBAT_RATINGS;
 
 /* ---- in and out of the view -------------------------------------------- */
 
@@ -132,7 +132,7 @@ function battlePanel() {
     return `<option value="${k}"${k === BATTLE.kills ? ' selected' : ''}>${esc(names[lv] || `rating ${lv}`)} (${k.toLocaleString('en')} kills)</option>`; }).join('');
   top.innerHTML = `
     <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
-    <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select></div>
+    <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>
     <label class="battle-row"><input type="checkbox" data-battle="ammo"${BATTLE.ammo ? ' checked' : ''}> Ammunition never runs out</label>
     ${side(0)}${side(1)}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>

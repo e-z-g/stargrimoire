@@ -2234,7 +2234,7 @@ function missionPanel(id) {
   const m = missionData().byId.get(id);
   if (!m) return `<h2>mïsn ${id}</h2><p class="note">Not in these files.</p>`;
   const r = m.rec, st = m.story;
-  const text = (title, did) => { const d = did >= 128 ? descText(did) : null; return d ? `<h3>${title}</h3><div class="desc">${esc(novaDescText(d.Description, STATE))}</div>` : ''; };
+  const text = (title, did, note) => { const d = did >= 128 ? descText(did) : null; return d ? `<h3>${title}</h3><div class="desc">${esc(novaDescText(d.Description, STATE))}</div>${note ? `<p class="note">${note}</p>` : ''}` : ''; };
   const sets = [['On accepting', 'OnAccept'], ['On refusing', 'OnRefuse'], ['On success', 'OnSuccess'], ['On failure', 'OnFailure'], ['On aborting', 'OnAbort'], ['With its ships dealt with', 'OnShipDone']]
     .filter(([, f]) => r[f]).map(([k, f]) => kvRow(k, `<span class="test">${bitText(r[f])}</span>`)).join('');
   return `<h2>${esc(m.name)}</h2>
@@ -2258,7 +2258,7 @@ function missionPanel(id) {
       ${kvRow('Follows', m.prev.map(missionLink).join('<br>'))}
     </table>
     <p class="note">Leads to: the missions it starts, and those whose AvailBits, as the game reads them, need on a bit this one turns on that fewer missions turn on than any other bit they need.</p>
-    ${text('The offer', 4000 + id - 128)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
+    ${text('The offer', 4000 + id - 128, `dësc ${4000 + id - 128} (${figText('missionOffer', 4000)} + ${id - 128}), as the mission computer loads it.`)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
     ${compareBlock('mïsn', id)}
     ${fieldsTable('mïsn', r)}`;
 }
@@ -2363,7 +2363,7 @@ function nebulaPanel(n) {
   return `<h2>${esc(n.name)}</h2><div class="sub">nëbu ${n.id}</div>
     <table class="kv">
       ${kvRow('Place', `${n.x}, ${n.y}, ${n.w} × ${n.h} map units`)}
-      ${kvRow('Pictures', esc(pic || 'none in these files'))}
+      ${kvRow('Pictures', esc(pic || 'none in these files') + `<br><span class="note">PICT ${figText('nebulaPict', 9500)} + ${figText('nebulaPicts', 7)} × ${n.id - 128} and the six after, one for each of the map's scales.</span>`)}
       ${kvRow('Shown when', testLine(n.activeOn))}
       ${kvRow('On exploring', n.rec.OnExplore ? `<span class="test">${bitText(n.rec.OnExplore)}</span>` : '')}
     </table>
@@ -2466,7 +2466,7 @@ function stellarPanel(sp) {
       ${kvRow('Gravity', sp.Gravity ? sp.Gravity : '')}
       ${kvRow('Also', esc(flags2))}
       ${kvRow(gate & 0x2000 ? 'Wormhole to' : 'Hypergate to', gateTo(sp, sysHere))}
-      ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? '' : ' (10000 + type)'}` : '')}
+      ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ', its CustPicID' : ` (${figText('landingPict', 10000)} + its Type, ${sp.Type})`}` : '')}
       ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)}`)}
     </table>
     ${prices ? `<h3>Commodities</h3><table class="kv">${prices}</table>` : ''}
@@ -2495,10 +2495,11 @@ function renderPlanet() {
   const bar = (sp.Flags & 0x40) ? descText(novaStellarBarDescId(sp)) : null;
   parts.push('<div class="land">');
   parts.push('<div id="landPict"></div>');
-  if (d) parts.push(`<div class="desc">${esc(novaDescText(d.Description, STATE))}</div>`);
-  else parts.push(`<div class="desc dim">No description: the files have no dësc ${novaStellarDescId(sp)}.</div>`);
+  const n = sp.id - 128, did = `dësc ${novaStellarDescId(sp)} (${figText('stellarDesc', 128)} + ${n})`;
+  if (d) parts.push(`<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">${did}, as the spaceport loads it.</p>`);
+  else parts.push(`<div class="desc dim">No description: the files have no ${did}.</div>`);
   if (bar) {
-    parts.push(`<h3>The bar</h3><div id="barPict"></div><div class="desc">${esc(novaDescText(bar.Description, STATE))}</div>`);
+    parts.push(`<h3>The bar</h3><div id="barPict"></div><div class="desc">${esc(novaDescText(bar.Description, STATE))}</div><p class="note">dësc ${novaStellarBarDescId(sp)} (${figText('barDesc', 10000)} + ${n}), as the bar loads it.</p>`);
   }
   if (d && novaDescBits(d.Description).length) parts.push(`<p class="note">This description changes with control bits ${novaDescBits(d.Description).map(b => 'b' + b).join(', ')}.</p>`);
   parts.push('</div>');

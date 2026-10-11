@@ -39,9 +39,20 @@ function fig(name) {
   if (!FIGURES.has(name)) FIGURES.set(name, novaFigure(p, name, GAME));
   return FIGURES.get(name);
 }
+/* A number the site uses, as a link to the instruction it was read from
+   where the open program gives it; else the site's own, which
+   program_check holds to the program. */
+function figText(name, own) { const f = fig(name); return f ? codeNum(f) : esc(String(own)); }
 /* A figure as text that links to the instruction holding it. */
 function codeNum(f, text) {
   return `<a class="codeNum" data-code="${hex(f.routine)}" data-at="${hex(f.addr)}" title="Read from the program at ${hex(f.addr)}">${esc(text ?? String(f.value))}</a>`;
+}
+
+/* A routine by the name Mac 1.1.1 gives it, as a link into its code when
+   the open program carries that name, else the name alone. */
+function codeRoutine(name) {
+  const p = program(), r = p ? novaRoutineNamed(p, name) : null;
+  return r ? `<a class="codeNum" data-code="${hex(r.start)}" data-at="${hex(r.start)}" title="${esc(name)} in the program, at ${hex(r.start)}">${esc(name)}</a>` : esc(name);
 }
 
 /* ---- in and out of the view -------------------------------------------- */
@@ -109,12 +120,12 @@ function renderCodeList() {
 function renderCode() {
   const el = $('codeView'), p = program();
   if (!p) {
-    el.innerHTML = `<h2>The program</h2><p class="note">${PROGRAM_SRC ? `${esc(PROGRAM_SRC.name)} is not a program this page reads yet: it reads the PowerPC program of 1.0.2 to 1.0.10.` : 'The files open do not include the game\'s program. Open a release\'s archive (1.0.2 to 1.0.10) to read it.'}</p>`;
+    el.innerHTML = `<h2>The program</h2><p class="note">${PROGRAM_SRC ? `${esc(PROGRAM_SRC.name)} is not a program this page reads yet: it reads the PowerPC program of 1.0.2 to 1.1.1.` : 'The files open do not include the game\'s program. Open a release\'s archive or disk image (1.0.2 to 1.1.1) to read it.'}</p>`;
     return;
   }
   if (CODE.addr === null) {
     el.innerHTML = `<h2>The program</h2>
-      <div class="sub">${esc(PROGRAM_SRC.name)} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
+      <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ', its PowerPC half' : ''} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
       <p class="note">Search for what a routine names: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>`;
     return;
   }

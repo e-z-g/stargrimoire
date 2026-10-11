@@ -95,9 +95,9 @@ function novaUniverse(game) {
   }
 
   const nebulae = novaAll(game, 'nëbu').map(n => {
-    const first = 9500 + (n.id - 128) * 7;
+    const ids = novaNebulaPictIds(n);
     return { id: n.id, name: n.name, x: n.XPos, y: n.YPos, w: n.XSize, h: n.YSize,
-             activeOn: n.ActiveOn || '', picts: NOVA_MAP_SCALES.map((sc, i) => ({ id: first + i, scale: sc })), rec: n };
+             activeOn: n.ActiveOn || '', picts: NOVA_MAP_SCALES.map((sc, i) => ({ id: ids[i], scale: sc })), rec: n };
   });
 
   return { game, systems, byId, stellars, inSystems, govts, nebulae };
@@ -166,6 +166,8 @@ function novaNebulaPict(u, neb, scale) {
   return best;
 }
 
+// A nebula's pictures, PICT 9500 + 7(n - 128) and the six after (1.1.1's DoSystemMap; novaFigure's nebulaPict and nebulaPicts).
+function novaNebulaPictIds(neb) { return Array.from({ length: 7 }, (_, i) => 9500 + 7 * (neb.id - 128) + i); }
 function novaStellarSpin(spob) { return 1000 + spob.Type; }
 function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID : 10000 + spob.Type; }
 
@@ -238,10 +240,11 @@ function novaStellarAnimStep(spob, a, count, ticks, engaged, rand) {
   return a.cur !== was;
 }
 
-/* Descriptions: dësc with the stellar's own id for the spaceport, the Bible's
-   128-2175; and 9872 + id for the bar, as ResForge's spöb template has it. */
-function novaStellarDescId(spob) { return spob.id; }
-function novaStellarBarDescId(spob) { return spob.id + 9872; }
+/* Descriptions: the spaceport loads dësc 128 + the stellar's index (its id
+   less 128), the bar dësc 10000 + it (1.1.1's DoPortDialog and DoBarDialog;
+   novaFigure's stellarDesc and barDesc, which program_check holds these to). */
+function novaStellarDescId(spob) { return 128 + spob.id - 128; }
+function novaStellarBarDescId(spob) { return 10000 + spob.id - 128; }
 
 function novaFlagWords(value, table) {
   return table.filter(([bit]) => value & bit).map(([, w]) => w);

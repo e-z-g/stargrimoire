@@ -39,6 +39,7 @@
 const NOVA_CODE_BASE = 0x100000;
 
 function novaProgram(bytes, rsrc) {
+  if (bytes && bytes.length >= 8 && (u32be(bytes, 0) === 0xCAFEBABE || u32be(bytes, 0) === 0xFEEDFACE)) return novaMachOProgram(bytes);
   const img = pefLoad(bytes);
   if (!img) return null;
   const secs = img.pef.sections;
@@ -158,7 +159,170 @@ function novaProgram(bytes, rsrc) {
   return { img, code, data, res, routines, routineAt, byStart, ops, callers, nameOf, textAt, glueName, base: NOVA_CODE_BASE, kind: 'pef' };
 }
 
+/* Mac 1.1.1's program is a Mach-O file with an Intel and a PowerPC half;
+   the PowerPC half is read, with the names its symbol table keeps. Its
+   code is GCC's, not CodeWarrior's: no TOC, a global or a string reached
+   by `lis` and the low half added or used as a displacement, a call into
+   the system through a stub the indirect symbol table names. Addresses
+   are the program's own, as llvm-objdump --arch=ppc prints them. */
+function novaMachOProgram(file) {
+  let bytes = file;
+  if (u32be(file, 0) === 0xCAFEBABE) {
+    bytes = null;
+    for (let i = 0, n = Math.min(u32be(file, 4), 16); i < n; i++) {
+      const at = 8 + 20 * i;
+      if (u32be(file, at) === 18) bytes = file.subarray(u32be(file, at + 8), u32be(file, at + 8) + u32be(file, at + 12));
+    }
+    if (!bytes) return null;
+  }
+  if (u32be(bytes, 0) !== 0xFEEDFACE || u32be(bytes, 4) !== 18) return null;
+  const cstr = (at, max) => { let e = at; while (e < at + max && bytes[e]) e++; return decodeMacRoman(bytes.subarray(at, e)); };
+  const segs = [], sects = [];
+  let symtab = null, indirect = null;
+  for (let i = 0, p = 28, n = u32be(bytes, 16); i < n; i++) {
+    const cmd = u32be(bytes, p), size = u32be(bytes, p + 4);
+    if (cmd === 1) {
+      segs.push({ name: cstr(p + 8, 16), vmaddr: u32be(bytes, p + 24), fileoff: u32be(bytes, p + 32), filesize: u32be(bytes, p + 36) });
+      for (let k = 0, ns = u32be(bytes, p + 48); k < ns; k++) {
+        const q = p + 56 + 68 * k;
+        sects.push({ name: cstr(q, 16), seg: cstr(q + 16, 16), addr: u32be(bytes, q + 32), size: u32be(bytes, q + 36), type: u32be(bytes, q + 56) & 0xFF, r1: u32be(bytes, q + 60), r2: u32be(bytes, q + 64) });
+      }
+    } else if (cmd === 2) symtab = { off: u32be(bytes, p + 8), n: u32be(bytes, p + 12), str: u32be(bytes, p + 16) };
+    else if (cmd === 11) indirect = { off: u32be(bytes, p + 56), n: u32be(bytes, p + 60) };
+    p += size;
+  }
+  // a byte at an address, from the file where a segment maps it; -1 where none does
+  const at = addr => { for (const s of segs) if (addr >= s.vmaddr && addr < s.vmaddr + s.filesize) return s.fileoff + addr - s.vmaddr; return -1; };
+  const word = addr => { const o = at(addr); return o < 0 ? 0 : u32be(bytes, o); };
+  const sectOf = addr => sects.find(s => addr >= s.addr && addr < s.addr + s.size) || null;
+  const text = sects.find(s => s.seg === '__TEXT' && s.name === '__text');
+  if (!text) return null;
+
+  // the symbols: routines in __text, globals elsewhere, and the undefined by index for the stubs
+  const syms = [], fnName = new Map(), dataName = new Map();
+  if (symtab) for (let i = 0; i < symtab.n; i++) {
+    const q = symtab.off + 12 * i, strx = u32be(bytes, q), type = bytes[q + 4], sect = bytes[q + 5], value = u32be(bytes, q + 8);
+    const name = cstr(symtab.str + strx, 256).replace(/^_/, '');
+    syms.push(name);
+    if ((type & 0xE0) || (type & 0x0E) !== 0x0E || !sect) continue;
+    const s = sects[sect - 1];
+    if (s === text) { if (!fnName.has(value)) fnName.set(value, name); } else if (!dataName.has(value)) dataName.set(value, name);
+  }
+  const ind = i => { const v = indirect && i < indirect.n ? u32be(bytes, indirect.off + 4 * i) : 0x80000000; return v & 0xC0000000 ? null : syms[v]; };
+  const stubs = [], pointsTo = new Map();
+  for (const s of sects) {
+    if (s.type === 8 && s.r2) for (let k = 0; k < s.size / s.r2; k++) { const n = ind(s.r1 + k); if (n) stubs.push({ start: s.addr + k * s.r2, end: s.addr + (k + 1) * s.r2, name: n }); }
+    if (s.type === 6 || s.type === 7) for (let k = 0; k < s.size / 4; k++) {
+      const n = ind(s.r1 + k), slotAt = s.addr + 4 * k;
+      if (n) { if (!dataName.has(slotAt)) dataName.set(slotAt, n); }
+      else if (s.type === 6) pointsTo.set(slotAt, word(slotAt));      // a pointer to the program's own global
+    }
+  }
+
+  // where routines start: the symbols, and bl targets in __text
+  const starts = new Set(fnName.keys()), calls = new Map();
+  for (let a = text.addr; a < text.addr + text.size; a += 4) {
+    const w = word(a);
+    if ((w >>> 26) !== 18 || (w & 3) !== 1) continue;
+    let d = w & 0x03FFFFFC; if (d & 0x02000000) d -= 0x04000000;
+    const t = a + d;
+    if (!calls.has(t)) calls.set(t, []);
+    calls.get(t).push(a);
+    if (t >= text.addr && t < text.addr + text.size) starts.add(t);
+  }
+  const sorted = [...starts].sort((a, b) => a - b);
+  const routines = sorted.map((s, i) => {
+    const end = i + 1 < sorted.length ? sorted[i + 1] : text.addr + text.size;
+    return { start: s, end, off: s, len: end - s, name: fnName.get(s) || null, glue: false };
+  }).concat(stubs.map(s => ({ start: s.start, end: s.end, off: s.start, len: s.end - s.start, name: s.name, glue: true })));
+  routines.sort((a, b) => a.start - b.start);
+  const byStart = new Map(routines.map(r => [r.start, r]));
+  const routineAt = addr => {
+    let lo = 0, hi = routines.length - 1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (routines[m].start <= addr) lo = m + 1; else hi = m - 1; }
+    const r = routines[hi];
+    return r && addr < r.end ? r : null;
+  };
+  const nameOf = r => r.name || 'routine ' + hex(r.start);
+
+  // a C string at an address; null for anything else
+  const textAt = addr => {
+    const o = at(addr);
+    if (o < 0) return null;
+    const ok = c => (c >= 0x20 && c < 0x7f) || (c >= 0x80 && c !== 0xff) || c === 13 || c === 10 || c === 9;
+    let e = o; while (e < bytes.length && ok(bytes[e])) e++;
+    if (e - o < 1 || bytes[e] !== 0) return null;
+    // the strings are UTF-8 where they are not plain ASCII
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(o, e)); } catch (err) { return decodeMacRoman(bytes.subarray(o, e)); }
+  };
+  const printable4 = v => [24, 16, 8, 0].every(k => { const c = (v >>> k) & 255; return c >= 0x20 && c !== 0x7f && c !== 0xff; });
+  const four = v => decodeMacRoman(new Uint8Array([v >>> 24, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]));
+  const f32 = addr => { const o = at(addr); return o < 0 ? null : new DataView(bytes.buffer, bytes.byteOffset + o, 4).getFloat32(0); };
+  const f64 = addr => { const o = at(addr); return o < 0 ? null : new DataView(bytes.buffer, bytes.byteOffset + o, 8).getFloat64(0); };
+  // a global by its address: its name where the symbols give one
+  const globalAt = addr => dataName.get(addr) || null;
+  const dataNote = v => { const s = sectOf(v), str = s && s.name === '__cstring' ? textAt(v) : null; return str !== null ? JSON.stringify(str) : globalAt(v) || (s ? `${/data|common|bss/.test(s.name) ? 'global' : s.name} ${hex(v)}` : null); };
+
+  // a routine's instructions, with what each names
+  const opsCache = new Map();
+  function ops(r) {
+    if (opsCache.has(r.start)) return opsCache.get(r.start);
+    const out = [], hiOf = new Map();
+    for (let a = r.start; a < r.end; a += 4) {
+      const w = word(a), op = ppcDecode(w);
+      const o = { addr: a, word: w, op, note: null, target: null };
+      out.push(o);
+      if (!op) continue;
+      if (op.op === 18 && (w & 1)) {
+        const t = byStart.get(a + op.disp);
+        if (t) { o.target = t.start; o.note = nameOf(t); }
+        for (const k of [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) hiOf.delete(k);
+        continue;
+      }
+      if (op.mn === 'lis') { hiOf.set(op.rd, (op.imm & 0xFFFF) << 16); continue; }
+      if ((op.mn === 'addi' && hiOf.has(op.ra)) || (op.mn === 'ori' && hiOf.has(op.rs))) {
+        const src = op.mn === 'addi' ? op.ra : op.rs, h = hiOf.get(src);
+        const v = (op.mn === 'addi' ? (h + op.imm) : (h | (op.imm & 0xFFFF))) >>> 0;
+        o.value = v;
+        const s = op.mn === 'addi' ? sectOf(v) : null, str = s && s.name === '__cstring' ? textAt(v) : null;
+        if (str !== null) { o.note = JSON.stringify(str); o.text = str; o.data = v; }
+        else if (s) { o.note = 'address of ' + dataNote(v); o.data = v; }
+        else o.note = printable4(v) ? `'${four(v)}'` : String(v | 0);
+        hiOf.delete(src);
+        if (s) hiOf.set(op.rd, v);
+        continue;
+      }
+      if (op.mn === 'mr' && hiOf.has(op.rs)) { hiOf.set(op.ra, hiOf.get(op.rs)); continue;
+      }
+      if (op.d !== undefined && op.rt !== undefined && op.ra && hiOf.has(op.ra) && op.mn !== 'lmw' && op.mn !== 'stmw') {
+        const v = (hiOf.get(op.ra) + op.d) >>> 0, s = sectOf(v);
+        o.data = v;
+        const g = globalAt(v);
+        if (op.mn === 'lfs' || op.mn === 'lfd') { const x = op.mn === 'lfs' ? f32(v) : f64(v); o.value = x; o.note = x === null ? (g || 'data ' + hex(v)) : `${+x.toPrecision(7)}${g ? ' (' + g + ')' : ''}`; }
+        else if (op.mn === 'lwz' && pointsTo.has(v)) { const t = pointsTo.get(v); o.note = 'address of ' + (dataNote(t) || hex(t)); o.data = t; hiOf.set(op.rt, t); continue; }
+        else o.note = dataNote(v) || 'data ' + hex(v);
+        if (/^l(?!f)/.test(op.mn)) hiOf.delete(op.rt);
+        continue;
+      }
+      // anything else that writes a register forgets what it held
+      if (op.rd !== undefined) hiOf.delete(op.rd);
+      if (op.rs !== undefined && op.ra !== undefined) hiOf.delete(op.ra);
+      if (op.rt !== undefined && /^l(?!f)/.test(op.mn)) hiOf.delete(op.rt);
+    }
+    opsCache.set(r.start, out);
+    return out;
+  }
+  const callers = addr => calls.get(addr) || [];
+  return { kind: 'macho', bytes, sects, routines, routineAt, byStart, ops, callers, nameOf, textAt, globalAt, dataNote, glueName: () => null, base: 0, res: null };
+}
+
 function hex(v) { return '0x' + (v >>> 0).toString(16); }
+
+/* A routine by its name, where the program keeps names (1.1.1), or null. */
+function novaRoutineNamed(prog, name) {
+  if (!prog.byName) { prog.byName = new Map(); for (const r of prog.routines) if (r.name && !r.glue && !prog.byName.has(r.name)) prog.byName.set(r.name, r); }
+  return prog.byName.get(name) || null;
+}
 
 /* The routines that call an import, by its name. */
 function novaCallersOfImport(prog, name) {
@@ -221,7 +385,8 @@ function novaNamedRoutines(prog, game) {
   const desc = novaFigure(prog, 'descLoader', game);
   if (desc) out.push({ routine: prog.byStart.get(desc.routine), name: 'Loads a description', why: "makes the resource type 'dësc', and is called most of the routines that do" });
   for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `asks GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
-  for (const r of prog.routines) if (r.name && !r.glue) out.push({ routine: r, name: r.name, why: 'named by its traceback table (the runtime library)' });
+  const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
+  for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
   prog.named = out.filter(n => n.routine);
   return prog.named;
 }
@@ -257,26 +422,33 @@ function novaDialogRoutines(prog) {
 }
 
 /* What each figure is, for the Code view's note on the line it is read
-   from: the record type it numbers, the resource type, and where. */
+   from, and the value the site's own code uses where it has one, which
+   program_check holds to the program's. */
 const NOVA_FIGURE_WORDS = {
-  outfitDesc: ['oütf', 'dësc', "an outfit's description in the outfitter"],
-  outfitPict: ['oütf', 'PICT', "an outfit's picture in the outfitter"],
-  shipDesc: ['shïp', 'dësc', "a ship's description in the shipyard"],
-  escortDesc: ['shïp', 'dësc', "a ship's description as an escort for hire"],
+  outfitDesc: [v => `an outfit's description in the outfitter: dësc ${v} + the oütf's number less 128`],
+  outfitPict: [v => `an outfit's picture in the outfitter: PICT ${v} + the oütf's number less 128`],
+  shipDesc: [v => `a ship's description in the shipyard: dësc ${v} + the shïp's number less 128`, () => novaShipDescId(128)],
+  escortDesc: [v => `a ship's description as an escort for hire: dësc ${v} + the shïp's number less 128`, () => novaShipPilotDescId(128)],
+  missionOffer: [v => `a mission's offer: dësc ${v} + the mïsn's number less 128`, () => 4000],
+  stellarDesc: [v => `a stellar's description in its spaceport: dësc ${v} + the spöb's number less 128`, () => novaStellarDescId({ id: 128 })],
+  barDesc: [v => `a stellar's bar: dësc ${v} + the spöb's number less 128`, () => novaStellarBarDescId({ id: 128 })],
+  landingPict: [v => `a stellar's landing picture: PICT ${v} + its Type, where CustPicID is under 128`, () => novaLandingPict({ CustPicID: 0, Type: 0 })],
+  nebulaPict: [v => `a nebula's pictures: PICT ${v} + 7 × the nëbu's number less 128, and the six after`, () => novaNebulaPictIds({ id: 128 })[0]],
+  nebulaPicts: [v => `pictures to a nebula: ${v}`, () => novaNebulaPictIds({ id: 128 }).length],
 };
 // The figures read from a program, by the address of the instruction holding each.
 function novaFiguresByAddr(prog, game) {
   const out = new Map();
   for (const name of Object.keys(NOVA_FIGURE_WORDS)) {
     const f = novaFigure(prog, name, game);
-    if (f) { const [rec, res, what] = NOVA_FIGURE_WORDS[name]; out.set(f.addr, `${what}: ${res} ${f.value} + the ${rec}'s number less 128`); }
+    if (f) out.set(f.addr, NOVA_FIGURE_WORDS[name][0](f.value));
   }
   return out;
 }
 
 /* A figure by name; see the readers below. */
 function novaFigure(prog, name, game) {
-  const f = NOVA_FIGURES[name];
+  const f = (prog.kind === 'macho' ? NOVA_MACHO_FIGURES : NOVA_FIGURES)[name];
   try { return f ? f(prog, game) : null; } catch (e) { return null; }
 }
 const NOVA_FIGURES = {
@@ -351,4 +523,165 @@ function novaDialogPictBase(prog, nameRe) {
     }
   }
   return null;
+}
+
+/* ---- the same figures, read from 1.1.1's PowerPC half ---------------------
+
+   There the routines keep their names, so a reader starts from the routine
+   the figure is in and finds it by what the code does with it: the number
+   added to an item's index before the call that loads its description or
+   picture, a loop's first value, a value stored where a call then reads
+   it. GCC's code passes the description loader its buffer in r3 and the
+   number in r4. */
+
+// The instruction that last set `reg` before ops[i], followed back through copies (mr, extsh, clrlwi): { o, k } or null.
+function novaTraceReg(ops, i, reg, back = 16) {
+  for (let hop = 0; hop < 6; hop++) {
+    const s = novaSetterBefore(ops, i, reg, back);
+    if (!s) return null;
+    const op = s.o.op;
+    if (/^(mr|extsh|extsb|clrlwi)$/.test(op.mn) && op.rs !== undefined) { reg = op.rs; i = s.k; continue; }
+    return s;
+  }
+  return null;
+}
+// The calls in a named routine to a named routine or import: [{ o, i }], with the routine's ops.
+function novaNamedCalls(prog, inName, toName) {
+  const r = novaRoutineNamed(prog, inName);
+  if (!r) return null;
+  const want = new Set(prog.routines.filter(g => g.name === toName).map(g => g.start));
+  const ops = prog.ops(r);
+  return { r, ops, calls: ops.map((o, i) => ({ o, i })).filter(x => x.o.target !== null && want.has(x.o.target)) };
+}
+// What the register holds at a call, where an `addi` of a positive number or an `li` set it: a figure, or null.
+function novaArgFigure(prog, inName, toName, reg, nth = 0, back = 16) {
+  const c = novaNamedCalls(prog, inName, toName);
+  if (!c || !c.calls[nth]) return null;
+  const s = novaTraceReg(c.ops, c.calls[nth].i, reg, back);
+  if (!s || !((s.o.op.mn === 'addi' && s.o.op.imm > 0) || s.o.op.mn === 'li')) return null;
+  return { value: s.o.op.imm, addr: s.o.addr, routine: c.r.start, k: s.k, ops: c.ops };
+}
+const NOVA_MACHO_FIGURES = {
+  descLoader(prog) {
+    const r = novaRoutineNamed(prog, 'LoadDescription');
+    const o = r && prog.ops(r).find(x => x.note === "'dësc'");
+    return o ? { value: r.start, addr: o.addr, routine: r.start } : null;
+  },
+  outfitDesc(prog) { return novaArgFigure(prog, 'OutfitFilter', 'LoadDescription', 4); },
+  outfitPict(prog) { return novaArgFigure(prog, 'OutfitDialogUpdate', 'GetPicture', 3); },
+  // the shipyard's description, and an escort's for hire: a flag tested against 0 picks the number
+  // added, the escort's falling through to a branch over the shipyard's
+  shipDesc(prog) { return novaArgFigure(prog, 'ShipyardFilter', 'LoadDescription', 4); },
+  escortDesc(prog) {
+    const f = novaArgFigure(prog, 'ShipyardFilter', 'LoadDescription', 4);
+    if (!f) return null;
+    const b = f.ops[f.k - 1], a = f.ops[f.k - 2];
+    if (!b || !b.op || b.op.mn !== 'b' || !a || !a.op || a.op.mn !== 'addi' || a.op.rd !== f.ops[f.k].op.rd || a.op.imm <= 0) return null;
+    return { value: a.op.imm, addr: a.addr, routine: f.routine };
+  },
+  missionOffer(prog) { return novaArgFigure(prog, 'MissionFilter', 'LoadDescription', 4); },
+  stellarDesc(prog) { return novaArgFigure(prog, 'DoPortDialog', 'LoadDescription', 4); },
+  barDesc(prog) { return novaArgFigure(prog, 'DoBarDialog', 'LoadDescription', 4); },
+  // a stellar's landing picture: its Type plus this, stored to a global the next instructions hand GetPicture
+  landingPict(prog) {
+    const c = novaNamedCalls(prog, 'PreloadPortDialog', 'GetPicture');
+    if (!c) return null;
+    for (const { i } of c.calls) {
+      const ld = novaTraceReg(c.ops, i, 3);
+      if (!ld || ld.o.op.mn !== 'lha') continue;
+      const base = novaSetterBefore(c.ops, ld.k, ld.o.op.ra);
+      if (!base || base.o.data === undefined) continue;
+      for (let k = base.k - 1; k >= Math.max(0, base.k - 8); k--) {
+        const st = c.ops[k].op;
+        if (!st || st.mn !== 'sth') continue;
+        const where = novaSetterBefore(c.ops, k, st.ra), what = novaSetterBefore(c.ops, k, st.rt);
+        if (where && where.o.data === base.o.data && what && what.o.op.mn === 'addi' && what.o.op.imm > 0) return { value: what.o.op.imm, addr: what.o.addr, routine: c.r.start };
+      }
+    }
+    return null;
+  },
+  // a nebula's pictures: a loop from this, counted down from nebulaPicts for each nebula
+  nebulaPict(prog) { return novaArgFigure(prog, 'DoSystemMap', 'GetPicture', 3, 0, 32); },
+  nebulaPicts(prog) {
+    const c = novaNamedCalls(prog, 'DoSystemMap', 'GetPicture');
+    if (!c || !c.calls[0]) return null;
+    // the counter: a register `addi rX, rC, -1` after the call, rC set by `li` before it
+    for (let k = c.calls[0].i + 1; k < c.calls[0].i + 8; k++) {
+      const op = c.ops[k].op;
+      if (!op || op.mn !== 'addi' || op.imm !== -1) continue;
+      const s = novaSetterBefore(c.ops, c.calls[0].i, op.ra, 8);
+      if (s && s.o.op.mn === 'li' && s.o.op.imm > 1) return { value: s.o.op.imm, addr: s.o.addr, routine: c.r.start };
+    }
+    return null;
+  },
+};
+
+/* ---- what the program loads by number --------------------------------------
+
+   Each call to a loader whose number was set by an `li` is a fixed
+   resource the program loads there; an `addi` of 128 or more is a base an
+   index is added to; an `li` whose register goes up by one after the call
+   is the first of a run (a loop over sprites or sounds). The loaders: the
+   description loader (its number in r4), GetPicture, GetCIcon and
+   ST_LoadSndResource (r3), GetIndString and StrcatIndCString (the list in
+   r4, the entry in r5) and DrawIndString (r3 and r4).
+   novaProgramUses(prog, game) -> { fixed: Map('PICT 8502' -> [{ routine,
+   addr, index, run }]), bases: [{ res, value, routine, addr }] }. */
+const NOVA_LOADERS = [
+  ['GetPicture', 'PICT', 3], ['GetCIcon', 'cicn', 3], ['ST_LoadSndResource', 'snd ', 3],
+  ['GetIndString', 'STR#', 4, 5], ['StrcatIndCString', 'STR#', 4, 5], ['DrawIndString', 'STR#', 3, 4],
+];
+// As novaTraceReg, but on past a call for the registers a call keeps (r13 to r31).
+function novaTraceArg(ops, i, reg, back = 40) {
+  for (let hop = 0; hop < 6; hop++) {
+    let found = null;
+    for (let k = i - 1; k >= 0 && k >= i - back; k--) {
+      const o = ops[k], op = o.op;
+      if (!op) return null;
+      if (op.op === 18 && (o.word & 1)) { if (reg < 13) return null; continue; }
+      if (op.rd === reg || (op.rs !== undefined && op.ra === reg) || (op.rt === reg && /^l(?!f)/.test(op.mn))) { found = { o, k }; break; }
+    }
+    if (!found) return null;
+    const op = found.o.op;
+    if (/^(mr|extsh|extsb|clrlwi)$/.test(op.mn) && op.rs !== undefined) { reg = op.rs; i = found.k; continue; }
+    return found;
+  }
+  return null;
+}
+function novaProgramUses(prog, game) {
+  if (prog.uses) return prog.uses;
+  const fixed = new Map(), bases = [];
+  const desc = novaFigure(prog, 'descLoader', game);
+  const loaders = NOVA_LOADERS.map(([name, res, reg, idx]) => ({ starts: new Set(prog.routines.filter(r => r.glue && r.name === name || (prog.kind === 'macho' && r.name === name)).map(r => r.start)), res, reg, idx }));
+  if (desc) loaders.push({ starts: new Set([desc.routine]), res: 'dësc', reg: 4 });
+  const add = (key, use) => {
+    if (!fixed.has(key)) fixed.set(key, []);
+    if (!fixed.get(key).some(u => u.routine === use.routine && u.index === use.index)) fixed.get(key).push(use);
+  };
+  for (const r of prog.routines) {
+    if (r.glue) continue;
+    const ops = prog.ops(r);
+    for (let i = 0; i < ops.length; i++) {
+      const L = ops[i].target !== null && loaders.find(l => l.starts.has(ops[i].target));
+      if (!L) continue;
+      const s = novaTraceArg(ops, i, L.reg);
+      if (!s) continue;
+      let index = null;
+      if (L.idx) { const x = novaTraceArg(ops, i, L.idx); if (x && x.o.op.mn === 'li') index = x.o.op.imm; }
+      const op = s.o.op;
+      if (op.mn === 'addi' && op.imm >= 128 && op.ra !== 1) { bases.push({ res: L.res, value: op.imm, routine: r.start, addr: s.o.addr }); continue; }
+      if (op.mn !== 'li' || op.imm < 128) continue;
+      // the first of a run: its register one more after the call
+      const run = ops.slice(i + 1, i + 16).some(o => o.op && o.op.mn === 'addi' && o.op.imm === 1 && o.op.ra === op.rd);
+      add(`${L.res} ${op.imm}`, { routine: r.start, addr: s.o.addr, index, run });
+      // the other of two numbers a test picks between: an `li` of the same register before a branch over this one
+      const b = ops[s.k - 1] && ops[s.k - 1].op;
+      if (b && b.op === 16) {
+        const t = novaTraceArg(ops, s.k - 1, op.rd, 8);
+        if (t && t.o.op.mn === 'li' && t.o.op.imm >= 128) add(`${L.res} ${t.o.op.imm}`, { routine: r.start, addr: t.o.addr, index, run: false });
+      }
+    }
+  }
+  prog.uses = { fixed, bases };
+  return prog.uses;
 }

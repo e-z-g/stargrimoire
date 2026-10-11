@@ -8,8 +8,10 @@
    are listed by id and name; where the program says what one is for (an
    outfit's description in the outfitter, its picture ...), that is said,
    the base it adds to linked to the instruction it was read from
-   (novaFigure, codeNum). The filter finds those words too: "race"
-   finds the bar's race, which the landing page doesn't offer.
+   (novaFigure, codeNum), and the routines that load one by its own
+   number are named and linked (novaProgramUses). The filter finds those
+   words too: "race" finds the bar's race, which the landing page doesn't
+   offer, and a routine's name what it loads.
 
    PAGE SCRIPT. LOAD ORDER: after page-map.js, page-ships.js,
    page-battle.js, page-records.js and page-code.js. */
@@ -53,22 +55,51 @@ function libRace(res, id) {
   return '';
 }
 
-/* What the program says a dësc or PICT is for: html, or ''. */
+/* What the program says a resource is for: html, or ''. The bases an
+   index is added to, the largest that names a record; and the routines
+   that load it by its own number (novaProgramUses). */
+const LIB_BASES = {
+  'dësc': [['outfitDesc', 'oütf', "outfitter's description of"], ['shipDesc', 'shïp', "shipyard's description of"], ['escortDesc', 'shïp', 'description for hire of'],
+           ['missionOffer', 'mïsn', 'offer of'], ['barDesc', 'spöb', 'bar of'], ['stellarDesc', 'spöb', 'spaceport description of']],
+  'PICT': [['outfitPict', 'oütf', "outfitter's picture of"]],
+};
 function libRole(res, id) {
+  const parts = [];
   const race = libRace(res, id);
-  if (race) return esc(race);
-  const roles = res === 'dësc' ? [['outfitDesc', 'oütf', "outfitter's description of"], ['shipDesc', 'shïp', "shipyard's description of"], ['escortDesc', 'shïp', 'description for hire of']]
-    : res === 'PICT' ? [['outfitPict', 'oütf', "outfitter's picture of"]] : [];
-  for (const [name, type, what] of roles) {
+  if (race) parts.push(esc(race));
+  let best = null;
+  for (const [name, type, what] of LIB_BASES[res] || []) {
     const f = fig(name);
-    if (!f) continue;
-    const n = id - f.value, rec = id >= f.value && GAME.get(type, 128 + n);
-    if (rec) return `the ${esc(what)} ${libLink(type, 128 + n, novaNameParts(rec.name).name)}: ${esc(res)} ${codeNum(f)} + ${n}`;
+    if (!f || id < f.value || (best && best.f.value > f.value)) continue;
+    const rec = GAME.get(type, 128 + id - f.value);
+    if (rec) best = { f, type, what, rec, n: id - f.value };
   }
-  return '';
+  if (best) parts.push(`the ${esc(best.what)} ${libLink(best.type, 128 + best.n, novaNameParts(best.rec.name).name)}: ${esc(res)} ${codeNum(best.f)} + ${best.n}`);
+  if (res === 'PICT') {
+    const nb = fig('nebulaPict'), per = fig('nebulaPicts'), land = fig('landingPict');
+    const k = nb && per && id >= nb.value ? Math.floor((id - nb.value) / per.value) : -1, neb = k >= 0 && GAME.get('nëbu', 128 + k);
+    if (neb) parts.push(`the nebula ${esc(neb.name)}'s picture ${(id - nb.value) % per.value + 1} of ${codeNum(per)}: PICT ${codeNum(nb)} + ${codeNum(per)} × ${k} + ${(id - nb.value) % per.value}`);
+    if (land && id >= land.value && id < land.value + 1000) parts.push(`the landing picture of a stellar of Type ${id - land.value} with no CustPicID: PICT ${codeNum(land)} + ${id - land.value}`);
+  }
+  const loads = libLoads(res, id);
+  if (loads) parts.push(loads);
+  return parts.join('; ');
+}
+/* The routines that load a resource by its own number, linked: html, or ''. */
+function libLoads(res, id) {
+  const p = program(), uses = p && novaProgramUses(p, GAME).fixed.get(`${res} ${id}`);
+  if (!uses) return '';
+  const by = new Map();
+  for (const u of uses) { if (!by.has(u.routine)) by.set(u.routine, []); by.get(u.routine).push(u); }
+  const named = novaNamedRoutines(p, GAME);
+  const list = [...by].map(([start, us]) => {
+    const r = p.byStart.get(start), n = named.find(x => x.routine === r), idx = us.map(u => u.index).filter(x => x !== null);
+    return `<a class="codeNum" data-code="${hex(start)}" data-at="${hex(us[0].addr)}" title="Read from the program at ${hex(us[0].addr)}">${esc(n ? n.name : p.nameOf(r))}</a>${idx.length ? ` (${idx.length > 1 ? 'entries' : 'entry'} ${[...new Set(idx)].sort((a, b) => a - b).join(', ')})` : ''}`;
+  });
+  return (uses.every(u => u.run) ? 'the first of a run the program loads in ' : 'loaded by ') + list.join(', ');
 }
 
-// Whether what a dësc or PICT is for says the words filtered for.
+// Whether what a resource is for says the words filtered for.
 const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLowerCase().includes(q);
 
 /* ---- in and out of the view -------------------------------------------- */
@@ -152,15 +183,15 @@ function libText(q) {
   const descs = GAME.list('dësc').map(e => ({ e, d: novaGet(GAME, 'dësc', e.id) })).filter(x => x.d);
   const hits = descs.filter(({ e, d }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || (d.Description || '').toLowerCase().includes(q) || libRoleHas('dësc', e.id, q));
   const strs = GAME.list('STR#').map(e => ({ e, list: novaStrings(GAME, e.id) }))
-    .filter(({ e, list }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || list.some(s => s.toLowerCase().includes(q)));
+    .filter(({ e, list }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || list.some(s => s.toLowerCase().includes(q)) || libRoleHas('STR#', e.id, q));
   const shown = hits.slice(0, 300);
   return `<p class="note">${hits.length} descriptions${hits.length > shown.length ? `, the first ${shown.length} shown; filter to find more` : ''}, and ${strs.length} string lists. Each as the files have it.</p>
     <h3>Descriptions</h3>
     ${shown.map(({ e, d }) => { const role = libRole('dësc', e.id); return `<details class="libItem"><summary>dësc ${e.id}${e.name ? ' · ' + esc(e.name) : ''}<small>${esc((d.Description || '').slice(0, 90))}</small></summary>
       ${role ? `<p class="note">${role}</p>` : ''}<div class="desc">${esc(d.Description || '')}</div></details>`; }).join('')}
     <h3>String lists</h3>
-    ${strs.slice(0, 200).map(({ e, list }) => `<details class="libItem"><summary>STR# ${e.id}${e.name ? ' · ' + esc(e.name) : ''}<small>${list.length} strings</small></summary>
-      <ol class="libStrs">${list.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`).join('')}`;
+    ${strs.slice(0, 200).map(({ e, list }) => { const role = libRole('STR#', e.id); return `<details class="libItem"><summary>STR# ${e.id}${e.name ? ' · ' + esc(e.name) : ''}<small>${list.length} strings</small></summary>
+      ${role ? `<p class="note">${role}</p>` : ''}<ol class="libStrs">${list.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`; }).join('')}`;
 }
 
 function libPictures(q) {
@@ -185,10 +216,10 @@ function libFillPictures() {
 document.addEventListener('pictready', () => { if (LIB.on && LIB.tab === 'pict') document.querySelectorAll('#library figure[data-pict]').forEach(f => { if (f.querySelector('.nopict')) { const id = +f.dataset.pict, img = pictImage(id); if (img) f.querySelector('.nopict').replaceWith(asCanvas(img, 'pict')); } }); });
 
 function libSounds(q) {
-  const all = GAME.list('snd ').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q));
+  const all = GAME.list('snd ').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || libRoleHas('snd ', e.id, q));
   const waiting = !all.length && (PENDING.length || PUMPING || SHIP_FILES.length);
   return `<p class="note">${all.length ? `${all.length} sounds.` : waiting ? 'The sounds are in the sounds files, being read.' : 'No sounds in the files open.'}</p>
-    <table class="kv libSnds">${all.map(e => `<tr><td>snd ${e.id}</td><td>${esc(e.name || '')}</td><td><button data-lib-play="${e.id}">Play</button></td></tr>`).join('')}</table>`;
+    <table class="kv libSnds">${all.map(e => `<tr><td>snd ${e.id}</td><td>${esc(e.name || '')}${(r => (r ? `<br><span class="note">${r}</span>` : ''))(libRole('snd ', e.id))}</td><td><button data-lib-play="${e.id}">Play</button></td></tr>`).join('')}</table>`;
 }
 let LIB_AUDIO = null;
 function libPlay(id) {

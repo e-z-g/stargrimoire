@@ -67,10 +67,7 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
     seen.get(name).push({ v, f });
     const r = prog.routineAt(f.addr);
     if (!r || r.start !== f.routine) fail(`${v}: ${name} at ${S.hex(f.addr)} is not in the routine it names`);
-    if (LLVM && name !== 'descLoader') {
-      const w = prog.ops(r).find(o => o.addr === f.addr).word, text = llvm([w])[0] || '';
-      if (!new RegExp(`(^|[ ,])${f.value}($|[ ,(])`).test(text)) fail(`${v}: ${name}: LLVM reads the word at ${S.hex(f.addr)} as "${text}", not holding ${f.value}`);
-    }
+    if (name !== 'descLoader') figureHeld(v, prog, name, f);
   }
   if (v === '1.0.10') usesCheck(v, prog);
   if (v === '1.0.10' && got.descLoader && got.descLoader.routine !== 0x12ce10) fail(`1.0.10: the description loader at ${S.hex(got.descLoader.routine)}, where the workbench has 0x12ce10`);
@@ -82,13 +79,23 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
     const broken = bytes.slice(); broken[codeAt + off + 3] ^= 0x01;   // the immediate one off
     const again = S.novaFigure(S.novaProgram(broken, rsrc), 'outfitDesc', null);
     if (again && again.value === got.outfitDesc.value) fail('1.0.10: outfitDesc read the same from a changed word');
+    for (const name of ['landingPict', 'shotSpin', 'combatRatings', 'explodSnd', 'missionOffer']) {
+      const f = got[name];
+      if (!f) continue;
+      const a = Array.isArray(f.value) ? f.addrs[3] : f.addr, b2 = bytes.slice();
+      b2[codeAt + a - S.NOVA_CODE_BASE + 3] ^= 0x01;
+      const g = S.novaFigure(S.novaProgram(b2, rsrc), name, null);
+      if (g && JSON.stringify(g.value) === JSON.stringify(f.value)) fail(`1.0.10: ${name} read the same from a changed word`);
+    }
   }
 }
 for (const [name, list] of seen) {
-  const values = new Set(list.map(x => x.f.value));
+  const values = new Set(list.map(x => JSON.stringify(x.f.value)));
   if (name !== 'descLoader' && values.size !== 1) fail(`${name}: different values in different releases: ${list.map(x => `${x.v} ${x.f.value}`).join(', ')}`);
   if (name !== 'descLoader' && list.length !== read) fail(`${name}: found in ${list.length} of ${read} releases`);
 }
+
+{ const only = Object.keys(S.NOVA_MACHO_FIGURES).filter(n => !(n in S.NOVA_FIGURES)); if (only.length) fail(`read from 1.1.1 but not from 1.0.x: ${only.join(', ')}`); }
 
 // ---- 1.1.1, the PowerPC half of its Mach-O program
 const DMG = path.join(REF, 'game/EV_Nova_1.1.1_for_Mac_OS_X.dmg');
@@ -131,16 +138,7 @@ else {
       if (!f) { fail(`1.1.1: ${name} not found`); continue; }
       got[name] = f;
       if (name === 'descLoader') continue;
-      // a list's words are comparisons, each holding its number or one less
-      const each = Array.isArray(f.value) ? f.value.map((v, i) => [f.addrs[i], v]).filter(([a]) => a !== null) : [[f.addr, f.value]];
-      if (LLVM) for (const [a, v] of each) {
-        const w = prog.ops(prog.routineAt(a)).find(o => o.addr === a).word, text = llvm([w])[0] || '';
-        const holds = n => new RegExp(`(^|[ ,])${n}($|[ ,(])`).test(text);
-        if (!holds(v) && !(Array.isArray(f.value) && holds(v - 1))) fail(`1.1.1: ${name}: LLVM reads the word at ${S.hex(a)} as "${text}", not holding ${v}`);
-      }
-      const words = S.NOVA_FIGURE_WORDS[name];
-      if (!words) fail(`1.1.1: ${name} has no words for the Code view`);
-      else if (words[1] && JSON.stringify(words[1]()) !== JSON.stringify(f.value)) fail(`1.1.1: ${name}: the program has ${f.value}, the site's own code ${words[1]()}`);
+      figureHeld('1.1.1', prog, name, f);
     }
     usesCheck('1.1.1', prog);
     console.log(`1.1.1: ${cited.size} routines the field notes cite, all there; ` + Object.entries(got).filter(([n]) => n !== 'descLoader').map(([n, f]) => `${n} ${f.value} in ${prog.nameOf(prog.routineAt(f.addr))}`).join(', '));
@@ -154,6 +152,21 @@ else {
     }
   }
 }
+// A figure's word as LLVM reads it (a list's words are comparisons, each holding
+// its number or one less; a rule's word is not a number), its words for the
+// Code view, and the site's own value where it has one.
+function figureHeld(v, prog, name, f) {
+  const each = Array.isArray(f.value) ? f.value.map((x, i) => [f.addrs[i], x]).filter(([a]) => a !== null) : [[f.addr, f.value]];
+  if (LLVM && typeof f.value !== 'string') for (const [a, x] of each) {
+    const w = prog.ops(prog.routineAt(a)).find(o => o.addr === a).word, text = llvm([w])[0] || '';
+    const holds = n => new RegExp(`(^|[ ,])${n}($|[ ,(])`).test(text);
+    if (!holds(x) && !(Array.isArray(f.value) && holds(x - 1))) fail(`${v}: ${name}: LLVM reads the word at ${S.hex(a)} as "${text}", not holding ${x}`);
+  }
+  const words = S.NOVA_FIGURE_WORDS[name];
+  if (!words) fail(`${v}: ${name} has no words for the Code view`);
+  else if (words[1] && JSON.stringify(words[1]()) !== JSON.stringify(f.value)) fail(`${v}: ${name}: the program has ${f.value}, the site's own code ${words[1]()}`);
+}
+
 // What a program loads by number: each word holds its number as LLVM reads it;
 // the outfitter's background is loaded where its dialog is opened.
 function usesCheck(v, prog) {

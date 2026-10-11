@@ -57,6 +57,18 @@ function codeLinkProse(html) {
     return u ? `${res} <a class="codeNum" data-code="${hex(u[0].routine)}" data-at="${hex(u[0].addr)}" title="Read from the program at ${hex(u[0].addr)}">${num}</a>` : m;
   });
 }
+/* Entries of a string list the program loads by number, each a link to
+   where it is loaded, from the one routine that loads them all where one
+   does: html. */
+function codeEntries(id, indexes) {
+  const p = program(), uses = (p && novaProgramUses(p, GAME).fixed.get(`STR# ${id}`)) || [];
+  const routines = [...new Set(uses.map(u => u.routine))];
+  const home = routines.find(r => indexes.every(n => uses.some(u => u.routine === r && u.index === n)));
+  return indexes.map(n => {
+    const u = uses.find(x => x.index === n && (home === undefined || x.routine === home));
+    return u ? `<a class="codeNum" data-code="${hex(u.routine)}" data-at="${hex(u.addr)}" title="${esc(p.nameOf(p.byStart.get(u.routine)))}, at ${hex(u.addr)}">${n}</a>` : String(n);
+  });
+}
 /* A figure as text that links to the instruction holding it. */
 function codeNum(f, text) {
   return `<a class="codeNum" data-code="${hex(f.routine)}" data-at="${hex(f.addr)}" title="Read from the program at ${hex(f.addr)}">${esc(text ?? String(f.value))}</a>`;

@@ -444,6 +444,7 @@ const NOVA_FIGURE_WORDS = {
   explodSnd: [v => `an explosion's sound: snd ${v} + its SoundIndex`],
   combatRatings: [v => `the least kills for each combat rating: ${v.join(', ')}`, () => NOVA_COMBAT_RATINGS],
   nebulaPict: [v => `a nebula's pictures: PICT ${v} + 7 × the nëbu's number less 128, and the six after`, () => novaNebulaPictIds({ id: 128 })[0]],
+  nebulaFit: [() => "a nebula's picture: the last of its seven no wider and no taller than its rectangle (QDGetPictureBounds), else the first"],
   nebulaPicts: [v => `pictures to a nebula: ${v}`, () => novaNebulaPictIds({ id: 128 }).length],
 };
 // The resource type each figure is a base for, so a number in prose ("spïn 400 + n") can be linked to it.
@@ -484,7 +485,163 @@ const NOVA_FIGURES = {
   // between two calls to the description loader; the base used when it is 0 is the shipyard's, the other an escort's for hire.
   shipDesc(prog) { const f = novaDescOnFlag(prog, /^Shipyard$/); return f && f.zero; },
   escortDesc(prog) { const f = novaDescOnFlag(prog, /^Shipyard$/); return f && f.set; },
+  // the bases the mission computer, the spaceport and the bar add before calling the description loader
+  missionOffer(prog, game) { return novaDialogDescBase(prog, game, /^Mission Select$/); },
+  stellarDesc(prog, game) { return novaDialogDescBase(prog, game, /^Spaceport$/); },
+  barDesc(prog, game) { return novaDialogDescBase(prog, game, /^Bar\b/); },
+  // the map's nebula pictures: the base its GetPicture adds to the nebula's index times nebulaPicts plus the picture's
+  nebulaPict(prog) { const f = novaPefMapNebula(prog); return f && f.base; },
+  nebulaPicts(prog) { const f = novaPefMapNebula(prog); return f && f.per; },
+  // a stellar's landing picture: CustPicID compared with 128, and in the other branch its Type plus this, stored,
+  // loaded again and handed to GetPicture
+  landingPict(prog) {
+    for (const r of novaCallersOfImport(prog, 'GetPicture')) {
+      const ops = prog.ops(r);
+      for (const { i } of novaCallsIn(prog, r, 'GetPicture')) {
+        const ld = novaTraceArg(ops, i, 3, 6);
+        if (!ld || ld.o.op.mn !== 'lha') continue;
+        for (let k = ld.k - 1; k >= Math.max(0, ld.k - 4); k--) {
+          const a = ops[k].op;
+          if (!a || a.mn !== 'addi' || a.imm < 128 || !ops[k + 1].op || ops[k + 1].op.mn !== 'sth' || ops[k + 1].op.rt !== a.rd) continue;
+          if (ops.slice(Math.max(0, k - 8), k).some(o => o.op && o.op.mn === 'cmpwi' && o.op.imm === 128)) return { value: a.imm, addr: ops[k].addr, routine: r.start };
+        }
+      }
+    }
+    return null;
+  },
+  // the sprites: the routine called with six pointers into the caller's frame (each an `addi rN, r1, k`) for a
+  // sprite's sizes, called most by the routine that loads the runs -- shots, explosions, boxes, asteroids, in
+  // that order -- and once by the one that loads a stellar's, its Type plus a base
+  shotSpin(prog) { const f = novaPefSprites(prog); return f && f.runs[0]; },
+  explodSpin(prog) { const f = novaPefSprites(prog); return f && f.runs[1]; },
+  boxSpin(prog) { const f = novaPefSprites(prog); return f && f.runs[2]; },
+  asteroidSpin(prog) { const f = novaPefSprites(prog); return f && f.runs[3]; },
+  stellarSpin(prog) { const f = novaPefSprites(prog); return f && f.stellar; },
+  // a ship's target picture: the base the sprite loader's GetPicture adds to its loop's index
+  shipTargetPict(prog) {
+    const f = novaPefSprites(prog);
+    if (!f) return null;
+    const ops = prog.ops(f.loader);
+    for (const { i } of novaCallsIn(prog, f.loader, 'GetPicture')) {
+      const s = novaTraceArg(ops, i, 3, 12);
+      if (s && s.o.op.mn === 'addi' && s.o.op.imm >= 128) return { value: s.o.op.imm, addr: s.o.addr, routine: f.loader.start };
+    }
+    return null;
+  },
+  // a ship's shipyard picture: the routine that asks whether PICT base + the ship's index is there, and then base +
+  // the index of the ship whose sprites it shares, the same base twice
+  shipyardPict(prog) {
+    const asks = new Map();
+    for (const r of prog.routines) {
+      if (r.glue) continue;
+      const ops = prog.ops(r);
+      ops.forEach((o, i) => {
+        if (o.target === null) return;
+        const t = novaTraceArg(ops, i, 3, 8), n = t && t.o.note === "'PICT'" && novaTraceArg(ops, i, 4, 12);
+        if (n && n.o.op.mn === 'addi' && n.o.op.imm >= 128) { if (!asks.has(r)) asks.set(r, []); asks.get(r).push(n.o); }
+      });
+    }
+    for (const [r, list] of asks) if (list.length >= 2 && list.every(o => o.op.imm === list[0].op.imm)) return { value: list[0].op.imm, addr: list[0].addr, routine: r.start };
+    return null;
+  },
+  // the sounds: of the routines that make the type 'snd ', the one called most loads a sound; the routine calling it
+  // most loads them at the start, runs from bases in turn: a beep's, then the shots', then the explosions'
+  shotSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[1]; },
+  explodSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[2]; },
+  // which nebula picture is drawn: a routine reading the map's nebula pictures that reads a picture's frame from
+  // its header (the words at 2 and 6) and keeps it only if no wider and no taller than the rectangle
+  nebulaFit(prog) {
+    const d = novaDialogRoutines(prog).find(x => x.name === 'Map');
+    if (!d) return null;
+    const words = new Set(prog.ops(d.routine).filter(o => o.op && o.op.mn === 'lwz' && o.data !== undefined).map(o => o.data));
+    for (const r of prog.routines) {
+      if (r.glue || r === d.routine) continue;
+      const ops = prog.ops(r);
+      if (!ops.some(o => o.data !== undefined && words.has(o.data))) continue;
+      for (let k = 0; k < ops.length - 1; k++) {
+        const a = ops[k].op, b = ops[k + 1].op;
+        if (!a || !b || a.mn !== 'lwz' || a.d !== 2 || b.mn !== 'lwz' || b.d !== 6 || b.ra !== a.ra) continue;
+        const cmps = ops.slice(k + 2, k + 24).filter((o, j, l) => o.op && o.op.mn === 'cmpw' && l[j + 1] && l[j + 1].op && /^bt/.test(l[j + 1].op.mn) && l[j + 1].op.args[0] === 1);
+        if (cmps.length === 2) return { value: 'the last that fits', addr: ops[k].addr, routine: r.start };
+      }
+    }
+    return null;
+  },
+  // the least kills for each combat rating: of the routines that call DrawString, the one comparing a number with
+  // a chain of constants, skipping each step while below (bt on LT) or, the first, while not above (bf on GT)
+  combatRatings(prog) {
+    for (const r of novaCallersOfImport(prog, 'DrawString')) {
+      // each step: the comparison, the branch past the next, and the rating that step sets, one more than the last
+      const ops = prog.ops(r), out = [0], addrs = [null];
+      for (let k = 0; k < ops.length - 2; k++) {
+        const c = ops[k].op, b = ops[k + 1].op, n = ops[k + 2].op;
+        if (!c || c.mn !== 'cmpwi' || c.crf || !b || !n || n.mn !== 'li' || n.imm !== out.length) continue;
+        if (/^bt/.test(b.mn) && b.args[0] === 0) { out.push(c.imm); addrs.push(ops[k].addr); }
+        else if (/^bf/.test(b.mn) && b.args[0] === 1) { out.push(c.imm + 1); addrs.push(ops[k].addr); }
+      }
+      if (out.length >= 9) return { value: out, addrs, addr: addrs[1], routine: r.start };
+    }
+    return null;
+  },
 };
+function novaPefMapNebula(prog) {
+  if (prog.pefNebula !== undefined) return prog.pefNebula;
+  prog.pefNebula = null;
+  const d = novaDialogRoutines(prog).find(x => x.name === 'Map');
+  if (d) {
+    const ops = prog.ops(d.routine);
+    for (const { i } of novaCallsIn(prog, d.routine, 'GetPicture')) {
+      const s = novaTraceArg(ops, i, 3, 6);
+      if (!s || s.o.op.mn !== 'addi' || s.o.op.imm < 128) continue;
+      const m = ops.slice(Math.max(0, s.k - 4), s.k).find(o => o.op && o.op.mn === 'mulli' && o.op.imm > 1);
+      if (m) { prog.pefNebula = { base: { value: s.o.op.imm, addr: s.o.addr, routine: d.routine.start }, per: { value: m.op.imm, addr: m.addr, routine: d.routine.start } }; break; }
+    }
+  }
+  return prog.pefNebula;
+}
+function novaPefSounds(prog) {
+  if (prog.pefSounds !== undefined) return prog.pefSounds;
+  prog.pefSounds = null;
+  const makers = novaSearchProgram(prog, "'snd '", 50).filter(h => h.note === "'snd '").map(h => h.routine);
+  const loader = makers.sort((a, b) => prog.callers(b.start).length - prog.callers(a.start).length)[0];
+  if (!loader) return null;
+  const by = new Map();
+  for (const a of prog.callers(loader.start)) { const r = prog.routineAt(a); if (r) by.set(r, (by.get(r) || 0) + 1); }
+  const start = [...by].sort((a, b) => b[1] - a[1])[0];
+  if (!start) return null;
+  const r = start[0], ops = prog.ops(r), runs = [];
+  for (const { i } of novaCallsIn(prog, r, loader.start)) {
+    const s = novaTraceArg(ops, i, 3, 12);
+    if (s && s.o.op.mn === 'addi' && s.o.op.imm >= 128) runs.push({ value: s.o.op.imm, addr: s.o.addr, routine: r.start });
+  }
+  prog.pefSounds = { loader, runs };
+  return runs.length >= 3 ? prog.pefSounds : (prog.pefSounds = null);
+}
+function novaPefSprites(prog) {
+  if (prog.pefSprites !== undefined) return prog.pefSprites;
+  prog.pefSprites = null;
+  const six = new Map();
+  for (const r of prog.routines) {
+    if (r.glue) continue;
+    const ops = prog.ops(r);
+    ops.forEach((o, i) => {
+      if (o.target === null) return;
+      if (![4, 5, 6, 7, 8, 9].every(reg => { const s = novaSetterBefore(ops, i, reg, 12); return s && s.o.op.mn === 'addi' && s.o.op.ra === 1; })) return;
+      if (!six.has(o.target)) six.set(o.target, []);
+      six.get(o.target).push({ r, i });
+    });
+  }
+  const info = [...six].sort((a, b) => b[1].length - a[1].length)[0];
+  if (!info) return null;
+  const by = new Map();
+  for (const c of info[1]) { if (!by.has(c.r)) by.set(c.r, []); by.get(c.r).push(c.i); }
+  const callers = [...by].sort((a, b) => b[1].length - a[1].length);
+  const fig = (r, i) => { const s = novaTraceArg(prog.ops(r), i, 3, 12); return s && s.o.op.mn === 'addi' && s.o.op.imm >= 128 ? { value: s.o.op.imm, addr: s.o.addr, routine: r.start } : null; };
+  const [loader, calls] = callers[0], runs = calls.map(i => fig(loader, i));
+  const one = callers.slice(1).find(([r, cs]) => cs.length === 1 && fig(r, cs[0]));
+  if (runs.slice(0, 4).every(Boolean)) prog.pefSprites = { loader, runs, stellar: one ? fig(one[0], one[1][0]) : null };
+  return prog.pefSprites;
+}
 
 function novaDescOnFlag(prog, nameRe) {
   const d = novaDialogRoutines(prog).find(x => nameRe.test(x.name)), desc = NOVA_FIGURES.descLoader(prog);
@@ -665,6 +822,16 @@ const NOVA_MACHO_FIGURES = {
   },
   // a nebula's pictures: a loop from this, counted down from nebulaPicts for each nebula
   nebulaPict(prog) { return novaArgFigure(prog, 'DoSystemMap', 'GetPicture', 3, 0, 32); },
+  // which of them is drawn: the loop over them in MapDialogUpdate that keeps the last whose bounds
+  // (QDGetPictureBounds) are no wider and no taller than the rectangle; the figure is the call
+  nebulaFit(prog) {
+    const c = novaNamedCalls(prog, 'MapDialogUpdate', 'QDGetPictureBounds');
+    if (!c || !c.calls.length) return null;
+    const { o, i } = c.calls[0];
+    // two `cmpw` of a difference with a difference after it, each skipping on greater than
+    const cmps = c.ops.slice(i + 1, i + 24).filter((x, k, a) => x.op && x.op.mn === 'cmpw' && a[k + 1] && a[k + 1].op && /^bt/.test(a[k + 1].op.mn) && a[k + 1].op.args[0] === 29);
+    return cmps.length === 2 ? { value: 'the last that fits', addr: o.addr, routine: c.r.start } : null;
+  },
   nebulaPicts(prog) {
     const c = novaNamedCalls(prog, 'DoSystemMap', 'GetPicture');
     if (!c || !c.calls[0]) return null;
@@ -717,31 +884,41 @@ function novaProgramUses(prog, game) {
   const desc = novaFigure(prog, 'descLoader', game);
   const loaders = NOVA_LOADERS.map(([name, res, reg, idx]) => ({ starts: new Set(prog.routines.filter(r => r.glue && r.name === name || (prog.kind === 'macho' && r.name === name)).map(r => r.start)), res, reg, idx }));
   if (desc) loaders.push({ starts: new Set([desc.routine]), res: 'dësc', reg: 4 });
+  const snd = prog.kind === 'pef' ? novaPefSounds(prog) : null;
+  if (snd) loaders.push({ starts: new Set([snd.loader.start]), res: 'snd ', reg: 3 });
   const add = (key, use) => {
     if (!fixed.has(key)) fixed.set(key, []);
-    if (!fixed.get(key).some(u => u.routine === use.routine && u.index === use.index)) fixed.get(key).push(use);
+    if (!fixed.get(key).some(u => u.routine === use.routine && u.index === use.index && u.addr === use.addr)) fixed.get(key).push(use);
   };
   for (const r of prog.routines) {
     if (r.glue) continue;
     const ops = prog.ops(r);
+    // where each unconditional branch goes: a call can be reached from one, past its own set-up
+    const into = new Map();
+    ops.forEach((o, k) => { if (o.op && o.op.mn === 'b') { const t = o.addr + o.op.disp; if (!into.has(t)) into.set(t, []); into.get(t).push(k); } });
     for (let i = 0; i < ops.length; i++) {
       const L = ops[i].target !== null && loaders.find(l => l.starts.has(ops[i].target));
       if (!L) continue;
-      const s = novaTraceArg(ops, i, L.reg);
-      if (!s) continue;
-      let index = null;
-      if (L.idx) { const x = novaTraceArg(ops, i, L.idx); if (x && x.o.op.mn === 'li') index = x.o.op.imm; }
-      const op = s.o.op;
-      if (op.mn === 'addi' && op.imm >= 128 && op.ra !== 1) { bases.push({ res: L.res, value: op.imm, routine: r.start, addr: s.o.addr }); continue; }
-      if (op.mn !== 'li' || op.imm < 128) continue;
-      // the first of a run: its register one more after the call
-      const run = ops.slice(i + 1, i + 16).some(o => o.op && o.op.mn === 'addi' && o.op.imm === 1 && o.op.ra === op.rd);
-      add(`${L.res} ${op.imm}`, { routine: r.start, addr: s.o.addr, index, run });
-      // the other of two numbers a test picks between: an `li` of the same register before a branch over this one
-      const b = ops[s.k - 1] && ops[s.k - 1].op;
-      if (b && b.op === 16) {
-        const t = novaTraceArg(ops, s.k - 1, op.rd, 8);
-        if (t && t.o.op.mn === 'li' && t.o.op.imm >= 128) add(`${L.res} ${t.o.op.imm}`, { routine: r.start, addr: t.o.addr, index, run: false });
+      // the instructions run before the call: straight on, or up to a `b` and from where it lands
+      const paths = [ops.slice(0, i + 1)];
+      for (let k = i; k >= Math.max(0, i - 4); k--) for (const b of into.get(ops[k].addr) || []) if (b < k) paths.push(ops.slice(0, b).concat(ops.slice(k, i + 1)));
+      const run = ops.slice(i + 1, i + 16);
+      for (const path of paths) {
+        const at = path.length - 1, s = novaTraceArg(path, at, L.reg);
+        if (!s) continue;
+        let index = null;
+        if (L.idx) { const x = novaTraceArg(path, at, L.idx); if (x && x.o.op.mn === 'li') index = x.o.op.imm; }
+        const op = s.o.op;
+        if (op.mn === 'addi' && op.imm >= 128 && op.ra !== 1) { if (!bases.some(b => b.addr === s.o.addr)) bases.push({ res: L.res, value: op.imm, routine: r.start, addr: s.o.addr }); continue; }
+        if (op.mn !== 'li' || op.imm < 128) continue;
+        // the first of a run: its register one more after the call
+        add(`${L.res} ${op.imm}`, { routine: r.start, addr: s.o.addr, index, run: run.some(o => o.op && o.op.mn === 'addi' && o.op.imm === 1 && o.op.ra === op.rd) });
+        // the other of two numbers a test picks between: an `li` of the same register before a branch over this one
+        const b = path[s.k - 1] && path[s.k - 1].op;
+        if (b && b.op === 16) {
+          const t = novaTraceArg(path, s.k - 1, op.rd, 8);
+          if (t && t.o.op.mn === 'li' && t.o.op.imm >= 128) add(`${L.res} ${t.o.op.imm}`, { routine: r.start, addr: t.o.addr, index, run: false });
+        }
       }
     }
   }

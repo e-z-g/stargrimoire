@@ -156,6 +156,17 @@ for (const v of Object.keys(RELEASES)) {
   const odd = [...tags.keys()].filter(k => k !== 'b' && k !== 'G');
   if (odd.length) problems.push(`stellar descriptions hold choices the page does not make: ${odd.slice(0, 4).join(' ')}`);
   for (const n of u.nebulae) if (!n.picts.some(p => game.has('PICT', p.id))) problems.push(`nëbu ${n.id} has no picture`);
+  // the picture drawn into a rectangle (MapDialogUpdate): the last no wider and no taller, else the first
+  for (const n of u.nebulae) {
+    const fr = n.picts.map(p => S.novaPictFrame(game, p.id));
+    fr.forEach((f, i) => {
+      if (!f) return;
+      const want = n.picts[fr.reduce((best, g, k) => (g && g.w <= f.w && g.h <= f.h ? k : best), 0)].id;
+      if (S.novaNebulaPict(u, n, f.w, f.h) !== want) problems.push(`nëbu ${n.id}: drawn ${f.w} × ${f.h}, PICT ${S.novaNebulaPict(u, n, f.w, f.h)}, not ${want}`);
+      if (S.novaNebulaPict(u, n, f.w - 1, f.h) === n.picts[i].id && i > 0) problems.push(`nëbu ${n.id}: PICT ${n.picts[i].id} drawn into a rectangle narrower than it`);
+    });
+    if (S.novaNebulaPict(u, n, 1, 1) !== (game.has('PICT', n.picts[0].id) ? n.picts[0].id : null)) problems.push(`nëbu ${n.id}: into 1 × 1, not its first picture`);
+  }
   // Every gate is in a system, and every stellar a gate's HyperLink names is a gate in a system.
   for (const sp of u.stellars.values()) {
     if (!S.novaGateKind(sp)) continue;

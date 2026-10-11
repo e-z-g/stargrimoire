@@ -28,14 +28,15 @@
    wave size, the last digit, is the Bible's.
 
    NEBULAE. nëbu n (from 128) owns PICT 9500 + 7(n - 128) and the six after,
-   one for each of the map's seven scales, smallest first. The game picks
-   the one made for the scale it is drawing and stretches it to the nëbu's
-   rectangle, which is in map units at 100%.
+   smallest first. To draw one, 1.1.1's MapDialogUpdate takes the last of
+   the seven that is no wider and no taller than the rectangle it is drawn
+   into, the first when none is (and nothing when that one is missing), and
+   stretches it to the rectangle (novaNebulaPict). Its rectangle is the
+   nëbu's, in map units at 100%.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-files.js,
    nova-records.js and nova-ncb.js. */
 
-const NOVA_MAP_SCALES = [0.421, 0.562, 0.75, 1.0, 1.333, 1.777, 2.37];
 
 /* The six commodities the Flags long prices, in the Bible's order, each a
    nibble of Low 1, Medium 2, High 4, not traded 0. */
@@ -97,7 +98,7 @@ function novaUniverse(game) {
   const nebulae = novaAll(game, 'nëbu').map(n => {
     const ids = novaNebulaPictIds(n);
     return { id: n.id, name: n.name, x: n.XPos, y: n.YPos, w: n.XSize, h: n.YSize,
-             activeOn: n.ActiveOn || '', picts: NOVA_MAP_SCALES.map((sc, i) => ({ id: ids[i], scale: sc })), rec: n };
+             activeOn: n.ActiveOn || '', picts: ids.map(id => ({ id })), rec: n };
   });
 
   return { game, systems, byId, stellars, inSystems, govts, nebulae };
@@ -154,16 +155,21 @@ function novaGovtColor(u, id) {
   return g ? '#' + (g.Color & 0xFFFFFF).toString(16).padStart(6, '0') : null;
 }
 
-/* The nebula picture for a map scale: the id made for the closest scale
-   that the game actually has, or null when it has none of the seven. */
-function novaNebulaPict(u, neb, scale) {
-  let best = null, bestD = Infinity;
-  for (const p of neb.picts) {
-    if (!u.game.has('PICT', p.id)) continue;
-    const d = Math.abs(Math.log(scale / p.scale));
-    if (d < bestD) { bestD = d; best = p.id; }
-  }
-  return best;
+/* A PICT's frame (its header's picFrame, what QDGetPictureBounds gives):
+   { w, h }, or null. */
+function novaPictFrame(game, id) {
+  const r = game.get('PICT', id), b = r && r.bytes;
+  if (!b || b.length < 10) return null;
+  const s = i => ((b[i] << 8) | b[i + 1]) << 16 >> 16;
+  return { w: s(8) - s(4), h: s(6) - s(2) };
+}
+/* The nebula picture drawn into a rectangle w by h: the last of its seven
+   that is no wider and no taller, else the first; null when that one is
+   not in the files (MapDialogUpdate; novaFigure's nebulaFit). */
+function novaNebulaPict(u, neb, w, h) {
+  let pick = 0;
+  neb.picts.forEach((p, i) => { const f = novaPictFrame(u.game, p.id); if (f && f.w <= w && f.h <= h) pick = i; });
+  return u.game.has('PICT', neb.picts[pick].id) ? neb.picts[pick].id : null;
 }
 
 // A nebula's pictures, PICT 9500 + 7(n - 128) and the six after (1.1.1's DoSystemMap; novaFigure's nebulaPict and nebulaPicts).

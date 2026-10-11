@@ -370,7 +370,7 @@ const NEB_SUB = new Map(), NEB_BRIGHT = new Map();
 function nebulaBrights() {
   return U.nebulae.map(n => {
     if (NEB_BRIGHT.has(n.id)) return NEB_BRIGHT.get(n.id);
-    const id = novaNebulaPict(U, n, 1e3), img = id !== null && pictImage(id);
+    const id = novaNebulaPict(U, n, Infinity, Infinity), img = id !== null && pictImage(id);
     if (!img) return null;
     const c = document.createElement('canvas');
     c.width = img.width; c.height = img.height;
@@ -637,8 +637,8 @@ function systemRadius() {
 // Whether the names are drawn in the room the subway map left them.
 function namesInRoom() { return !!LAYOUT.kind && subwayFlags(LAYOUT.kind).names && LAYOUT.mix === 1 && !!LAYOUT.sub; }
 
-// Nebulae thin out as the view closes on a system: their largest picture
-// is for 237%, and far past it they are a blur behind the stellars.
+// Nebulae thin out as the view closes on a system: past their largest
+// picture they are a blur behind the stellars.
 function drawNebulae(ctx) {
   const a = (1 - 0.8 * clampNum(Math.log(CAM.s / 3) / Math.log(4), 0, 1)) * (VIEW.govt !== null ? 0.25 : 1);
   if (a <= 0 || !NEBULAE) return;
@@ -649,7 +649,7 @@ function drawNebulae(ctx) {
     if (SHOW_MODE !== 'all' && !safeTest(n.activeOn)) continue;
     const r = nebRect(n), [x, y] = toScreen(r.x, r.y), w = r.w * CAM.s, h = r.h * CAM.s;
     if (x > CW || y > CH || x + w < 0 || y + h < 0) continue;
-    const id = novaNebulaPict(U, n, CAM.s * r.w / n.w);
+    const id = novaNebulaPict(U, n, w, h);
     const img = id !== null && pictImage(id);
     if (NEB_STYLE === 'shapes') { ctx.globalCompositeOperation = 'source-over'; nebulaShape(ctx, n, img, x, y, w, h, a); ctx.globalCompositeOperation = 'screen'; }
     else if (img) ctx.drawImage(img, x, y, w, h);
@@ -2359,11 +2359,11 @@ function galaxyPanel() {
 
 function nebulaPanel(n) {
   const have = n.picts.filter(p => GAME.has('PICT', p.id));
-  const pic = have.map(p => `PICT ${p.id} (for ${Math.round(p.scale * 1000) / 10}%)`).join(', ');
+  const pic = have.map(p => { const f = novaPictFrame(GAME, p.id); return `PICT ${p.id}${f ? ` (${f.w} × ${f.h})` : ''}`; }).join(', ');
   return `<h2>${esc(n.name)}</h2><div class="sub">nëbu ${n.id}</div>
     <table class="kv">
       ${kvRow('Place', `${n.x}, ${n.y}, ${n.w} × ${n.h} map units`)}
-      ${kvRow('Pictures', esc(pic || 'none in these files') + `<br><span class="note">PICT ${figText('nebulaPict', 9500)} + ${figText('nebulaPicts', 7)} × ${n.id - 128} and the six after, one for each of the map's scales.</span>`)}
+      ${kvRow('Pictures', esc(pic || 'none in these files') + `<br><span class="note">PICT ${figText('nebulaPict', 9500)} + ${figText('nebulaPicts', 7)} × ${n.id - 128} and the six after; the map draws ${figText('nebulaFit', 'the last that fits')} its rectangle, else the first.</span>`)}
       ${kvRow('Shown when', testLine(n.activeOn))}
       ${kvRow('On exploring', n.rec.OnExplore ? `<span class="test">${bitText(n.rec.OnExplore)}</span>` : '')}
     </table>
@@ -2466,6 +2466,7 @@ function stellarPanel(sp) {
       ${kvRow('Gravity', sp.Gravity ? sp.Gravity : '')}
       ${kvRow('Also', esc(flags2))}
       ${kvRow(gate & 0x2000 ? 'Wormhole to' : 'Hypergate to', gateTo(sp, sysHere))}
+      ${gate ? kvRow('Refused with', (t => (t ? `“${esc(t)}” <span class="note">(STR# 2002, ${codeEntries(2002, [84, gate & 0x2000 ? 86 : 85]).join(' and ')})</span>` : ''))(gameText(84, gate & 0x2000 ? 86 : 85))) : ''}
       ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ', its CustPicID' : ` (${figText('landingPict', 10000)} + its Type, ${sp.Type})`}` : '')}
       ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${figText('stellarSpin', NOVA_SPIN_BASE.stellar)} + its Type, ${sp.Type})`)}
     </table>

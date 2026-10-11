@@ -446,9 +446,9 @@ function novaPickDude(w) {
   return novaWeighted(w, i => si.dudes[i] >= 128 && w.D.dudes.has(si.dudes[i]), si.probs);
 }
 /* SelectShipFieldFromDude 0x65c2: one of a düde's sixteen ship types, by
-   Probs, among those whose AppearOn holds. */
-function novaPickShipType(w, dude) {
-  const ok = i => { const c = w.D.classes.get(dude.ShipTypes[i]); return !!c && !c.missing && w.holds(c.appearOn); };
+   Probs, among those whose AppearOn holds, or with `any` among them all. */
+function novaPickShipType(w, dude, any) {
+  const ok = i => { const c = w.D.classes.get(dude.ShipTypes[i]); return !!c && !c.missing && (any || w.holds(c.appearOn)); };
   return novaWeighted(w, ok, dude.Probs);
 }
 
@@ -496,10 +496,10 @@ function novaHasAfterburner(w, s) {
 }
 
 /* GenericRandomShipSpawn 0x3c89f: a ship of no kind yet, at random within
-   750 of the middle. Its skill is drawn for the first class, whatever it
+   750 of the middle, leaving the last `reserve` of the 64 slots free. Its skill is drawn for the first class, whatever it
    becomes, as the program does. */
-function novaSpawnBlank(w) {
-  const slot = novaFreeSlot(w, 8);
+function novaSpawnBlank(w, reserve = 8) {
+  const slot = novaFreeSlot(w, reserve);
   if (slot < 0) return null;
   const s = novaFreshShip(w, slot), first = w.D.classes.values().next().value;
   s.skill = novaSkill(w, first);
@@ -730,14 +730,82 @@ function novaSetupShips(w) {
   }
 }
 
+/* DEFENCE FLEETS. A stellar's defence ships come out from its hail dialog
+   (DoPlanetCommDialog 0x97814), novaDeployDefence here: with a DefCount up
+   to 1000, all it has left at once; above, the last digit of DefCount, a
+   wave, taken from what is left. Each frame a stellar with one of its
+   ships still about is defending (DoPlayGameWork 0x4443e), and while it
+   is, EnterMoreShips sends one more whenever fewer than that last digit
+   are out, until none are left; when its last ship is lost, no more come.
+   What is left is w.defence (the stellar's +0x466), from novaDefense. */
+function novaDefenceOf(w, sp) {
+  if (!w.defence) w.defence = new Map();
+  let d = w.defence.get(sp.id);
+  if (!d) { const def = novaDefense(sp); d = { sp, def, left: def ? def.total : 0, defending: false }; w.defence.set(sp.id, d); }
+  return d;
+}
+const novaDefenceWave = sp => ((sp.DefCount % 10) + 10) % 10;
+// The ships out from a stellar.
+function novaDefenceOut(w, spId) { let n = 0; for (const s of w.ships) if (s && s.home === spId) n++; return n; }
+/* SpawnStellarDefenseShip 0x3d2c9: SpecificDudeSpawn 0x3d0eb's ship of its
+   DefenseDude (two slots kept free; a class whose AppearOn fails only when
+   no other is left), then the stellar's own government, the warship AI, on
+   the stellar facing anywhere at its top speed. The program then sets it on
+   the player (AIMakeShipAttackPlayer); with no player here, it flies as a
+   warship does. */
+function novaSpawnDefender(w, sp) {
+  const d = novaDefenceOf(w, sp), dude = d.def && w.D.dudes.get(d.def.dude);
+  if (!dude) return null;
+  const s = novaSpawnBlank(w, 2);
+  if (!s) return null;
+  let t = novaPickShipType(w, dude, false);
+  if (t < 0) t = novaPickShipType(w, dude, true);
+  if (t < 0) { w.ships[s.slot] = null; return null; }
+  const cls = w.D.classes.get(dude.ShipTypes[t]);
+  Object.assign(s, { cls, dude: dude.id, govt: sp.Govt >= 128 ? sp.Govt : -1, ai: 3, home: sp.id, x: f32(sp.xPos), y: f32(sp.yPos), vx: 0, vy: 0 });
+  s.heading = w.rand(360);
+  s.boost = novaHasAfterburner(w, s);
+  const v = { x: 0, y: 0 }; novaAccel(Math.trunc(s.heading), novaShipMaxSpeed(w.D, s), v); s.vx = v.x; s.vy = v.y;
+  d.defending = true;
+  return s;
+}
+// The hail dialog's launch: how many came out.
+function novaDeployDefence(w, sp) {
+  const d = novaDefenceOf(w, sp);
+  if (!d.def || d.left <= 0) return 0;
+  let n;
+  if (sp.DefCount <= 1000) { n = d.left; d.left = 0; }
+  else { n = novaDefenceWave(sp); d.left -= n; if (d.left < 0) { n += d.left; d.left = 0; } }
+  let out = 0;
+  for (let i = 0; i < n; i++) if (novaSpawnDefender(w, sp)) out++;
+  return out;
+}
+// EnterMoreShips's defence part: one more ship for the first stellar, in the system's order, that is defending and short.
+function novaDefenceTopUp(w) {
+  if (!w.defence) return;
+  for (const id of w.si.nav) {
+    const d = w.defence.get(id);
+    if (!d || !d.defending || d.left <= 0) continue;
+    if (novaDefenceOut(w, id) < novaDefenceWave(d.sp)) { novaSpawnDefender(w, d.sp); d.left--; return; }
+  }
+}
+// Which stellars are defending: those with a ship of theirs about.
+function novaDefenceFlags(w) {
+  if (!w.defence) return;
+  for (const d of w.defence.values()) d.defending = novaDefenceOut(w, d.sp.id) > 0;
+}
+
 /* EnterMoreShips 0x43459, without mission fleets, the player's escorts,
    the shareware nag and the pirates sent after a laden player: while the
    ships here, but those escorting the player, are fewer than AvgShips,
    Rand(500) gives 1 for one of the system's fleets, if it has any and
    Rand(100) falls within their odds, and otherwise 0 or 1 for a düde's
-   ship. The defence fleets launch only once their stellar has been set
-   off, which comes with fighting. */
+   ship. Then, whatever came, the defence fleets (novaDefenceTopUp). */
 function novaEnterMoreShips(w) {
+  novaArrivals(w);
+  novaDefenceTopUp(w);
+}
+function novaArrivals(w) {
   if (w.noArrivals) return;
   const here = w.ships.filter(s => s && s.leader !== 0).length;
   if (w.sys.rec.AvgShips <= here) return;
@@ -783,6 +851,7 @@ function novaFlightStep(w) {
   novaTargetedDamage(w);
   novaEnterMoreShips(w);
   novaSpawnAsteroid(w, true);
+  novaDefenceFlags(w);
   w.miners = false;
   for (const s of w.ships) if (s && !s.armed) novaArm(w, s);
   for (const s of w.ships) if (s && w.ships[s.slot] === s) novaAI(w, s);

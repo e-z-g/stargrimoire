@@ -2459,6 +2459,7 @@ function stellarPanel(sp) {
       ${kvRow('Landing fee', sp.Fee ? sp.Fee.toLocaleString() + ' credits' : '')}
       ${kvRow('Landing', (f & 0x20) || !(f & 1) ? '' : typeof minStatus === 'number' ? `refused below a legal status of ${minStatus}` : esc(minStatus))}
       ${kvRow('Defence', def ? `${esc(resName('düde', def.dude))}: ${def.total} ship${def.total === 1 ? '' : 's'}${def.wave ? `, in waves of ${def.wave}` : ''}` : '')}
+      ${def ? kvRow('', defenceControl(sp, sysHere)) : ''}
       ${kvRow('Tribute', tribute)}
       ${kvRow('Weapon', sp.Weapon > 0 ? esc(resName('wëap', sp.Weapon)) : '')}
       ${kvRow('Destroyed by', destroyed)}

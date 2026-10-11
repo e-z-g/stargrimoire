@@ -76,10 +76,12 @@ function flightSync() {
   if (!FLIGHT.started) { FLIGHT.started = true; FLIGHT.paused = FLIGHT.paused || reducedMotion(); }
   if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); if (flightListed()) renderPanel(); }
 }
-// Whether the panel is the system's, with its ships listed (flightPanel); no other panel is drawn again as they move.
+// Whether the panel lists the moving ships: the system's (flightPanel), or a stellar's whose defence ships are out; no other is drawn again as they move.
 function flightListed() {
   const sel = VIEW.sel;
-  return VIEW.mode === 'system' && FLIGHT.sys !== null && (!sel || (sel.kind === 'system' && sel.id === FLIGHT.sys));
+  if (VIEW.mode !== 'system' || FLIGHT.sys === null) return false;
+  if (sel && sel.kind === 'stellar') { const w = FLIGHT.world; return !!(w && w.defence && w.defence.has(sel.id)); }
+  return !sel || (sel.kind === 'system' && sel.id === FLIGHT.sys);
 }
 
 /* The player's screen, for the asteroids: the map's view in the system's
@@ -327,7 +329,24 @@ function flightPanel(sys) {
     <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
 }
 
+/* A stellar's defence fleet, launched as its hail dialog launches it
+   (novaDeployDefence) into the ships flying in its system: the button,
+   and once launched how many are out and how many are left. */
+function defenceControl(sp, sys) {
+  const w = FLIGHT.world;
+  if (!FLIGHT.on || VIEW.mode !== 'system' || !w || FLIGHT.sys !== sys) return '';
+  const d = w.defence && w.defence.get(sp.id);
+  if (!d) return `<button data-flight="defend:${sp.id}" title="Launch its defence ships as it does when hailed and refused">Deploy defences</button>`;
+  const out = novaDefenceOut(w, sp.id);
+  return `${out} out, ${d.left} left${d.left > 0 ? (out ? '; one more comes whenever fewer than a wave are out' : '; no more come now that none are out') : ''}`;
+}
+
 function flightControl(what) {
+  if (what.startsWith('defend:')) {
+    const sp = U.stellars.get(+what.slice(7)), w = FLIGHT.world;
+    if (sp && w) { novaDeployDefence(w, sp); if (FLIGHT.paused) { FLIGHT.paused = false; flightRun(); } }
+    renderPanel(); redraw(); return;
+  }
   if (what === 'pause') { FLIGHT.paused = !FLIGHT.paused; flightRun(); }
   else if (what === 'again') { FLIGHT.worlds.delete(FLIGHT.sys); flightSync(); redraw(); }
   else if (what.startsWith('speed:')) FLIGHT.speed = +what.slice(6);

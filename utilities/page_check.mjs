@@ -371,10 +371,25 @@ try {
             return { route, reach, govt, figure, light, saved, gates, bits, cleared: !/route/.test(location.hash) };
           })()`);
           await shot('features');
+          // Earth's defences deployed into Sol's ships: its first wave out, the panel counting them
+          out.defend = await p.evaluate(`(async () => {
+            const wait = ms => new Promise(r => setTimeout(r, ms));
+            history.replaceState(null, '', '#system=130'); applyHash(); await wait(100);
+            for (let i = 0; i < 100 && (MOVING || !FLIGHT.world); i++) await wait(50);
+            VIEW.sel = { kind: 'stellar', id: 128 }; renderPanel();
+            const b = document.querySelector('#panel [data-flight="defend:128"]');
+            if (!b) return { button: false, world: !!FLIGHT.world };
+            b.click(); await wait(50);
+            const t = document.getElementById('panel').textContent, m = / (\\d+) out, (\\d+) left/.exec(t);
+            const homes = FLIGHT.world.ships.filter(s => s && s.home === 128);
+            VIEW.sel = null; renderPanel();
+            return { button: true, out: m && +m[1], left: m && +m[2], homes: homes.length, govts: [...new Set(homes.map(s => s.govt))], ai: [...new Set(homes.map(s => s.ai))] };
+          })()`);
           // A mission and its storyline: from b147's panel to Take Polaris Home, its storyline, the places ringed.
           out.story = await p.evaluate(`(async () => {
             history.replaceState(null, '', '#galaxy'); applyHash(); await new Promise(r => setTimeout(r, 100));
-            for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
+            for (let i = 0; i < 200 && (MOVING || VIEW.mode !== 'galaxy'); i++) await new Promise(r => setTimeout(r, 50));
+            VIEW.sel = null; renderPanel();
             const list = document.querySelectorAll('#panel [data-story]').length;
             VIEW.sel = { kind: 'bit', id: 147, back: null }; renderPanel();
             const ml = document.querySelector('#panel [data-mission="354"]');
@@ -709,6 +724,9 @@ try {
       const sy = o.story;
       if (!(sy.list > 20) || !sy.fromBit || sy.mission !== 'Take Polaris Home' || !sy.step || !sy.last || !sy.offer || !sy.follows || sy.story !== 'Rebel I' || !(sy.rows >= 15) || !(sy.ringed > 3))
         fail(`${dev.name}: the mission Take Polaris Home and its storyline: ${JSON.stringify(sy)}`);
+      const df = o.defend;
+      if (!df.button || !(df.out >= 1) || !(df.left <= 594) || df.homes !== df.out || JSON.stringify(df.govts) !== '[128]' || JSON.stringify(df.ai) !== '[3]')
+        fail(`${dev.name}: deploying Earth's defences: ${JSON.stringify(df)}`);
       const kp = o.keep;
       if (kp.box === false || !(kp.top > 0) || kp.after !== kp.top || !kp.open || kp.listed || kp.fresh !== 0 || !kp.systemListed
           || JSON.stringify(kp.short) !== '[true,false]' || JSON.stringify(kp.full) !== '[false,true,"1"]' || JSON.stringify(kp.back) !== '[true,false]')

@@ -1535,7 +1535,7 @@ function novaHandleShip(w, s) {
   const D = w.D, c = s.cls;
   if (s.disabled) {
     s.vx = f32(s.vx * 0.995); s.vy = f32(s.vy * 0.995); s.speed = f32(s.speed * 0.995);
-    // ShipCanSelfRepair: a draw of 500 a step while disabled, and on 0 a ship not dying with a repairing outfit is back to just over its threshold
+    // ShipCanSelfRepair 0x9134: a draw of 500 a step while disabled, and on 0 a ship not dying with a repairing outfit is back to just over its threshold
     if (s.leader !== 0 && w.rand(500) === 0 && !(s.death > 0 || s.armor <= 0) && c.selfRepair) {
       s.armor = f32(novaArmorCap(D, s) * ((c.flags & 0x10) ? 0.1 : 0.3333) + 1); novaSetDisabled(D, s);
     }

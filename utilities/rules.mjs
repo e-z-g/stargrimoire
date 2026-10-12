@@ -3,15 +3,16 @@
 // writes into js/nova-rules.js and program_check holds that file to.
 //
 // A routine is cited as its name and its Intel address ("HandleShip
-// 0x33581"), on the line itself or in the comments since the last function
-// ended (a comment opening a line outside any function, after code, starts
-// afresh); a number is a decimal in the code (not in a comment, a string or
-// a shift's count), skipped when it is below 5 or an id or angle every
-// routine has (128, 255, 256, 360), and below 10 unless the line itself
-// cites the routine; once a line. It is kept when the cited routine, the nearest citation first,
-// holds it (novaHeldValues: an li, addi, cmpwi, cmplwi, mulli or subfic of
-// it or of its negative, an lis of it over 65536, or a float constant it
-// rounds to in single precision).
+// 0x33581", the address on the next line or not), on the line itself or in
+// the comments since the last function ended (a comment opening a line
+// outside any function, after code, starts afresh); a number is a decimal
+// in the code (not in a comment, a string or a shift's count), negative
+// where its minus is not a subtraction's, skipped when it is below 5 or an
+// id or angle every routine has (128, 255, 256, 360), and below 10 unless
+// the line itself cites the routine; once a line. It is kept when the cited
+// routine, the nearest citation first, holds it (novaHeldValues: an li,
+// addi, cmpwi, cmplwi, mulli or subfic of it or of its negative, an lis of
+// it over 65536, or a float constant it rounds to in single precision).
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './load.mjs';
@@ -24,7 +25,7 @@ export function scanRules(S, prog) {
   const rules = [];
   for (const file of RULE_FILES) {
     const lines = fs.readFileSync(path.join(ROOT, file), 'utf8').split('\n');
-    let cited = [], inBlock = false, depth = 0, codeSince = false;
+    let cited = [], inBlock = false, depth = 0, codeSince = false, carry = null;
     lines.forEach((line, n) => {
       // a comment starting a line outside any function, after code, begins the next one's citations
       if (depth === 0 && !inBlock && /^(\/\*|\/\/)/.test(line) && codeSince) { cited = []; codeSince = false; }
@@ -38,15 +39,20 @@ export function scanRules(S, prog) {
         else { code += rest; rest = ''; }
       }
       const names = [...comment.matchAll(/\b([A-Z][A-Za-z0-9]+) 0x[0-9a-f]{3,6}\b/g)].map(m => m[1]);
+      // a name ending one line whose address begins the next
+      if (carry && /^[\s*\/]*0x[0-9a-f]{3,6}\b/.test(comment)) cited.push(carry);
+      carry = (comment.match(/\b([A-Z][A-Za-z0-9]+)\s*$/) || [])[1] || null;
       cited = cited.concat(names);
       const bare = code.replace(/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g, '').replace(/(<<|>>>|>>)\s*\d+/g, '');
       for (const ch of bare) { if (ch === '{') depth++; else if (ch === '}') depth--; }
       if (bare.trim()) codeSince = true;
       for (const m of bare.matchAll(/(?<![\w.$])(\d+\.\d+|\d+)(?![\w.])/g)) {
-        const v = Number(m[1]);
-        if ((Number.isInteger(v) && v < 5) || SKIP.has(v)) continue;
+        const u = Number(m[1]);
+        if ((Number.isInteger(u) && u < 5) || SKIP.has(u)) continue;
+        // negative where its minus is not a subtraction's
+        const v = /(^|[^\w$.)\]\s]|\b(return|case))\s*-\s*$/.test(bare.slice(0, m.index)) ? -u : u;
         // a small whole number only from a routine the line itself cites
-        const order = Number.isInteger(v) && v < 10 ? names : [...names, ...cited.slice().reverse()];
+        const order = Number.isInteger(u) && u < 10 ? names : [...names, ...cited.slice().reverse()];
         const hit = order.find(nm => held(nm).has(Math.fround(v)));
         if (hit && !rules.some(r => r[0] === file && r[1] === n + 1 && r[2] === v)) rules.push([file, n + 1, v, hit]);
       }

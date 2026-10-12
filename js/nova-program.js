@@ -966,7 +966,8 @@ function novaHeldValues(prog, name) {
     const vals = [];
     if (op.imm !== undefined && /^(li|addi|cmpwi|cmplwi|mulli|subfic)$/.test(op.mn)) vals.push(op.imm, -op.imm);
     if (op.mn === 'lis') vals.push(op.imm * 65536);
-    if ((op.mn === 'lfs' || op.mn === 'lfd') && typeof o.value === 'number') vals.push(o.value);
+    // (CodeWarrior keeps x * -0.5 as 0.5 and subtracts, GCC as -0.5 and adds: in 1.0.x, either sign)
+    if ((op.mn === 'lfs' || op.mn === 'lfd') && typeof o.value === 'number') vals.push(o.value, ...(prog.kind === 'pef' ? [-o.value] : []));
     for (const v of vals) { const k = Math.fround(v); if (!m.has(k)) m.set(k, o.addr); }
   }
   prog.held.set(name, m);

@@ -218,7 +218,7 @@ function routinesCheck(mac) {
     if (v === '1.0.10') {
       // a table moved one routine on: the decimals must not survive it
       const rs = p.routines.filter(r => !r.glue), next = new Map(rs.map((r, i) => [r.start, rs[i + 1] ? rs[i + 1].start : r.start]));
-      const held = n => { const r = S.novaRoutineNamed(p, n); const m = new Set(); for (const o of p.ops(p.byStart.get(next.get(r.start)))) if (typeof o.value === 'number') m.add(Math.fround(o.value)); return m; };
+      const held = n => { const r = S.novaRoutineNamed(p, n); const m = new Set(); for (const o of p.ops(p.byStart.get(next.get(r.start)))) if (typeof o.value === 'number') m.add(Math.fround(o.value)).add(Math.fround(-o.value)); return m; };
       const kept = decimals.filter(([, , x, n]) => held(n).has(Math.fround(x))).length;
       // neighbours often share a constant, so some survive
       if (kept > decimals.length / 4) fail(`1.0.10: a table moved one routine on still finds ${kept} of ${decimals.length} decimal rules`);

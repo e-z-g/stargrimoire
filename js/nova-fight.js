@@ -93,7 +93,7 @@ function novaWeaponRange(F, w) {
   }
   return r;
 }
-// The least kills for each combat rating, whose names are STR# 138 (1.1.1's DrawCombatRatingString;
+// The least kills for each combat rating, whose names are STR# 138 (1.1.1's DrawCombatRatingString 0x57e5;
 // novaFigure's combatRatings, which program_check holds this to).
 const NOVA_COMBAT_RATINGS = [0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
 
@@ -283,7 +283,7 @@ function novaThreatenedByMyEnemy(w, o, s) {
   }
   return false;
 }
-// ShipsShareParent 0x7923: the same ship at the top of their chains of leaders.
+// ShipsShareParent 0x7926: the same ship at the top of their chains of leaders.
 function novaRoot(w, s) {
   let i = s.slot;
   for (let n = 0; n < 64; n++) {
@@ -411,7 +411,7 @@ function novaBlindSpot(D, s, ang, W) {
 }
 // Whether the target can be hurt by the weapon: class Flags 0x0400 must match the weapon's Flags2 0x0400.
 const novaSameHide = (D, t, W) => (novaClassFight(D, t.cls).flags & 0x400) === (W.flags2 & 0x400);
-// WeaponMaxSimultShots 0x834d.
+// WeaponMaxSimultShots 0x8350.
 function novaMaxShots(w, s, W, r) {
   if (!(W.flags & 0x40)) return 1;
   if (!(W.flags3 & 1)) return r.count;
@@ -985,7 +985,7 @@ function novaPointDefenseHit(w, W, sh, x, y, owner) {
 /* AIFireMissile 0x8115d: the first homing missile suited to the target
    (SuitableMissileType) whose reach is more than the distance (less a
    twentieth), unless enough missiles are already on their way to it
-   (SufficentTargetedDamage: their damage over 1.05 times its shields
+   (SufficentTargetedDamage 0x3fd22: their damage over 1.05 times its shields
    and armour). */
 function novaFireMissile(w, s) {
   const D = w.D, t = s.primary !== -1 ? w.ships[s.primary] : null;
@@ -1000,7 +1000,7 @@ function novaFireMissile(w, s) {
     if (f32(W.range * W.range) >= d2) { if (r.reload <= 0) { s.lastW = r.i; s.latch = true; } return; }
   }
 }
-// SuitableMissileType 0x34df: one for slow ships (Flags 0x0008) only at a target turning 3 or less; else one turning faster than 2, or any at such a target.
+// SuitableMissileType 0x34e1: one for slow ships (Flags 0x0008) only at a target turning 3 or less; else one turning faster than 2, or any at such a target.
 function novaSuitableMissile(W, t) {
   const turn = Math.trunc(novaShipTurn(t));
   if ((W.flags & 8) && turn > 3) return false;
@@ -2342,7 +2342,7 @@ function novaFleetMateTarget(w, s) {
   }
   return false;
 }
-/* LowLevelAIHandler, move 15: alongside a ship to board it -- the relative
+/* LowLevelAIHandler 0x851da, move 15: alongside a ship to board it -- the relative
    velocity braked to within 0.525, then velocity and heading matched and
    nudged a unit a step to within 3 of it; there the ship is marked as
    being boarded and the boarding counts 100 to 179 steps, plundered (a

@@ -1,12 +1,14 @@
 // The field notes in js/nova-fields.js, each held to the program they were
 // read from: every field is one its type's table names, and every routine a
 // note cites is a function Mac 1.1.1's Intel code names, at that address
-// (`nm`, over reference/'s copy of the program). A routine named wrongly, or
-// at another address, fails; that is first shown on a routine moved on purpose.
+// (`nm`, over reference/'s copy of the program), and every routine the rest
+// of the code's comments cite has the place they give in it. A routine named
+// wrongly, or at another address, fails; that is first shown on a routine
+// moved on purpose.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { site, REF, RELEASES, haveRelease, openRelease } from './load.mjs';
+import { site, ROOT, REF, RELEASES, haveRelease, openRelease } from './load.mjs';
 
 const S = site();
 let fails = 0;
@@ -37,6 +39,24 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
   }
 }
 console.log(`${notes} field notes, ${cites} routines cited, each a routine of Mac 1.1.1 at its address`);
+
+// The rest of the site's code cites routines in its comments as a name and an
+// address (the address on the next line or not), the routine's start or a
+// place in it: each named so that is a routine of 1.1.1, the address inside
+// it, before the next routine's start. Flags 0x0008 and the like name no routine.
+const starts = [...new Set(syms.values())].sort((a, b) => a - b);
+const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
+if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot tell a place in a routine from one outside it');
+let places = 0;
+for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => /^nova-.*\.js$/.test(f) && f !== 'nova-fields.js')) {
+  const text = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace(/\n[\s*\/]*(?=0x[0-9a-f]{3,6}\b)/g, ' ');
+  for (const m of text.matchAll(/\b([A-Z][A-Za-z0-9]+) (0x[0-9a-f]{3,6})\b/g)) {
+    if (!syms.has(m[1])) continue;
+    places++;
+    if (!inside(m[1], parseInt(m[2], 16))) fail(`js/${f}: ${m[1]} ${m[2]} is not in it (it is 0x${syms.get(m[1]).toString(16)} on)`);
+  }
+}
+console.log(`${places} routines the rest of the code cites, each a place in a routine of Mac 1.1.1`);
 
 // Each note has its few words (NOVA_FIELD_SHORT), and no few words stand for a note that is not there.
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const field of Object.keys(fields)) {

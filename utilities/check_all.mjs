@@ -103,7 +103,7 @@ const CHECKS = [
   ['bits', 'control-bit set expressions read as Mac 1.1.1 reads them, and every one in every release'],
   ['missions', 'storylines from Ambrosia\'s notes, place codes, and the wiki as a check'],
   ['compare', 'what changed between releases, against the resources\' bytes'],
-  ['fields', 'the field notes: every routine they cite is Mac 1.1.1\'s, at its address'],
+  ['fields', 'the field notes and the code\'s comments: every routine they cite is Mac 1.1.1\'s, at its address or a place in it'],
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],

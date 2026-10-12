@@ -2084,6 +2084,7 @@ function renderPanel() {
   el.innerHTML = html;
   if (same) {
     el.querySelectorAll('details').forEach((d, i) => { if (opened[i] !== undefined) d.open = opened[i]; });
+    fieldsFill(el);
     el.scrollTop = top;
   } else el.scrollTop = 0;
   if (sel && sel.kind === 'rec') recPictures();
@@ -2272,10 +2273,62 @@ function missionPanel(id) {
 /* ---- dead ends: where a storyline can be left with no way on (nova-deadends.js) -- */
 
 let DEADENDS = null;
-function deadEndData() { return DEADENDS && DEADENDS.m === missionData() ? DEADENDS : (DEADENDS = { m: missionData(), reach: novaReach(GAME), stories: new Map(), held: null }); }
+function deadEndData() { return DEADENDS && DEADENDS.m === missionData() && DEADENDS.reach ? DEADENDS : (DEADENDS = { m: missionData(), reach: novaReach(GAME), stories: new Map(), waiting: [] }); }
+// A generator run a slice at a time, the page answering between slices, while D is the search's; then done(value).
+function deadEndSlices(D, it, done) {
+  const step = () => {
+    if (DEADENDS !== D) return;
+    const t0 = performance.now();
+    for (;;) { const r = it.next(); if (r.done) { done(r.value); return; } if (performance.now() - t0 > 40) break; }
+    setTimeout(step, 0);
+  };
+  step();
+}
+// The search's reading of this game (what can happen, every set expression's source, the escape-pod
+// index, and the bits a panel's missions may leave on for good), worked out in slices; then done().
+function deadEndReady(ids, done) {
+  if (!DEADENDS || DEADENDS.m !== missionData()) {
+    const D = DEADENDS = { m: missionData(), reach: null, stories: new Map(), waiting: [] };
+    deadEndSlices(D, (function* () {
+      const reach = yield* novaReachSteps(GAME);
+      novaSetSources(GAME, reach, new Set()); yield;
+      novaPodLosses(GAME, reach, missionData(), { missions: new Set() }); yield;
+      novaHeldCandidates(GAME, reach);
+      return reach;
+    })(), reach => { D.reach = reach; const w = D.waiting; D.waiting = []; w.forEach(f => f()); });
+  }
+  const D = DEADENDS;
+  const go = () => {
+    const want = deadBitsOf(ids), cache = D.reach.heldReach || (D.reach.heldReach = new Map());
+    const bits = [...new Set(novaHeldCandidates(GAME, D.reach).map(c => c.bit))].filter(b => want.has(b) && !cache.has(b));
+    if (!bits.length) { done(); return; }
+    deadEndSlices(D, (function* () { for (const b of bits) cache.set(b, yield* novaReachSteps(GAME, { held: [b] })); })(), done);
+  };
+  if (D.reach) go(); else D.waiting.push(go);
+}
 function storyDeadEnds(key) { const D = deadEndData(); if (!D.stories.has(key)) D.stories.set(key, novaStoryDeadEnds(GAME, missionData().stories.get(key), D.reach)); return D.stories.get(key); }
-function heldBits() { const D = deadEndData(); return D.held || (D.held = novaHeldBits(GAME, D.reach)); }
-function podLosses() { const D = deadEndData(); return D.pod || (D.pod = novaPodLosses(GAME, D.reach, missionData())); }
+// A storyline's search a slice at a time, the page answering between slices; then done(result).
+function storyDeadEndsLater(key, done) {
+  const story = missionData().stories.get(key);
+  deadEndReady(story.missions.map(m => m.id), () => {
+    const D = DEADENDS;
+    if (D.stories.has(key)) { done(D.stories.get(key)); return; }
+    deadEndSlices(D, novaStoryDeadEndsSteps(GAME, story, D.reach), r => { D.stories.set(key, r); done(r); });
+  });
+}
+// The bits a mission turns on when accepted or needs off: those a bit left on for good may concern.
+function deadBitsOf(ids) {
+  const out = new Set();
+  for (const id of ids) {
+    const m = missionData().byId.get(id);
+    if (!m) continue;
+    for (const o of novaSetAny(m.rec.OnAccept)) if (o.op === 'set') out.add(o.n);
+    for (const x of m.needs) if (!x.on) out.add(x.n);
+  }
+  return out;
+}
+const heldBits = ids => novaHeldBits(GAME, deadEndData().reach, { bits: deadBitsOf(ids) });
+const podLosses = ids => novaPodLosses(GAME, deadEndData().reach, missionData(), { missions: new Set(ids) });
 // A mission by name and its step, for a list within its storyline.
 const missionName = id => { const m = missionData().byId.get(id); return m ? `<a data-mission="${id}">${esc(m.name)}</a>${m.story && m.story.step ? ` <span class="note">${esc(m.story.step)}</span>` : ''}` : `mïsn ${id}`; };
 const DEAD_WHAT = { refuse: 'refusing', abort: 'aborting', accept: 'accepting', complete: 'completing', fail: 'failing', 'ends by itself': 'the end by itself of', 'escape pod': 'an escape pod during' };
@@ -2297,8 +2350,11 @@ function deadEndsFill(el) {
   for (const box of el.querySelectorAll('[data-dead]')) {
     if (box.dataset.done) continue;
     box.dataset.done = '1';
-    if (box.dataset.dead === 'story') box.innerHTML = storyDeadEndsHtml(box.dataset.id);
-    else box.innerHTML = missionDeadEndsHtml(+box.dataset.id);
+    if (box.dataset.dead === 'story') storyDeadEndsLater(box.dataset.id, () => { if (box.isConnected) { box.innerHTML = storyDeadEndsHtml(box.dataset.id); box.dataset.filled = '1'; } });
+    else {
+      const id = +box.dataset.id, m = missionData().byId.get(id), fill = () => { if (box.isConnected) { box.innerHTML = missionDeadEndsHtml(id); box.dataset.filled = '1'; } };
+      if (m && m.story) deadEndReady([id], () => storyDeadEndsLater(m.story.key, fill)); else deadEndReady([id], fill);
+    }
   }
 }
 function storyDeadEndsHtml(key) {
@@ -2306,10 +2362,10 @@ function storyDeadEndsHtml(key) {
   const head = `<h3>Dead ends</h3><p class="note">Where this storyline can be left with no way on: begun, none of its missions under way, none that can ever be taken again, and none of its ends ${r.ends.length ? `(the missions of it that nothing of it follows and that can be finished: ${r.ends.map(missionName).join(', ')})` : '(it has none: here, a mission of it that can still be taken)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. Whether a closing was meant, the files do not say.</p>`;
   if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: past searching.</p>`;
   const ids = s.missions.map(m => m.id);
-  const held = heldBits().filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
+  const held = heldBits(ids).filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
   const rows = r.after.map(a => `<li>After ${deadStep(a)}${a.count > 1 ? ` (${a.count} states)` : ''}: as by ${deadWay(a)}.</li>`).join('');
   const heldRows = held.map(h => `<li>${missionName(h.mission)}: ${heldText(h)}</li>`).join('');
-  const podRows = podLosses().filter(o => ids.includes(o.mission)).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
+  const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
   return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
     (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (whether what started it can be taken again, its own panel says).</p><ul>${podRows}</ul>` : '');
@@ -2323,11 +2379,11 @@ function missionDeadEndsHtml(id) {
     if (!r.tooMany) for (const a of r.after) if (a.mission === id || (a.missions && a.missions.includes(id)))
       out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way on: none of its missions can be taken again and none of its ends reached; as by ${deadWay(a)}.`);
   }
-  for (const h of heldBits()) {
+  for (const h of heldBits([id])) {
     if (h.mission === id) out.push(heldText(h).replace(/^an/, 'An'));
     else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}: it needs ${bitText('b' + h.bit)} off, which that leaves on for good.`);
   }
-  for (const o of podLosses()) if (o.mission === id) out.push(podText(o));
+  for (const o of podLosses([id])) out.push(podText(o));
   return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel says how); whether it was meant, the files do not say.</p>` : '';
 }
 

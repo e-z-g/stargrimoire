@@ -405,14 +405,15 @@ try {
               if (boxes[0]) { boxes[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); o.chartTo = VIEW.sel && VIEW.sel.kind === 'mission' ? VIEW.sel.id : null; o.chartFirst = +boxes[0].dataset.mission; VIEW.sel = VIEW.sel.back; renderPanel(); }
               draw();
               // dead ends: none in Rebel I; mïsn 266's escape pod leaves b511 on, closing the main storylines' openings
-              await new Promise(r => setTimeout(r, 20));
+              const filled = async () => { for (let i = 0; i < 600 && !(document.querySelector('#panel [data-dead]') || {}).dataset?.filled; i++) await new Promise(r => setTimeout(r, 25)); };
+              await filled();
               o.deadRebel = (document.querySelector('#panel [data-dead="story"]') || {}).textContent || '';
               VIEW.sel = { kind: 'mission', id: 266, back: null }; renderPanel();
-              await new Promise(r => setTimeout(r, 20));
+              await filled();
               const d = document.querySelector('#panel [data-dead="mission"]');
               o.dead266 = d ? d.textContent : ''; o.dead266Links = d ? d.querySelectorAll('[data-mission]').length : 0;
               VIEW.sel = { kind: 'mission', id: 600, back: null }; renderPanel();
-              await new Promise(r => setTimeout(r, 20));
+              await filled();
               o.dead600 = (document.querySelector('#panel [data-dead="mission"]') || {}).textContent || '';
             }
             // the whole game: every storyline a box, what shuts what drawn when asked, a box opening its storyline and Back to the whole
@@ -458,6 +459,7 @@ try {
             VIEW.sel = null; renderPanel(); o.fresh = el.scrollTop; o.systemListed = flightListed();
             FLIGHT.sys = flying;
             VIEW.sel = { kind: 'stellar', id: 128 }; renderPanel();
+            el.querySelector('details.fieldsBox').open = true; fieldsFill(el);   // its rows are drawn when it is opened
             const shown = c => { const n = el.querySelector('table.fields ' + c); return n ? getComputedStyle(n).display !== 'none' : null; };
             o.short = [shown('.fieldShort'), shown('.fieldFull')];
             const tick = el.querySelector('[data-notes-full]');
@@ -821,11 +823,11 @@ try {
           o.roles = [['PICT', 8502], ['dësc', 13999], ['PICT', U.nebulae[0].picts[3].id]].map(([r, i]) => libRole(r, i).replace(/<[^>]*>/g, ''));
           o.ratings = (fig('combatRatings') || {}).value;
           o.nums = [...div.querySelectorAll('a.codeNum')].map(a => a.textContent);
-          div.innerHTML = fieldsTable('spöb', U.stellars.get(128));
+          div.innerHTML = fieldsTable('spöb', U.stellars.get(128), true);
           const links = [...div.querySelectorAll('.fieldCode a.codeNum')];
           o.noteLinks = links.length;
           const boom = document.createElement('div');
-          boom.innerHTML = fieldsTable('bööm', novaGet(GAME, 'bööm', 128));
+          boom.innerHTML = fieldsTable('bööm', novaGet(GAME, 'bööm', 128), true);
           o.prose = [...boom.querySelectorAll('.fieldFull > a.codeNum')].map(a => a.textContent);
           if (links[0]) { o.clicked = links[0].textContent; links[0].click(); }
           o.code = { on: CODE.on, hash: location.hash, title: (document.querySelector('#codeView h2') || {}).textContent };
@@ -864,7 +866,7 @@ try {
           // 1.0.10's program keeps no names: the field notes' routines and the rules reach it through js/nova-routines.js
           const prog = program(), div = document.createElement('div');
           document.body.appendChild(div);
-          div.innerHTML = fieldsTable('spöb', U.stellars.get(128));
+          div.innerHTML = fieldsTable('spöb', U.stellars.get(128), true);
           const links = [...div.querySelectorAll('.fieldCode a.codeNum')], code = { kind: prog && prog.kind, noteLinks: links.length };
           if (links[0]) { code.clicked = links[0].textContent; links[0].click(); code.title = (document.querySelector('#codeView h2') || {}).textContent; code.hash = location.hash; }
           div.remove();

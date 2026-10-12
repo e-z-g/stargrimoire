@@ -142,10 +142,15 @@ function novaMissionSetsRun(game, m, failed) {
    oütf, shïp } as Sets }. opts.held / opts.heldOff: bits held on or off
    throughout; opts.from: bits on at the start. */
 function novaReach(game, opts = {}) {
+  const it = novaReachSteps(game, opts);
+  for (;;) { const r = it.next(); if (r.done) return r.value; }
+}
+// The same, a step at a time: it yields between rounds, and returns what novaReach does.
+function* novaReachSteps(game, opts = {}) {
   const on = new Set([...(opts.held || []), ...(opts.from || [])]);
   const held = new Set(opts.held || []), heldOff = new Set(opts.heldOff || []);
   const may = (n, v) => (held.has(n) ? !!v : heldOff.has(n) ? !v : v ? on.has(n) : true);
-  const F = novaReachFacts(game);
+  const F = yield* novaReachFactsSteps(game);
   const taken = new Set(), offered = new Set(), why = new Map(), applied = new Set(), refused = new Set();
   const happened = { crön: new Set(), oütf: new Set(), shïp: new Set() };
   let changed = true;
@@ -159,6 +164,7 @@ function novaReach(game, opts = {}) {
   for (const p of F.spobs) for (const f of ['OnDominate', 'OnRelease', 'OnDestroy', 'OnRegen']) apply(p[f], `spöb ${p.id}`);
   while (changed) {
     changed = false;
+    yield;
     for (const m of F.offerable) {
       if (offered.has(m.id) || !novaTestCan(m.AvailBits, may)) continue;
       if (m.AvailLoc === 2 && !F.pers.some(p => p.LinkMission === m.id && novaTestCan(p.ActivateOn, may))) continue;
@@ -183,14 +189,20 @@ function novaReach(game, opts = {}) {
 // be offered by their own fields, those an F fails.
 const NOVA_REACH_FACTS = new WeakMap();
 function novaReachFacts(game) {
+  const it = novaReachFactsSteps(game);
+  for (;;) { const r = it.next(); if (r.done) return r.value; }
+}
+function* novaReachFactsSteps(game) {
   let F = NOVA_REACH_FACTS.get(game);
-  if (!F) {
-    const missions = novaAll(game, 'mïsn');
-    F = { byId: new Map(missions.map(m => [m.id, m])), offerable: missions.filter(m => !novaMissionNever(game, m)), pers: novaAll(game, 'përs'),
-          chars: novaAll(game, 'chär'), spobs: novaAll(game, 'spöb'), crons: novaAll(game, 'crön').filter(c => c.Random >= 0 && c.Duration >= 0),
-          outfits: novaAll(game, 'oütf'), ships: novaAll(game, 'shïp'), nebulae: novaAll(game, 'nëbu'), failed: novaMissionsFailed(game) };
-    NOVA_REACH_FACTS.set(game, F);
-  }
+  if (F) return F;
+  const missions = novaAll(game, 'mïsn'), offerable = [];
+  yield;
+  for (let i = 0; i < missions.length; i++) { if (!novaMissionNever(game, missions[i])) offerable.push(missions[i]); if (i % 100 === 99) yield; }
+  F = { byId: new Map(missions.map(m => [m.id, m])), offerable };
+  for (const [k, type] of [['pers', 'përs'], ['chars', 'chär'], ['spobs', 'spöb'], ['crons', 'crön'], ['outfits', 'oütf'], ['ships', 'shïp'], ['nebulae', 'nëbu']]) { F[k] = novaAll(game, type); yield; }
+  F.crons = F.crons.filter(c => c.Random >= 0 && c.Duration >= 0);
+  F.failed = novaMissionsFailed(game);
+  NOVA_REACH_FACTS.set(game, F);
   return F;
 }
 
@@ -230,6 +242,11 @@ function novaStoryEnds(game, story) {
    [{ what, mission }] or { what: 'other', label }. opts.cap: the most
    states searched (else { tooMany: true }). */
 function novaStoryDeadEnds(game, story, reach, opts = {}) {
+  const it = novaStoryDeadEndsSteps(game, story, reach, opts);
+  for (;;) { const r = it.next(); if (r.done) return r.value; }
+}
+// The same, a step at a time: it yields the states searched so far every few thousand, and returns the result.
+function* novaStoryDeadEndsSteps(game, story, reach, opts = {}) {
   const L = new Map(story.missions.map(m => [m.id, m.rec]));
   const endList = novaStoryEnds(game, story), ends = new Set(endList);
   // the bits its missions read, and those something outside changes (free)
@@ -331,6 +348,7 @@ function novaStoryDeadEnds(game, story, reach, opts = {}) {
   // with no end, the goal is a mission of it that can still be taken, or one under way
   const takable = [];
   for (let si = 0; si < keys.length && !tooMany; si++) {
+    if (si % 2000 === 1999) yield si;
     const [bits, as, bg] = keys[si].split('|'), active = as ? as.split(',').map(Number) : [], begun0 = +bg, begun = begun0 || 1;
     if (begun0 === 2) continue;   // an end reached: what follows is not asked
     if (!ends.size && (active.length || local.some(x => !x.never && !active.includes(x.id) && testIn(x.m.AvailBits, bits)))) takable[si] = 1;
@@ -388,12 +406,30 @@ function novaStoryDeadEnds(game, story, reach, opts = {}) {
    The bit is on and the mission's OnAbort leaves it on; from a new game
    with the bit held on, nothing that can come about turns it off (so in a
    game where what would turn it off had not come about before, it stays
-   on); and missions that need it off are offered otherwise. */
-function novaHeldBits(game, reach) {
-  const out = [], missions = novaAll(game, 'mïsn');
-  const needOff = new Map();
+   on); and missions that need it off are offered otherwise. opts.bits:
+   only these bits looked at (what is worked out is kept on reach). */
+function novaHeldBits(game, reach, opts = {}) {
+  const out = [], heldReach = reach.heldReach || (reach.heldReach = new Map()), stays = reach.heldStays || (reach.heldStays = new Map());
+  for (const { mission, bit: b, never } of novaHeldCandidates(game, reach)) {
+    if (opts.bits && !opts.bits.has(b)) continue;
+    if (!stays.has(b)) {
+      if (!heldReach.has(b)) heldReach.set(b, novaReach(game, { held: [b] }));
+      const r = heldReach.get(b);
+      // what turns it off, of all that can happen at any time (reach), that can happen with it held on (r)
+      const happens = x => (x.mission !== undefined ? r.taken.has(x.mission) : x.kind ? r.happened[x.kind].has(x.id) : true);
+      const test = x => (x.mission !== undefined && r.why.get(x.mission) !== 'offered' ? '' : x.test);
+      stays.set(b, !novaSetSources(game, reach, new Set()).some(x => novaSetAny(x.text).some(o => o.n === b && (o.op === 'clear' || o.op === 'toggle')) && happens(x) && novaTestCan(test(x), r.may)));
+    }
+    if (stays.get(b)) out.push({ mission, bit: b, never });
+  }
+  return out;
+}
+// What novaHeldBits looks at: [{ mission, bit, never }], a bit every outcome of a mission's OnAccept
+// turns on, its OnAbort leaves on, and other missions that can be offered need off (kept on reach).
+function novaHeldCandidates(game, reach) {
+  if (reach.heldCandidates) return reach.heldCandidates;
+  const out = [], missions = novaAll(game, 'mïsn'), needOff = new Map();
   for (const m of missions) if (reach.offered.has(m.id)) for (const x of ncbTestNeeds(m.AvailBits || '')) if (!x.on) { if (!needOff.has(x.n)) needOff.set(x.n, []); needOff.get(x.n).push(m.id); }
-  const heldReach = new Map();
   for (const m of missions) {
     if (!reach.taken.has(m.id)) continue;
     const onAccept = novaSetSteps(m.OnAccept);
@@ -401,17 +437,11 @@ function novaHeldBits(game, reach) {
     for (const o of onAccept.slice(1)) for (const n of [...bits]) if (!o.some(x => x.op === 'set' && x.n === n)) bits.delete(n);
     for (const b of bits) {
       if (!needOff.has(b) || novaSetAny(m.OnAbort).some(x => x.n === b && (x.op === 'clear' || x.op === 'toggle'))) continue;
-      if (!heldReach.has(b)) heldReach.set(b, novaReach(game, { held: [b] }));
-      const r = heldReach.get(b);
-      // what turns it off, of all that can happen at any time (reach), that can happen with it held on (r)
-      const happens = x => (x.mission !== undefined ? r.taken.has(x.mission) : x.kind ? r.happened[x.kind].has(x.id) : true);
-      const test = x => (x.mission !== undefined && r.why.get(x.mission) !== 'offered' ? '' : x.test);
-      if (novaSetSources(game, reach, new Set()).some(x => novaSetAny(x.text).some(o => o.n === b && (o.op === 'clear' || o.op === 'toggle')) && happens(x) && novaTestCan(test(x), r.may))) continue;
       const never = needOff.get(b).filter(id => id !== m.id);
       if (never.length) out.push({ mission: m.id, bit: b, never });
     }
   }
-  return out;
+  return (reach.heldCandidates = out);
 }
 
 /* Missions an escape pod can lose, and what goes with them: [{ mission,
@@ -422,18 +452,21 @@ function novaHeldBits(game, reach) {
    what goes: a bit its success (or its ships dealt with) alone turns on
    that offered missions need on, a mission never offered that its success
    alone starts, or the end of its storyline (novaStoryEnds). Whether what
-   started it can be taken again is the starter's to say. */
-function novaPodLosses(game, reach, M) {
+   started it can be taken again is the starter's to say. opts.missions:
+   only these looked at (what is read of the game is kept on reach). */
+function novaPodLosses(game, reach, M, opts = {}) {
   const out = [], sources = novaSetSources(game, reach, new Set());
-  const needOn = new Map();
-  for (const m of novaAll(game, 'mïsn')) if (reach.offered.has(m.id)) for (const x of ncbTestNeeds(m.AvailBits || '')) if (x.on) { if (!needOn.has(x.n)) needOn.set(x.n, []); needOn.get(x.n).push(m.id); }
-  const setters = new Map(), starters = new Map();
-  const add = (map, n, label) => { if (!map.has(n)) map.set(n, new Set()); map.get(n).add(label); };
-  for (const s of sources) for (const x of novaSetAny(s.text)) { if (x.op === 'set' || x.op === 'toggle') add(setters, x.n, s.label); if (x.op === 'start') add(starters, x.n, s.label); }
-  const endOf = new Map();
-  if (M) for (const st of M.stories.values()) for (const id of novaStoryEnds(game, st)) endOf.set(id, st.key);
+  if (!reach.pod) {
+    const needOn = new Map(), setters = new Map(), starters = new Map(), endOf = new Map();
+    for (const m of novaAll(game, 'mïsn')) if (reach.offered.has(m.id)) for (const x of ncbTestNeeds(m.AvailBits || '')) if (x.on) { if (!needOn.has(x.n)) needOn.set(x.n, []); needOn.get(x.n).push(m.id); }
+    const add = (map, n, label) => { if (!map.has(n)) map.set(n, new Set()); map.get(n).add(label); };
+    for (const s of sources) for (const x of novaSetAny(s.text)) { if (x.op === 'set' || x.op === 'toggle') add(setters, x.n, s.label); if (x.op === 'start') add(starters, x.n, s.label); }
+    if (M) for (const st of M.stories.values()) for (const id of novaStoryEnds(game, st)) endOf.set(id, st.key);
+    reach.pod = { needOn, setters, starters, endOf };
+  }
+  const { needOn, setters, starters, endOf } = reach.pod;
   for (const m of novaAll(game, 'mïsn')) {
-    if (!reach.taken.has(m.id) || reach.offered.has(m.id)) continue;
+    if ((opts.missions && !opts.missions.has(m.id)) || !reach.taken.has(m.id) || reach.offered.has(m.id)) continue;
     if ((m.Flags & 1) && !(m.ShipCount > 0) && m.ReturnStel === -1) continue;   // it ends on accepting
     if (novaSetAny(m.OnAbort).some(x => x.op === 'set' || x.op === 'toggle' || x.op === 'start')) continue;
     const mine = new Set([`OnSuccess of mïsn ${m.id}`, `OnShipDone of mïsn ${m.id}`]), only = l => [...(l || [])].every(x => mine.has(x));

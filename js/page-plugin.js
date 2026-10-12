@@ -71,8 +71,29 @@ function pluginChanged() {
 
 /* ---- a record's fields, shown or in boxes ---------------------------------- */
 
-function fieldsTable(type, rec) {
+// whole: the rows drawn now even while the table is shut; otherwise a shut table's rows are drawn when
+// it is opened (fieldsFill), since the first notes drawn read the program and take a phone seconds.
+function fieldsTable(type, rec, whole) {
   const key = editKey(type, rec.id), editing = EDITING === key;
+  const open = editing || EDIT_OPEN === key ? ' open' : '';
+  const rows = open || whole ? fieldsRows(type, rec, editing) : null;
+  const changed = EDITS.has(key);
+  const buttons = editing
+    ? `<button data-edit-apply>Apply</button> <button data-edit-cancel>Cancel</button> <span class="warn" data-edit-why></span>`
+    : `<button data-edit>Change</button>${changed ? ' <button data-edit-undo>Undo the changes</button>' : ''}`;
+  const full = `<label class="notesFull"><input type="checkbox" data-notes-full${NOTES_FULL ? ' checked' : ''}> Notes in full</label>`;
+  return `<details class="fieldsBox" data-type="${esc(type)}" data-id="${rec.id}"${open}><summary>Every field of ${esc(type)} ${rec.id}, from ${esc(rec.file)}</summary>` +
+         `<div class="editBar">${buttons}${full}</div><table class="fields${editing ? ' editing' : ''}"${rows ? '' : ' data-later'}>${rows ? rows.join('') : ''}</table></details>`;
+}
+// The rows of the shut tables in el that are open now.
+function fieldsFill(el) {
+  for (const t of el.querySelectorAll('details.fieldsBox[open] table.fields[data-later]')) {
+    const box = t.closest('.fieldsBox'), type = box.dataset.type;
+    t.removeAttribute('data-later');
+    t.innerHTML = fieldsRows(type, novaGet(GAME, type, +box.dataset.id), false).join('');
+  }
+}
+function fieldsRows(type, rec, editing) {
   const rows = [];
   if (editing) rows.push(`<tr><td>name</td><td><input data-f="" value="${esc(rec.name || '')}" maxlength="255"></td></tr>`);
   for (const [name, kind, n] of NOVA_RECORDS[type]) {
@@ -89,14 +110,7 @@ function fieldsTable(type, rec) {
     const max = kind === 'str' ? ` maxlength="${n - 1}"` : '';
     rows.push(`<tr><td>${esc(name)}</td><td><input data-f="${esc(name)}" value="${esc(text)}"${max} spellcheck="false">${note}</td></tr>`);
   }
-  const changed = EDITS.has(key);
-  const buttons = editing
-    ? `<button data-edit-apply>Apply</button> <button data-edit-cancel>Cancel</button> <span class="warn" data-edit-why></span>`
-    : `<button data-edit>Change</button>${changed ? ' <button data-edit-undo>Undo the changes</button>' : ''}`;
-  const full = `<label class="notesFull"><input type="checkbox" data-notes-full${NOTES_FULL ? ' checked' : ''}> Notes in full</label>`;
-  const open = editing || EDIT_OPEN === key ? ' open' : '';
-  return `<details class="fieldsBox" data-type="${esc(type)}" data-id="${rec.id}"${open}><summary>Every field of ${esc(type)} ${rec.id}, from ${esc(rec.file)}</summary>` +
-         `<div class="editBar">${buttons}${full}</div><table class="fields${editing ? ' editing' : ''}">${rows.join('')}</table></details>`;
+  return rows;
 }
 
 // Drawn again in place, for Change and Cancel, which change nothing else.
@@ -149,6 +163,8 @@ function wireFields() {
   try { kept = localStorage.getItem(NOTES_STORE) === '1'; } catch (e) { /* none kept */ }
   notesFull(kept);
   document.addEventListener('change', e => { if (e.target.matches('[data-notes-full]')) notesFull(e.target.checked); });
+  // a shut table's rows, drawn when it is opened (toggle does not bubble)
+  document.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details.fieldsBox') && e.target.open) fieldsFill(e.target.parentNode || document); }, true);
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-edit],[data-edit-apply],[data-edit-cancel],[data-edit-undo]');
     const box = b && b.closest('.fieldsBox');

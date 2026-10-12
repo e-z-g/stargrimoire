@@ -259,6 +259,7 @@ function mapStart(fresh) {
   NEB_BRIGHT.clear();
   BITS = null;
   MISSIONS = null;
+  DEADENDS = null;
   REFS = null;
   setTimeout(() => { if (!BITS && GAME) { bitCatalog(); renderPanel(); } }, 300);
   // other files: the subway map is worked out again, the true positions shown meanwhile
@@ -2086,6 +2087,7 @@ function renderPanel() {
     el.scrollTop = top;
   } else el.scrollTop = 0;
   if (sel && sel.kind === 'rec') recPictures();
+  if (el.querySelector('[data-dead]')) setTimeout(() => deadEndsFill(el), 0);
   renderLegend();
 }
 let PANEL_KEY = null;
@@ -2258,6 +2260,7 @@ function missionPanel(id) {
       ${kvRow('Follows', m.prev.map(missionLink).join('<br>'))}
     </table>
     <p class="note">Leads to: the missions it starts, and those whose AvailBits, as the game reads them, need on a bit this one turns on that fewer missions turn on than any other bit they need.</p>
+    <div data-dead="mission" data-id="${id}"></div>
     ${text('The offer', 4000 + id - 128, `dësc ${4000 + id - 128} (${figText('missionOffer', 4000)} + ${id - 128}), as the mission computer loads it.`)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
     ${compareBlock('mïsn', id)}
     ${fieldsTable('mïsn', r)}`;
@@ -2266,6 +2269,68 @@ function missionPanel(id) {
 /* A storyline's missions in step order, each with where it is offered; the
    places its missions are offered at, go to or return to are ringed on the
    map while it is open (storyPlaces). */
+/* ---- dead ends: where a storyline can be left with no way on (nova-deadends.js) -- */
+
+let DEADENDS = null;
+function deadEndData() { return DEADENDS && DEADENDS.m === missionData() ? DEADENDS : (DEADENDS = { m: missionData(), reach: novaReach(GAME), stories: new Map(), held: null }); }
+function storyDeadEnds(key) { const D = deadEndData(); if (!D.stories.has(key)) D.stories.set(key, novaStoryDeadEnds(GAME, missionData().stories.get(key), D.reach)); return D.stories.get(key); }
+function heldBits() { const D = deadEndData(); return D.held || (D.held = novaHeldBits(GAME, D.reach)); }
+function podLosses() { const D = deadEndData(); return D.pod || (D.pod = novaPodLosses(GAME, D.reach, missionData())); }
+// A mission by name and its step, for a list within its storyline.
+const missionName = id => { const m = missionData().byId.get(id); return m ? `<a data-mission="${id}">${esc(m.name)}</a>${m.story && m.story.step ? ` <span class="note">${esc(m.story.step)}</span>` : ''}` : `mïsn ${id}`; };
+const DEAD_WHAT = { refuse: 'refusing', abort: 'aborting', accept: 'accepting', complete: 'completing', fail: 'failing', 'ends by itself': 'the end by itself of', 'escape pod': 'an escape pod during' };
+// One step of a way to a dead end, in words.
+function deadStep(e) {
+  if (e.what === 'other') return esc(e.label);
+  return `${DEAD_WHAT[e.what] || e.what} ${(e.missions || [e.mission]).map(missionName).join(' and ')}`;
+}
+const deadWay = a => a.path.slice(-6).map(deadStep).join(', ');
+// A bit left on for good, in words, from the side of the mission that leaves it.
+const heldText = h => `an escape pod during it leaves ${bitText('b' + h.bit)} on, its OnAbort not turning it off, and nothing that can first come about while it is on turns it off: then ${h.never.length === 1 ? 'one mission that needs it off is' : h.never.length + ' missions that need it off are'} never offered: ${h.never.map(missionLink).join(', ')}.`;
+// A mission an escape pod can lose, in words: what goes with it.
+const podText = o => `Never offered, started only by ${o.by.map(missionLink).join(' or ') || 'an S'}: an escape pod during it loses it, its OnAbort doing nothing, and with it ${[
+  ...o.bits.map(b => `${bitText('b' + b.bit)}, which nothing else turns on and ${b.needed.map(missionLink).join(', ')} ${b.needed.length === 1 ? 'needs' : 'need'} on`),
+  ...(o.starts.length ? [`the start of ${o.starts.map(missionLink).join(' and ')}, which nothing else starts`] : []),
+  ...(o.end ? [`the end of ${storyLink(o.end)}`] : [])].join('; ')}.`;
+// The dead-end section of a storyline's panel, and the note on a mission's.
+function deadEndsFill(el) {
+  for (const box of el.querySelectorAll('[data-dead]')) {
+    if (box.dataset.done) continue;
+    box.dataset.done = '1';
+    if (box.dataset.dead === 'story') box.innerHTML = storyDeadEndsHtml(box.dataset.id);
+    else box.innerHTML = missionDeadEndsHtml(+box.dataset.id);
+  }
+}
+function storyDeadEndsHtml(key) {
+  const s = missionData().stories.get(key), r = storyDeadEnds(key);
+  const head = `<h3>Dead ends</h3><p class="note">Where this storyline can be left with no way on: begun, none of its missions under way, none that can ever be taken again, and none of its ends ${r.ends.length ? `(the missions of it that nothing of it follows and that can be finished: ${r.ends.map(missionName).join(', ')})` : '(it has none: here, a mission of it that can still be taken)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. Whether a closing was meant, the files do not say.</p>`;
+  if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: past searching.</p>`;
+  const ids = s.missions.map(m => m.id);
+  const held = heldBits().filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
+  const rows = r.after.map(a => `<li>After ${deadStep(a)}${a.count > 1 ? ` (${a.count} states)` : ''}: as by ${deadWay(a)}.</li>`).join('');
+  const heldRows = held.map(h => `<li>${missionName(h.mission)}: ${heldText(h)}</li>`).join('');
+  const podRows = podLosses().filter(o => ids.includes(o.mission)).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
+  return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
+    (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (whether what started it can be taken again, its own panel says).</p><ul>${podRows}</ul>` : '');
+}
+function missionDeadEndsHtml(id) {
+  const m = missionData().byId.get(id);
+  if (!m) return '';
+  const out = [];
+  if (m.story) {
+    const r = storyDeadEnds(m.story.key);
+    if (!r.tooMany) for (const a of r.after) if (a.mission === id || (a.missions && a.missions.includes(id)))
+      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way on: none of its missions can be taken again and none of its ends reached; as by ${deadWay(a)}.`);
+  }
+  for (const h of heldBits()) {
+    if (h.mission === id) out.push(heldText(h).replace(/^an/, 'An'));
+    else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}: it needs ${bitText('b' + h.bit)} off, which that leaves on for good.`);
+  }
+  for (const o of podLosses()) if (o.mission === id) out.push(podText(o));
+  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel says how); whether it was meant, the files do not say.</p>` : '';
+}
+
 /* ---- the whole game: the storylines and how they join (novaGameOverview) -- */
 
 const OVERVIEW = { pick: null };
@@ -2372,6 +2437,7 @@ function storyPanel(key) {
     <div class="actions"><button data-bit-back>Back</button></div>
     <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● is whether a mission's AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. The places they are offered at and send you to are ringed on the map.</p>
     ${storyChart(s)}
+    <div data-dead="story" data-id="${esc(key)}"><h3>Dead ends</h3><p class="note">Looking…</p></div>
     <table class="kv">${rows}</table>`;
 }
 /* A storyline as a chart: each mission a box below those of the storyline

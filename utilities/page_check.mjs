@@ -404,6 +404,16 @@ try {
               o.chart = boxes.length;
               if (boxes[0]) { boxes[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); o.chartTo = VIEW.sel && VIEW.sel.kind === 'mission' ? VIEW.sel.id : null; o.chartFirst = +boxes[0].dataset.mission; VIEW.sel = VIEW.sel.back; renderPanel(); }
               draw();
+              // dead ends: none in Rebel I; mïsn 266's escape pod leaves b511 on, closing the main storylines' openings
+              await new Promise(r => setTimeout(r, 20));
+              o.deadRebel = (document.querySelector('#panel [data-dead="story"]') || {}).textContent || '';
+              VIEW.sel = { kind: 'mission', id: 266, back: null }; renderPanel();
+              await new Promise(r => setTimeout(r, 20));
+              const d = document.querySelector('#panel [data-dead="mission"]');
+              o.dead266 = d ? d.textContent : ''; o.dead266Links = d ? d.querySelectorAll('[data-mission]').length : 0;
+              VIEW.sel = { kind: 'mission', id: 600, back: null }; renderPanel();
+              await new Promise(r => setTimeout(r, 20));
+              o.dead600 = (document.querySelector('#panel [data-dead="mission"]') || {}).textContent || '';
             }
             // the whole game: every storyline a box, what shuts what drawn when asked, a box opening its storyline and Back to the whole
             VIEW.sel = null; renderPanel();
@@ -768,6 +778,8 @@ try {
       if (sy.chart !== sy.rows || sy.chartTo !== sy.chartFirst) fail(`${dev.name}: Rebel I's chart: ${sy.chart} boxes for ${sy.rows} missions, a box opening ${sy.chartTo}`);
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
+      if (!/None found/.test(sy.deadRebel) || !/escape pod during it leaves b511 on/.test(sy.dead266) || !(sy.dead266Links >= 12) || !/escape pod during it loses it.*b285/.test(sy.dead600)) fail(`${dev.name}: dead ends: ${JSON.stringify({ rebel: sy.deadRebel.slice(-80), m266: sy.dead266.slice(0, 300), links: sy.dead266Links, m600: sy.dead600.slice(0, 300) })}`);
+      else console.log(`${dev.name}: dead ends: none in Rebel I; mïsn 266's panel says an escape pod during it leaves b511 on, ${sy.dead266Links} missions linked; 600's that one loses it and b285`);
       const ov = sy.overview;
       if (!ov || ov.title !== 'The whole game' || ov.boxes !== ov.stories || !(ov.shut > 5) || !(ov.joins > 40) || !ov.opened || ov.back !== 'The whole game' || !/(^#|&)story=\*$/.test(ov.hash))
         fail(`${dev.name}: the whole game: ${JSON.stringify(ov)}`);

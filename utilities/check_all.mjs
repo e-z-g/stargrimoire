@@ -102,6 +102,7 @@ const CHECKS = [
   ['universe', 'the map\'s rules, and every release through them'],
   ['bits', 'control-bit set expressions read as Mac 1.1.1 reads them, and every one in every release'],
   ['missions', 'storylines from Ambrosia\'s notes, place codes, and the wiki as a check'],
+  ['deadends', 'where a storyline can be left with no way on: the b511 lock found by reading, and broken copies caught'],
   ['compare', 'what changed between releases, against the resources\' bytes'],
   ['fields', 'the field notes and the code\'s comments: every routine they cite is Mac 1.1.1\'s, at its address or a place in it'],
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],

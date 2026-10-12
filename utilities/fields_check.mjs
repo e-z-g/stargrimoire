@@ -41,8 +41,9 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
 console.log(`${notes} field notes, ${cites} routines cited, each a routine of Mac 1.1.1 at its address`);
 
 // The rest of the site's code cites routines in its comments as a name and an
-// address (the address on the next line or not), the routine's start or a
-// place in it: each named so that is a routine of 1.1.1, the address inside
+// address ("HandleShip 0x33581", "LoadObjectData (0x79285)", "DamageShip's
+// reactions (0x3b3f3", the address on the next line or not), the routine's
+// start or a place in it: each named so that is a routine of 1.1.1, the address inside
 // it, before the next routine's start. Flags 0x0008 and the like name no routine.
 const starts = [...new Set(syms.values())].sort((a, b) => a - b);
 const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
@@ -50,7 +51,7 @@ if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) |
 let places = 0;
 for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => /^nova-.*\.js$/.test(f) && f !== 'nova-fields.js')) {
   const text = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace(/\n[\s*\/]*(?=0x[0-9a-f]{3,6}\b)/g, ' ');
-  for (const m of text.matchAll(/\b([A-Z][A-Za-z0-9]+) (0x[0-9a-f]{3,6})\b/g)) {
+  for (const m of text.matchAll(/\b([A-Z][A-Za-z0-9]+)(?: |(?:'s\b[^()]{0,60}?)? \()(0x[0-9a-f]{3,6})\b/g)) {
     if (!syms.has(m[1])) continue;
     places++;
     if (!inside(m[1], parseInt(m[2], 16))) fail(`js/${f}: ${m[1]} ${m[2]} is not in it (it is 0x${syms.get(m[1]).toString(16)} on)`);

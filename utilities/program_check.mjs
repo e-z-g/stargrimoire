@@ -166,8 +166,9 @@ else {
       }
       if (!LLVM) continue;
       const w = o.word, text = llvm([w])[0] || '';
-      const n = Math.abs(s.value), hi = s.value / 65536;
-      if (!new RegExp(`(^|[ ,])-?(${n}|${hi})($|[ ,(])`).test(text) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}) at ${S.hex(s.addr)}, where LLVM has "${text}"`);
+      // (a comparison may hold one less: `x >= 100` is `cmpwi x, 99` and a test of greater)
+      const n = Math.abs(s.value), hi = s.value / 65536, less = /^cmpl?wi$/.test(o.op.mn) ? `|${s.value - 1}` : '';
+      if (!new RegExp(`(^|[ ,])-?(${n}|${hi}${less})($|[ ,(])`).test(text) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}) at ${S.hex(s.addr)}, where LLVM has "${text}"`);
     }
     if (S.novaHeldValues(prog, 'HandleShip').has(Math.fround(1.1651))) fail('1.1.1: HandleShip found holding a number it does not');
     console.log(`1.1.1: ${sites.length} rules, each found in the routine the code cites (${new Set(sites.map(s => s.routine)).size} routines), whole numbers as LLVM reads them`);

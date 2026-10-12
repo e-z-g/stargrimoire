@@ -960,16 +960,19 @@ function novaHeldValues(prog, name) {
   if (!prog.held) prog.held = new Map();
   if (prog.held.has(name)) return prog.held.get(name);
   const r = novaRoutineNamed(prog, name), m = new Map();
-  if (r) for (const o of prog.ops(r)) {
+  const os = r ? prog.ops(r) : [];
+  os.forEach((o, i) => {
     const op = o.op;
-    if (!op) continue;
+    if (!op) return;
     const vals = [];
     if (op.imm !== undefined && /^(li|addi|cmpwi|cmplwi|mulli|subfic)$/.test(op.mn)) vals.push(op.imm, -op.imm);
+    // a comparison tested by greater-than holds the next number too: `x >= 100` is `cmpwi x, 99` and a test of greater
+    if (/^cmpl?wi$/.test(op.mn)) for (const q of os.slice(i + 1, i + 6)) if (q.op && q.op.conditional && q.op.bi !== undefined && q.op.bi >> 2 === op.crf) { if ((q.op.bi & 3) === 1) vals.push(op.imm + 1); break; }
     if (op.mn === 'lis') vals.push(op.imm * 65536);
     // (CodeWarrior keeps x * -0.5 as 0.5 and subtracts, GCC as -0.5 and adds: in 1.0.x, either sign)
     if ((op.mn === 'lfs' || op.mn === 'lfd') && typeof o.value === 'number') vals.push(o.value, ...(prog.kind === 'pef' ? [-o.value] : []));
     for (const v of vals) { const k = Math.fround(v); if (!m.has(k)) m.set(k, o.addr); }
-  }
+  });
   prog.held.set(name, m);
   return m;
 }

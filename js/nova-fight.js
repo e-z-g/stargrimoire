@@ -142,12 +142,13 @@ function novaSpriteMask(spr, f) {
   return (spr.masks[f] = m);
 }
 
-/* What a class needs in a fight, read once: its weapons and their
-   ammunition by wëap index from its eight slots (LoadObjectData 0x7aa25:
-   a later slot of the same weapon replaces an earlier), its recharge
+/* What a class needs in a fight, read once (each class's defaults set by
+   InitObjects 0x1c2e5): its weapons and their ammunition by wëap index
+   from its eight slots (LoadObjectData 0x7aa25: a later slot of the same
+   weapon replaces an earlier), its recharge
    rates (x 0.001 when above 0, 0x7a52c), and its shän's exit points and
    compression (LoadExtendedShipSprites 0x23988, a compression of 0 or
-   less read as 1). */
+   less read as 1; without a shän 1 by 0.71 up and down). */
 function novaClassFight(D, cls) {
   if (cls.fight) return cls.fight;
   novaFightData(D);
@@ -160,7 +161,7 @@ function novaClassFight(D, cls) {
     if (t >= 0 && t <= 255) { count[t] = counts[k] || 0; ammo[t] = loads[k] || 0; }
   }
   const x = new Array(16).fill(0), y = new Array(16).fill(0), z = new Array(16).fill(0);
-  let up = { x: 1, y: f32(0.71) }, dn = { x: 1, y: 1 };
+  let up = { x: 1, y: f32(0.71) }, dn = { x: 1, y: f32(0.71) };
   if (shan) {
     const sets = [['GunPosX', 'GunPosY', 'GunPosZ'], ['TurretPosX', 'TurretPosY', 'TurretPosZ'],
                   ['GuidedPosX', 'GuidedPosY', 'GuidedPosZ'], ['BeamPosX', 'BeamPosY', 'BeamPosZ']];
@@ -226,6 +227,7 @@ function novaShieldCap(D, s) {
   if (s.ai === 5) v = f32(v * 1.333);
   return v;
 }
+// ShipArmorCapacity 0x2bc0, as above.
 function novaArmorCap(D, s) {
   let v = f32(s.cls.armor);
   const p = s.pers ? D.persons.get(s.pers) : null;
@@ -521,13 +523,13 @@ function novaLadder(w, s) {
   if (!at) { s.sec = -1; s.sec = novaPickStellar(w, s, false, false); if (s.sec !== -1) { s.state = 1; return; } }
   if (novaCanLeave(w, s)) novaLeave(w, s); else s.state = 6;
 }
-// The shield level under which a ship turns tail: a person's Coward, else by its aggression (1 30%, 2 15%).
+// The shield level under which a ship turns tail (WarshipAI 0x8b729): a person's Coward, else by its aggression (1 30%, 2 15%).
 function novaCowardice(D, s) {
   const cap = novaShieldCap(D, s), p = s.pers ? D.persons.get(s.pers) : null;
   if (p) return Math.trunc(f32(cap * (p.Coward * 0.01)));
   return s.aggr === 1 ? Math.trunc(cap * 0.3) : s.aggr === 2 ? Math.trunc(cap * 0.15) : -32767;
 }
-// The odds test of the retreating governments: shields under half, and the odds over MaxOdds, doubled in an allied system with reinforcements on the way.
+// The odds test of the retreating governments (WarshipAI 0x8b729, InterceptorAI 0x8c895): shields under half, and the odds over MaxOdds, doubled in an allied system with reinforcements on the way.
 function novaOddsRetreat(w, s, g) {
   if (!(s.shield < novaShieldCap(w.D, s) * 0.5) || !(s.odds >= 0)) return false;
   return s.odds > g.maxOdds;

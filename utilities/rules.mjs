@@ -3,7 +3,8 @@
 // writes into js/nova-rules.js and program_check holds that file to.
 //
 // A routine is cited as its name and its Intel address ("HandleShip
-// 0x33581", the address on the next line or not), on the line itself or in
+// 0x33581", "LoadObjectData (0x79285)", "DamageShip's reactions (0x3b3f3",
+// the address on the next line or not), on the line itself or in
 // the comments since the last function ended (a comment opening a line
 // outside any function, after code, starts afresh); a number is a decimal
 // in the code (not in a comment, a string or a shift's count), negative
@@ -38,7 +39,7 @@ export function scanRules(S, prog) {
         else if (b >= 0) { code += rest.slice(0, b); rest = rest.slice(b + 2); inBlock = true; }
         else { code += rest; rest = ''; }
       }
-      const names = [...comment.matchAll(/\b([A-Z][A-Za-z0-9]+) 0x[0-9a-f]{3,6}\b/g)].map(m => m[1]);
+      const names = [...comment.matchAll(/\b([A-Z][A-Za-z0-9]+)(?: |(?:'s\b[^()]{0,60}?)? \()0x[0-9a-f]{3,6}\b/g)].map(m => m[1]);
       // a name ending one line whose address begins the next
       if (carry && /^[\s*\/]*0x[0-9a-f]{3,6}\b/.test(comment)) cited.push(carry);
       carry = (comment.match(/\b([A-Z][A-Za-z0-9]+)\s*$/) || [])[1] || null;

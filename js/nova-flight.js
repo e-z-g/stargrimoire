@@ -161,6 +161,7 @@ function novaFlightData(u) {
   for (const s of novaAll(game, 'shïp')) {
     const shan = novaGet(game, 'shän', s.id) || {};
     const items = [...(s.DefaultItems || []), ...(s.DefaultItms2 || [])], counts = [...(s.ItemCount || []), ...(s.ItemCount2 || [])];
+    // a ship's class as LoadObjectData (0x7aa25) keeps it
     classes.set(s.id, {
       id: s.id, name: novaNameParts(s.name).name, rec: s,
       accel: f32(s.Accel / 10000), speed: f32(s.Speed / 100), turn: f32(s.Maneuver * 0.1),
@@ -175,7 +176,7 @@ function novaFlightData(u) {
       quickJump: !!(s.Flags2 & 0x0020) || items.some((id, i) => counts[i] > 0 && modTypes(outfits.get(id)).includes(37)),
       // ShipCanSelfRepair 0x9134: a default outfit of ModType 49
       selfRepair: items.some((id, i) => counts[i] > 0 && modTypes(outfits.get(id)).includes(49)),
-      // ShipCanScoop 0x?: a default outfit of ModType 31
+      // ShipCanScoop 0x75c7: a default outfit of ModType 31
       scoops: items.some((id, i) => counts[i] > 0 && modTypes(outfits.get(id)).includes(31)),
       board: novaBoardingMods(items, counts, outfits),
       // ShipFuelGenRate 0x2ffb, a ship not yours: a unit every FuelRegen steps, and each default outfit of
@@ -206,8 +207,9 @@ function novaFlightData(u) {
   return { u, classes, dudes, fleets, persons, govts, roids: novaFlightRoids(game), jumpTicks: novaJumpTicks(game), systems: new Map(), widths: new Map() };
 }
 /* röid n (from 128) and its sprite, spïn 800 + (n - 128) (LoadSprites
-   0x2097f): Strength at least 1, SpinRate / 100 frames a step. Read again
-   when the graphics files arrive, as they may after the rest. */
+   0x2097f): Strength at least 1, SpinRate / 100 frames a step; its yield
+   and explosion kept only where LoadObjectData (0x771b0) keeps them. Read
+   again when the graphics files arrive, as they may after the rest. */
 function novaFlightRoids(game) {
   const roids = [];
   for (let t = 0; t < 16; t++) {
@@ -249,7 +251,7 @@ function novaJumpTicks(game) {
   return 350;
 }
 
-/* A system as the loader keeps it (0x77f08): its eight DudeTypes with those
+/* A system as the loader, LoadObjectData (0x77f08), keeps it: its eight DudeTypes with those
    from -128 to -383 taken out as fleets, the flët |id| at the same odds, and
    the düdes' odds scaled to sum to 100 when they do not; its sixteen
    navigation defaults. */
@@ -349,6 +351,8 @@ function novaIonSlowed(ship, v, most) {
   if (f > most) f = f32(most);
   return f32(v * (1 - f));
 }
+// ShipMaxSpeed 0x36f2: none for Flags 0x0400; the class's speed times the
+// ship's skill and its government's, a third under another ship's tractor beam.
 function novaShipMaxSpeed(D, ship) {
   const c = ship.cls;
   if (c.flags & 0x0400) return 0;
@@ -358,6 +362,8 @@ function novaShipMaxSpeed(D, ship) {
   if (ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot) s = f32(s * 0.333);
   return Math.max(0, s);
 }
+// ShipTurnRate 0x32f7: the class's turn, a third under another ship's
+// tractor beam, at least 1 when the class's is, and ionized less by at most 0.7.
 function novaShipTurn(ship) {
   let t = ship.cls.turn;
   // held by another ship's tractor beam, a third as quick
@@ -805,6 +811,7 @@ function novaEnterMoreShips(w) {
   novaArrivals(w);
   novaDefenceTopUp(w);
 }
+// EnterMoreShips 0x43459: the arrivals, as above.
 function novaArrivals(w) {
   if (w.noArrivals) return;
   const here = w.ships.filter(s => s && s.leader !== 0).length;
@@ -1652,7 +1659,7 @@ function novaSteerInertialess(D, s) {
   s.vx = toward(v.x, was.x); s.vy = toward(v.y, was.y);
 }
 
-/* The thrust block of HandleShip: toward the top speed, toward a speed
+/* The thrust block of HandleShip (0x33581): toward the top speed, toward a speed
    wanted, or, with a negative speed wanted, that speed along the heading,
    wanted less by the thrust each step until it is the top speed -- the
    arrival -- when the ship stops arriving and coasts for one to two

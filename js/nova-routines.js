@@ -220,6 +220,7 @@ const NOVA_ROUTINES = {
     OutfitDialogUpdate: [0x136670, 0x137c10, 0x137d80],
     PirateWarshipAI: [0x1026f0, 0x1027e0, 0x1027e0],
     PlanetCommFilter: [0x11ef20, 0x11f300, 0x11f350],
+    PlayGame: [0x173a10, 0x175b80, 0x176010],
     PlayerBlessedByGovt: [0x1b13c0, 0x1b4520, 0x1b4a30],
     PlayerEffectiveMurk: [0x1ae9f0, 0x1b1bc0, 0x1b2070],
     PlayerEnterHypergate: [0x18f4f0, 0x191e00, 0x192220],

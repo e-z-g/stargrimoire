@@ -63,7 +63,8 @@ function novaProgram(bytes, rsrc) {
     calls.get(t).push(4 * i);
   }
   const dataRel = img.relocs.bySection.get(dataIdx);
-  if (dataRel) for (const [off, t] of dataRel) if (t.section === codeIdx) { const v = u32be(data, off); if (v < code.length) starts.add(v); }
+  // (a transition vector is a code address and then the TOC's; a code address alone is a case of a jump table)
+  if (dataRel) for (const [off, t] of dataRel) if (t.section === codeIdx && dataRel.get(off + 4)?.section === dataIdx) { const v = u32be(data, off); if (v < code.length) starts.add(v); }
   const named = new Map();
   for (const tb of pefTracebacks(img.pef, bytes)) {
     const off = tb.offset - secs[codeIdx].containerOffset;

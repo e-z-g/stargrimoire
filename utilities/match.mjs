@@ -4,13 +4,17 @@
 //
 // 1.1.1 was built by GCC and 1.0.x by CodeWarrior, so no instruction is the
 // same; what a routine does survives, and each is described by it, in order:
-// the system calls it makes (by name), the routines it calls, the strings it
-// loads, the numbers in its instructions, the offsets of the record fields
-// it reads and writes through a pointer, and what it hands back (a small
-// number, a register, or a value worked out). Each pair of routines is
-// scored on all of that at once: how much of it the two share (each thing
-// weighed by how rare it is in both programs), how alike their mix of
-// instructions is, whether their sizes and numbers of calls are near enough,
+// the system calls it makes (by name), the routines it calls (GCC's jumps to
+// one in place of a call too), the strings it loads, the numbers in its
+// instructions (a pointer's step through a list among them, and a
+// comparison's as either compiler writes it), the offsets of the record
+// fields it reads and writes through a pointer, and what it hands back (a
+// small number, a register, a call's result, or a value worked out).
+// Each pair of routines is scored on all of that at once: how much of it the
+// two share (each thing weighed by how rare it is in both programs), how
+// alike their mix of instructions is, whether their sizes and numbers of
+// calls are near enough (a call to a small routine that calls nothing not
+// counted, since either compiler may have put its instructions in its place),
 // how many of their callers and callees are matched to each other, and how
 // often a matched pair's calls, aligned, put one beside the other. Pairs are
 // accepted where each is the other's best by a margin, the clearest first,
@@ -27,35 +31,58 @@
 // number), O (a record field reached through a pointer), R (what it hands back).
 export function routineTokens(prog, r) {
   const out = [], os = prog.ops(r);
-  for (let i = 0; i < os.length; i++) {
-    const op = os[i].op;
-    if (!op || op.mn !== 'blr') continue;
+  // what is in r3 at os[i]: the last instruction before it that sets r3, or the
+  // call whose result it is, and where that one is jumped over (CodeWarrior's
+  // `b .+8; li r3, 0` before a shared return), the one before the jump as well
+  const handed = i => {
     for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
       const q = os[j].op;
-      if (!q) break;
-      if (q.mn === 'li' && q.rd === 3) { out.push({ k: 'R', v: String(q.imm) }); break; }
-      if (q.mn === 'mr' && q.ra === 3) { out.push({ k: 'R', v: 'reg' }); break; }
-      if (q.mn === 'lmw' || q.mn === 'mtlr' || (q.mn === 'addi' && q.rd === 1) || (q.mn === 'lwz' && q.ra === 1)) continue;
-      if (q.rd === 3 || q.rt === 3) { out.push({ k: 'R', v: 'calc' }); break; }
-      if (/^b/.test(q.mn)) break;
+      if (!q) return;
+      const v = q.mn === 'li' && q.rd === 3 ? String(q.imm) : q.mn === 'mr' && q.ra === 3 ? 'reg' : null;
+      if (v == null && (q.mn === 'lmw' || q.mn === 'mtlr' || (q.mn === 'addi' && q.rd === 1) || (q.mn === 'lwz' && q.ra === 1))) continue;
+      if (v != null || q.rd === 3 || q.rt === 3) {
+        out.push({ k: 'R', v: v ?? 'calc' });
+        const b = j > 0 && os[j - 1].op;
+        if (b && b.mn === 'b' && b.disp === 8) handed(j - 1);
+        return;
+      }
+      if (q.lk && q.mn === 'bl') { out.push({ k: 'R', v: 'call' }); return; }
+      if (/^b/.test(q.mn)) return;
     }
-  }
-  for (const o of os) {
-    const op = o.op;
+  };
+  for (let i = 0; i < os.length; i++) if (os[i].op && os[i].op.mn === 'blr') handed(i);
+  for (let i = 0; i < os.length; i++) {
+    const o = os[i], op = o.op;
     if (!op) continue;
-    if (o.target != null) {
-      const t = prog.byStart.get(o.target);
-      out.push(t && t.glue ? { k: 'I', v: t.name } : { k: o.pointer ? 'P' : 'C', v: o.target });
+    // a jump to another routine's start in place of a call and a return (GCC's), as a call
+    const tail = o.target == null && op.mn === 'b' && op.disp !== undefined && prog.byStart.get(o.addr + op.disp);
+    if (o.target != null || (tail && tail.start !== r.start)) {
+      const t = prog.byStart.get(o.target ?? tail.start);
+      out.push(t.glue ? { k: 'I', v: t.name } : { k: o.pointer ? 'P' : 'C', v: t.start });
       continue;
     }
     if (o.text != null) { out.push({ k: 'S', v: o.text }); continue; }
     if (typeof o.value === 'number' && Number.isInteger(o.value) && o.data == null) { out.push({ k: 'N', v: o.value | 0 }); continue; }
-    if (op.mn === 'li' || (op.mn === 'addi' && op.ra === 0) || op.mn === 'cmpwi' || op.mn === 'cmplwi') { if (Math.abs(op.imm) >= 3) out.push({ k: 'N', v: op.imm }); continue; }
+    if (op.mn === 'cmpwi' || op.mn === 'cmplwi') { for (const v of testsGreater(os, i, op.crf) ? [op.imm, op.imm + 1] : [op.imm]) if (Math.abs(v) >= 3) out.push({ k: 'N', v }); continue; }
+    if (op.mn === 'li' || (op.mn === 'addi' && op.ra === 0)) { if (Math.abs(op.imm) >= 3) out.push({ k: 'N', v: op.imm }); continue; }
+    if (op.mn === 'addi' && op.rd === op.ra && op.ra > (prog.kind === 'pef' ? 2 : 1) && Math.abs(op.imm) >= 16) { out.push({ k: 'N', v: op.imm }); continue; }
     if (op.mn === 'mulli') { out.push({ k: 'N', v: op.imm }); continue; }
     if (o.data == null && op.d !== undefined && op.ra > 2 && op.d >= 8 && /^(l|st)[bhwf]/.test(op.mn) && !/mw$/.test(op.mn))
       out.push({ k: 'O', v: op.mn[0] + (op.mn.includes('f') ? 'f' : '') + op.d });
   }
   return out;
+}
+
+// Whether the comparison at os[i] is tested by the greater-than bit: `x < 2048`
+// is GCC's `cmpwi x, 2047` and a test of greater, CodeWarrior's `cmpwi x, 2048`
+// and a test of less, so a number tested so is taken with the next one too
+// (only the next one would lose a loop GCC ends by a test of equal).
+function testsGreater(os, i, crf) {
+  for (let j = i + 1; j < Math.min(os.length, i + 6); j++) {
+    const q = os[j].op;
+    if (q && q.conditional && q.bi !== undefined && q.bi >> 2 === crf) return (q.bi & 3) === 1;
+  }
+  return false;
 }
 
 // Each routine of a program described, with its calls both ways and its mix of instructions.
@@ -103,7 +130,9 @@ export function matchRoutines(PA, PB, opts = {}) {
   const lenA = a => PA.prog.byStart.get(a).len, lenB = b => PB.prog.byStart.get(b).len;
   const sizeOk = (a, b) => { const x = lenA(a), y = lenB(b), q = Math.max(x, y) / Math.max(1, Math.min(x, y)); return q <= (Math.min(x, y) < 160 ? 2.5 : 1.8); };
   const mixSim = (a, b) => { const x = PA.mix.get(a), y = PB.mix.get(b); let d = 0, nx = 0, ny = 0; for (let i = 0; i < 8; i++) { d += x[i] * y[i]; nx += x[i] * x[i]; ny += y[i] * y[i]; } return nx && ny ? d / Math.sqrt(nx * ny) : 0; };
-  const nCalls = (P, x) => P.T.get(x).filter(t => t.k === 'C' || t.k === 'I').length;
+  // calls, but those to a small routine that calls nothing, which one compiler may have put in place of the call
+  const inlined = (P, t) => { const r = P.prog.byStart.get(t); return r && r.len <= 64 && !(P.callees.get(t) || []).length; };
+  const nCalls = (P, x) => P.T.get(x).filter(t => t.k === 'I' || (t.k === 'C' && !inlined(P, t.v))).length;
   const shared = new Map();
   for (const r of PA.rs) { const seen = new Set(); for (const k of VA.get(r.start).v.keys()) { const l = inv.get(k); if (l && l.length < 60) for (const b of l) seen.add(b); } shared.set(r.start, seen); }
 
@@ -144,6 +173,8 @@ export function matchRoutines(PA, PB, opts = {}) {
       for (const [a, b] of M) {
         const ca = (PA.callersOf.get(a) || []).filter(x => !M.has(x)), cb = (PB.callersOf.get(b) || []).filter(y => !MB.has(y));
         if (ca.length * cb.length <= 400) for (const x of ca) for (const y of cb) cand(x, y);
+        const ea = [...new Set(PA.callees.get(a))].filter(x => !M.has(x)), eb = [...new Set(PB.callees.get(b))].filter(y => !MB.has(y));
+        if (ea.length * eb.length <= 400) for (const x of ea) for (const y of eb) cand(x, y);
       }
       const score = (a, b) => {
         if (!sizeOk(a, b)) return -1;

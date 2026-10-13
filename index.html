@@ -307,6 +307,18 @@ details.inline .list { margin-top: 4px; }
 #choose label { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; cursor: pointer; }
 #choose small { color: var(--dim); }
 #choose .actions button small { color: var(--dim); }
+/* the plug-ins on archive.org: the list scrolls between the sets and the buttons */
+#choose .box.coll { display: flex; flex-direction: column; height: 85vh; }
+#choose .coll .collSets { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+#choose .coll .collSets button.on { border-color: var(--accent); color: var(--accent); }
+#choose .coll #collSearch { margin: 6px 0; }
+#choose .coll #collRows { flex: 1; min-height: 0; overflow: auto; border-top: 1px solid var(--line); }
+#choose .coll .collRow { border-bottom: 1px solid var(--line); padding: 2px 0; }
+#choose .coll .collRow label { padding: 4px 0 2px; overflow-wrap: anywhere; }
+#choose .coll .collRow details { margin: 0 0 4px 26px; }
+#choose .coll .collRow .desc { white-space: pre-wrap; margin: 4px 0; overflow-wrap: anywhere; }
+#choose .coll .actions { align-items: baseline; }
+#choose .coll #collTicked { margin-right: auto; }
 .compare th { text-align: left; font-weight: 600; color: var(--dim); }
 .compare td { overflow-wrap: anywhere; }
 .compareList > details, .compareList > div { margin: 2px 0 2px 10px; }
@@ -377,6 +389,7 @@ details.inline .list { margin-top: 4px; }
   <span id="fileMenu">
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
   <button id="compareBtn" title="Compare the open game with another release" hidden>Compare…</button>
+  <button id="collectionBtn" title="The community's plug-ins, kept on archive.org, opened into the game from there" hidden>Add plug-ins…</button>
   <button id="pluginBtn" title="The records changed here, saved as a plug-in" hidden>Plug-in…</button>
   <button id="forgetBtn" title="Forget the copy this page remembers, so the next visit starts empty" hidden>Forget</button>
   <button id="creditsItem">Credits</button>
@@ -597,12 +610,14 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-rules.js?v=00e2e17a"></script>
 <script src="js/nova-routines.js?v=0deb66f3"></script>
 <script src="js/nova-program.js?v=bc66c841"></script>
+<script src="js/nova-collection.js?v=2e6ec2ff"></script>
 <script src="js/nova-sound.js?v=b413dfc2"></script>
 <script src="js/page-open.js?v=8a19fe8e"></script>
 <script src="js/page-compare.js?v=71441477"></script>
+<script src="js/page-collection.js?v=e3073f7b"></script>
 <script src="js/page-plugin.js?v=2b4dc4a5"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
-<script src="js/page-map.js?v=01307d1a"></script>
+<script src="js/page-map.js?v=1b0b9ca4"></script>
 <script src="js/page-ships.js?v=6ee5030e"></script>
 <script src="js/page-flight.js?v=c3eb5a89"></script>
 <script src="js/page-battle.js?v=8b6de935"></script>

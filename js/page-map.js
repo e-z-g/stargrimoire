@@ -250,6 +250,7 @@ function mapStart(fresh) {
   U = novaUniverse(GAME);
   if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
   $('compareBtn').hidden = false;
+  $('collectionBtn').hidden = false;
   PICT_CACHE.clear();
   SPRITE_CACHE.clear();
   FRAME_CACHE.clear();
@@ -3152,6 +3153,7 @@ function wireTools() {
 
 wireOpening();
 wireCompare();
+wireCollection();
 wirePlugin();
 wireMap();
 wireLanding();

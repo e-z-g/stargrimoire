@@ -271,4 +271,54 @@ if (versions.length >= 2) {
   if (g.files.some(f => f.edits)) fail('setEdits([]): the file stays');
 }
 
+// ---- 5. records two plug-ins both have (novaClashes) ------------------------
+// Against every (type, id) counted by hand, each set's last file being the one
+// novaGame reads the record from; made-up plug-ins, then two credit cheats from
+// archive.org's Nova collection that share one record.
+{
+  const fork = recs => S.novaPluginFork(recs.map(([type, id]) => ({ type, id, name: '', data: Uint8Array.of(id & 255) })));
+  const byHand = files => {
+    const at = new Map();
+    for (const f of [...files].sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true })))
+      for (const [key, list] of Object.entries(f.fork.resourcesByType)) for (const r of list) {
+        const k = S.novaTypeName(key) + ' ' + r.id;
+        if (!at.has(k)) at.set(k, []);
+        at.get(k).push(f.name);
+      }
+    return [...at].filter(([, n]) => n.length > 1).map(([k, n]) => n.join('|') + ': ' + k).sort();
+  };
+  const flat = groups => groups.flatMap(g => g.records.flatMap(r => r.ids.map(id => g.files.join('|') + ': ' + r.type + ' ' + id))).sort();
+  const held = (label, files) => {
+    const got = S.novaClashes(files), want = byHand(files);
+    if (JSON.stringify(flat(got)) !== JSON.stringify(want)) fail(`${label}: novaClashes ${JSON.stringify(flat(got))}, by hand ${JSON.stringify(want)}`);
+    const game = S.novaGame();
+    for (const f of files) game.add({ name: f.name, plugin: true }, f.bytes);
+    for (const g of got) for (const r of g.records) for (const id of r.ids)
+      if (game.get(r.type, id).file !== g.files[g.files.length - 1]) fail(`${label}: ${r.type} ${id} is read from ${game.get(r.type, id).file}, not ${g.files[g.files.length - 1]}`);
+    return got;
+  };
+  const made = (name, recs) => { const bytes = S.novaWriteRez(recs.map(([type, id]) => ({ type, id, name: '', data: Uint8Array.of(id & 255) }))); return { name, plugin: true, bytes, fork: S.novaOpenFork(bytes) }; };
+  const files = [made('b10', [['sÿst', 129], ['shïp', 200], ['oütf', 5]]), made('b9', [['sÿst', 129], ['shïp', 200]]), made('a', [['sÿst', 128], ['sÿst', 129]]), made('c', [['gövt', 128]])];
+  // the hand count can tell: one record fewer is another answer
+  if (JSON.stringify(byHand(files)) === JSON.stringify(byHand([...files.slice(1), made('b10', [['sÿst', 129]])]))) fail('the hand count of shared records cannot see a record gone');
+  const got = held('made-up plug-ins', files);
+  const sets = got.map(g => g.files.join('|')).sort().join(' / ');
+  if (sets !== 'a|b9|b10 / b9|b10') fail(`made-up plug-ins: the sets sharing records are ${sets}`);
+  const evn = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/EVN.zip');
+  if (fs.existsSync(evn)) {
+    const cheat = n => {
+      const b = new Uint8Array(execFileSync('unzip', ['-p', evn, 'EVN/Cheats/' + n], { maxBuffer: 1 << 26 }));
+      // the plug-in in the zip, past any copy of it that has no resource fork
+      for (const f of S.novaArchiveFiles(b).filter(x => x.plugin)) {
+        try { const bytes = f.read(); return { name: f.name, plugin: true, bytes, fork: S.novaOpenFork(bytes) }; } catch (e) { /* the next */ }
+      }
+      throw new Error('no plug-in read from ' + n);
+    };
+    const two = [cheat('50M_Credits_Cheat.zip'), cheat('AllTheCashYouNeed.zip')];
+    const real = held('two credit cheats', two);
+    if (flat(real).length !== 1) fail(`two credit cheats: ${JSON.stringify(flat(real))}`);
+    console.log(`records two plug-ins share: the made-up ones' and ${flat(real).join('')}`);
+  } else console.log('records two plug-ins share: the made-up ones only (no copy of EVN.zip in reference/)');
+}
+
 process.exit(fails ? 1 : 0);

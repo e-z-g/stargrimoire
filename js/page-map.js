@@ -104,6 +104,13 @@ const SUBWAY_STORE = 'stargrimoire-subway';
 const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'heading', dots: 'dots', side: 'side' };
 function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading) && (k !== 'side' || (on.heading && on.names))) || (k === 'fine' && on.mixed)).join('-') || '45'; }
 function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(SUBWAY_WORDS).filter(k => f[k]).map(k => SUBWAY_WORDS[k]).join(','); }
+/* The subway map's look in the address (&look=names,stations,links,nebulae), its parts on, so
+   that a link shows what was seen; an address with a subway map and no look is one from before
+   there was one, and shows none. */
+const LOOK_WORDS = [['names', 'optPlainNames'], ['stations', 'optMetroSys'], ['links', 'optFlatLinks'], ['nebulae', 'optPlainNeb']];
+/* Map options are kept in the browser's storage, as last set by hand, for the next visit; an
+   address naming a view says the subway map's own (applyHash). */
+const OPTS_STORE = 'stargrimoire-map-options', OPTS_SELECTS = ['linkSel', 'dotSel', 'litSel'];
 function subwayFromAddress(text) { const w = (text || '').split(','); return subwayKind(Object.fromEntries(Object.entries(SUBWAY_WORDS).map(([k, v]) => [k, w.includes(v)]))); }
 
 const $ = id => document.getElementById(id);
@@ -272,6 +279,8 @@ function mapStart(fresh) {
   if (kind) setLayoutNow(kind);
   shipsReset();
   flightReset();
+  // the ships as the switches have them, kept from the last visit (page-flight.js loads after this)
+  FLIGHT.on = STELLARS && $('optShips').checked;
   battleReset();
   $('start').hidden = true;
   $('views').hidden = false;
@@ -2000,6 +2009,25 @@ function subwayLook() {
   NEBULAE = NEB_STYLE !== 'none';
   FLAT_LINKS = on && $('optFlatLinks').checked;
 }
+// The subway map the switches ask for, null for none; only where needed is a way of having 22.5
+// degrees, and goes with them.
+function subwayChosen() {
+  return $('optSubway').checked && $('optArrange').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null;
+}
+// The options kept from the last visit (OPTS_STORE), the subway map wanted with them.
+function optsRestore() {
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(OPTS_STORE)); } catch (e) { /* none, or storage is off */ }
+  if (kept) {
+    for (const [id, v] of Object.entries(kept.checks || {})) { const el = $(id); if (el && el.type === 'checkbox') el.checked = !!v; }
+    for (const id of OPTS_SELECTS) { const v = (kept.values || {})[id]; if ([...$(id).options].some(o => o.value === v)) $(id).value = v; }
+    NAMES = $('optNames').checked; STELLARS = $('optStellars').checked; GATE_LINES = $('optGates').checked;
+    LINKS_BY = $('linkSel').value; DOTS_BY = $('dotSel').value; LIGHT = $('litSel').value;
+    LAYOUT.want = subwayChosen();
+  }
+  subwayLook();
+  showOpts();
+}
 // A switch whose parent is off is hidden, and so is the dots' colouring where there are none.
 function showOpts() {
   const hide = (id, h) => { $(id).closest('label').hidden = h; };
@@ -2079,7 +2107,8 @@ async function setLayout(kind) {
 
 function hashFor() {
   const words = LAYOUT.kind ? subwayAddress(LAYOUT.kind) : '';
-  return viewHash() + (LAYOUT.kind ? '&subway' + (words ? '=' + words : '') : '') +
+  const look = $('optSubway').checked ? LOOK_WORDS.filter(([, id]) => $(id).checked).map(([w]) => w).join(',') : '';
+  return viewHash() + (look ? '&look=' + look : '') + (LAYOUT.kind ? '&subway' + (words ? '=' + words : '') : '') +
     (ROUTE.from !== null ? '&route=' + ROUTE.from + (ROUTE.to !== null ? '-' + ROUTE.to : '') : '');
 }
 function viewHash() {
@@ -2107,8 +2136,15 @@ function applyHash() {
   // a route, from one system, or from one to another (&route=130-131)
   const [rf, rt] = (p.get('route') || '').split('-').map(v => (v === '' || v === undefined ? NaN : +v));
   ROUTE = U.byId.has(rf) ? { from: rf, to: U.byId.has(rt) && rt !== rf ? rt : null } : { from: null, to: null };
-  const kind = p.has('subway') ? subwayFromAddress(p.get('subway')) : null;
-  if (kind !== LAYOUT.want) setLayoutNow(kind);
+  // the subway map and its look as the address has them; none, before any view, is the options kept
+  if (location.hash.length > 1) {
+    const kind = p.has('subway') ? subwayFromAddress(p.get('subway')) : null, look = p.has('look') ? p.get('look').split(',') : null;
+    $('optSubway').checked = !!(kind || look);
+    if (kind || look) { $('optArrange').checked = !!kind; for (const [w, id] of LOOK_WORDS) $(id).checked = !!look && look.includes(w); }
+    subwayLook();
+    showOpts();
+    if (kind !== LAYOUT.want) setLayoutNow(kind);
+  }
   const sys = +p.get('system'), st = +p.get('stellar');
   if (p.has('stellar') && !p.has('at') && U.stellars.has(st)) {
     const where = (U.inSystems.get(st) || []);
@@ -3092,13 +3128,15 @@ function wireTools() {
   btn.onclick = () => { opts.hidden = !opts.hidden; btn.setAttribute('aria-expanded', String(!opts.hidden)); if (!opts.hidden) place(); };
   document.addEventListener('pointerdown', e => { if (!opts.hidden && !opts.contains(e.target) && e.target !== btn) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !opts.hidden) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
-  // only where needed is a way of having 22.5 degrees, and goes with them
-  const chosen = () => ($('optSubway').checked && $('optArrange').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null);
-  const look = () => { renderLegend(); redraw(); };
-  for (const id of ['optSubway', 'optArrange', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide']) $(id).onchange = () => { setLayout(chosen()); look(); };
+  const look = () => { writeHash(true); renderLegend(); redraw(); };
+  for (const id of ['optSubway', 'optArrange', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide']) $(id).onchange = () => { setLayout(subwayChosen()); look(); };
   for (const id of ['optPlainNames', 'optMetroSys', 'optFlatLinks', 'optPlainNeb', 'optSystems', 'optNebulae']) $(id).onchange = () => { subwayLook(); showOpts(); look(); };
-  subwayLook();
-  showOpts();
+  optsRestore();
+  opts.addEventListener('change', () => {
+    const checks = Object.fromEntries([...opts.querySelectorAll('input[type=checkbox]')].map(c => [c.id, c.checked]));
+    const values = Object.fromEntries(OPTS_SELECTS.map(id => [id, $(id).value]));
+    try { localStorage.setItem(OPTS_STORE, JSON.stringify({ checks, values })); } catch (e) { /* storage is off or full */ }
+  });
   // the ships are the stellars', and go with them
   $('optStellars').onchange = () => {
     STELLARS = $('optStellars').checked;
@@ -3135,18 +3173,16 @@ function wireTools() {
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
   // the whole map, large: a PNG with every name (wholeMapSize), up to four times as sharp as the
-  // map's own pixels within 32 million of them, and never less sharp. On a computer one larger
-  // than that, as a big galaxy's is, is drawn a band at a time and written by png-stream.js; a
-  // phone cannot hold it, so there it is kept within the 32 million, and if that leaves names
-  // out the visitor is asked first (the maintainer's asking, 13 October 2026). The SVG, a
-  // drawing, has every name anywhere.
+  // map's own pixels within 32 million of them, and never less sharp. One larger than that, as a
+  // big galaxy's is, is drawn a band at a time and written by png-stream.js, on a phone in
+  // smaller bands, so that no canvas is ever larger than a band (the maintainer's asking, 13
+  // October 2026). Only one wider than a browser draws, 32,000 pixels, leaves names out, and
+  // the visitor is asked first. The SVG, a drawing, has every name anywhere.
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
   $('saveWhole').onclick = async () => {
-    const computer = matchMedia('(pointer: fine)').matches, all = wholeMapSize();
-    const size = computer ? wholeMapSize(Infinity, 32000) : wholeMapSize(32e6), [w, h] = size;
+    const all = wholeMapSize(), size = wholeMapSize(Infinity, 32000), [w, h] = size;
     if (size.names < all.names && !confirm(`This picture can hold ${size.names.toLocaleString()} of the ${all.names.toLocaleString()} system names: ` +
-        (computer ? 'with all of them it would be too wide for a browser to draw.' : 'a phone cannot make one large enough for them all; a computer can.') +
-        ' The SVG has every name. Save the picture anyway?')) return;
+        'with all of them it would be too wide for a browser to draw. The SVG has every name. Save the picture anyway?')) return;
     if (w * h <= 32e6) {
       const k = Math.max(1, Math.min(4, Math.sqrt(32e6 / (w * h)))), c = document.createElement('canvas');
       c.width = Math.round(w * k); c.height = Math.round(h * k);
@@ -3156,8 +3192,9 @@ function wireTools() {
       c.toBlob(b => { if (b) dlBlob(b, wholeName('png')); else alert('This browser could not make a picture that large.'); }, 'image/png');
       return;
     }
-    // a band of rows at a time, each the whole map drawn shifted up, about 16 million pixels a band
-    const rows = Math.max(1, Math.floor(16e6 / w)), c = document.createElement('canvas');
+    // a band of rows at a time, each the whole map drawn shifted up, about 16 million pixels a band, 4 on a phone
+    const band = matchMedia('(pointer: fine)').matches ? 16e6 : 4e6;
+    const rows = Math.max(1, Math.floor(band / w)), c = document.createElement('canvas');
     c.width = w; c.height = rows;
     const ctx = c.getContext('2d', { willReadFrequently: true });
     try {

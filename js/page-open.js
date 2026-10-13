@@ -150,12 +150,20 @@ async function openGameFiles(picked, opts = {}) {
     setStatus(refused.join('; ') || 'Nothing in those files is part of EV Nova', true);
     return;
   }
-  const game = fresh ? novaGame() : GAME;
+  const read = [];
   for (const f of now) {
     setStatus('Reading ' + f.name);
     await nextPaint();
-    try { game.add(f, f.read()); } catch (e) { refused.push(f.name + ': ' + e.message); }
+    try { const bytes = f.read(); read.push({ f, bytes, fork: novaOpenFork(bytes) }); } catch (e) { refused.push(f.name + ': ' + e.message); }
   }
+  // plug-ins that have the same records as each other, or as those already open, asked about first
+  const opening = read.filter(r => r.f.plugin).map(r => ({ name: r.f.name, plugin: true, fork: r.fork }));
+  const open = fresh ? [] : GAME.files.filter(f => f.plugin && !f.edits);
+  const names = new Set(opening.map(f => f.name));
+  const clashes = opening.length + open.length > 1 ? novaClashes(opening.concat(open)).filter(g => g.files.some(n => names.has(n))) : [];
+  if (clashes.length && !(await chooseClashes(clashes))) { setStatus(''); return false; }
+  const game = fresh ? novaGame() : GAME;
+  for (const { f, bytes } of read) game.add(f, bytes);
   if (!game.list('sÿst').length) {
     setStatus('No star systems in ' + (now.map(f => f.name).join(', ') || 'those files') +
               ' -- the Nova Data files hold them' + (refused.length ? '; ' + refused.join('; ') : ''), true);
@@ -174,6 +182,33 @@ async function openGameFiles(picked, opts = {}) {
   mapStart(fresh);
   if (refused.length) setStatus(refused.join('; '), true);
   pumpPending(refused);
+  return true;
+}
+
+/* Plug-ins that have records in common (novaClashes): whether to open them anyway. */
+function chooseClashes(groups) {
+  const el = document.getElementById('choose'), box = el.querySelector('.box');
+  // ids in runs: 128-130, 145
+  const runs = ids => {
+    const out = [];
+    for (let i = 0; i < ids.length; i++) { let j = i; while (j + 1 < ids.length && ids[j + 1] === ids[j] + 1) j++; out.push(j > i ? `${ids[i]}–${ids[j]}` : `${ids[i]}`); i = j; }
+    return out.length > 12 ? out.slice(0, 12).join(', ') + ` and ${out.length - 12} more` : out.join(', ');
+  };
+  const and = list => list.length < 2 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  box.innerHTML = `<h2>Plug-ins with the same records</h2>
+    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, as a Mac folder lists them; the others' copies are not used.</p>
+    ${groups.map(g => { const n = g.records.reduce((s, r) => s + r.ids.length, 0);
+      return `<p>${and(g.files.map(f => `<strong>${esc(f)}</strong>`))}: ${n} record${n === 1 ? '' : 's'}, ${esc(g.files[g.files.length - 1])}'s read<br><small>${g.records.map(r => `${esc(r.type)} ${runs(r.ids)}`).join('; ')}</small></p>`; }).join('')}
+    <div class="actions"><button data-a="cancel">Cancel</button><button data-a="ok">Open anyway</button></div>`;
+  el.hidden = false;
+  return new Promise(res => {
+    box.onclick = e => {
+      const a = e.target.closest('[data-a]');
+      if (!a) return;
+      el.hidden = true;
+      res(a.dataset.a === 'ok');
+    };
+  });
 }
 
 /* Which of these plug-ins to open: a Set of them, or null for none of it. */

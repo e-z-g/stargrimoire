@@ -231,15 +231,15 @@ function novaLooseFile(name, bytes) {
    `add(file, forkBytes)` opens a fork and appends it. Base files are kept in
    front of plug-ins whatever order they arrive in, and each group in name
    order, which is the order a Mac folder lists them in. */
+const novaFileOrder = (a, b) => (!!a.edits - !!b.edits) || (a.plugin - b.plugin) || a.name.localeCompare(b.name, 'en', { numeric: true });
 function novaGame() {
   const files = [];
-  const fileOrder = (a, b) => (!!a.edits - !!b.edits) || (a.plugin - b.plugin) || a.name.localeCompare(b.name, 'en', { numeric: true });
   const game = {
     files,
     add(file, forkBytes) {
       const fork = novaOpenFork(forkBytes);
       files.push({ name: file.name, plugin: !!file.plugin, role: file.role, fork });
-      files.sort(fileOrder);
+      files.sort(novaFileOrder);
       memo.clear();
       return fork;
     },
@@ -293,6 +293,30 @@ function novaGame() {
   };
   const memo = new Map();
   return game;
+}
+
+/* The records that two files or more both have, as plug-ins opened together
+   can: [{ files, records: [{ type, ids }] }], one entry for each set of files
+   sharing any, the files in the order novaGame reads them, so that the last
+   one's copy is the one read. files: [{ name, plugin, fork }]. */
+function novaClashes(files) {
+  const by = new Map();
+  for (const f of [...files].sort(novaFileOrder)) for (const [key, list] of Object.entries(f.fork.resourcesByType)) {
+    if (!by.has(key)) by.set(key, new Map());
+    const ids = by.get(key);
+    for (const r of list) { if (!ids.has(r.id)) ids.set(r.id, []); const n = ids.get(r.id); if (!n.includes(f.name)) n.push(f.name); }
+  }
+  const groups = new Map();
+  for (const [key, ids] of by) for (const [id, names] of ids) {
+    if (names.length < 2) continue;
+    const g = names.join('\0');
+    if (!groups.has(g)) groups.set(g, { files: names, records: new Map() });
+    const recs = groups.get(g).records, t = novaTypeName(key);
+    if (!recs.has(t)) recs.set(t, []);
+    recs.get(t).push(id);
+  }
+  return [...groups.values()].map(g => ({ files: g.files,
+    records: [...g.records].map(([type, ids]) => ({ type, ids: ids.sort((a, b) => a - b) })).sort((a, b) => a.type.localeCompare(b.type)) }));
 }
 
 /* A STR# resource as an array of strings, or [] when the game has none. */

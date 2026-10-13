@@ -279,9 +279,12 @@ try {
           out.subwayOff = await p.evaluate(`(async () => {
             await setLayout(null); for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
             const off = { mix: LAYOUT.mix, hash: location.hash, sel: [$('optSubway').checked, $('optFine').closest('label').hidden].join(), look: [PLAIN_NAMES, SYS_STYLE, NEB_STYLE, FLAT_LINKS].join() };
+            // the look alone, on the true positions
+            history.replaceState(null, '', '#galaxy&look=names'); applyHash(); await new Promise(r => setTimeout(r, 50)); writeHash(true);
+            const lookOnly = { kind: LAYOUT.want, hash: location.hash, sel: [$('optSubway').checked, $('optArrange').checked].join(), look: [PLAIN_NAMES, SYS_STYLE, NEB_STYLE, FLAT_LINKS].join() };
             history.replaceState(null, '', '#system=130&subway'); applyHash(); await subwayGet('45'); await new Promise(r => setTimeout(r, 50));
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
-            const byHash = { mix: LAYOUT.mix, mode: VIEW.mode, sys: VIEW.sys, sel: [$('optSubway').checked, $('optFine').checked, $('optRoom').checked].join() };
+            const byHash = { mix: LAYOUT.mix, mode: VIEW.mode, sys: VIEW.sys, sel: [$('optSubway').checked, $('optFine').checked, $('optRoom').checked].join(), look: [PLAIN_NAMES, SYS_STYLE, NEB_STYLE, FLAT_LINKS].join() };
             history.replaceState(null, '', '#galaxy&subway=heading'); applyHash(); await subwayGet('heading'); await new Promise(r => setTimeout(r, 50));
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
             const heading = { kind: LAYOUT.kind, mix: LAYOUT.mix, hash: location.hash, stats: LAYOUT.sub.layout.stats, sel: [$('optSubway').checked, $('optFine').checked, $('optRoom').checked, $('optHeading').checked].join() };
@@ -297,7 +300,7 @@ try {
             $('optBars').checked = true; $('optBars').onchange(); await subwayGet('heading');
             for (let i = 0; i < 200 && (MOVING || LAYOUT.kind !== 'heading'); i++) await new Promise(r => setTimeout(r, 50));
             Object.assign(dots, { back: LAYOUT.kind, backHash: location.hash, backBar: !!barEnds(PLACE_OF.get(ml.id)) });
-            return { off, byHash, heading, mixed, dots };
+            return { off, lookOnly, byHash, heading, mixed, dots };
           })()`);
           // A route, a reach, government colours off and the map saved as a picture.
           out.features = await p.evaluate(`(async () => {
@@ -648,6 +651,21 @@ try {
           })()`);
           // Stellars as you zoom in, off: Sol stays a dot however near, opens when gone to, and
           // closes again when zoomed out of; and the details hidden and shown.
+          // Map options kept for the next visit: one changed by hand is stored, and what is stored is taken up
+          out.kept = await p.evaluate(`(() => {
+            const c = $('optGates'), was = c.checked, dots = $('dotSel').value;
+            c.checked = !was; c.dispatchEvent(new Event('change', { bubbles: true }));
+            const saved = JSON.parse(localStorage.getItem(OPTS_STORE) || 'null');
+            localStorage.setItem(OPTS_STORE, JSON.stringify({ checks: { optNames: false, optGates: true, optStellars: false }, values: { linkSel: 'govt', dotSel: 'none such' } }));
+            optsRestore();
+            const got = { saved: !!saved && saved.checks.optGates === !was, names: NAMES, gates: GATE_LINES, stellars: STELLARS, links: LINKS_BY, dots: DOTS_BY === dots, shipsHidden: $('optShips').closest('label').hidden };
+            localStorage.removeItem(OPTS_STORE);
+            $('optNames').checked = true; $('optNames').onchange();
+            $('optGates').checked = was; $('optGates').onchange();
+            $('optStellars').checked = true; $('optStellars').onchange();
+            $('linkSel').value = 'plain'; $('linkSel').onchange();
+            return got;
+          })()`);
           out.stellars = await p.evaluate(`(async () => {
             const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
@@ -699,6 +717,10 @@ try {
       if (sw.inSol.look !== 'true,metro,shapes,true' || so.off.look !== 'false,dots,pictures,false') fail(`${dev.name}: the subway map's look, on and off: ${JSON.stringify([sw.inSol.look, so.off.look])}`);
       // the '45' kind: 22.5 degrees off and so only where awkward hidden, headings off and so bars and sides hidden
       if (sw.inSol.shown !== 8) fail(`${dev.name}: the switches shown under the 45-degree subway map: ${sw.inSol.shown}`);
+      if (!/&look=names,stations,links,nebulae&subway$/.test(decodeURIComponent(sw.inSol.hash))) fail(`${dev.name}: the subway map's look in the address: ${sw.inSol.hash}`);
+      if (so.lookOnly.sel !== 'true,false' || so.lookOnly.look !== 'true,dots,pictures,false' || so.lookOnly.kind !== null || !/&look=names$/.test(so.lookOnly.hash))
+        fail(`${dev.name}: the look alone from the address: ${JSON.stringify(so.lookOnly)}`);
+      if (so.byHash.look !== 'false,dots,pictures,false') fail(`${dev.name}: an address with a subway map and no look: ${so.byHash.look}`);
       if (sw.inSol.mode !== 'system' || sw.inSol.sys !== 130 || sw.inSol.mix !== 1 || !sw.inSol.moved || !/&subway$/.test(sw.inSol.hash))
         fail(`${dev.name}: the subway map, switched to in Sol: ${JSON.stringify(sw.inSol)}`);
       if (sw.galaxy.mode !== 'galaxy' || sw.galaxy.stats.failed || !sw.galaxy.bent || !/^#galaxy.*&subway$/.test(sw.galaxy.hash))
@@ -757,6 +779,9 @@ try {
       if (tr.gone.sys !== 298 || !tr.gone.sel || tr.gone.sel.id !== 1413 || tr.gone.pick || !tr.gone.open || tr.gone.fade !== '0') fail(`${dev.name}: through HG-Kania to Dani: ${JSON.stringify(tr.gone)}`);
       if (tr.vega.sys !== 137 || tr.vega.note !== 'Your ship is unable to enter this hypergate - it is offline.' || tr.vega.pick) fail(`${dev.name}: HG-Vega: ${JSON.stringify(tr.vega)}`);
       console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through; HG-Kania opened and asked, and went to Dani; HG-Vega offline`);
+      const ko = o.kept;
+      if (!ko.saved || ko.names !== false || ko.gates !== true || ko.stellars !== false || ko.links !== 'govt' || !ko.dots || !ko.shipsHidden)
+        fail(`${dev.name}: Map options kept for the next visit: ${JSON.stringify(ko)}`);
       const st = o.stellars;
       if (st.near.most !== 0 || st.near.mode !== 'galaxy' || st.near.ships !== 'false,true') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
       if (st.went.mode !== 'system' || st.went.sys !== 130 || st.went.open !== 1) fail(`${dev.name}: without the stellars, going to Sol: ${JSON.stringify(st.went)}`);

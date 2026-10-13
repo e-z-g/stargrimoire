@@ -487,18 +487,30 @@ function boxView(x0, y0, x1, y1, pad) {
 /* The whole map at once, drawn into ctx at w by h map pixels, for saving it large (the
    maintainer's asking, 30 September 2026). The stellars are left closed, so that every system is
    its mark however near; the screen's own context, size and view are put back after. Framed by
-   wholeMapFrame, a far place with no links brought in to the rest (wholeMapMoves), its name
-   saying which way it truly is. */
-let WHOLE_MOVED = null;   // while the whole map is drawn: place -> the arrow after its name
+   wholeMapFrame, a far place with no links brought in to the rest (wholeMapMoves), an arrow at
+   its dot pointing the way it truly is. */
+let WHOLE_MOVED = null;   // while the whole map is drawn: place -> the way it truly is, an angle on the screen
 function drawWholeMap(ctx, w, h) {
   const keep = { CTX, CW, CH, cam: { ...CAM }, STELLARS, OPEN_SYS, MOVING, hover: VIEW.hover, scale: $('scale').textContent };
   const f = wholeMapFrame(), was = [...f.moves.keys()].map(p => [p, p.x, p.y]);
   try {
     CTX = ctx; CW = w; CH = h; STELLARS = false; OPEN_SYS = null; MOVING = true; VIEW.hover = null;
     for (const [p, m] of f.moves) { p.x = m.x; p.y = m.y; }
-    WHOLE_MOVED = new Map([...f.moves].map(([p, m]) => [p, m.arrow]));
+    WHOLE_MOVED = new Map([...f.moves].map(([p, m]) => [p, m.angle]));
     Object.assign(CAM, { x: (f.x0 + f.x1) / 2, y: (f.y0 + f.y1) / 2, s: Math.min((w - 2 * f.padX) / f.gw, (h - 2 * f.padY) / f.gh) });
     draw();
+    // each moved place's arrow, from its dot
+    const r = systemRadius();
+    for (const [p, a] of WHOLE_MOVED) {
+      const [x, y] = toScreen(p.x, p.y), ux = Math.cos(a), uy = Math.sin(a), r0 = r + 3, r1 = r + 17;
+      ctx.save();
+      ctx.strokeStyle = ctx.fillStyle = 'rgba(210,218,230,0.85)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(x + ux * r0, y + uy * r0); ctx.lineTo(x + ux * (r1 - 4), y + uy * (r1 - 4)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + ux * r1, y + uy * r1);
+      ctx.lineTo(x + ux * (r1 - 6) - uy * 4, y + uy * (r1 - 6) + ux * 4); ctx.lineTo(x + ux * (r1 - 6) + uy * 4, y + uy * (r1 - 6) - ux * 4);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
   } finally {
     for (const [p, x, y] of was) { p.x = x; p.y = y; }
     WHOLE_MOVED = null;
@@ -510,8 +522,8 @@ function drawWholeMap(ctx, w, h) {
 }
 /* A place with no links outside the box of those with links, as Starfleet Adventures' Near Gamma
    Hydra is, 2,046 units from its nearest (the next farthest is 400), and so a quarter of the map
-   each way: on the whole map, at the nearest point of that box, with an arrow after its name the
-   way it truly is (the maintainer's asking, 13 October 2026). Map place -> { x, y, arrow }. */
+   each way: on the whole map, at the nearest point of that box, with an arrow at its dot the way
+   it truly is (the maintainer's asking, 13 October 2026). Map place -> { x, y, angle }. */
 function wholeMapMoves() {
   const linked = new Set();
   for (const l of LINKS) for (const sys of [l.from, l.to]) { const p = PLACE_OF.get(sys.id); if (p) linked.add(p); }
@@ -523,9 +535,7 @@ function wholeMapMoves() {
     if (linked.has(p)) continue;
     const x = clampNum(p.x, x0, x1), y = clampNum(p.y, y0, y1);
     if (x === p.x && y === p.y) continue;
-    // east first, turning as the screen does, y down
-    const k = Math.round(Math.atan2(-(p.y - y), p.x - x) / (Math.PI / 4)) & 7;
-    out.set(p, { x, y, arrow: ' ' + '→↗↑↖←↙↓↘'[k] });
+    out.set(p, { x, y, angle: Math.atan2(p.y - y, p.x - x) });
   }
   return out;
 }
@@ -534,7 +544,7 @@ function wholeMapFrame() {
   const moves = wholeMapMoves(), at = PLACES.map(p => moves.get(p) || p), xs = at.map(p => p.x), ys = at.map(p => p.y);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   CTX.font = (PLAIN_NAMES ? '600 ' : '') + '11.5px ' + font();
-  const wide = Math.max(0, ...PLACES.map(p => CTX.measureText(U.byId.get(p.ids[0]).name + (moves.has(p) ? ' →' : '')).width));
+  const wide = Math.max(0, ...PLACES.map(p => CTX.measureText(U.byId.get(p.ids[0]).name).width));
   return { moves, x0, y0, x1, y1, gw: x1 - x0 || 1, gh: y1 - y0 || 1, padX: 30 + Math.ceil(wide), padY: 30 + 24 };
 }
 // Its size: the galaxy's shape at the zoom from which every system's name shows (namePlan), and
@@ -1560,9 +1570,11 @@ function drawSystemLabels(ctx) {
     }
     const shown = NAMES && (moved || (plan.room !== undefined ? CAM.s >= plan.room && d.t >= 0.5 : CAM.s >= plan.from.get(d.p)));
     if (!special && !shown) continue;
-    const name = jumps === null ? d.sys.name + (WHOLE_MOVED && WHOLE_MOVED.get(d.p) || '') : `${d.sys.name} · ${jumps === Infinity ? 'no way there' : jumps === 1 ? '1 jump' : jumps + ' jumps'}`;
+    const name = jumps === null ? d.sys.name : `${d.sys.name} · ${jumps === Infinity ? 'no way there' : jumps === 1 ? '1 jump' : jumps + ' jumps'}`;
     const w = ctx.measureText(name).width;
-    const k = plan.side.get(d.p) || 0, o = NAME_SIDES(r, w)[k], out = Math.max(0, d.t * d.D / 2 - r);
+    // a moved place's name on the side away from its arrow: right, left, above or below
+    const a = moved ? WHOLE_MOVED.get(d.p) : 0, ax = Math.cos(a), ay = Math.sin(a);
+    const k = moved ? (Math.abs(ax) >= Math.abs(ay) ? (ax < 0 ? 0 : 1) : (ay < 0 ? 3 : 2)) : plan.side.get(d.p) || 0, o = NAME_SIDES(r, w)[k], out = Math.max(0, d.t * d.D / 2 - r);
     const x = d.x + o.x + (k === 0 ? out : k === 1 ? -out : 0), y = d.y + o.y + (k === 2 ? -out : k === 3 ? out : 0);
     ctx.globalAlpha = (dimOther && d.sys.govt !== VIEW.govt && !special ? 0.3 : 1) * (placeFaint(d.p) && !special ? FAINT : 1);
     nameText(ctx, name, x, y + 7, special);

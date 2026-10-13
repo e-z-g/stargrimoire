@@ -26,7 +26,7 @@ const NOVA_COLLECTION_NOT = /\.(txt|pdf|docx?|rtf|html?|exe|rar|7z|gz|png|jpe?g|
 const NOVA_COLLECTIONS = [
   { key: 'nova', label: 'Nova plug-ins', item: 'EscapeVelocityPluginCollection', zip: 'EVN.zip', within: /^EVN\/(Plugins|Cheats)\//, strip: 'EVN/',
     note: "Ambrosia's add-on files for EV Nova, kept whole: the plug-ins and the cheats. A plug-in's description is the add-on page's, as written." },
-  { key: 'extras', label: 'Conversions', item: 'EscapeVelocityPluginCollection', within: /^Extras\/(?!Plugin Converters\/)/, strip: 'Extras/',
+  { key: 'extras', label: 'Conversions', item: 'EscapeVelocityPluginCollection', within: /^Extras\/(?!Plugin Converters\/)/, strip: 'Extras/', packages: true,
     note: 'The total conversions kept beside them, and the ports of EV and EV Override that the two sets of ports need.' },
   { key: 'ev', label: 'EV ports', item: 'ev_20250301', within: /^(Plugins|Cheats|Scenarios)\//,
     note: 'EV\'s plug-ins ported to Nova. Their archive says each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
@@ -63,6 +63,17 @@ function novaCollectionEntries(c, files) {
     }
   }
   return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+}
+
+/* A set whose folders are packages (the conversions: Polycon v2's Nova
+   Files is eleven parts of one game) as [{ folder, files }], by folder, a
+   folder of one file a package of one. Some folders hold alternatives
+   instead (EV_EVO on Nova, the Full Screen Map's sizes), so the page
+   lets a package's files be ticked one by one too. */
+function novaCollectionPackages(entries) {
+  const by = new Map();
+  for (const e of entries) { if (!by.has(e.folder)) by.set(e.folder, []); by.get(e.folder).push(e); }
+  return [...by].sort((a, b) => a[0].localeCompare(b[0], undefined, { sensitivity: 'base', numeric: true })).map(([folder, files]) => ({ folder, files }));
 }
 
 // archive.org's page of a zip's contents: [{ path, size }].

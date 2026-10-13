@@ -6,7 +6,8 @@
 // fetches them.
 //
 // Every plug-in listed must be in the copy at the same path and size, the
-// zip's from its central directory; every Nova plug-in must have the
+// zip's from its central directory; the conversions' packages hold each
+// file once, Polycon v2's Nova Files all eleven of its parts; every Nova plug-in must have the
 // description beside it that the page fetches, and every description
 // must read as the add-on page's, with its title, size and author, Created
 // and Downloads (a few have no text under them, and are counted). Two controls on copies of the zip's listing: a row's size
@@ -66,6 +67,13 @@ for (const c of S.NOVA_COLLECTIONS) {
   if (!c.zip && !fs.existsSync(path.join(COLL, c.item))) { said.push(`${c.label}: ${entries.length}, no copy to hold them to`); continue; }
   for (const b of against(c, entries, files).slice(0, 5)) fail(`${c.label}: ${b}`);
   if (c.zip) nova = { c, entries, files };
+  if (c.packages) {
+    const packs = S.novaCollectionPackages(entries), n = packs.reduce((s, p) => s + p.files.length, 0), poly = packs.find(p => p.folder === 'Polycon v2/Nova Files');
+    if (n !== entries.length || new Set(packs.flatMap(p => p.files)).size !== n) fail(`${c.label}: ${n} files in packages, ${entries.length} listed`);
+    if (!poly || poly.files.length !== 11) fail(`${c.label}: Polycon v2's Nova Files is ${poly ? poly.files.length : 'no'} files, not 11`);
+    said.push(`${c.label}: ${entries.length} in ${packs.length} packages`);
+    continue;
+  }
   said.push(`${c.label}: ${entries.length}`);
 }
 

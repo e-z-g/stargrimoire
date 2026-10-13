@@ -37,10 +37,11 @@ function collectionAsk() {
   const close = () => { el.hidden = true; box.className = 'box'; };
   box.querySelector('#collSearch').oninput = e => { COLLECTION.q = e.target.value; collectionRows(); };
   box.onchange = e => {
-    const i = e.target.dataset.i;
-    if (i === undefined) return;
-    const f = COLLECTION.shown[+i];
-    if (e.target.checked) COLLECTION.ticked.set(f.url, f); else COLLECTION.ticked.delete(f.url);
+    const { i, g } = e.target.dataset;
+    if (i === undefined && g === undefined) return;
+    for (const f of i !== undefined ? [COLLECTION.shown[+i]] : COLLECTION.packages[+g].files)
+      if (e.target.checked) COLLECTION.ticked.set(f.url, f); else COLLECTION.ticked.delete(f.url);
+    collectionSync();
     collectionTicked();
   };
   // a details' toggle does not bubble: caught on its way down
@@ -75,9 +76,28 @@ function collectionRows() {
   if (!rows || !list) return;
   const q = COLLECTION.q.trim().toLowerCase();
   COLLECTION.shown = q ? list.filter(f => (f.name + ' ' + f.folder).toLowerCase().includes(q)) : list;
-  rows.innerHTML = `<p class="note">${COLLECTION.shown.length === list.length ? list.length.toLocaleString() : `${COLLECTION.shown.length.toLocaleString()} of ${list.length.toLocaleString()}`}</p>` +
-    COLLECTION.shown.map((f, i) => `<div class="collRow"><label><input type="checkbox" data-i="${i}"${COLLECTION.ticked.has(f.url) ? ' checked' : ''}><span>${esc(f.name)} <small>${fmtBytes(f.size)}${f.folder ? ' · ' + esc(f.folder) : ''}</small></span></label>` +
-      (f.about ? `<details data-about="${esc(f.about)}"><summary>About</summary><div class="desc note"></div></details>` : '') + '</div>').join('');
+  const at = new Map(COLLECTION.shown.map((f, i) => [f, i]));
+  const one = (f, folder = true) => `<div class="collRow"><label><input type="checkbox" data-i="${at.get(f)}"><span>${esc(f.name)} <small>${fmtBytes(f.size)}${folder && f.folder ? ' · ' + esc(f.folder) : ''}</small></span></label>` +
+    (f.about ? `<details data-about="${esc(f.about)}"><summary>About</summary><div class="desc note"></div></details>` : '') + '</div>';
+  // a set of packages: a folder of several files is one row, its files under it
+  const c = NOVA_COLLECTIONS.find(x => x.key === COLLECTION.at);
+  COLLECTION.packages = c.packages ? novaCollectionPackages(COLLECTION.shown) : null;
+  rows.innerHTML = `<p class="note">${COLLECTION.shown.length === list.length ? list.length.toLocaleString() : `${COLLECTION.shown.length.toLocaleString()} of ${list.length.toLocaleString()}`}${c.packages ? ' files' : ''}</p>` +
+    (COLLECTION.packages ? COLLECTION.packages.map((p, g) => p.files.length === 1 ? one(p.files[0]) :
+      `<div class="collRow collPackage"><label><input type="checkbox" data-g="${g}"><span>${esc(p.folder)} <small>${p.files.length} files, ${fmtBytes(p.files.reduce((s, f) => s + f.size, 0))}</small></span></label>` +
+      `<details><summary>The files</summary>${p.files.map(f => one(f, false)).join('')}</details></div>`).join('')
+      : COLLECTION.shown.map(f => one(f)).join(''));
+  collectionSync();
+}
+
+// Every box as COLLECTION.ticked has it, a package's half-ticked while only some of its files are.
+function collectionSync() {
+  for (const b of document.querySelectorAll('#collRows input[data-i]')) b.checked = COLLECTION.ticked.has(COLLECTION.shown[+b.dataset.i].url);
+  for (const b of document.querySelectorAll('#collRows input[data-g]')) {
+    const files = COLLECTION.packages[+b.dataset.g].files, n = files.filter(f => COLLECTION.ticked.has(f.url)).length;
+    b.checked = n === files.length;
+    b.indeterminate = n > 0 && n < files.length;
+  }
 }
 
 function collectionTicked() {

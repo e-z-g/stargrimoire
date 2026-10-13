@@ -345,7 +345,8 @@ details.inline .list { margin-top: 4px; }
   #fileMenu > button, #fileMenu > .btn { padding: 6px 12px; }
   /* the crumbs and the status shrink rather than wrap, so the first row holds whatever they say */
   #crumbs { flex: 1 1 0; }
-  #status { max-width: 30vw; }
+  /* while something is read, what and how far takes a row of its own, under the views */
+  #status { order: 10; flex: 1 0 100%; max-width: none; margin-left: 0; }
   /* the count of files open, all the status says once reading is done, gives the bar's room to the buttons */
   #status.idle { display: none; }
   #ships { flex-direction: column; }
@@ -602,8 +603,8 @@ details.inline .list { margin-top: 4px; }
 <script src="js/page-ships.js?v=6ee5030e"></script>
 <script src="js/page-flight.js?v=c3eb5a89"></script>
 <script src="js/page-battle.js?v=8b6de935"></script>
-<script src="js/page-records.js?v=19ee28dc"></script>
+<script src="js/page-records.js?v=7dc6372b"></script>
 <script src="js/page-code.js?v=bf9cecaa"></script>
-<script src="js/page-library.js?v=4e22d28b"></script>
+<script src="js/page-library.js?v=fc5e1072"></script>
 </body>
 </html>

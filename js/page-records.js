@@ -50,7 +50,22 @@ function recTypesBlock() {
     const n = GAME.list(t).length;
     return n ? `<a data-rec="${w}">${esc(REC_KIND[t])}</a> <span class="note">${n}</span>` : '';
   }).filter(Boolean);
+  const missions = GAME.list('mïsn').length;
+  if (missions) rows.unshift(`<a data-rec="misn">missions</a> <span class="note">${missions}</span>`);
   return rows.length ? `<h3>Records</h3><div class="list">${rows.join('')}</div>` : '';
+}
+
+/* Every mission, each storyline's in step order (its panel the storyline's), then those in none, by name. */
+function missionListPanel() {
+  const M = missionData(), none = [...M.byId.values()].filter(m => !m.story).sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
+  const item = m => `<a data-mission="${m.id}">${esc(m.name)}</a> <span class="note">${m.story && m.story.step ? esc(m.story.step) : m.id}</span>`;
+  const stories = [...M.stories.values()].sort((a, b) => a.name.localeCompare(b.name));
+  return `<h2>Missions</h2>
+    <div class="sub">every mïsn in the files open, ${M.byId.size}</div>
+    <div class="actions"><button data-bit-back>Back</button></div>
+    <p class="note">By storyline, as Ambrosia's notes in their names give it, each in step order; then the ${none.length} in none. The Library's Missions table has their fields side by side, to sort.</p>
+    ${stories.map(s => `<details class="ovStory"><summary>${esc(s.name)} <span class="note">${s.missions.length}</span></summary><p><a data-story="${esc(s.key)}">The storyline's panel</a></p><div class="list">${s.missions.map(item).join('')}</div></details>`).join('')}
+    <details class="ovStory"><summary>In no storyline <span class="note">${none.length}</span></summary><div class="list">${none.map(item).join('')}</div></details>`;
 }
 
 /* One type's records, by name. */
@@ -66,6 +81,7 @@ function recListPanel(type) {
 /* A record's panel. `key` is "outf.128" or "outf". */
 function recPanel(key) {
   const [word, n] = String(key).split('.');
+  if (word === 'misn') return missionListPanel();
   const type = NOVA_REC_BY_WORD.get(word);
   if (!type) return `<p class="note">No such record type: ${esc(word)}.</p>`;
   if (n === undefined) return recListPanel(type);

@@ -30,13 +30,19 @@ const LIB_TABLES = [
   ['jünk', 'Commodities', ['BasePrice']],
   ['sÿst', 'Systems', ['Govt', 'AvgShips', 'Asteroids', 'Interference', 'Murk']],
   ['spöb', 'Stellars', ['TechLevel', 'Govt', 'MinStatus', 'Tribute', 'DefCount', 'Gravity', 'Strength']],
+  ['mïsn', 'Missions', ['Storyline', 'AvailLoc', 'AvailRandom', 'AvailRecord', 'AvailRating', 'PayVal', 'CompReward', 'TimeLimit', 'ShipCount', 'ShipGoal', 'CanAbort']],
 ];
+// Columns worked out, not fields: a mission's storyline and step from the note in its name.
+const LIB_DERIVED = {
+  'mïsn': { Storyline: r => { const n = novaStoryNote(novaNameParts(r.name).note); return n ? n.story + (n.step ? ' ' + n.step : '') : ''; } },
+};
 
 function libLink(type, id, label) {
   const name = esc(label);
   if (type === 'shïp') return `<a data-ship="${id}">${name}</a>`;
   if (type === 'sÿst') return U.byId.has(id) ? `<a data-sys="${id}">${name}</a>` : name;
   if (type === 'spöb') return U.inSystems.has(id) ? `<a data-stellar="${id}">${name}</a>` : name;
+  if (type === 'mïsn') return `<a data-mission="${id}">${name}</a>`;
   if (NOVA_REC_WORD.has(type)) return `<a data-rec="${NOVA_REC_WORD.get(type)}.${id}">${name}</a>`;
   return name;
 }
@@ -164,14 +170,14 @@ function libTable(q) {
   const [type, , cols] = LIB_TABLES.find(t => t[0] === LIB.type);
   let rows = novaAll(GAME, type).map(r => ({ r, name: novaNameParts(r.name).name || `${type} ${r.id}` }));
   if (q) rows = rows.filter(x => x.name.toLowerCase().includes(q));
-  const key = LIB.sort;
+  const key = LIB.sort, derived = LIB_DERIVED[type] || {};
   if (key) {
-    const v = x => (key === 'id' ? x.r.id : key === 'name' ? x.name : x.r[key]);
+    const v = x => (key === 'id' ? x.r.id : key === 'name' ? x.name : derived[key] ? derived[key](x.r) : x.r[key]);
     rows.sort((a, b) => { const A = v(a), B = v(b); const c = typeof A === 'string' ? A.localeCompare(B) : A - B; return LIB.desc ? -c : c; });
   }
   const head = [['id', 'id'], ['name', 'Name'], ...cols.map(c => [c, c])]
     .map(([k, l]) => `<th data-lib-sort="${k}" class="${key === k ? (LIB.desc ? 'down' : 'up') : ''}">${esc(l)}</th>`).join('');
-  const cell = (r, c) => { const v = r[c]; return `<td>${esc(Array.isArray(v) ? v.join(', ') : novaFieldText(S_KIND(type, c), v))}</td>`; };
+  const cell = (r, c) => { if (derived[c]) return `<td>${esc(derived[c](r))}</td>`; const v = r[c]; return `<td>${esc(Array.isArray(v) ? v.join(', ') : novaFieldText(S_KIND(type, c), v))}</td>`; };
   return `<p class="note">${rows.length} ${esc(type)} records, their fields as the files have them; a field's meaning is its note in the record's Every field. Tap a column to sort by it.</p>
     <div class="libScroll"><table class="libTable"><thead><tr>${head}</tr></thead><tbody>${rows.map(({ r, name }) =>
       `<tr><td>${r.id}</td><td>${libLink(type, r.id, name)}</td>${cols.map(c => cell(r, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -244,7 +250,7 @@ function wireLibrary() {
   }, true);
   const el = $('library');
   el.addEventListener('click', e => {
-    const t = e.target.closest('[data-lib-tab],[data-lib-sort],[data-lib-play],[data-ship],[data-sys],[data-stellar],[data-rec]');
+    const t = e.target.closest('[data-lib-tab],[data-lib-sort],[data-lib-play],[data-ship],[data-sys],[data-stellar],[data-rec],[data-mission]');
     if (!t) return;
     const d = t.dataset;
     if (d.libTab) { libShow(d.libTab, LIB.type); return; }
@@ -256,6 +262,7 @@ function wireLibrary() {
     else if (d.sys) goSystem(+d.sys);
     else if (d.stellar) goStellar(+d.stellar);
     else if (d.rec) recOpen(d.rec);
+    else if (d.mission) { VIEW.sel = { kind: 'mission', id: +d.mission, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; }
   });
   el.addEventListener('change', e => { if (e.target.id === 'libType') libShow('table', e.target.value); });
   el.addEventListener('input', e => {

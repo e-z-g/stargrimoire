@@ -110,6 +110,7 @@ const CHECKS = [
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and held to unar'],
   ['collection', 'the plug-ins archive.org lists, read as Add plug-ins reads them and held to the copies'],
+  ['png', 'the PNG writer the whole map uses on a computer, held to node\'s zlib'],
   ['ships', 'the Bible\'s rules for ships, and every release\'s ships through them'],
   ['flight', 'ships in flight: worked figures from Mac 1.1.1\'s code, and the records\' odds'],
   ['subway', 'the subway maps: 45 and 22.5 degrees, room for names, the same map twice'],

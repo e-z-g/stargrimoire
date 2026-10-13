@@ -46,6 +46,7 @@ export function site(opts = {}) {
     console, TextDecoder, TextEncoder, Uint8Array, Uint8ClampedArray, Uint16Array, Int16Array, Uint32Array,
     Int32Array, Float32Array, Float64Array, DataView, ArrayBuffer, Math, Error, Map, Set, JSON, Date, Number,
     String, Array, Object, RegExp, Symbol, Promise, parseInt, parseFloat, isFinite, isNaN, Infinity, NaN, BigInt,
+    CompressionStream,
     Blob: class { constructor(parts, o) { this.parts = parts; this.type = o && o.type; } },
   };
   if (opts.dom) ctx.document = { createElement: t => (t === 'canvas' ? stubCanvas() : {}) };

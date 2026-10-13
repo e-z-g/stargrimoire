@@ -548,16 +548,21 @@ function wholeMapFrame() {
   return { moves, x0, y0, x1, y1, gw: x1 - x0 || 1, gh: y1 - y0 || 1, padX: 30 + Math.ceil(wide), padY: 30 + 24 };
 }
 // Its size: the galaxy's shape at the zoom from which every system's name shows (namePlan), and
-// 2000 map pixels along its longer side at the least; within `most` map pixels in all, where
-// fewer names show. Starfleet Adventures' 1,285 names need a map 27,000 pixels across; at
-// 2000, which was the size for any galaxy until 13 October 2026, 286 of them showed.
-function wholeMapSize(most = Infinity) {
+// 2000 map pixels along its longer side at the least; within `most` map pixels in all and `wide`
+// across, where fewer names show. Starfleet Adventures' 1,285 names need a map 21,731 pixels
+// across; at 2000, which was the size for any galaxy until 13 October 2026, 286 of them showed.
+// [w, h], and .s its zoom and .names how many names it shows.
+function wholeMapSize(most = Infinity, wide = Infinity) {
   const { gw, gh, padX, padY } = wholeMapFrame(), plan = namePlan(), X = 2 * padX, Y = 2 * padY;
   const need = plan.room !== undefined ? plan.room : Math.max(0, ...[...plan.from.values()].filter(Number.isFinite));
   let s = Math.max(need * 1.01, (2000 - Math.max(X, Y)) / Math.max(gw, gh));
   // (gw s + X)(gh s + Y) = most, for s
   if ((gw * s + X) * (gh * s + Y) > most) { const b = gw * Y + gh * X; s = (-b + Math.sqrt(b * b - 4 * gw * gh * (X * Y - most))) / (2 * gw * gh); }
-  return [Math.ceil(gw * s + X), Math.ceil(gh * s + Y)];
+  s = Math.min(s, (wide - 1 - X) / gw);
+  const size = [Math.ceil(gw * s + X), Math.ceil(gh * s + Y)];
+  size.s = s;
+  size.names = plan.room !== undefined ? (s >= plan.room ? PLACES.length : 0) : PLACES.filter(p => plan.from.get(p) <= s).length;
+  return size;
 }
 function galaxyView() {
   const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y);
@@ -3099,18 +3104,43 @@ function wireTools() {
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
-  // the whole map, large: a PNG up to four times as sharp as the map's own pixels, kept within 32
-  // million of them so that a phone can make it, and never less sharp, so that a big galaxy's
-  // picture has fewer names than its drawing, an SVG, which has them all (wholeMapSize)
+  // the whole map, large: a PNG with every name (wholeMapSize), up to four times as sharp as the
+  // map's own pixels within 32 million of them, and never less sharp. On a computer one larger
+  // than that, as a big galaxy's is, is drawn a band at a time and written by png-stream.js; a
+  // phone cannot hold it, so there it is kept within the 32 million, and if that leaves names
+  // out the visitor is asked first (the maintainer's asking, 13 October 2026). The SVG, a
+  // drawing, has every name anywhere.
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
-  $('saveWhole').onclick = () => {
-    const [w, h] = wholeMapSize(32e6), k = Math.max(1, Math.min(4, Math.sqrt(32e6 / (w * h))));
-    const c = document.createElement('canvas');
-    c.width = Math.round(w * k); c.height = Math.round(h * k);
-    const ctx = c.getContext('2d');
-    ctx.setTransform(k, 0, 0, k, 0, 0);
-    drawWholeMap(ctx, w, h);
-    c.toBlob(b => { if (b) dlBlob(b, wholeName('png')); else alert('This browser could not make a picture that large.'); }, 'image/png');
+  $('saveWhole').onclick = async () => {
+    const computer = matchMedia('(pointer: fine)').matches, all = wholeMapSize();
+    const size = computer ? wholeMapSize(Infinity, 32000) : wholeMapSize(32e6), [w, h] = size;
+    if (size.names < all.names && !confirm(`This picture can hold ${size.names.toLocaleString()} of the ${all.names.toLocaleString()} system names: ` +
+        (computer ? 'with all of them it would be too wide for a browser to draw.' : 'a phone cannot make one large enough for them all; a computer can.') +
+        ' The SVG has every name. Save the picture anyway?')) return;
+    if (w * h <= 32e6) {
+      const k = Math.max(1, Math.min(4, Math.sqrt(32e6 / (w * h)))), c = document.createElement('canvas');
+      c.width = Math.round(w * k); c.height = Math.round(h * k);
+      const ctx = c.getContext('2d');
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      drawWholeMap(ctx, w, h);
+      c.toBlob(b => { if (b) dlBlob(b, wholeName('png')); else alert('This browser could not make a picture that large.'); }, 'image/png');
+      return;
+    }
+    // a band of rows at a time, each the whole map drawn shifted up, about 16 million pixels a band
+    const rows = Math.max(1, Math.floor(16e6 / w)), c = document.createElement('canvas');
+    c.width = w; c.height = rows;
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    try {
+      const parts = await pngWrite(w, h, rows, async (y, n) => {
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, rows);
+        ctx.setTransform(1, 0, 0, 1, 0, -y);
+        drawWholeMap(ctx, w, h);
+        await nextPaint();
+        return ctx.getImageData(0, 0, w, n).data;
+      }, y => setStatus(`Making the whole map, ${w.toLocaleString()} by ${h.toLocaleString()} pixels: ${Math.round(100 * y / h)}%`));
+      dlBlob(new Blob(parts, { type: 'image/png' }), wholeName('png'));
+      setStatus(`Saved the whole map, ${w.toLocaleString()} by ${h.toLocaleString()} pixels, ${size.names === all.names ? 'every name' : size.names.toLocaleString() + ' of the ' + all.names.toLocaleString() + ' names'} in it`);
+    } catch (err) { setStatus('Could not make the whole map: ' + err.message, true); }
   };
   $('saveSvg').onclick = () => {
     const [w, h] = wholeMapSize(), ctx = svgContext(w, h);

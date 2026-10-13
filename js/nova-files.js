@@ -117,11 +117,21 @@ function novaOpenFork(bytes) {
    the `Nova Files` folder, where the program keeps its own resources (the
    Community Edition's `Nova.rez` is its dialogs and menus). A file counts
    when it has a resource fork, or is a `.rez` or `.ndat`, whose data fork
-   is one. Each comes back with `folder`, the path it sits in, and
+   is one; an archive in the archive, or a MacBinary or BinHex copy of one
+   (a .sit.bin), is opened in its place. Each comes back with `folder`, the
+   path it sits in, and
    `read()`, which decompresses it when called, and `unpack`, what a
    background thread needs to do the same (page-open.js; none for StuffIt
    X, read here). */
-function novaArchiveFiles(bytes) {
+// An archive's bytes as an archive the page reads: itself, or the one in a MacBinary or BinHex copy's data fork; else null.
+function novaArchiveIn(bytes) {
+  const is = b => looksLikeStuffIt(b) || looksLikeStuffItX(b) || looksLikeZip(b);
+  if (is(bytes)) return bytes;
+  let w = null;
+  try { w = sniffMacContainer(bytes); } catch (e) { return null; }
+  return w && w.data && w.data.length && is(w.data) ? w.data : null;
+}
+function novaArchiveFiles(bytes, depth = 0) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes), sitx = !zip && !dmg && looksLikeStuffItX(bytes);
   const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : sitx ? parseStuffItXArchive(bytes) : parseStuffItArchive(bytes);
   const out = [];
@@ -138,6 +148,17 @@ function novaArchiveFiles(bytes) {
     if (e.isFolder) continue;
     const name = e.name.replace(/\r$/, '');
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
+    // an archive in the archive, as EstarGuars' SAE_1of2.sit.bin is a MacBinary StuffIt in a
+    // StuffIt: decompressed now, so as to see in it, and its files in its place, in its folder
+    if (depth < 3 && /\.(sit|sitx|zip)(\.(bin|hqx))?$/i.test(name)) {
+      let inner = null;
+      try { inner = novaArchiveIn(dmg ? e.read('data') : zip ? zipFork(bytes, e, 'data') : sitx ? stuffItXFork(bytes, e, 'data') : stuffItFork(bytes, e, 'data')); } catch (err) { inner = null; }
+      if (inner) {
+        const at = e.path || e.name;
+        for (const f of novaArchiveFiles(inner, depth + 1)) out.push(Object.assign(f, { path: at + '/' + f.path, folder: at + (f.folder ? '/' + f.folder : ''), unpack: null }));
+        continue;
+      }
+    }
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;   // (a StuffIt X entry is shaped as a StuffIt one)
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
     const dataFile = /\.(rez|ndat)$/i.test(name);

@@ -4,7 +4,9 @@
 // through novaArchiveFiles (and through the archive in a MacBinary copy,
 // as unwrapArchive in page-open.js takes it), every fork held to what
 // `unar` extracts, and every plug-in read as the page reads one, its
-// resources counted.
+// resources counted. And an archive in an archive: reference/game's
+// EstarGuars is a StuffIt whose files are MacBinary copies of StuffIt
+// archives, and its 14 plug-ins must come out of them.
 //
 // js/mac-stuffitx.js is grimoire's (copies_check holds it so), a port of
 // The Unarchiver's, and grimoire's sitx_check.mjs is where it is held to
@@ -56,6 +58,18 @@ for (const f of files) {
   }
 }
 fs.rmSync(TMP, { recursive: true, force: true });
+// archives in an archive
+const ESTAR = path.join(REF, 'game/EstarGuars_Nova_1.sit');
+let nested = 'EstarGuars not here';
+if (fs.existsSync(ESTAR)) {
+  const list = S.novaArchiveFiles(new Uint8Array(fs.readFileSync(ESTAR))), inner = list.filter(f => /\.sit\.bin\//.test(f.path) && f.plugin);
+  // read smallest first, until one holds star systems
+  let g = null, which = null;
+  for (const f of [...inner].sort((x, y) => x.size - y.size)) { const t = S.novaGame(); t.add(f, f.read()); if (t.list('sÿst').length) { g = t; which = f.path.split('/').pop(); break; } }
+  const n = g ? g.list('sÿst').length : 0;
+  if (inner.length !== 14 || !n) fail(`EstarGuars: ${inner.length} plug-ins out of its .sit.bin archives, none with star systems`);
+  nested = `EstarGuars: ${inner.length} plug-ins out of its three .sit.bin archives, ${n} systems in ${which}`;
+}
 if (unread.length > 5) fail(`${unread.length} archives not read, where unar cannot read five: ${unread.join('; ')}`);
-console.log(`${files.length} StuffIt X archives among the Nova plug-ins: ${forks} files byte identical to unar, ${plugins} read as plug-ins (${resources} records); not read, as unar does not read them: ${unread.join('; ')} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+console.log(`${files.length} StuffIt X archives among the Nova plug-ins: ${forks} files byte identical to unar, ${plugins} read as plug-ins (${resources} records); not read, as unar does not read them: ${unread.join('; ')}; ${nested} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 process.exit(fails ? 1 : 0);

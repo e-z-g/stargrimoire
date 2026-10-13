@@ -82,7 +82,9 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
 // PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's asking, 30 September 2026):
 // one size, never made smaller to fit, semibold, white, outlined in the background's colour
 // NEB_STYLE: the nebulae as their pictures, as plain shapes (nebulaShape), or not at all; NEBULAE, drawn at all
-let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, NEB_STYLE = 'pictures', SYS_STYLE = 'dots', PLAIN_NAMES = false;
+// FLAT_LINKS: links in government colours each in one (as govtOne), not shading from one end's to the other's
+// The metro styles are the subway map's, each a switch under it (subwayLook).
+let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, NEB_STYLE = 'pictures', SYS_STYLE = 'dots', PLAIN_NAMES = false, FLAT_LINKS = false;
 function turbo(t) {
   t = Math.max(0, Math.min(1, t));
   const c = v => Math.max(0, Math.min(255, Math.round(v)));
@@ -1022,7 +1024,7 @@ function renderLegend() {
     if (!jumpMap()) parts.push('<div>Select a system to count the jumps from it</div>');
     else parts.push(ramp(`Jumps from ${esc(U.byId.get(jumpSource()).name)}`, jumpT, 1, JUMPS.max));
   }
-  const f = DOT_FIGURES[DOTS_BY];
+  const f = SYS_STYLE === 'dots' && DOT_FIGURES[DOTS_BY];
   if (f) { const max = figureMax(f.field); parts.push(ramp(`${f.what}; none in grey`, t => figureT(1 + t * (max - 1), max), 1 + f.unit, max + f.unit)); }
   if (REACH && !jumpMap()) parts.push(`<div>Select a system to light what is within ${REACH} jump${REACH === 1 ? '' : 's'} of it</div>`);
   if (LIGHT !== 'all' && U) {
@@ -1172,15 +1174,15 @@ function drawLinks(ctx) {
   // than half of either piece it joins, coming in as the subway map does
   const R = LAYOUT.sub ? 0.7 * (LAYOUT.base ? LAYOUT.base.layout.step + (LAYOUT.sub.layout.step - LAYOUT.base.layout.step) * LAYOUT.mix : LAYOUT.sub.layout.step * LAYOUT.mix) * CAM.s : 0;
   const trace = s => roundedPath(ctx, s.pts, R);
-  const jumps = LINKS_BY === 'jumps' ? jumpMap() : null;
+  const jumps = LINKS_BY === 'jumps' ? jumpMap() : null, how = FLAT_LINKS && LINKS_BY === 'govt' ? 'govtOne' : LINKS_BY;
   const paint = segs => {
-    if (LINKS_BY === 'govt') {
+    if (how === 'govt') {
       for (const s of segs) {
         const a = s.pts[0], b = s.pts[s.pts.length - 1], g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
         g.addColorStop(0, linkColor(s.l.from.govt)); g.addColorStop(1, linkColor(s.l.to.govt));
         ctx.strokeStyle = g; ctx.beginPath(); trace(s); ctx.stroke();
       }
-    } else if (LINKS_BY === 'govtOne') {
+    } else if (how === 'govtOne') {
       const cs = govtOneColours(), by = new Map();
       for (const s of segs) { const c = cs.get(s.l) || 'rgba(125,145,180,0.55)'; if (!by.has(c)) by.set(c, []); by.get(c).push(s); }
       for (const [c, list] of by) { ctx.strokeStyle = c; ctx.beginPath(); for (const s of list) trace(s); ctx.stroke(); }
@@ -1231,16 +1233,16 @@ function arrowHalfway(ctx, pts) {
   ctx.fill();
 }
 
-/* Hypergates and wormholes (Gates in Map options, on at first; the
-   maintainer's asking, 29 September 2026: anything leading from one system
-   to another). A gate's way to another system is drawn straight and dashed
+/* Hypergates and wormholes (Gates in Map options, the maintainer's
+   asking, 29 September 2026: anything leading from one system to another;
+   off at first since 13 October 2026, as he asked). A gate's way to another system is drawn straight and dashed
    over the hyperspace links, a hypergate's in teal and a wormhole's in
    violet, with an arrowhead where it runs one way. A random wormhole goes
    to any other (novaShownGates), which drawn at once would be a web over
    the galaxy, so its ways are drawn only from the selected system, or the
    one you are in, finer and fainter. Beside each system's dot, a mark for
    each kind of gate it has, hollow for a gate that leads nowhere. */
-let GATE_LINES = true;
+let GATE_LINES = false;
 let GATES_DRAWN = { links: 0, random: 0 };   // the ways the last draw put on the screen, for page_check
 const GATE_COLOR = { hypergate: '#4fd1c5', wormhole: '#c08cff' };
 function randomGateWays() {
@@ -1976,14 +1978,39 @@ function useSub(sub) {
   if (LAYOUT.sub === sub) return;
   LAYOUT.sub = sub; NEB_SUB.clear(); buildPlaces();
 }
-// The switches as a kind of map says: the one wanted, which may be on its way.
+// The switches as a kind of map says: the one wanted, which may be on its way. None wanted
+// while the arrangement's switch is on is the subway map left, as the address can.
 function syncOpts(kind = LAYOUT.want) {
-  $('optSubway').checked = !!kind;
-  if (kind) { const f = subwayFlags(kind); $('optFine').checked = f.fine; $('optMixed').checked = f.mixed; $('optRoom').checked = f.names; $('optHeading').checked = f.heading; $('optBars').checked = !f.dots; $('optSide').checked = f.side; }
-  $('optFine').disabled = $('optRoom').disabled = $('optHeading').disabled = !kind;
-  $('optMixed').disabled = !kind || !$('optFine').checked;
-  $('optBars').disabled = !kind || !$('optHeading').checked;
-  $('optSide').disabled = !kind || !$('optHeading').checked || !$('optRoom').checked;
+  if (kind) {
+    const f = subwayFlags(kind);
+    $('optSubway').checked = $('optArrange').checked = true;
+    $('optFine').checked = f.fine; $('optMixed').checked = f.mixed; $('optRoom').checked = f.names; $('optHeading').checked = f.heading; $('optBars').checked = !f.dots; $('optSide').checked = f.side;
+  } else if ($('optArrange').checked) $('optSubway').checked = false;
+  subwayLook();
+  showOpts();
+}
+// The subway map is its arrangement of the systems and a look beside it, each part a switch under
+// it, all on with it (the maintainer's asking, 13 October 2026): names and systems as a metro
+// map's, links each in one colour, and the nebulae as plain shapes.
+function subwayLook() {
+  const on = $('optSubway').checked;
+  PLAIN_NAMES = on && $('optPlainNames').checked;
+  SYS_STYLE = !$('optSystems').checked ? 'none' : on && $('optMetroSys').checked ? 'metro' : 'dots';
+  NEB_STYLE = !$('optNebulae').checked ? 'none' : on && $('optPlainNeb').checked ? 'shapes' : 'pictures';
+  NEBULAE = NEB_STYLE !== 'none';
+  FLAT_LINKS = on && $('optFlatLinks').checked;
+}
+// A switch whose parent is off is hidden, and so is the dots' colouring where there are none.
+function showOpts() {
+  const hide = (id, h) => { $(id).closest('label').hidden = h; };
+  const sub = $('optSubway').checked, arr = sub && $('optArrange').checked;
+  for (const id of ['optArrange', 'optPlainNames', 'optMetroSys', 'optFlatLinks', 'optPlainNeb']) hide(id, !sub);
+  for (const id of ['optFine', 'optRoom', 'optHeading']) hide(id, !arr);
+  hide('optMixed', !arr || !$('optFine').checked);
+  hide('optBars', !arr || !$('optHeading').checked);
+  hide('optSide', !arr || !$('optHeading').checked || !$('optRoom').checked);
+  hide('optShips', !$('optStellars').checked);
+  hide('dotSel', SYS_STYLE !== 'dots');
 }
 // At once, as when the address asks for a map, once it is ready; kind null
 // is the true positions.
@@ -3066,14 +3093,20 @@ function wireTools() {
   document.addEventListener('pointerdown', e => { if (!opts.hidden && !opts.contains(e.target) && e.target !== btn) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !opts.hidden) { opts.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
   // only where needed is a way of having 22.5 degrees, and goes with them
-  const chosen = () => ($('optSubway').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null);
-  for (const id of ['optSubway', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide']) $(id).onchange = () => setLayout(chosen());
+  const chosen = () => ($('optSubway').checked && $('optArrange').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null);
+  const look = () => { renderLegend(); redraw(); };
+  for (const id of ['optSubway', 'optArrange', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide']) $(id).onchange = () => { setLayout(chosen()); look(); };
+  for (const id of ['optPlainNames', 'optMetroSys', 'optFlatLinks', 'optPlainNeb', 'optSystems', 'optNebulae']) $(id).onchange = () => { subwayLook(); showOpts(); look(); };
+  subwayLook();
+  showOpts();
+  // the ships are the stellars', and go with them
   $('optStellars').onchange = () => {
     STELLARS = $('optStellars').checked;
     OPEN_SYS = VIEW.mode !== 'galaxy' ? VIEW.sys : null;
-    redraw();
+    showOpts();
+    flightSwitch(STELLARS && $('optShips').checked);
   };
-  $('optShips').onchange = () => flightSwitch($('optShips').checked);
+  $('optShips').onchange = () => flightSwitch(STELLARS && $('optShips').checked);
   $('linkSel').onchange = () => { LINKS_BY = $('linkSel').value; JUMPS = { from: null }; renderLegend(); redraw(); };
   $('optNames').onchange = () => { NAMES = $('optNames').checked; redraw(); };
   // The corner: the details beside the map (below it on a phone) hidden or shown, and full screen
@@ -3097,9 +3130,6 @@ function wireTools() {
   const fullChanged = () => { const on = isFull(); full.classList.toggle('on', on); full.title = on ? 'Leave full screen' : 'Full screen'; full.setAttribute('aria-label', full.title); };
   document.addEventListener('fullscreenchange', fullChanged);
   document.addEventListener('webkitfullscreenchange', fullChanged);
-  $('nebSel').onchange = () => { NEB_STYLE = $('nebSel').value; NEBULAE = NEB_STYLE !== 'none'; redraw(); };
-  $('optPlainNames').onchange = () => { PLAIN_NAMES = $('optPlainNames').checked; redraw(); };
-  $('sysSel').onchange = () => { SYS_STYLE = $('sysSel').value; redraw(); };
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };

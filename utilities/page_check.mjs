@@ -235,12 +235,17 @@ try {
           // and asked for by the address.
           out.subway = await p.evaluate(`(async () => {
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
+            // at first the subway map is off and every switch under it on, and hidden
+            const under = ['optArrange', 'optFine', 'optMixed', 'optRoom', 'optHeading', 'optBars', 'optSide', 'optPlainNames', 'optMetroSys', 'optFlatLinks', 'optPlainNeb'];
+            const first = { on: $('optSubway').checked, unticked: under.filter(id => !$(id).checked), shown: under.filter(id => !$(id).closest('label').hidden) };
+            const look = () => [PLAIN_NAMES, SYS_STYLE, NEB_STYLE, FLAT_LINKS].join();
             const t0 = performance.now();
             await subwayGet('45');
             const ms = Math.round(performance.now() - t0);
             await setLayout('45'); await idle();
             const sol = PLACE_OF.get(130);
-            const inSol = { mode: VIEW.mode, sys: VIEW.sys, mix: LAYOUT.mix, hash: location.hash, moved: Math.hypot(sol.x - sol.tx, sol.y - sol.ty) > 1 };
+            const inSol = { mode: VIEW.mode, sys: VIEW.sys, mix: LAYOUT.mix, hash: location.hash, moved: Math.hypot(sol.x - sol.tx, sol.y - sol.ty) > 1, look: look(),
+                            shown: under.filter(id => !$(id).closest('label').hidden).length };
             await show('galaxy', {}); await idle();
             let bent = 0;
             for (const l of LINKS) { const pa = PLACE_OF.get(l.from.id), pb = PLACE_OF.get(l.to.id); if (!pa || !pb) continue; const q = linkPoints(l, pa, pb), dir = i => Math.atan2(q[i + 1].y - q[i].y, q[i + 1].x - q[i].x); for (let i = 1; i + 1 < q.length; i++) if (Math.abs(dir(i) - dir(i - 1)) > 1e-6) { bent++; break; } }
@@ -254,7 +259,7 @@ try {
             Object.assign(CAM, { x: PLACE_OF.get(130).x, y: PLACE_OF.get(130).y, s: 12 / (0.72 * LAYOUT.sub.layout.step) }); draw();
             const solN = PLACE_OF.get(130), nm = LAYOUT.sub.name(solN.tx, solN.ty);
             const names = { kind: LAYOUT.kind, hash: location.hash, stats: LAYOUT.sub.layout.stats, ms: namesMs, room: namesInRoom(), sol: nm && { side: nm.side, w: +nm.w.toFixed(2) } };
-            return { ms, inSol, galaxy, fine, names };
+            return { first, ms, inSol, galaxy, fine, names };
           })()`);
           // in two, since each evaluation is given 60 s, and the four maps together took 40 on the phone
           Object.assign(out.subway, await p.evaluate(`(async () => {
@@ -273,7 +278,7 @@ try {
           await shot('subway');
           out.subwayOff = await p.evaluate(`(async () => {
             await setLayout(null); for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
-            const off = { mix: LAYOUT.mix, hash: location.hash, sel: [$('optSubway').checked, $('optFine').disabled].join() };
+            const off = { mix: LAYOUT.mix, hash: location.hash, sel: [$('optSubway').checked, $('optFine').closest('label').hidden].join(), look: [PLAIN_NAMES, SYS_STYLE, NEB_STYLE, FLAT_LINKS].join() };
             history.replaceState(null, '', '#system=130&subway'); applyHash(); await subwayGet('45'); await new Promise(r => setTimeout(r, 50));
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
             const byHash = { mix: LAYOUT.mix, mode: VIEW.mode, sys: VIEW.sys, sel: [$('optSubway').checked, $('optFine').checked, $('optRoom').checked].join() };
@@ -284,11 +289,11 @@ try {
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
             redraw();
             const ml = U.systems.find(s => s.name === 'Moash Llima'), bar = ml && barEnds(PLACE_OF.get(ml.id)), got = bar && systemAt(bar.x0, bar.y0);
-            const mixed = { kind: LAYOUT.kind, mix: LAYOUT.mix, hash: location.hash, stats: LAYOUT.sub.layout.stats, sel: [$('optFine').checked, $('optMixed').checked, $('optMixed').disabled, $('optHeading').checked].join(), bar: !!bar, picked: !!got && got.id === ml.id };
+            const mixed = { kind: LAYOUT.kind, mix: LAYOUT.mix, hash: location.hash, stats: LAYOUT.sub.layout.stats, sel: [$('optFine').checked, $('optMixed').checked, $('optMixed').closest('label').hidden, $('optHeading').checked].join(), bar: !!bar, picked: !!got && got.id === ml.id };
             // busy stations as points, from the address, and the switch turned back on
             history.replaceState(null, '', '#galaxy&subway=heading,dots'); applyHash(); await subwayGet('heading-dots'); await new Promise(r => setTimeout(r, 50));
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
-            const dots = { kind: LAYOUT.kind, hash: location.hash, stats: LAYOUT.sub.layout.stats, sel: [$('optBars').checked, $('optBars').disabled].join(), bar: !!barEnds(PLACE_OF.get(ml.id)) };
+            const dots = { kind: LAYOUT.kind, hash: location.hash, stats: LAYOUT.sub.layout.stats, sel: [$('optBars').checked, $('optBars').closest('label').hidden].join(), bar: !!barEnds(PLACE_OF.get(ml.id)) };
             $('optBars').checked = true; $('optBars').onchange(); await subwayGet('heading');
             for (let i = 0; i < 200 && (MOVING || LAYOUT.kind !== 'heading'); i++) await new Promise(r => setTimeout(r, 50));
             Object.assign(dots, { back: LAYOUT.kind, backHash: location.hash, backBar: !!barEnds(PLACE_OF.get(ml.id)) });
@@ -296,6 +301,7 @@ try {
           })()`);
           // A route, a reach, government colours off and the map saved as a picture.
           out.features = await p.evaluate(`(async () => {
+            const gatesFirst = GATE_LINES;
             history.replaceState(null, '', '#galaxy&system=130'); applyHash(); await new Promise(r => setTimeout(r, 100));
             for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50));
             const far = [...jumpMap()].sort((a, b) => b[1] - a[1])[0];
@@ -341,15 +347,15 @@ try {
             let saved = null; const was = dlBlob; dlBlob = (b, n) => { saved = { size: b.size, type: b.type, name: n }; };
             $('saveImg').click(); for (let i = 0; i < 60 && !saved; i++) await new Promise(r => setTimeout(r, 50)); dlBlob = was;
             setRoute(null, null);
-            // Hypergates and wormholes: from Sol, its wormhole's way to every other random one; Kania's hypergate's three; the switch off
+            // Hypergates and wormholes, off at first: from Sol, its wormhole's way to every other random one; Kania's hypergate's three; the switch off
+            $('optGates').checked = true; $('optGates').onchange();
             VIEW.sel = { kind: 'system', id: 130 }; renderPanel(); draw();
             const gates = { links: GATES_DRAWN.links, random: GATES_DRAWN.random, want: new Set(GATES.random.map(r => PLACE_OF.get(r.sys.id))).size - 1,
                             sol: /random one of the \\d+ other wormholes/.test($('panel').textContent) };
             VIEW.sel = { kind: 'system', id: 128 }; renderPanel(); draw();
             const named = [...document.querySelectorAll('#panel table.gates a[data-sys]')].map(a => a.textContent);
             Object.assign(gates, { kania: ['Tichel', 'Dani', 'Koria'].every(n => named.includes(n)), kaniaRandom: GATES_DRAWN.random });
-            $('optGates').checked = false; $('optGates').onchange(); draw(); gates.off = GATES_DRAWN.links + GATES_DRAWN.random;
-            $('optGates').checked = true; $('optGates').onchange();
+            $('optGates').checked = false; $('optGates').onchange(); draw(); Object.assign(gates, { off: GATES_DRAWN.links + GATES_DRAWN.random, first: gatesFirst });
             // A bit: b147 from Sol's visibility, what sets it, and the map with it set and without
             VIEW.sel = { kind: 'system', id: 130 }; writeHash(true); renderPanel();
             const link = document.querySelector('#panel [data-bit="147"]');
@@ -556,9 +562,9 @@ try {
             const jumps = { max: JUMPS.max, reached: JUMPS.map ? JUMPS.map.size : 0, shown: SHOWN.size, legend: $('legend').textContent, hidden: $('legend').hidden };
             $('optNames').checked = false; $('optNames').onchange(); await frame();
             $('optNames').checked = true; $('optNames').onchange();
-            $('nebSel').value = 'none'; $('nebSel').onchange(); await frame();
+            $('optNebulae').checked = false; $('optNebulae').onchange(); await frame();
             const nebulaHidden = nebulaAt(...toScreen(U.nebulae[0].x + U.nebulae[0].w / 2, U.nebulae[0].y + U.nebulae[0].h / 2)) === null;
-            $('nebSel').value = 'pictures'; $('nebSel').onchange();
+            $('optNebulae').checked = true; $('optNebulae').onchange();
             $('linkSel').value = 'plain'; $('linkSel').onchange();
             const legendAfter = $('legend').hidden;
             await setLayoutNow('45');
@@ -651,7 +657,7 @@ try {
             Object.assign(CAM, { x: PLACE_OF.get(130).x, y: PLACE_OF.get(130).y, s: GALAXY_HOME.s }); redraw(); await frame();
             let most = 0;
             for (let i = 0; i < 120 && CAM.s < goal; i++) { zoomAt(CW / 2, CH / 2, 1.15); await frame(); const d = DRAWN.find(v => v.sys.id === 130); most = Math.max(most, d ? d.t : 0); }
-            const near = { most, mode: VIEW.mode };
+            const near = { most, mode: VIEW.mode, ships: [FLIGHT.on, $('optShips').closest('label').hidden].join() };
             await show('system', { sys: 130 }); await idle(); await frame();
             const d = DRAWN.find(v => v.sys.id === 130), went = { mode: VIEW.mode, sys: VIEW.sys, open: d ? d.t : null };
             for (let i = 0; i < 120 && CAM.s > GALAXY_HOME.s; i++) { zoomAt(CW / 2, CH / 2, 1 / 1.15); await frame(); }
@@ -689,6 +695,10 @@ try {
         fail(`${dev.name}: back after zooming out of Sol: ${JSON.stringify([hi.zoomedOut, hi.zoomBack])}`);
       if (o.zoomLand.mode !== 'planet' || o.zoomLand.stellar !== 128) fail(`${dev.name}: scrolling in on Earth: ${JSON.stringify(o.zoomLand)}`);
       const sw = o.subway, so = o.subwayOff;
+      if (sw.first.on || sw.first.unticked.length || sw.first.shown.length) fail(`${dev.name}: the subway map's switches at first: ${JSON.stringify(sw.first)}`);
+      if (sw.inSol.look !== 'true,metro,shapes,true' || so.off.look !== 'false,dots,pictures,false') fail(`${dev.name}: the subway map's look, on and off: ${JSON.stringify([sw.inSol.look, so.off.look])}`);
+      // the '45' kind: 22.5 degrees off and so only where awkward hidden, headings off and so bars and sides hidden
+      if (sw.inSol.shown !== 8) fail(`${dev.name}: the switches shown under the 45-degree subway map: ${sw.inSol.shown}`);
       if (sw.inSol.mode !== 'system' || sw.inSol.sys !== 130 || sw.inSol.mix !== 1 || !sw.inSol.moved || !/&subway$/.test(sw.inSol.hash))
         fail(`${dev.name}: the subway map, switched to in Sol: ${JSON.stringify(sw.inSol)}`);
       if (sw.galaxy.mode !== 'galaxy' || sw.galaxy.stats.failed || !sw.galaxy.bent || !/^#galaxy.*&subway$/.test(sw.galaxy.hash))
@@ -721,7 +731,7 @@ try {
       if (ft.light.lit !== ft.light.yards || !(ft.light.lit > 0 && ft.light.lit < ft.light.all) || !ft.light.key) fail(`${dev.name}: only systems with a shipyard lit: ${JSON.stringify(ft.light)}`);
       if (!ft.saved || ft.saved.type !== 'image/png' || !(ft.saved.size > 10000) || !/\.png$/.test(ft.saved.name)) fail(`${dev.name}: the map saved as a picture: ${JSON.stringify(ft.saved)}`);
       const gt = ft.gates;
-      if (!(gt.links > 0) || gt.random !== gt.want || !(gt.want > 0) || !gt.sol || !gt.kania || gt.kaniaRandom !== 0 || gt.off !== 0) fail(`${dev.name}: hypergates and wormholes: ${JSON.stringify(gt)}`);
+      if (!(gt.links > 0) || gt.random !== gt.want || !(gt.want > 0) || !gt.sol || !gt.kania || gt.kaniaRandom !== 0 || gt.off !== 0 || gt.first !== false) fail(`${dev.name}: hypergates and wormholes: ${JSON.stringify(gt)}`);
       const bt = ft.bits;
       if (!bt.link || bt.title !== 'b147' || !bt.setter || !bt.needs || bt.mode !== 'bits' || bt.typed !== 'b147' || !bt.changed || !bt.still || !bt.off || !bt.back)
         fail(`${dev.name}: b147 from Sol's visibility: ${JSON.stringify(bt)}`);
@@ -748,7 +758,7 @@ try {
       if (tr.vega.sys !== 137 || tr.vega.note !== 'Your ship is unable to enter this hypergate - it is offline.' || tr.vega.pick) fail(`${dev.name}: HG-Vega: ${JSON.stringify(tr.vega)}`);
       console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through; HG-Kania opened and asked, and went to Dani; HG-Vega offline`);
       const st = o.stellars;
-      if (st.near.most !== 0 || st.near.mode !== 'galaxy') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
+      if (st.near.most !== 0 || st.near.mode !== 'galaxy' || st.near.ships !== 'false,true') fail(`${dev.name}: without the stellars, zooming in on Sol: ${JSON.stringify(st.near)}`);
       if (st.went.mode !== 'system' || st.went.sys !== 130 || st.went.open !== 1) fail(`${dev.name}: without the stellars, going to Sol: ${JSON.stringify(st.went)}`);
       if (st.after.mode !== 'galaxy' || st.after.open !== 0 || st.after.kept !== null) fail(`${dev.name}: without the stellars, out of Sol and in again: ${JSON.stringify(st.after)}`);
       const roomy = dev.mobile ? st.bare.h > st.h0 && st.bare.w === st.w0 : st.bare.w > st.w0 && st.bare.h === st.h0;

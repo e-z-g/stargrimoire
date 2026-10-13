@@ -82,15 +82,45 @@ async function readPicked(files) {
   return out;
 }
 
+/* An archive the page opens as a set of files: StuffIt, StuffIt X, zip or
+   disk image. One of StuffIt X whose streams undo the English
+   preprocessing needs its dictionary, 1 MB the page does not load
+   otherwise: it comes from the address index.html keeps for it
+   (#sitxEnglish), once, before the archive is read. */
+const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes);
+// A BinHex or MacBinary copy of an archive (a .sit.hqx, a .sitx.bin): the archive in its data fork.
+function unwrapArchive(bytes) {
+  if (isArchive(bytes)) return bytes;
+  let w = null;
+  try { w = sniffMacContainer(bytes); } catch (e) { return bytes; }
+  return w && w.data && w.data.length && isArchive(w.data) ? w.data : bytes;
+}
+async function archiveReady(bytes) {
+  if (!looksLikeStuffItX(bytes) || typeof STUFFITX_ENGLISH_WORDS === 'string') return;
+  let needs = false;
+  try { needs = [...parseStuffItXArchive(bytes).elements.values()].some(el => el.alglist[2] === 0); }
+  catch (e) { needs = !!e.needs; }
+  if (!needs) return;
+  setStatus('Fetching the English dictionary StuffIt X needs');
+  await new Promise((yes, no) => {
+    const s = document.createElement('script');
+    s.src = document.getElementById('sitxEnglish').getAttribute('src');
+    s.onload = yes; s.onerror = () => no(new Error('the English dictionary StuffIt X needs did not load'));
+    document.head.appendChild(s);
+  });
+}
+
 async function openGameFiles(picked, opts = {}) {
   if (!picked.length) return;
   const found = [], refused = [];
   let program = null;
-  for (const { name, bytes } of picked) {
+  for (const { name, bytes: given } of picked) {
     setStatus('Looking inside ' + name);
     await nextPaint();
+    const bytes = unwrapArchive(given);
     try {
-      if (looksLikeStuffIt(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes)) {
+      if (isArchive(bytes)) {
+        await archiveReady(bytes);
         const list = novaArchiveFiles(bytes);
         if (!program) { try { program = novaArchiveProgram(bytes); } catch (e) { program = null; } }
         if (list.length) found.push(...list); else refused.push(name + ' holds no Nova files');

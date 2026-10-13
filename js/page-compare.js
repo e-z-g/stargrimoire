@@ -59,7 +59,9 @@ async function compareWith(picked, label) {
     setStatus('Reading ' + name + ' to compare');
     await nextPaint();
     try {
-      const list = looksLikeStuffIt(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes) ? novaArchiveFiles(bytes) : [novaLooseFile(name, bytes)].filter(Boolean);
+      const inner = unwrapArchive(bytes);
+      if (isArchive(inner)) await archiveReady(inner);
+      const list = isArchive(inner) ? novaArchiveFiles(inner) : [novaLooseFile(name, bytes)].filter(Boolean);
       for (const f of list) if (f.role === 'data' || f.plugin) { await nextPaint(); game.add(f, f.read()); }
     } catch (e) { refused.push(name + ': ' + e.message); }
   }

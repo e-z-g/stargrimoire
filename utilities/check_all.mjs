@@ -108,6 +108,7 @@ const CHECKS = [
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
+  ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and held to unar'],
   ['ships', 'the Bible\'s rules for ships, and every release\'s ships through them'],
   ['flight', 'ships in flight: worked figures from Mac 1.1.1\'s code, and the records\' odds'],
   ['subway', 'the subway maps: 45 and 22.5 degrees, room for names, the same map twice'],

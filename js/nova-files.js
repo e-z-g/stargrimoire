@@ -110,7 +110,7 @@ function novaOpenFork(bytes) {
   return looksLikeRez(bytes) ? novaOpenRez(bytes) : openResourceFork(bytes);
 }
 
-/* The files of a release or a plug-in archive, StuffIt, zip or disk image, from its
+/* The files of a release or a plug-in archive, StuffIt, StuffIt X, zip or disk image, from its
    catalog. What is in a `Nova Files` folder is the game itself; what is in
    a `Nova Plug-ins` folder, or is of Finder type Npïf (which fourcc shows
    as 'Np?f'), or is a `.rez` anywhere else, is a plug-in -- except beside
@@ -119,10 +119,11 @@ function novaOpenFork(bytes) {
    when it has a resource fork, or is a `.rez` or `.ndat`, whose data fork
    is one. Each comes back with `folder`, the path it sits in, and
    `read()`, which decompresses it when called, and `unpack`, what a
-   background thread needs to do the same (page-open.js). */
+   background thread needs to do the same (page-open.js; none for StuffIt
+   X, read here). */
 function novaArchiveFiles(bytes) {
-  const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
-  const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
+  const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes), sitx = !zip && !dmg && looksLikeStuffItX(bytes);
+  const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : sitx ? parseStuffItXArchive(bytes) : parseStuffItArchive(bytes);
   const out = [];
   let all = Array.isArray(cat) ? cat : cat.entries;
   // an installer package on an image (1.1 beta 2.10.7's): the files of its payloads in its place
@@ -137,7 +138,7 @@ function novaArchiveFiles(bytes) {
     if (e.isFolder) continue;
     const name = e.name.replace(/\r$/, '');
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
-    const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;
+    const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;   // (a StuffIt X entry is shaped as a StuffIt one)
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
     const dataFile = /\.(rez|ndat)$/i.test(name);
     // a MacBinary or BinHex copy, its resource fork inside its data
@@ -158,11 +159,11 @@ function novaArchiveFiles(bytes) {
     const role = novaFileRole(name) || NOVA_TYPE_ROLE[e.type];
     if (!plugin && !role && !dataFile && !wrapped) continue;
     const which = hasRsrc ? 'rsrc' : 'data';
-    const raw = () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : stuffItFork(bytes, e, which);
+    const raw = () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which);
     out.push({ name: name.replace(/\.(ndat|rez|bin|hqx)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
                role: plugin ? null : (role || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
                read: wrapped ? () => novaUnwrapFork(raw()) : raw,
-               unpack: dmg ? null : { archive: bytes, entry: e, which, zip, wrapped } });
+               unpack: dmg || sitx ? null : { archive: bytes, entry: e, which, zip, wrapped } });
   }
   return out;
 }
@@ -174,7 +175,7 @@ function novaArchiveFiles(bytes) {
    data fork, or null. */
 function novaArchiveProgram(bytes) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
-  if (zip) return null;
+  if (zip || looksLikeStuffItX(bytes)) return null;
   const cat = dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
   const all = Array.isArray(cat) ? cat : cat.entries;
   const e = all.find(x => !x.isFolder && x.type === 'APPL' && /^EV Nova/.test(x.name) && x.dataLen > 100000) ||

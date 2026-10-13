@@ -500,11 +500,18 @@ function drawWholeMap(ctx, w, h) {
     $('scale').textContent = keep.scale;
   }
 }
-// Its size: the galaxy's shape, 2000 map pixels along its longer side.
-function wholeMapSize() {
-  const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y);
-  const gw = Math.max(...xs) - Math.min(...xs) || 1, gh = Math.max(...ys) - Math.min(...ys) || 1, L = 2000, pad = 60;
-  return gw >= gh ? [L, Math.round((L - pad) * gh / gw) + pad] : [Math.round((L - pad) * gw / gh) + pad, L];
+// Its size: the galaxy's shape at the zoom from which every system's name shows (namePlan), and
+// 2000 map pixels along its longer side at the least; within `most` map pixels in all, where
+// fewer names show. Starfleet Adventures' 1,285 names need a map 27,000 pixels across; at
+// 2000, which was the size for any galaxy until 13 October 2026, 286 of them showed.
+function wholeMapSize(most = Infinity) {
+  const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y), plan = namePlan(), pad = 60;
+  const gw = Math.max(...xs) - Math.min(...xs) || 1, gh = Math.max(...ys) - Math.min(...ys) || 1;
+  const need = plan.room !== undefined ? plan.room : Math.max(0, ...[...plan.from.values()].filter(Number.isFinite));
+  let s = Math.max(need * 1.01, (2000 - pad) / Math.max(gw, gh));
+  // (gw s + pad)(gh s + pad) = most, for s
+  if ((gw * s + pad) * (gh * s + pad) > most) { const b = pad * (gw + gh); s = (-b + Math.sqrt(b * b - 4 * gw * gh * (pad * pad - most))) / (2 * gw * gh); }
+  return [Math.ceil(gw * s) + pad, Math.ceil(gh * s) + pad];
 }
 function galaxyView() {
   const xs = PLACES.map(p => p.x), ys = PLACES.map(p => p.y);
@@ -3042,11 +3049,12 @@ function wireTools() {
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
-  // the whole map, large: a PNG four times as sharp as the map's own pixels, kept within 32 million
-  // of them so that a phone can make it, and the same as a drawing, an SVG (wholeMap)
+  // the whole map, large: a PNG up to four times as sharp as the map's own pixels, kept within 32
+  // million of them so that a phone can make it, and never less sharp, so that a big galaxy's
+  // picture has fewer names than its drawing, an SVG, which has them all (wholeMapSize)
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
   $('saveWhole').onclick = () => {
-    const [w, h] = wholeMapSize(), k = Math.min(4, Math.sqrt(32e6 / (w * h)));
+    const [w, h] = wholeMapSize(32e6), k = Math.max(1, Math.min(4, Math.sqrt(32e6 / (w * h))));
     const c = document.createElement('canvas');
     c.width = Math.round(w * k); c.height = Math.round(h * k);
     const ctx = c.getContext('2d');

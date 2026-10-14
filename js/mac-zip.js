@@ -62,7 +62,55 @@ const zipU32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] 
 function looksLikeZip(bytes) {
   if (!bytes || bytes.length < 22) return false;
   const sig = zipU32(bytes, 0);
-  return sig === 0x04034b50 || sig === 0x06054b50;
+  // the first part of a zip split across files opens with the split marker, then its first entry
+  if (sig === 0x04034b50 || sig === 0x06054b50 || (sig === 0x08074b50 && zipU32(bytes, 4) === 0x04034b50)) return true;
+  // and its last part ends with the end record, naming a disk past the first (a middle part has neither)
+  const floor = Math.max(0, bytes.length - 22 - 0xFFFF);
+  for (let i = bytes.length - 22; i >= floor; i--) {
+    if (zipU32(bytes, i) === 0x06054b50 && i + 22 + zipU16(bytes, i + 20) === bytes.length) return zipU16(bytes, i + 4) > 0;
+  }
+  return false;
+}
+
+/* A zip's entries read from their local headers, one after another, for an
+   archive whose central directory is not here to read: a part of a zip split
+   across files (rEV_Windows001.zip to 003.zip in archive.org's EV Nova
+   collection: 11 MB pieces, the directory in the last), or the parts joined
+   end to end. The walk starts at the first header (past the split marker, or
+   past the tail of an entry the part before held) and stops at the first
+   that is not a header, or whose data runs past the end: an entry cut off by
+   the end of its part. An entry that keeps its lengths in a data descriptor
+   after its data is found by the descriptor whose packed length is the
+   distance walked. */
+function zipLocalEntries(bytes) {
+  const out = [];
+  const header = p => p + 30 <= bytes.length && zipU32(bytes, p) === 0x04034b50;
+  let p = 0;
+  while (p + 30 <= bytes.length && !header(p)) p++;
+  while (header(p)) {
+    const flags = zipU16(bytes, p + 6), method = zipU16(bytes, p + 8);
+    let crc = zipU32(bytes, p + 14), packedLen = zipU32(bytes, p + 18), len = zipU32(bytes, p + 22);
+    const nameLen = zipU16(bytes, p + 26), extraLen = zipU16(bytes, p + 28);
+    const start = p + 30 + nameLen + extraLen;
+    if (start > bytes.length) break;
+    let next = start + packedLen;
+    if ((flags & 8) && !packedLen) {
+      let q = start, found = false;
+      for (; q + 16 <= bytes.length; q++) if (zipU32(bytes, q) === 0x08074b50 && zipU32(bytes, q + 8) === q - start) { found = true; break; }
+      if (!found) break;
+      crc = zipU32(bytes, q + 4); packedLen = q - start; len = zipU32(bytes, q + 12); next = q + 16;
+    } else if (flags & 8) {
+      next += zipU32(bytes, next) === 0x08074b50 ? 16 : 12;
+    }
+    if (start + packedLen > bytes.length) break;
+    const path = zipDecodeName(bytes.subarray(p + 30, p + 30 + nameLen), !!(flags & 0x800));
+    const isFolder = /\/$/.test(path);
+    const parts = path.replace(/\/$/, '').split('/');
+    out.push({ path, name: parts[parts.length - 1], isFolder, method, flags, crc, packedLen, len,
+               headerOffset: p, type: '', creator: '', rsrc: new Uint8Array(0) });
+    p = next;
+  }
+  return out;
 }
 
 function zipDecodeName(raw, utf8Flag) {
@@ -90,11 +138,14 @@ function parseZipArchive(bytes) {
   for (let i = bytes.length - 22; i >= floor; i--) {
     if (zipU32(bytes, i) === 0x06054b50 && i + 22 + zipU16(bytes, i + 20) <= bytes.length) { end = i; break; }
   }
-  if (end < 0) throw new Error('no end-of-central-directory record, so not a whole zip archive');
-  const disk = zipU16(bytes, end + 4), cdDisk = zipU16(bytes, end + 6);
+  // no directory, or one of a zip split across files: what the local headers hold
+  if (end < 0 || zipU16(bytes, end + 4) !== 0 || zipU16(bytes, end + 6) !== 0) {
+    const walked = zipLocalEntries(bytes);
+    if (!walked.length) throw new Error(end < 0 ? 'no end-of-central-directory record, so not a whole zip archive' : 'a zip split across several files, and no whole entry in this part');
+    return zipJoinAppleDoubles(bytes, walked);
+  }
   const count = zipU16(bytes, end + 10);
   const cdLen = zipU32(bytes, end + 12), cdOff = zipU32(bytes, end + 16);
-  if (disk !== 0 || cdDisk !== 0) throw new Error('a zip split across several files');
   if (count === 0xFFFF || cdLen === 0xFFFFFFFF || cdOff === 0xFFFFFFFF)
     throw new Error('a Zip64 archive, which this page does not read');
   if (cdOff + cdLen > end) throw new Error('the central directory runs past the end record');
@@ -117,7 +168,10 @@ function parseZipArchive(bytes) {
     all.push({ path, name: parts[parts.length - 1], isFolder, method, flags, crc, packedLen, len,
                headerOffset, type: '', creator: '', rsrc: new Uint8Array(0) });
   }
+  return zipJoinAppleDoubles(bytes, all);
+}
 
+function zipJoinAppleDoubles(bytes, all) {
   /* Join each AppleDouble to its file. Read here rather than on demand, so the
      catalog can say what a file is -- its Finder type and creator -- before
      anything is decompressed, as a StuffIt catalog does. */

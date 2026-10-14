@@ -172,13 +172,19 @@ function novaArchiveFiles(bytes, depth = 0) {
     // archive.org keeps are (ResEdit's 'rsrc' files, a type the years garbled, a zip of bare forks)
     const dataLen = zip ? e.len : e.dataLen;
     const bareData = !hasRsrc && dataLen > 0 && !/\.(rez|ndat|bin|hqx)$/i.test(name);
-    let byContent = false;
+    let byContent = false, bareCopy = false;
     if (!inFiles && !inPlugins && !besideGame && e.type !== 'Np?f' && !NOVA_BASE_NAME.test(name) && (hasRsrc || bareData)) {
-      try { byContent = novaHoldsRecords(forkOf(hasRsrc ? 'rsrc' : 'data')); } catch (err) { byContent = false; }
+      let fork = null;
+      try { fork = forkOf(hasRsrc ? 'rsrc' : 'data'); byContent = novaHoldsRecords(fork); } catch (err) { byContent = false; }
+      // a MacBinary or BinHex copy named as it likes (podpeople.zip's "podpeople")
+      if (!byContent && bareData && fork) {
+        try { const w = sniffMacContainer(fork); bareCopy = !!(w && w.rsrc && w.rsrc.length && novaHoldsRecords(w.rsrc)); } catch (err) { bareCopy = false; }
+        byContent = bareCopy;
+      }
     }
-    const dataFile = /\.(rez|ndat)$/i.test(name) || (bareData && byContent);
+    const dataFile = /\.(rez|ndat)$/i.test(name) || (bareData && byContent && !bareCopy);
     // a MacBinary or BinHex copy, its resource fork inside its data
-    const wrapped = !hasRsrc && /\.(bin|hqx)$/i.test(name);
+    const wrapped = !hasRsrc && (/\.(bin|hqx)$/i.test(name) || bareCopy);
     if (!hasRsrc && !dataFile && !wrapped) continue;
     const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || byContent || ((dataFile || wrapped) && !NOVA_BASE_NAME.test(name)));
     if (!inFiles && !plugin && !NOVA_BASE_NAME.test(name)) continue;
@@ -214,6 +220,30 @@ function novaArchiveProgram(bytes) {
   if (!e) return null;
   const fork = which => (dmg ? e.read(which) : stuffItFork(bytes, e, which));
   return { name: e.name.replace(/\r$/, ''), path: e.path || e.name, size: e.dataLen, read: () => fork('data'), readRsrc: () => ((dmg ? e.rsrcLen : e.rsrcLen) > 0 ? fork('rsrc') : null) };
+}
+
+/* Files opened together that are the numbered pieces of one zip split across
+   files -- rEV_Windows001.zip, 002.zip and 003.zip in archive.org's EV Nova
+   collection -- joined end to end, in order, as one, which mac-zip.js reads
+   by its local headers; the rest as they came. [{ name, bytes }] either way.
+   Only a run from 001 with none missing is joined. */
+function novaJoinParts(picked) {
+  const sets = new Map(), rest = [];
+  for (const f of picked) {
+    const m = /^(.*?)(\d{3})\.zip$/i.exec(f.name);
+    if (!m) { rest.push(f); continue; }
+    if (!sets.has(m[1].toLowerCase())) sets.set(m[1].toLowerCase(), []);
+    sets.get(m[1].toLowerCase()).push({ n: +m[2], base: m[1], f });
+  }
+  for (const list of sets.values()) {
+    list.sort((a, b) => a.n - b.n);
+    if (list.length < 2 || list.some((x, i) => x.n !== i + 1)) { rest.push(...list.map(x => x.f)); continue; }
+    const bytes = new Uint8Array(list.reduce((t, x) => t + x.f.bytes.length, 0));
+    let o = 0;
+    for (const x of list) { bytes.set(x.f.bytes, o); o += x.f.bytes.length; }
+    rest.push({ name: list[0].base.replace(/[_ -]+$/, '') + '.zip', bytes });
+  }
+  return rest;
 }
 
 // Whether a resource fork holds any of the game's own records (a type of NOVA_RECORDS) or sprites.

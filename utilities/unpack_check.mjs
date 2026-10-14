@@ -4,11 +4,16 @@
 //
 // 1. Opened: each file unwrapped and read as openGameFiles reads it
 //    (novaArchiveFiles or novaLooseFile, then each Nova file's fork); a file
-//    opens when any Nova file in it reads. OPENED is how many do, from 905 on
-//    13 October 2026 to what the StuffIt 5 walk, its names, methods 2, 3 and 5
-//    and the plug-ins found by their records brought it to. What stays shut is
+//    opens when any Nova file in it reads. OPENED is how many do: 905 on 13
+//    October 2026; 944 with the StuffIt 5 walk, its names, methods 2, 3 and 5
+//    and plug-ins found by their records; 949 with MacBinary copies named as
+//    they like and a split zip's pieces read by their local headers. What stays shut is
 //    printed by kind: StuffIt X, RAR, Compact Pro, a zip in parts, copies
 //    damaged where they are kept, and files that are no plug-in.
+// 1b. Joined: the three pieces of rEV_Windows, a zip split across files, opened
+//    together, as Add plug-ins opens what is ticked (novaJoinParts): JOINED of
+//    their Nova files read, "rEV Escort Sell" not, its .rez list running past
+//    its end.
 // 2. lsar: every StuffIt archive's files, as the page's reader lists them,
 //    against `lsar -j`, ':' in lsar's names read as the '/' it stands for. The
 //    three LSAR_DIFFERS are lsar's: two read a Mac Roman ƒ as Cyrillic, one
@@ -25,7 +30,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { site, REF } from './load.mjs';
 
-const OPENED = 944;
+const OPENED = 949;
+const JOINED = 7;
 const LSAR_DIFFERS = ['Plugins/AAC-PSP-103.sit.hqx', 'Plugins/Khamikazi Viper.sea.bin', 'Plugins/Khamikazi.sea.bin'];
 const S = site();
 const EVN = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/EVN.zip');
@@ -63,6 +69,16 @@ for (const name of names) {
 if (opened !== OPENED) fail(`${opened} of the ${names.length} files open, where ${OPENED} did`);
 console.log(`opened: ${opened} of ${names.length} files open as the page opens them; the rest, by why:`);
 for (const [k, list] of Object.entries(shut).sort((a, b) => b[1].length - a[1].length)) console.log(`  ${String(list.length).padStart(3)}  ${k}`);
+
+// ---- 1b. joined ------------------------------------------------------------
+{
+  const pieces = names.filter(n => /\/rEV_Windows\d{3}\.zip$/.test(n)).map(n => ({ name: n.split('/').pop(), bytes: new Uint8Array(execFileSync('unzip', ['-p', EVN, n], { maxBuffer: 1 << 28 })) }));
+  const joined = S.novaJoinParts(pieces);
+  let read = 0, files = [];
+  if (joined.length === 1) { files = S.novaArchiveFiles(joined[0].bytes); for (const f of files) { try { S.novaOpenFork(f.read()); read++; } catch (e) { /* counted */ } } }
+  if (pieces.length !== 3 || joined.length !== 1 || read !== JOINED) fail(`rEV_Windows's ${pieces.length} pieces joined into ${joined.length}, ${read} of ${files.length} Nova files read, where ${JOINED} were`);
+  else console.log(`joined: rEV_Windows's three pieces as one zip, ${read} of ${files.length} Nova files read`);
+}
 
 // ---- 2. lsar ---------------------------------------------------------------
 if (!has('lsar')) console.log('lsar: SKIP, no lsar');

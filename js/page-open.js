@@ -112,6 +112,8 @@ async function archiveReady(bytes) {
 
 async function openGameFiles(picked, opts = {}) {
   if (!picked.length) return;
+  // the pieces of a zip split across files, opened together, as one
+  picked = novaJoinParts(picked);
   const found = [], refused = [];
   let program = null;
   for (const { name, bytes: given } of picked) {

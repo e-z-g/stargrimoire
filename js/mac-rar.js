@@ -1,11 +1,11 @@
-/* rar.js -- RAR archives of the format RAR 1.5 to 4 wrote, and the
+/* mac-rar.js -- RAR archives of the format RAR 1.5 to 4 wrote, and the
    compression RAR 2.9 and later used in them (the "v2.9" lsar names).
    =========================================================================
 
-   Not a Mac format, and so StarGrimoire's own rather than one of
-   grimoire's mac-* files: plug-ins went round in it, a Windows player's
-   RAR of `.rez` files (three in archive.org's EV Nova collection: one named
-   .rar, one named .zip, one inside a zip). An archive opens with
+   Not a Mac format, but Mac files went round in it: EV Nova's plug-ins, as
+   a Windows player's RAR of `.rez` files (three in archive.org's EV Nova
+   collection: one named .rar, one named .zip, one inside a zip). It was
+   StarGrimoire's own until 14 October 2026. An archive opens with
    "Rar!" 1A 07 00 and is a run of blocks, each a CRC, a type, flags and a
    size: the archive's own header (0x73), then a header per file (0x74)
    with its data after it. A file is stored (method 0x30) or compressed;

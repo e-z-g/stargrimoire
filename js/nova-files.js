@@ -31,7 +31,7 @@
    page.
 
    LOAD ORDER: after mac-bytes.js, mac-containers.js, mac-resfork.js,
-   mac-stuffit.js, mac-vise.js, mac-zip.js, mac-compactpro.js and rar.js. A classic script: no import, no export, globals. */
+   mac-stuffit.js, mac-vise.js, mac-zip.js, mac-compactpro.js and mac-rar.js. A classic script: no import, no export, globals. */
 
 function novaTypeKey(name) {
   return String.fromCharCode(...encodeMacRoman(name));

@@ -93,7 +93,7 @@ function remember(name, entry) {
 }
 
 const CHECKS = [
-  ['copies', 'js/mac-*.js are grimoire\'s, byte for byte'],
+  ['copies', 'js/mac-*.js are e-z-g/mac-files\', byte for byte'],
   ['stamp', 'every script index.html loads tagged with its contents\' hash, so no visitor gets an old one'],
   ['records', 'record tables against Ambrosia\'s templates and the ConText dump'],
   ['dmg', 'the 1.1.1 disk image read here against the files hdiutil copied out of it'],

@@ -161,16 +161,26 @@ function novaArchiveFiles(bytes, depth = 0) {
     }
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;   // (a StuffIt X entry is shaped as a StuffIt one)
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
-    const dataFile = /\.(rez|ndat)$/i.test(name);
-    // a MacBinary or BinHex copy, its resource fork inside its data
-    const wrapped = !hasRsrc && /\.(bin|hqx)$/i.test(name);
-    if (!hasRsrc && !dataFile && !wrapped) continue;
+    const forkOf = which => (dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which));
     const parts = (e.path || e.name).split('/');
     const folders = parts.slice(0, -1);
     const inFiles = folders.some(f => /^Nova Files$/i.test(f));
     const inPlugins = folders.some(f => /^Nova Plug-?ins$/i.test(f));
     const besideGame = !inFiles && !inPlugins && gameDirs.has(folders.join('/'));
-    const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || ((dataFile || wrapped) && !NOVA_BASE_NAME.test(name)));
+    // a plug-in by what is in it: a file named as it likes, of any Finder type, its resource fork
+    // (or its data, as a .rez is) holding the game's own records, as many of the plug-ins
+    // archive.org keeps are (ResEdit's 'rsrc' files, a type the years garbled, a zip of bare forks)
+    const dataLen = zip ? e.len : e.dataLen;
+    const bareData = !hasRsrc && dataLen > 0 && !/\.(rez|ndat|bin|hqx)$/i.test(name);
+    let byContent = false;
+    if (!inFiles && !inPlugins && !besideGame && e.type !== 'Np?f' && !NOVA_BASE_NAME.test(name) && (hasRsrc || bareData)) {
+      try { byContent = novaHoldsRecords(forkOf(hasRsrc ? 'rsrc' : 'data')); } catch (err) { byContent = false; }
+    }
+    const dataFile = /\.(rez|ndat)$/i.test(name) || (bareData && byContent);
+    // a MacBinary or BinHex copy, its resource fork inside its data
+    const wrapped = !hasRsrc && /\.(bin|hqx)$/i.test(name);
+    if (!hasRsrc && !dataFile && !wrapped) continue;
+    const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || byContent || ((dataFile || wrapped) && !NOVA_BASE_NAME.test(name)));
     if (!inFiles && !plugin && !NOVA_BASE_NAME.test(name)) continue;
     // In Nova Files, a file whose name says no part of the game counts only
     // as a .rez, an .ndat or a MacBinary or BinHex copy: the race movies
@@ -180,7 +190,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     const role = novaFileRole(name) || NOVA_TYPE_ROLE[e.type];
     if (!plugin && !role && !dataFile && !wrapped) continue;
     const which = hasRsrc ? 'rsrc' : 'data';
-    const raw = () => dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which);
+    const raw = () => forkOf(which);
     out.push({ name: name.replace(/\.(ndat|rez|bin|hqx)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
                role: plugin ? null : (role || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
                read: wrapped ? () => novaUnwrapFork(raw()) : raw,
@@ -204,6 +214,11 @@ function novaArchiveProgram(bytes) {
   if (!e) return null;
   const fork = which => (dmg ? e.read(which) : stuffItFork(bytes, e, which));
   return { name: e.name.replace(/\r$/, ''), path: e.path || e.name, size: e.dataLen, read: () => fork('data'), readRsrc: () => ((dmg ? e.rsrcLen : e.rsrcLen) > 0 ? fork('rsrc') : null) };
+}
+
+// Whether a resource fork holds any of the game's own records (a type of NOVA_RECORDS) or sprites.
+function novaHoldsRecords(fork) {
+  return Object.keys(novaOpenFork(fork).resourcesByType).some(k => { const t = novaTypeName(k); return !!NOVA_RECORDS[t] || t === 'rlëD' || t === 'rlë8'; });
 }
 
 // The resource fork inside a MacBinary or BinHex copy.

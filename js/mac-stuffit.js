@@ -118,11 +118,23 @@ function parseStuffItClassic(bytes) {
  * metadata block carrying the Finder identity and, when bit 0 of its first
  * word is set, the resource fork's lengths. The forks follow: resource fork
  * first, then data fork. */
+/* A StuffIt 5 entry's name: Mac Roman, except that StuffIt on Mac OS X wrote
+   UTF-8 ("Fireworks ƒ" as the bytes of UTF-8's ƒ, read in Mac Roman "∆í"),
+   and a name that is valid UTF-8 with any byte past ASCII is taken as that,
+   as lsar takes it; Mac Roman text is almost never valid UTF-8. */
+function sit5Name(b) {
+  if (b.some(v => v > 127)) {
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { /* Mac Roman, then */ }
+  }
+  return decodeMacRoman(b);
+}
+
 function parseStuffIt5(bytes) {
-  const flags = bytes[83];
-  const plain = !!(flags & 0x10);
+  const first = u32be(bytes, 88);
+  const marked = o => o + 4 <= bytes.length && u32be(bytes, o) === 0xA5A5A5A5;
+  const plain = marked(first) || !marked((first ^ 0xA5A5A5A5) >>> 0);
   const off = v => (plain ? v : (v ^ 0xA5A5A5A5)) >>> 0;
-  let at = off(u32be(bytes, 88));
+  let at = off(first);
   let remaining = u16be(bytes, 92);
   const entries = [];
   const dirs = new Map();
@@ -150,7 +162,7 @@ function parseStuffIt5(bytes) {
     const dataMethod = isFolder ? 0 : bytes[at + 46];
     const childCount = isFolder ? u16be(bytes, at + 46) : 0;
     at += 48;
-    const name = decodeMacRoman(bytes.subarray(at, at + nameLen));
+    const name = sit5Name(bytes.subarray(at, at + nameLen));
     at += nameLen;
     if (isFolder && nameLen === 0) {            // end-of-folder marker
       // The stack first, the marker's own pointer as a fallback, and never a
@@ -193,7 +205,10 @@ function parseStuffIt5(bytes) {
                      rsrcLen, rsrcPackedLen, rsrcMethod, rsrcOffset: at,
                      dataLen, dataPackedLen, dataMethod, dataOffset: at + rsrcPackedLen,
                      encrypted: !!(eflags & 0x20) });
-      at += rsrcPackedLen + dataPackedLen;
+      // on to the entry this one names as next: the entries need not lie in order (X-series
+      // prototypes.sit, in archive.org's EV Nova collection, keeps its first at the end of the
+      // file); with none named, the one after this one's forks
+      at = nextOff ? off(nextOff) : at + rsrcPackedLen + dataPackedLen;
     }
     remaining--;
   }
@@ -224,6 +239,10 @@ function stuffItFork(bytes, entry, which) {
       throw new Error('"' + entry.name + '" ' + which + ' fork says it is stored but is ' +
                       packedLen + ' bytes for a length of ' + len);
     return bytes.subarray(offset, offset + len);
+  }
+  if (method === 2 || method === 3 || method === 5) {
+    const packed = bytes.subarray(offset, offset + packedLen);
+    return method === 2 ? sitLzwDecompress(packed, len) : method === 3 ? sitHuffmanDecompress(packed, len) : sitLzahDecompress(packed, len);
   }
   if (method === 13 || method === 15) {
     const packed = bytes.subarray(offset, offset + packedLen);
@@ -631,4 +650,154 @@ function arsenicDecompress(packed, outLen) {
     }
   }
   return written === outLen ? out : out.subarray(0, written);
+}
+
+/* ---- StuffIt method 2, LZW ------------------------------------------------
+   Unix compress's LZW without its three-byte header: codes from 9 to 14 bits,
+   low bit first; code 256 clears the table, so the first free code is 257.
+   Like compress, codes come in groups of eight: when the width grows, or a
+   clear arrives, the rest of the current group of eight codes is skipped. */
+function sitLzwDecompress(packed, outLen) {
+  const out = new Uint8Array(outLen);
+  const prefix = new Uint16Array(1 << 14), suffix = new Uint8Array(1 << 14), stack = new Uint8Array(1 << 14);
+  let bits = 9, next = 257, prev = -1, first = 0, o = 0;
+  let pos = 0, groupStart = 0;   // in bits
+  const total = packed.length * 8;
+  const read = () => {
+    if (pos + bits > total) return -1;
+    let v = 0;
+    for (let i = 0; i < bits; i++, pos++) v |= ((packed[pos >> 3] >> (pos & 7)) & 1) << i;
+    return v;
+  };
+  const skipGroup = () => {   // to the end of this group of eight codes, at the width they were read at
+    const g = bits * 8, used = pos - groupStart;
+    pos = groupStart + Math.ceil(used / g) * g;
+    groupStart = pos;
+  };
+  while (o < outLen) {
+    if (next > (1 << bits) - 1 && bits < 14) { skipGroup(); bits++; }
+    const code = read();
+    if (code < 0) break;
+    if (code === 256) { skipGroup(); bits = 9; next = 257; prev = -1; continue; }
+    if (prev < 0) { out[o++] = first = code; prev = code; continue; }
+    let c = code, sp = 0;
+    if (c >= next) { stack[sp++] = first; c = prev; }     // the code being defined
+    while (c >= 256) { stack[sp++] = suffix[c]; c = prefix[c]; }
+    first = c;
+    stack[sp++] = c;
+    while (sp > 0 && o < outLen) out[o++] = stack[--sp];
+    if (next < (1 << 14)) { prefix[next] = prev; suffix[next] = first; next++; }
+    prev = code;
+  }
+  if (o !== outLen) throw new Error('StuffIt method 2: ' + o + ' bytes where ' + outLen + ' were wanted');
+  return out;
+}
+
+/* ---- StuffIt method 3, Huffman ---------------------------------------------
+   One static Huffman code: the tree first, as bits high bit first, 1 a leaf
+   and its byte's eight bits, 0 a node and its two subtrees; then the codes. */
+function sitHuffmanDecompress(packed, outLen) {
+  let pos = 0;
+  const bit = () => { if ((pos >> 3) >= packed.length) throw new Error('StuffIt method 3: the data ends early'); const b = (packed[pos >> 3] >> (7 - (pos & 7))) & 1; pos++; return b; };
+  const left = [], right = [], leaf = [];
+  const node = () => {
+    const n = leaf.length;
+    leaf.push(-1); left.push(-1); right.push(-1);
+    if (bit()) { let v = 0; for (let i = 0; i < 8; i++) v = (v << 1) | bit(); leaf[n] = v; }
+    else { left[n] = node(); right[n] = node(); }
+    return n;
+  };
+  node();
+  const out = new Uint8Array(outLen);
+  for (let o = 0; o < outLen; o++) {
+    let n = 0;
+    while (leaf[n] < 0) n = bit() ? right[n] : left[n];
+    out[o] = leaf[n];
+  }
+  return out;
+}
+
+/* ---- StuffIt method 5, LZAH ------------------------------------------------
+   Okumura's LZHUF (1988), as LHarc's -lh1- is: a 4096-byte window that starts
+   as spaces, matches of 3 to 60, an adaptive Huffman code over 314 symbols
+   (bytes, then lengths) and the match position's top six bits from a fixed
+   code, its low six bits plain. Bits high bit first. */
+function sitLzahDecompress(packed, outLen) {
+  const N = 4096, F = 60, THRESHOLD = 2, N_CHAR = 256 - THRESHOLD + F, T = N_CHAR * 2 - 1, R = T - 1, MAX_FREQ = 0x8000;
+  const freq = new Uint16Array(T + 1), prnt = new Int16Array(T + N_CHAR), son = new Int16Array(T);
+  let pos = 0;
+  const bit = () => { const b = (pos >> 3) < packed.length ? (packed[pos >> 3] >> (7 - (pos & 7))) & 1 : 0; pos++; return b; };
+  const bitsOf = n => { let v = 0; for (let i = 0; i < n; i++) v = (v << 1) | bit(); return v; };
+  // the fixed code for the position's top six bits: how many codes of each length, from 3 bits to 8
+  const dCode = new Uint8Array(256), dLen = new Uint8Array(256);
+  {
+    const counts = [[3, 1], [4, 3], [5, 8], [6, 12], [7, 24], [8, 16]];
+    let code = 0, i = 0;
+    for (const [len, n] of counts) for (let k = 0; k < n; k++, code++) {
+      const span = 1 << (8 - len);
+      for (let j = 0; j < span; j++) { dCode[i] = code; dLen[i] = len; i++; }
+    }
+  }
+  for (let i = 0; i < N_CHAR; i++) { freq[i] = 1; son[i] = i + T; prnt[i + T] = i; }
+  for (let i = 0, j = N_CHAR; j <= R; i += 2, j++) { freq[j] = freq[i] + freq[i + 1]; son[j] = i; prnt[i] = prnt[i + 1] = j; }
+  freq[T] = 0xFFFF; prnt[R] = 0;
+  const reconst = () => {
+    let j = 0;
+    for (let i = 0; i < T; i++) if (son[i] >= T) { freq[j] = (freq[i] + 1) >> 1; son[j] = son[i]; j++; }
+    for (let i = 0, jj = N_CHAR; jj < T; i += 2, jj++) {
+      const f = freq[jj] = freq[i] + freq[i + 1];
+      let k = jj - 1;
+      while (f < freq[k]) k--;
+      k++;
+      freq.copyWithin(k + 1, k, jj); freq[k] = f;
+      son.copyWithin(k + 1, k, jj); son[k] = i;
+    }
+    for (let i = 0; i < T; i++) { const k = son[i]; if (k >= T) prnt[k] = i; else prnt[k] = prnt[k + 1] = i; }
+  };
+  const update = c0 => {
+    if (freq[R] === MAX_FREQ) reconst();
+    let c = prnt[c0 + T];
+    do {
+      const k = ++freq[c];
+      let l = c + 1;
+      if (k > freq[l]) {
+        while (k > freq[++l]);
+        l--;
+        freq[c] = freq[l]; freq[l] = k;
+        const i = son[c];
+        prnt[i] = l; if (i < T) prnt[i + 1] = l;
+        const j = son[l];
+        son[l] = i;
+        prnt[j] = c; if (j < T) prnt[j + 1] = c;
+        son[c] = j;
+        c = l;
+      }
+    } while ((c = prnt[c]) !== 0);
+  };
+  const decodeChar = () => {
+    let c = son[R];
+    while (c < T) c = son[c + bit()];
+    c -= T;
+    update(c);
+    return c;
+  };
+  const decodePosition = () => {
+    let i = bitsOf(8);
+    const c = dCode[i] << 6;
+    let j = dLen[i] - 2;
+    while (j--) i = (i << 1) | bit();
+    return c | (i & 0x3F);
+  };
+  const text = new Uint8Array(N).fill(0x20);
+  let r = N - F, o = 0;
+  const out = new Uint8Array(outLen);
+  while (o < outLen) {
+    const c = decodeChar();
+    if (c < 256) { out[o++] = c; text[r++] = c; r &= N - 1; }
+    else {
+      const i = (r - decodePosition() - 1) & (N - 1), j = c - 255 + THRESHOLD;
+      for (let k = 0; k < j && o < outLen; k++) { const b = text[(i + k) & (N - 1)]; out[o++] = b; text[r++] = b; r &= N - 1; }
+    }
+  }
+  return out;
 }

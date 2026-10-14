@@ -110,6 +110,7 @@ const CHECKS = [
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and held to unar'],
   ['collection', 'the plug-ins archive.org lists, read as Add plug-ins reads them and held to the copies'],
+  ['unpack', 'every Nova plug-in in archive.org\'s collection opened as the page opens it, its StuffIt held to lsar and unar'],
   ['png', 'the PNG writer the whole map uses on a computer, held to node\'s zlib'],
   ['ships', 'the Bible\'s rules for ships, and every release\'s ships through them'],
   ['flight', 'ships in flight: worked figures from Mac 1.1.1\'s code, and the records\' odds'],
@@ -117,7 +118,7 @@ const CHECKS = [
   ['labels', 'names placed once for every zoom: none goes, moves or meets another'],
   ['page', 'index.html in headless Chrome'],
 ];
-const SLOW = ['subway', 'page'];
+const SLOW = ['subway', 'unpack', 'page'];
 // What a check reads that the tracing cannot see: a module Python imports.
 const ALSO = { rez: ['../evnova-workbench/tools/rez.py'], plugin: ['../evnova-workbench/tools/rez.py'] };
 const quick = process.argv.includes('--quick'), fresh = process.argv.includes('--fresh');

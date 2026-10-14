@@ -27,19 +27,22 @@
 
    READ: Brimstone (StuffIt's PPMd, variant G with an allocator of its
    own), Cyanide and Iron (two block-sorting compressors, each with its own
-   coder), and the English preprocessing, which puts words back from a
-   dictionary of 100,366 (mac-stuffitx-english.js, STUFFITX_ENGLISH_WORDS,
-   loaded only for an archive that needs it). NOT READ, and refused by
-   name: Darkhorse, Deflate, Blend, RC4 and the x86 filter, which none of
-   the archives this was written for use, and encryption.
+   coder), Deflate (XADDeflateHandle's StuffIt X variant: a byte giving the
+   window, then RFC 1951 with the count of distance codes in six bits, read
+   by mac-vise.js's inflateRaw), and the English preprocessing, which puts
+   words back from a dictionary of 100,366 (mac-stuffitx-english.js,
+   STUFFITX_ENGLISH_WORDS, loaded only for an archive that needs it). NOT
+   READ, and refused by name: Darkhorse, Blend, RC4 and the x86 filter,
+   which none of the archives this was written for use, and encryption.
 
    Returns the shape parseStuffItArchive does, so that a caller can take
    either: { format, entries: [{ path, name, isFolder, type, creator,
    finderFlags, dataLen, rsrcLen }] }, the forks by stuffItXFork(bytes,
    entry, which).
 
-   LOAD ORDER: after mac-bytes.js (crc32, fourcc, u16be, decodeMacRoman).
-   A classic script, like the rest of js/: no import, no export, globals. */
+   LOAD ORDER: after mac-bytes.js (crc32, fourcc, u16be, decodeMacRoman);
+   mac-vise.js (inflateRaw) by the time an archive is read. A classic
+   script, like the rest of js/: no import, no export, globals. */
 
 const SITX_METHOD_NAMES = { 0: 'Brimstone', 1: 'Cyanide', 2: 'Darkhorse', 3: 'Deflate', 4: 'Blend', 5: 'RC4', 6: 'Iron' };
 const SITX_PREPROCESS_NAMES = { 0: 'English', 1: 'Biff', 2: 'x86', 3: 'PEFF', 4: 'M68k', 5: 'Sparc', 6: 'TIFF', 7: 'WAV', 8: 'WRT' };
@@ -240,6 +243,11 @@ function sitxElementBytes(bytes, el, check) {
   else if (method === 0) out = sitxBrimstone(packed, length);
   else if (method === 1) out = sitxCyanide(packed, length);
   else if (method === 6) out = sitxIron(packed, length);
+  else if (method === 3) {   // Deflate with a 6-bit count of distance codes, after a byte giving the window's size
+    if (pre === 0) throw new Error('StuffIt X: Deflate before the English preprocessing, which this page does not read');
+    if (packed[0] !== 15) throw new Error('StuffIt X: Deflate with a window of 2^' + packed[0] + ' bytes, which this page does not read');
+    out = inflateRaw(packed.subarray(1), length, 8, 6);
+  }
   else throw new Error('StuffIt X: compressed with ' + (SITX_METHOD_NAMES[method] || 'method ' + method) + ', which this page does not decompress');
   if (pre === 0) out = sitxEnglish(out, el.actualsize);
   else if (pre !== -1) throw new Error('StuffIt X: preprocessed with ' + (SITX_PREPROCESS_NAMES[pre] || 'method ' + pre) + ', which this page does not undo');

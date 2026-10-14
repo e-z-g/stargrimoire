@@ -31,7 +31,7 @@
    page.
 
    LOAD ORDER: after mac-bytes.js, mac-containers.js, mac-resfork.js,
-   mac-stuffit.js, mac-vise.js and mac-zip.js. A classic script: no import, no export, globals. */
+   mac-stuffit.js, mac-vise.js, mac-zip.js, mac-compactpro.js and rar.js. A classic script: no import, no export, globals. */
 
 function novaTypeKey(name) {
   return String.fromCharCode(...encodeMacRoman(name));
@@ -64,7 +64,13 @@ const NOVA_BASE_NAME = /^Nova (Data|Graphics|Titles|Ships|Sounds) ?\d*(\.(ndat|r
    type its four bytes, the offset of its list from the map, and its count;
    and per resource the entry number, the type, the id and a 256-byte name.
    The result answers as a resource fork from mac-resfork.js does, as far as
-   novaGame asks. */
+   novaGame asks.
+   Four plug-ins archive.org keeps (rEV Escort Sell, Get Rich Quick!,
+   PaintShop with HGA, Shiva's Bow) give the lists of the types after `DITL`
+   (`DLOG`, `vers`, `TMPL`) as at the end of the map or past it, where no
+   list can be. The lists lie end to end and each entry names its type, so
+   a list past the map's end is read where the one before it ends, when the
+   entry there names that type. */
 function looksLikeRez(b) {
   return b && b.length >= 24 && b[0] === 0x42 && b[1] === 0x52 && b[2] === 0x47 && b[3] === 0x52;
 }
@@ -73,15 +79,19 @@ function novaOpenRez(b) {
   const first = le(16), n = le(20);
   if (24 + 12 * n > b.length || !n) throw new Error('.rez index runs past the end of the file');
   const entry = i => ({ off: le(24 + 12 * i), len: le(28 + 12 * i) });
-  const map = entry(n - 1).off;
+  const map = entry(n - 1).off, mapEnd = Math.min(b.length, map + entry(n - 1).len);
   if (map + 8 > b.length) throw new Error('.rez map is past the end of the file');
   const nTypes = u32be(b, map + 4);
   const typeList = [], resourcesByType = {};
-  let p = map + 8;
+  let p = map + 8, after = -1;
   for (let t = 0; t < nTypes; t++) {
     const key = String.fromCharCode(b[p], b[p + 1], b[p + 2], b[p + 3]);
-    const at = map + u32be(b, p + 4), count = u32be(b, p + 8);
+    let at = map + u32be(b, p + 4);
+    const count = u32be(b, p + 8);
     p += 12;
+    if (at + 266 * count > mapEnd && after >= 0 && after + 266 * count <= mapEnd &&
+        String.fromCharCode(b[after + 4], b[after + 5], b[after + 6], b[after + 7]) === key) at = after;
+    after = at + 266 * count;
     const list = [];
     for (let k = 0, q = at; k < count; k++, q += 266) {
       if (q + 266 > b.length) throw new Error('.rez resource list runs past the end of the file');
@@ -110,7 +120,7 @@ function novaOpenFork(bytes) {
   return looksLikeRez(bytes) ? novaOpenRez(bytes) : openResourceFork(bytes);
 }
 
-/* The files of a release or a plug-in archive, StuffIt, StuffIt X, zip or disk image, from its
+/* The files of a release or a plug-in archive, StuffIt, StuffIt X, zip, Compact Pro, RAR or disk image, from its
    catalog. What is in a `Nova Files` folder is the game itself; what is in
    a `Nova Plug-ins` folder, or is of Finder type Npïf (which fourcc shows
    as 'Np?f'), or is a `.rez` anywhere else, is a plug-in -- except beside
@@ -125,7 +135,7 @@ function novaOpenFork(bytes) {
    X, read here). */
 // An archive's bytes as an archive the page reads: itself, or the one in a MacBinary or BinHex copy's data fork; else null.
 function novaArchiveIn(bytes) {
-  const is = b => looksLikeStuffIt(b) || looksLikeStuffItX(b) || looksLikeZip(b);
+  const is = b => looksLikeStuffIt(b) || looksLikeStuffItX(b) || looksLikeZip(b) || looksLikeCompactPro(b) || looksLikeRar(b);
   if (is(bytes)) return bytes;
   let w = null;
   try { w = sniffMacContainer(bytes); } catch (e) { return null; }
@@ -133,7 +143,11 @@ function novaArchiveIn(bytes) {
 }
 function novaArchiveFiles(bytes, depth = 0) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes), sitx = !zip && !dmg && looksLikeStuffItX(bytes);
-  const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : sitx ? parseStuffItXArchive(bytes) : parseStuffItArchive(bytes);
+  // Compact Pro and RAR give entries that read themselves, as a disk image's do
+  const cpt = !zip && !dmg && !sitx && looksLikeCompactPro(bytes), rar = !zip && !dmg && !sitx && !cpt && looksLikeRar(bytes);
+  const own = dmg || cpt || rar;
+  const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : sitx ? parseStuffItXArchive(bytes) :
+    cpt ? parseCompactProArchive(bytes) : rar ? parseRarArchive(bytes) : parseStuffItArchive(bytes);
   const out = [];
   let all = Array.isArray(cat) ? cat : cat.entries;
   // an installer package on an image (1.1 beta 2.10.7's): the files of its payloads in its place
@@ -150,9 +164,9 @@ function novaArchiveFiles(bytes, depth = 0) {
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
     // an archive in the archive, as EstarGuars' SAE_1of2.sit.bin is a MacBinary StuffIt in a
     // StuffIt: decompressed now, so as to see in it, and its files in its place, in its folder
-    if (depth < 3 && /\.(sit|sitx|zip)(\.(bin|hqx))?$/i.test(name)) {
+    if (depth < 3 && /\.(sit|sitx|zip|cpt|rar|sea)(\.(bin|hqx))?$/i.test(name)) {
       let inner = null;
-      try { inner = novaArchiveIn(dmg ? e.read('data') : zip ? zipFork(bytes, e, 'data') : sitx ? stuffItXFork(bytes, e, 'data') : stuffItFork(bytes, e, 'data')); } catch (err) { inner = null; }
+      try { inner = novaArchiveIn(own ? e.read('data') : zip ? zipFork(bytes, e, 'data') : sitx ? stuffItXFork(bytes, e, 'data') : stuffItFork(bytes, e, 'data')); } catch (err) { inner = null; }
       if (inner) {
         const at = e.path || e.name;
         for (const f of novaArchiveFiles(inner, depth + 1)) out.push(Object.assign(f, { path: at + '/' + f.path, folder: at + (f.folder ? '/' + f.folder : ''), unpack: null }));
@@ -161,7 +175,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     }
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;   // (a StuffIt X entry is shaped as a StuffIt one)
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
-    const forkOf = which => (dmg ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which));
+    const forkOf = which => (own ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which));
     const parts = (e.path || e.name).split('/');
     const folders = parts.slice(0, -1);
     const inFiles = folders.some(f => /^Nova Files$/i.test(f));
@@ -200,7 +214,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     out.push({ name: name.replace(/\.(ndat|rez|bin|hqx)$/i, ''), path: e.path || e.name, folder: folders.join('/'), plugin,
                role: plugin ? null : (role || 'data'), size: hasRsrc ? (zip ? e.rsrc.length : e.rsrcLen) : (zip ? e.len : e.dataLen),
                read: wrapped ? () => novaUnwrapFork(raw()) : raw,
-               unpack: dmg || sitx ? null : { archive: bytes, entry: e, which, zip, wrapped } });
+               unpack: own || sitx ? null : { archive: bytes, entry: e, which, zip, wrapped } });
   }
   return out;
 }
@@ -212,7 +226,7 @@ function novaArchiveFiles(bytes, depth = 0) {
    data fork, or null. */
 function novaArchiveProgram(bytes) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
-  if (zip || looksLikeStuffItX(bytes)) return null;
+  if (zip || looksLikeStuffItX(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes)) return null;
   const cat = dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);
   const all = Array.isArray(cat) ? cat : cat.entries;
   const e = all.find(x => !x.isFolder && x.type === 'APPL' && /^EV Nova/.test(x.name) && x.dataLen > 100000) ||

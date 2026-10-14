@@ -9,6 +9,13 @@ full text.
 the same licence, and are kept identical to it by `utilities/copies_check.mjs`.
 `utilities/browser.mjs` is cut down from grimoire's `utilities/browser_check.mjs`.
 
+`js/rar.js`, like grimoire's `js/mac-stuffitx.js` and `js/mac-compactpro.js`,
+is ported from **XADMaster**, The Unarchiver's library
+(<https://github.com/MacPaw/XADMaster>, "Copyright (c) 2017-present, MacPaw Way
+Ltd."), licensed LGPL-2.1-or-later, whose section 3 lets it be used under the
+GPL, as it is here. Its header names the sources it was ported from and the
+commit.
+
 ## Not covered
 
 **EV Nova itself.** *Escape Velocity Nova* is copyright Ambrosia Software, Inc.

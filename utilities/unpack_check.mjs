@@ -7,13 +7,16 @@
 //    opens when any Nova file in it reads. OPENED is how many do: 905 on 13
 //    October 2026; 944 with the StuffIt 5 walk, its names, methods 2, 3 and 5
 //    and plug-ins found by their records; 949 with MacBinary copies named as
-//    they like and a split zip's pieces read by their local headers. What stays shut is
-//    printed by kind: StuffIt X, RAR, Compact Pro, a zip in parts, copies
-//    damaged where they are kept, and files that are no plug-in.
+//    they like and a split zip's pieces read by their local headers; 960 with
+//    Compact Pro, RAR, ZipIt's self-extractor, StuffIt X's Deflate and four
+//    .rez files whose lists are misplaced (Mr.T's Paint, an installer unar
+//    cannot read either, no longer counted for its own resource fork). What
+//    stays shut is printed by why: StuffIt X catalogs unar cannot read
+//    either, copies damaged where they are kept, and files that are no plug-in.
 // 1b. Joined: the three pieces of rEV_Windows, a zip split across files, opened
 //    together, as Add plug-ins opens what is ticked (novaJoinParts): JOINED of
-//    their Nova files read, "rEV Escort Sell" not, its .rez list running past
-//    its end.
+//    their Nova files read, "rEV Escort Sell" among them, its DLOG list
+//    given past its map's end (part 5).
 // 2. lsar: every StuffIt archive's files, as the page's reader lists them,
 //    against `lsar -j`, ':' in lsar's names read as the '/' it stands for. The
 //    three LSAR_DIFFERS are lsar's: two read a Mac Roman ƒ as Cyrillic, one
@@ -21,6 +24,10 @@
 // 3. unar: every fork in StuffIt methods 2, 3 and 5, decompressed by the page
 //    and by `unar -k visible` (its resource forks from the AppleDouble it
 //    writes), byte for byte; and one of them with a byte bent must differ.
+// 4. formats: every Nova file read from the Compact Pro, RAR, ZipIt and
+//    StuffIt X Deflate files is a file unar extracts; a bent RAR is refused.
+// 5. rez: a .rez list read where the one before it ends, and refused when the
+//    entry there names another type.
 //
 // Without EVN.zip it skips; without lsar or unar, parts 2 and 3 do. It takes
 // some minutes, the files read one at a time out of a 1.1 GB zip.
@@ -30,9 +37,13 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { site, REF } from './load.mjs';
 
-const OPENED = 949;
-const JOINED = 7;
+const OPENED = 960;
+const JOINED = 8;
 const LSAR_DIFFERS = ['Plugins/AAC-PSP-103.sit.hqx', 'Plugins/Khamikazi Viper.sea.bin', 'Plugins/Khamikazi.sea.bin'];
+// the files in Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate (part 4)
+const FORMATS = ['Cheats/Headstart.bin', 'Plugins/New_Galaxys_Plug1.0.1', 'Plugins/NewGalaxysplug.Bin', 'Plugins/Valkyrie_Bays.cpt.hqx',
+  'Cheats/Norgles_Balanced_Sigma_Mods_V1.0.rar', 'Plugins/zzboom.zip', 'Cheats/KTech_Outfits.zip',
+  'Cheats/Mr.Ts_Paint_and_more.sea', 'Cheats/Spun_Carbon_plug-in.hqx'].map(n => 'EVN/' + n);
 const S = site();
 const EVN = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/EVN.zip');
 if (!fs.existsSync(EVN)) { console.log('SKIP: no EVN.zip in reference/game/collections'); process.exit(0); }
@@ -43,7 +54,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'unpack-check-'));
 
 const names = execFileSync('unzip', ['-Z1', EVN], { maxBuffer: 1 << 26 }).toString().split('\n')
   .filter(n => /^EVN\/(Plugins|Cheats)\//.test(n) && !n.endsWith('/') && !/\.txt$/i.test(n));
-const isArchive = b => S.looksLikeStuffIt(b) || S.looksLikeStuffItX(b) || S.looksLikeZip(b) || S.looksLikeUdif(b);
+const isArchive = b => S.looksLikeStuffIt(b) || S.looksLikeStuffItX(b) || S.looksLikeZip(b) || S.looksLikeCompactPro(b) || S.looksLikeRar(b) || S.looksLikeUdif(b);
 const unwrapped = b => {   // as unwrapArchive: a MacBinary or BinHex copy of an archive, the archive
   if (isArchive(b)) return b;
   try { const w = S.sniffMacContainer(b); if (w && w.data && w.data.length && isArchive(w.data)) return w.data; } catch (e) { /* as it is */ }
@@ -134,6 +145,69 @@ else {
     if (out && out.length === bent.want.length && out.every((v, i) => v === bent.want[i])) fail('a bent stream decompressed to unar\'s bytes all the same: the comparison sees nothing');
   } else fail('no fork in methods 2, 3 or 5 to bend');
   console.log(`unar: ${sameForks} of ${forks} forks in StuffIt methods 2, 3 and 5 byte for byte unar's` + (bent ? '; a bent one is caught' : ''));
+}
+// ---- 4. Compact Pro, RAR, a ZipIt self-extractor, StuffIt X's Deflate -----
+// Every Nova file the page reads out of the files in these formats, each the
+// same bytes as a file `unar` extracts from it, unar run again on what it
+// extracts that is itself an archive (BinHex and MacBinary copies, a RAR in
+// a zip). And a byte bent in a RAR stream must be refused (its CRC-32).
+if (!has('unar')) console.log('formats: SKIP, no unar');
+else {
+  const appleDouble = buf => { if (buf.length < 26 || buf.readUInt32BE(0) !== 0x00051607) return null; const n = buf.readUInt16BE(24); for (let i = 0; i < n; i++) { const e = 26 + i * 12; if (buf.readUInt32BE(e) === 2) return buf.subarray(buf.readUInt32BE(e + 4), buf.readUInt32BE(e + 4) + buf.readUInt32BE(e + 8)); } return null; };
+  const allFiles = d => fs.existsSync(d) ? fs.readdirSync(d, { recursive: true }).map(f => path.join(d, f)).filter(f => fs.statSync(f).isFile()) : [];
+  const key = b => b.length + ':' + Buffer.from(b).toString('base64', 0, Math.min(b.length, 4096)) + ':' + S.crc32(new Uint8Array(b));
+  let files = 0, same = 0;
+  for (const name of FORMATS) {
+    const raw = execFileSync('unzip', ['-p', EVN, name], { maxBuffer: 1 << 28 });
+    const b = unwrapped(new Uint8Array(raw));
+    const dir = fs.mkdtempSync(path.join(TMP, 'f-')), src = path.join(dir, 'src');
+    fs.writeFileSync(src, raw);
+    try { execFileSync('unar', ['-q', '-f', '-k', 'visible', '-o', path.join(dir, 'out'), src], { stdio: 'pipe' }); } catch (e) { /* what it could */ }
+    for (let depth = 0; depth < 2; depth++) for (const f of allFiles(path.join(dir, 'out'))) {
+      if (f.endsWith('.rsrc') || f.includes('.x/') || fs.existsSync(f + '.x')) continue;
+      try { execFileSync('unar', ['-q', '-f', '-k', 'visible', '-o', f + '.x', f], { stdio: 'pipe' }); } catch (e) { /* not an archive */ }
+    }
+    const theirs = new Set();
+    for (const f of allFiles(path.join(dir, 'out'))) { const c = fs.readFileSync(f); theirs.add(key(c)); const r = f.endsWith('.rsrc') && appleDouble(c); if (r) theirs.add(key(r)); }
+    let read = 0;
+    for (const f of (isArchive(b) ? S.novaArchiveFiles(b) : [])) {
+      let got;
+      try { got = f.read(); } catch (e) { fail(`${name.slice(4)}: ${f.path}: ${e.message}`); continue; }
+      files++; read++;
+      if (theirs.has(key(got))) same++; else fail(`${name.slice(4)}: ${f.path} is not a file unar extracts`);
+    }
+    if (!read) fail(`${name.slice(4)}: no Nova file read`);
+  }
+  // a byte bent in a RAR stream
+  const rar = new Uint8Array(execFileSync('unzip', ['-p', EVN, 'EVN/Plugins/zzboom.zip'], { maxBuffer: 1 << 28 }));
+  const entry = S.parseRarArchive(rar).entries.find(e => /\.rez$/.test(e.name));
+  const bent = rar.slice();
+  bent[rar.length >> 1] ^= 0x5A;
+  let refused = '';
+  try { S.parseRarArchive(bent).entries.find(e => e.name === entry.name).read('data'); } catch (e) { refused = e.message; }
+  if (!refused) fail('a byte bent in a RAR stream was handed back');
+  console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? '; a bent RAR stream is refused' : ''));
+}
+
+// ---- 5. a .rez list where the one before it ends ---------------------------
+// Get Rich Quick! gives its DLOG and vers lists past its map's end; read where
+// the list before ends, since the entry there names the type. With that entry
+// naming another type, the file must be refused, not read some other way.
+{
+  const zip = new Uint8Array(execFileSync('unzip', ['-p', EVN, 'EVN/Cheats/Get_Rich_Quick.zip'], { maxBuffer: 1 << 26 }));
+  const e = S.parseZipArchive(zip).entries.find(x => /\.rez$/.test(x.name));
+  const rez = S.zipFork(zip, e, 'data');
+  const fork = S.novaOpenFork(rez);
+  const types = fork.typeList.map(t => t.type).join(' ');
+  const le = o => rez[o] | (rez[o + 1] << 8) | (rez[o + 2] << 16) | (rez[o + 3] << 24);
+  const map = le(24 + 12 * (le(20) - 1));
+  const broken = rez.slice(), dlog = map + 0x44 + 266 * 3;   // where the DLOG entry lies, after three of one each
+  broken[dlog + 4] ^= 0x20;
+  let refused = '';
+  try { S.novaOpenFork(broken); } catch (err) { refused = err.message; }
+  if (!/DLOG/.test(types) || !/vers/.test(types)) fail(`Get Rich Quick!: its types read as ${types}`);
+  else if (!refused) fail('Get Rich Quick! with its DLOG entry naming another type was read all the same');
+  else console.log(`rez: Get Rich Quick!'s ${types} read, DLOG and vers where the list before ends; with the DLOG entry naming another type, refused`);
 }
 fs.rmSync(TMP, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

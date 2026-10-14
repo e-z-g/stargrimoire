@@ -56,9 +56,12 @@ const ZIP_METHOD_NAMES = {
 const zipU16 = (b, o) => b[o] | (b[o + 1] << 8);
 const zipU32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
 
-/* A local file header or an empty archive's end record at byte 0. A zip with
-   a program in front of it (a self-extracting .exe) does not start this way
-   and is not something this page is handed. */
+/* A local file header or an empty archive's end record at byte 0; or a ZipIt
+   self-extracting archive's data fork, a PowerPC program ('Joy!', a PEF)
+   with the zip after it, its offsets counted from the start of the fork, as
+   XADMaster's XADZipItSEAParser takes it. ZipIt keeps each file there as a
+   MacBinary copy. Another program in front of a zip (a self-extracting .exe)
+   is not something this page is handed. */
 function looksLikeZip(bytes) {
   if (!bytes || bytes.length < 22) return false;
   const sig = zipU32(bytes, 0);
@@ -66,8 +69,13 @@ function looksLikeZip(bytes) {
   if (sig === 0x04034b50 || sig === 0x06054b50 || (sig === 0x08074b50 && zipU32(bytes, 4) === 0x04034b50)) return true;
   // and its last part ends with the end record, naming a disk past the first (a middle part has neither)
   const floor = Math.max(0, bytes.length - 22 - 0xFFFF);
+  const pef = sig === 0x21796f4a;   // 'Joy!'
   for (let i = bytes.length - 22; i >= floor; i--) {
-    if (zipU32(bytes, i) === 0x06054b50 && i + 22 + zipU16(bytes, i + 20) === bytes.length) return zipU16(bytes, i + 4) > 0;
+    if (zipU32(bytes, i) !== 0x06054b50) continue;
+    if (i + 22 + zipU16(bytes, i + 20) === bytes.length && zipU16(bytes, i + 4) > 0) return true;
+    // a ZipIt SEA: the directory ends where the end record begins, and eight bytes ('TIPZ', a version) may follow
+    const dir = zipU32(bytes, i + 16);
+    if (pef && dir + zipU32(bytes, i + 12) === i && dir + 4 <= i && zipU32(bytes, dir) === 0x02014b50) return true;
   }
   return false;
 }

@@ -82,12 +82,12 @@ async function readPicked(files) {
   return out;
 }
 
-/* An archive the page opens as a set of files: StuffIt, StuffIt X, zip or
-   disk image. One of StuffIt X whose streams undo the English
+/* An archive the page opens as a set of files: StuffIt, StuffIt X, zip,
+   Compact Pro, RAR or disk image. One of StuffIt X whose streams undo the English
    preprocessing needs its dictionary, 1 MB the page does not load
    otherwise: it comes from the address index.html keeps for it
    (#sitxEnglish), once, before the archive is read. */
-const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeUdif(bytes);
+const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes) || looksLikeUdif(bytes);
 // A BinHex or MacBinary copy of an archive (a .sit.hqx, a .sitx.bin): the archive in its data fork.
 function unwrapArchive(bytes) {
   if (isArchive(bytes)) return bytes;

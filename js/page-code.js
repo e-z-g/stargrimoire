@@ -15,7 +15,7 @@
    PAGE SCRIPT. LOAD ORDER: after page-map.js, page-ships.js and
    page-battle.js, whose views it takes turns with. */
 
-const CODE = { on: false, addr: null, at: null, q: '' };
+const CODE = { on: false, addr: null, at: null, field: null, q: '' };   // field: 'spöb.Flags', the field a note's link came for
 let PROGRAM_SRC = null;      // { name, read } from the archive opened, or null
 let PROGRAM;                 // undefined until read; null when there is none to read
 let FIGURES = null;
@@ -76,10 +76,15 @@ function codeNum(f, text) {
 
 /* A routine by the name Mac 1.1.1 gives it, as a link into its code when
    the open program has it (in 1.0.x, matched by js/nova-routines.js), else
-   the name alone. */
-function codeRoutine(name) {
+   the name alone. Given the record type and field a note is for, the link
+   opens at the first instruction that reads the field (novaFieldSites,
+   found when it is followed, since a table of fields has dozens), and the
+   view labels every one. */
+function codeRoutine(name, type, field) {
   const p = program(), r = p ? novaRoutineNamed(p, name) : null;
-  return r ? `<a class="codeNum" data-code="${hex(r.start)}" data-at="${hex(r.start)}" title="${esc(name)} in the program, at ${hex(r.start)}">${esc(name)}</a>` : esc(name);
+  if (!r) return esc(name);
+  const f = type ? ` data-field="${esc(type + '.' + field)}"` : '';
+  return `<a class="codeNum" data-code="${hex(r.start)}"${f} title="${esc(type ? `Where ${name} reads ${type} ${field}` : `${name} in the program, at ${hex(r.start)}`)}">${esc(name)}</a>`;
 }
 
 // The site's own code on GitHub, for a line that uses a number the program holds.
@@ -105,11 +110,11 @@ function codeFromHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   if (!p.has('code')) { if (CODE.on) codeLeave(true); return false; }
   const n = v => (v && /^(0x[0-9a-f]+|\d+)$/i.test(v) ? Number(v) : null);
-  codeShow(n(p.get('code')), n(p.get('at')), { fromHash: true });
+  codeShow(n(p.get('code')), n(p.get('at')), { fromHash: true, field: p.get('field') });
   return true;
 }
 function codeHash() {
-  return '#code' + (CODE.addr !== null ? '=' + hex(CODE.addr) : '') + (CODE.at !== null ? '&at=' + hex(CODE.at) : '');
+  return '#code' + (CODE.addr !== null ? '=' + hex(CODE.addr) : '') + (CODE.at !== null ? '&at=' + hex(CODE.at) : '') + (CODE.field ? '&field=' + encodeURIComponent(CODE.field) : '');
 }
 function codeShow(addr, at, opts = {}) {
   if (SHIPS.on) shipsLeave(true);
@@ -120,6 +125,9 @@ function codeShow(addr, at, opts = {}) {
   CODE.on = true;
   CODE.addr = r ? r.start : null;
   CODE.at = r && at !== null && at >= r.start && at < r.end ? at : null;
+  CODE.field = r && opts.field && /^[^.]+\.[^.]+$/.test(opts.field) ? opts.field : null;
+  // a field's link opens at the first line that reads it
+  if (CODE.field && CODE.at === null) { const s = novaFieldSites(p, r, ...CODE.field.split('.')); if (s.length) CODE.at = s[0].addr; }
   $('app').hidden = true;
   $('code').hidden = false;
   $('code').classList.toggle('picked', CODE.addr !== null);
@@ -177,21 +185,48 @@ function renderCode() {
   const r = p.routineAt(CODE.addr), ops = p.ops(r);
   const named = novaNamedRoutines(p, GAME).find(n => n.routine === r);
   const callers = [...new Set(p.callers(r.start).map(a => p.routineAt(a)).filter(Boolean))];
-  const read = novaFiguresByAddr(p, GAME), rules = new Map();
-  for (const s of novaRuleSites(p)) if (s.start === r.start) { if (!rules.has(s.addr)) rules.set(s.addr, []); rules.get(s.addr).push(s); }
-  const line = o => {
-    let note = o.note === null ? '' : o.target !== null ? `<a data-code="${hex(o.target)}">${esc(o.note)}</a>` : esc(o.note);
-    if (read.has(o.addr)) note += `<span class="codeRead">the site reads ${esc(read.get(o.addr))}</span>`;
-    if (rules.has(o.addr)) note += `<span class="codeRead">the site uses ${rules.get(o.addr)[0].value}: ${rules.get(o.addr).map(s => srcLink(s.file, s.line)).join(', ')}</span>`;
-    return `<tr${o.addr === CODE.at ? ' class="at"' : ''} data-addr="${hex(o.addr)}"><td>${o.addr.toString(16)}</td><td>${esc(o.op ? o.op.text : '.long 0x' + o.word.toString(16).padStart(8, '0'))}</td><td>${note}</td></tr>`;
+  // what each line is labelled with, and the text in it to pick out
+  const labels = new Map(), marks = new Map();
+  const label = (addr, html, mark) => { if (!labels.has(addr)) labels.set(addr, []); labels.get(addr).push(html); if (mark !== undefined && !marks.has(addr)) marks.set(addr, mark); };
+  for (const [addr, what] of novaFiguresByAddr(p, GAME)) if (addr >= r.start && addr < r.end) label(addr, `the site reads ${esc(what)}`, 'imm');
+  for (const s of novaRuleSites(p)) if (s.start === r.start) label(s.addr, `the site uses ${s.value}: ${srcLink(s.file, s.line)}`, 'imm');
+  for (const [key, uses] of novaProgramUses(p, GAME).fixed) for (const u of uses) if (u.routine === r.start) label(u.addr, `loads ${esc(key.trim())}${u.index !== undefined ? `, entry ${u.index}` : ''}`, 'imm');
+  const [ftype, fname] = CODE.field ? CODE.field.split('.') : [];
+  const sites = CODE.field ? novaFieldSites(p, r, ftype, fname) : [];
+  for (const s of sites) label(s.addr, `${s.call ? 'hands to the call' : s.load ? 'reads' : 'writes'} ${esc(ftype)} ${esc(fname)}`, 'place');
+  const opsText = ops.map(novaOpText);
+  // the number a figure was read from, or the place a field is read at
+  const pick = (i, addr) => {
+    const op = ops[i].op, h = esc(opsText[i]), m = marks.get(addr);
+    if (m === 'place') return h.replace(/(-?\d+\(r\d+\))$/, '<mark>$1</mark>');
+    if (m === 'imm' && op && op.imm !== undefined) return h.replace(new RegExp(`(, |^\\S+ )(${op.imm})$`), '$1<mark>$2</mark>');
+    return h;
   };
+  const glossHtml = i => esc(novaOpGloss(p, ops, i)).replace(/go to ([0-9a-f]+)$/, (m, t) => `go to <a data-code="${hex(r.start)}" data-at="0x${t}">${t}</a>`);
+  const line = (o, i) => {
+    let note = o.note === null ? '' : o.target !== null ? `<a data-code="${hex(o.target)}">${esc(o.note)}</a>` : esc(o.note);
+    for (const l of labels.get(o.addr) || []) note += `<span class="codeRead">${l}</span>`;
+    return `<tr${o.addr === CODE.at ? ' class="at"' : ''} data-addr="${hex(o.addr)}"><td>${o.addr.toString(16)}</td><td>${pick(i, o.addr)}</td><td class="gloss">${glossHtml(i)}</td><td>${note}</td></tr>`;
+  };
+  // why the view is here: the ringed line said in words, and for a field the other lines that read it
+  let why = '';
+  const atI = CODE.at !== null ? ops.findIndex(o => o.addr === CODE.at) : -1;
+  if (CODE.field && !sites.length) why = `<p>The field note says this routine reads ${esc(ftype)} ${esc(fname)}; the line that reads it was not found here.</p>`;
+  else if (atI >= 0) {
+    const ls = labels.get(CODE.at), g = glossHtml(atI);
+    why = `<p><b>Ringed, line ${CODE.at.toString(16)}:</b> ${ls ? ls.join('; ') : 'the line asked for'}.</p>
+      <p><code>${pick(atI, CODE.at)}</code>${g ? ` — ${g}` : ''}</p>`;
+    if (sites.length > 1) why += `<p>${sites.length} lines here touch it: ${sites.map(s => `<a data-code="${hex(r.start)}" data-at="${hex(s.addr)}" data-field="${esc(CODE.field)}">${s.addr.toString(16)}</a>`).join(', ')}.</p>`;
+  }
   el.innerHTML = `<h2>${esc(named ? named.name : p.nameOf(r))}</h2>
     <div class="sub">${hex(r.start)} to ${hex(r.end)}, ${r.len / 4} instructions${named ? ' · ' + esc(named.why) : ''}</div>
     <div class="actions"><button data-code-list>All routines</button></div>
     ${callers.length ? `<p class="note">Called from ${callers.map(c => `<a data-code="${hex(c.start)}">${esc(p.nameOf(c))}</a>`).join(', ')}.</p>` : ''}
+    ${why ? `<div class="codeWhy">${why}</div>` : ''}
     <table class="code">${ops.map(line).join('')}</table>`;
   const at = el.querySelector('tr.at');
   if (at) at.scrollIntoView({ block: 'center' }); else el.scrollTop = 0;
+  if (at && el.querySelector('.codeWhy')) el.scrollTop -= el.querySelector('.codeWhy').offsetHeight / 2;
 }
 
 /* ---- wiring --------------------------------------------------------------- */
@@ -208,14 +243,15 @@ function wireCode() {
     if (!a) return;
     e.preventDefault();
     if (a.dataset.codeList !== undefined) codeShow(null, null);
-    else codeShow(Number(a.dataset.code), a.dataset.at ? Number(a.dataset.at) : null);
+    // a line in the same routine keeps the field its lines are labelled for
+    else codeShow(Number(a.dataset.code), a.dataset.at ? Number(a.dataset.at) : null, { field: a.dataset.field || (Number(a.dataset.code) === CODE.addr ? CODE.field : null) });
   });
   // a figure's link anywhere else opens the view at its instruction
   document.addEventListener('click', e => {
     const a = e.target.closest('a.codeNum');
     if (!a || CODE.on) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    codeShow(Number(a.dataset.code), Number(a.dataset.at));
+    codeShow(Number(a.dataset.code), a.dataset.at ? Number(a.dataset.at) : null, { field: a.dataset.field });
   }, true);
   $('codeSearch').addEventListener('input', () => { CODE.q = $('codeSearch').value; renderCodeList(); });
 }

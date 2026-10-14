@@ -327,7 +327,7 @@ function novaMachOProgram(file) {
     return out;
   }
   const callers = addr => calls.get(addr) || [];
-  return { kind: 'macho', bytes, sects, routines, routineAt, byStart, ops, callers, nameOf, textAt, globalAt, dataNote, glueName: () => null, base: 0, res: null };
+  return { kind: 'macho', bytes, sects, routines, routineAt, byStart, ops, callers, nameOf, textAt, globalAt, dataNote, word, glueName: () => null, base: 0, res: null };
 }
 
 function hex(v) { return '0x' + (v >>> 0).toString(16); }
@@ -983,4 +983,135 @@ function novaRuleSites(prog) {
     return addr === undefined ? null : { file, line, value, routine, start: r.start, addr };
   }).filter(Boolean);
   return prog.ruleSites;
+}
+
+/* ---- an instruction, for reading -------------------------------------------
+
+   mac-ppc.js spells an instruction as LLVM does, registers as bare numbers
+   (`addi 4, 4, 3000`), which is what program_check holds it to. The Code
+   view shows it with each register named (`addi r4, r4, 3000`) and a
+   branch's target as the address it goes to, and beside it what it does
+   in plain terms (`r4 = r4 + 3000`). */
+
+// What each operand is, by the instruction's form: r a register, f a
+// floating-point one, c a condition field, m a place in memory, n a number.
+function novaOperandKinds(op) {
+  const n = op.args.length, all = k => Array(n).fill(k);
+  if (op.op >= 32 && op.op <= 55) return [op.op >= 48 ? 'f' : 'r', 'm'];
+  if (op.op === 10 || op.op === 11) return n === 3 ? ['c', 'r', 'n'] : ['r', 'n'];
+  if (op.op === 7 || op.op === 8 || op.op === 12 || op.op === 13 || op.op === 14 || op.op === 15) return n === 2 ? ['r', 'n'] : ['r', 'r', 'n'];
+  if (op.op === 20 || op.op === 21) return ['r', 'r', 'n', 'n', 'n'].slice(0, n);
+  if (op.op === 23) return ['r', 'r', 'r', 'n', 'n'].slice(0, n);
+  if (op.op >= 24 && op.op <= 29) return ['r', 'r', 'n'];
+  if (op.op === 31) {
+    if (/^cmpl?w$/.test(op.mn)) return n === 3 ? ['c', 'r', 'r'] : ['r', 'r'];
+    if (/^srawi/.test(op.mn)) return ['r', 'r', 'n'];
+    if (op.mn === 'mtcrf') return ['n', 'r'];
+    if (op.mn === 'mfspr') return ['r', 'n'];
+    if (op.mn === 'mtspr') return ['n', 'r'];
+    if (/bat/.test(op.mn)) return null;
+    if (op.mn === 'tw') return ['n', 'r', 'r'];
+    if (/^(l|st)f.*x$/.test(op.mn)) return ['f', 'r', 'r'];
+    return all('r');
+  }
+  if (op.op === 59 || op.op === 63) return /^fcmp/.test(op.mn) ? ['c', 'f', 'f'] : all('f');
+  return null;
+}
+/* The instruction as the Code view shows it. */
+function novaOpText(o) {
+  const op = o.op;
+  if (!op) return '.long 0x' + o.word.toString(16).padStart(8, '0');
+  if (op.branch && op.disp !== undefined && !op.aa) return op.text.replace(/\.[-+]\d+$/, (o.addr + op.disp).toString(16));
+  const kinds = novaOperandKinds(op);
+  if (!kinds) return op.text;
+  const args = op.args.map((a, i) => {
+    const k = kinds[i];
+    if (k === 'm') return String(a).replace(/\((\d+)\)$/, '(r$1)');
+    return k === 'r' || k === 'f' ? k + a : k === 'c' ? 'cr' + a : String(a);
+  });
+  return op.mn + (args.length ? ' ' + args.join(', ') : '');
+}
+
+const NOVA_COND = [['<', '>='], ['>', '<='], ['==', '!='], ['overflowed', 'did not overflow']];
+/* What the instruction at ops[i] does, in plain terms, or ''. */
+function novaOpGloss(prog, ops, i) {
+  const o = ops[i], op = o.op;
+  if (!op) return '';
+  // 1.0.x reaches a global through the TOC, r2: the word there is its address
+  if (prog.kind !== 'macho' && op.mn === 'lwz' && op.ra === 2 && o.note) return `r${op.rt} = the address of ${o.note}`;
+  const r = n => 'r' + n, f = n => 'f' + n;
+  const at = (base, d) => base === 1 ? `the stack at ${d}` : `${r(base)}${d ? (d < 0 ? ' − ' + -d : ' + ' + d) : ''}`;
+  const bytes = { lwz: 4, lwzu: 4, stw: 4, stwu: 4, lha: 2, lhau: 2, lhz: 2, lhzu: 2, sth: 2, sthu: 2, lbz: 1, lbzu: 1, stb: 1, stbu: 1 }[op.mn];
+  const target = op.disp !== undefined && !op.aa ? (o.addr + op.disp).toString(16) : null;
+  switch (op.mn) {
+    case 'li': return `${r(op.rd)} = ${op.imm}`;
+    case 'lis': return `${r(op.rd)} = ${op.imm} × 65536`;
+    case 'addi': return `${r(op.rd)} = ${r(op.ra)} ${op.imm < 0 ? '− ' + -op.imm : '+ ' + op.imm}`;
+    case 'addis': return `${r(op.rd)} = ${r(op.ra)} + ${op.imm} × 65536`;
+    case 'addic': case 'addic.': return `${r(op.rd)} = ${r(op.ra)} + ${op.imm}`;
+    case 'mulli': return `${r(op.rd)} = ${r(op.ra)} × ${op.imm}`;
+    case 'subfic': return `${r(op.rd)} = ${op.imm} − ${r(op.ra)}`;
+    case 'mr': case 'mr.': return `${r(op.ra)} = ${r(op.rs)}`;
+    case 'add': case 'add.': return `${r(op.rd)} = ${r(op.ra)} + ${r(op.rb)}`;
+    case 'sub': case 'sub.': return `${r(op.rd)} = ${r(op.rb)} − ${r(op.ra)}`;
+    case 'mullw': case 'mullw.': return `${r(op.rd)} = ${r(op.ra)} × ${r(op.rb)}`;
+    case 'divw': case 'divwu': return `${r(op.rd)} = ${r(op.ra)} ÷ ${r(op.rb)}`;
+    case 'neg': return `${r(op.rd)} = −${r(op.ra)}`;
+    case 'slwi': return `${r(op.ra)} = ${r(op.rs)} × ${2 ** op.sh}`;
+    case 'srwi': return `${r(op.ra)} = ${r(op.rs)} ÷ ${2 ** (32 - op.sh)}, unsigned`;
+    case 'srawi': case 'srawi.': return `${r(op.ra)} = ${r(op.rs)} ÷ ${2 ** op.sh}, rounded down`;
+    case 'rlwinm': case 'rlwinm.': case 'rotlwi': case 'rotlwi.': {
+      const mask = op.mb <= op.me ? (((2 ** (32 - op.mb)) - 1) - ((2 ** (31 - op.me)) - 1)) >>> 0 : null;
+      const rot = op.sh ? `${r(op.rs)} turned left ${op.sh} bits` : r(op.rs);
+      return mask === null || mask === 0xFFFFFFFF ? `${r(op.ra)} = ${rot}` : `${r(op.ra)} = ${rot}, and 0x${mask.toString(16)} (bits)`;
+    }
+    case 'clrlwi': case 'clrlwi.': return `${r(op.ra)} = the low ${32 - op.mb} bits of ${r(op.rs)}`;
+    case 'extsh': case 'extsh.': return `${r(op.ra)} = ${r(op.rs)} as a signed 16-bit number`;
+    case 'extsb': case 'extsb.': return `${r(op.ra)} = ${r(op.rs)} as a signed 8-bit number`;
+    case 'and': case 'and.': return `${r(op.ra)} = ${r(op.rs)} and ${r(op.rb)} (bits)`;
+    case 'or': case 'or.': return `${r(op.ra)} = ${r(op.rs)} or ${r(op.rb)} (bits)`;
+    case 'andi.': return `${r(op.ra)} = ${r(op.rs)} and 0x${op.imm.toString(16)} (bits)`;
+    case 'ori': return `${r(op.ra)} = ${r(op.rs)} or 0x${op.imm.toString(16)} (bits)`;
+    case 'cmpwi': case 'cmplwi': return `compare ${r(op.ra)} with ${op.imm}`;
+    case 'cmpw': case 'cmplw': return `compare ${r(op.ra)} with ${r(op.rb)}`;
+    case 'b': return `go to ${target}`;
+    case 'bl': return '';                                        // the note names what is called
+    case 'blr': return 'return';
+    case 'bctr': return 'go to the address in the count register';
+    case 'bctrl': return 'call the address in the count register';
+    case 'mflr': return `${r(op.rd)} = the return address`;
+    case 'mtlr': return `the return address = ${r(op.rd)}`;
+    case 'mtctr': return `the count register = ${r(op.rd)}`;
+    case 'stwu': if (op.ra === 1 && op.rt === 1) return `make room on the stack: ${-op.d} bytes`; break;
+    case 'stmw': return `save ${r(op.rt)} to r31 on the stack`;
+    case 'lmw': return `restore ${r(op.rt)} to r31 from the stack`;
+    case 'nop': return 'nothing';
+    case 'lfs': case 'lfd': return `${f(op.rt)} = the ${op.mn === 'lfs' ? 4 : 8}-byte number at ${at(op.ra, op.d)}`;
+    case 'stfs': case 'stfd': return `the ${op.mn === 'stfs' ? 4 : 8}-byte number at ${at(op.ra, op.d)} = ${f(op.rt)}`;
+    case 'bdnz': return `count down; if not 0, go to ${target}`;
+  }
+  if (bytes) return op.mn[0] === 'l' ? `${r(op.rt)} = the ${bytes} byte${bytes > 1 ? 's' : ''} at ${at(op.ra, op.d)}` : `the ${bytes} byte${bytes > 1 ? 's' : ''} at ${at(op.ra, op.d)} = ${r(op.rt)}`;
+  const xb = { lwzx: 4, stwx: 4, lhax: 2, lhzx: 2, sthx: 2, lbzx: 1, stbx: 1 }[op.mn];
+  if (xb) return op.mn[0] === 'l' ? `${r(op.rt)} = the ${xb} byte${xb > 1 ? 's' : ''} at ${r(op.ra)} + ${r(op.rb)}` : `the ${xb} byte${xb > 1 ? 's' : ''} at ${r(op.ra)} + ${r(op.rb)} = ${r(op.rt)}`;
+  const fa = { fadd: '+', fadds: '+', fsub: '−', fsubs: '−', fmul: '×', fmuls: '×', fdiv: '÷', fdivs: '÷' }[op.mn];
+  if (fa) return `f${op.args[0]} = f${op.args[1]} ${fa} f${op.args[2]}`;
+  if (op.mn === 'fmr') return `f${op.args[0]} = f${op.args[1]}`;
+  if (op.mn === 'fneg') return `f${op.args[0]} = −f${op.args[1]}`;
+  if (op.mn === 'frsp') return `f${op.args[0]} = f${op.args[1]}, rounded to 4 bytes`;
+  if (op.mn === 'fctiwz') return `f${op.args[0]} = f${op.args[1]} as a whole number, toward 0`;
+  if (/^fcmp/.test(op.mn)) return `compare f${op.args[1]} with f${op.args[2]}`;
+  // a branch on a comparison: said as the comparison, where the one that set it is near
+  if ((/^b[tf][-+]?$/.test(op.mn)) && target) {
+    const crf = op.bi >> 2, bit = op.bi & 3, cond = NOVA_COND[bit][op.mn[1] === 't' ? 0 : 1];
+    for (let k = i - 1; k >= Math.max(0, i - 12); k--) {
+      const p = ops[k].op;
+      if (!p) continue;
+      if (/^cmpl?wi?$/.test(p.mn) && (p.crf || 0) === crf) return bit === 3 ? `if ${cond}, go to ${target}` : `if ${r(p.ra)} ${cond} ${p.imm !== undefined ? p.imm : r(p.rb)}, go to ${target}`;
+      if (/^fcmp/.test(p.mn) && Number(p.args[0]) === crf) return `if f${p.args[1]} ${cond} f${p.args[2]}, go to ${target}`;
+      if (crf === 0 && /\.$/.test(p.mn)) return `if ${r(p.ra !== undefined && p.rs !== undefined ? p.ra : p.rd)} ${cond} 0, go to ${target}`;
+      if (p.branch) break;
+    }
+    return `if ${cond} (cr${crf}), go to ${target}`;
+  }
+  return '';
 }

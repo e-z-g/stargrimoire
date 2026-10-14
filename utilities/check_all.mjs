@@ -107,6 +107,7 @@ const CHECKS = [
   ['fields', 'the field notes and the code\'s comments: every routine they cite is Mac 1.1.1\'s, at its address or a place in it'],
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
+  ['fieldsites', 'where a field note\'s routine reads the field: the places held to the workbench\'s fieldtrace.py, a store broken on purpose'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and held to unar'],
   ['collection', 'the plug-ins archive.org lists, read as Add plug-ins reads them and held to the copies'],
@@ -120,7 +121,7 @@ const CHECKS = [
 ];
 const SLOW = ['subway', 'unpack', 'page'];
 // What a check reads that the tracing cannot see: a module Python imports.
-const ALSO = { rez: ['../evnova-workbench/tools/rez.py'], plugin: ['../evnova-workbench/tools/rez.py'] };
+const ALSO = { rez: ['../evnova-workbench/tools/rez.py'], plugin: ['../evnova-workbench/tools/rez.py'], fieldsites: ['../evnova-workbench/tools/fieldtrace.py'] };
 const quick = process.argv.includes('--quick'), fresh = process.argv.includes('--fresh');
 const want = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const run = CHECKS.filter(([n]) => (!want.length || want.some(w => n.includes(w))) && !(quick && SLOW.includes(n)));

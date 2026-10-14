@@ -103,7 +103,7 @@ function fieldsRows(type, rec, editing) {
     const rd = editing ? null : novaFieldRead(GAME, type, name, rec);
     const sh = novaFieldShort(type, name);
     const note = (sh ? `<div class="fieldNote fieldShort">${esc(sh)}</div>` : '') +
-                 (fn ? `<div class="fieldNote fieldFull">${codeLinkProse(esc(fn.note))}<span class="fieldCode">Read from ${fn.code.map(([f]) => codeRoutine(f)).join(', ')}.</span></div>` : '') +
+                 (fn ? `<div class="fieldNote fieldFull">${codeLinkProse(esc(fn.note))}<span class="fieldCode">Read from ${fn.code.map(([f]) => codeRoutine(f, type, name)).join(', ')}.</span></div>` : '') +
                  (fn && fn.bible ? `<div class="fieldNote fieldFull">The Bible: ${esc(fn.bible)}</div>` : '') +
                  (rd ? `<div class="fieldNote fieldRead">This one: ${esc(rd)}</div>` : '');
     if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}${note}</td></tr>`); continue; }

@@ -263,6 +263,10 @@ table.fields.editing input { width: 100%; box-sizing: border-box; background: va
 #codeView table.code tr.at td { background: rgba(255, 207, 74, 0.18); outline: 1px solid #ffcf4a; }
 a.codeNum { text-decoration: underline dotted; text-underline-offset: 2px; }
 #codeView .codeRead { color: #ffcf4a; margin-left: 8px; white-space: normal; }
+#codeView table.code td.gloss { color: var(--dim); font-family: system-ui, sans-serif; }
+#codeView table.code mark, #codeView .codeWhy mark { background: #ffcf4a; color: #000; border-radius: 2px; padding: 0 1px; }
+#codeView .codeWhy { position: sticky; top: -16px; z-index: 1; margin: 12px 0 4px; padding: 8px 12px; border-left: 3px solid #ffcf4a; background: linear-gradient(rgba(255, 207, 74, 0.08), rgba(255, 207, 74, 0.08)), var(--bg); max-width: 60em; }
+#codeView .codeWhy p { margin: 4px 0; }
 #shipList { width: 300px; flex: none; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
 #shipList .listTools { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
 #shipSearch { flex: 1; min-width: 120px; }
@@ -611,20 +615,21 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-refs.js?v=edb79945"></script>
 <script src="js/nova-rules.js?v=00e2e17a"></script>
 <script src="js/nova-routines.js?v=0deb66f3"></script>
-<script src="js/nova-program.js?v=bc66c841"></script>
+<script src="js/nova-program.js?v=d93e90d6"></script>
+<script src="js/nova-fieldsites.js?v=67bee1a4"></script>
 <script src="js/nova-collection.js?v=2be01b49"></script>
 <script src="js/nova-sound.js?v=b413dfc2"></script>
 <script src="js/page-open.js?v=e90cb0a7"></script>
 <script src="js/page-compare.js?v=71441477"></script>
 <script src="js/page-collection.js?v=44bdf2ba"></script>
-<script src="js/page-plugin.js?v=2b4dc4a5"></script>
+<script src="js/page-plugin.js?v=b61babec"></script>
 <script src="js/page-svg.js?v=137e1963"></script>
 <script src="js/page-map.js?v=e4457de9"></script>
 <script src="js/page-ships.js?v=6ee5030e"></script>
 <script src="js/page-flight.js?v=c3eb5a89"></script>
 <script src="js/page-battle.js?v=8b6de935"></script>
 <script src="js/page-records.js?v=7dc6372b"></script>
-<script src="js/page-code.js?v=bf9cecaa"></script>
+<script src="js/page-code.js?v=959fabe5"></script>
 <script src="js/page-library.js?v=fc5e1072"></script>
 </body>
 </html>

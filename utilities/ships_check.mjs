@@ -11,7 +11,7 @@
 //      (Flags 0x02, folding) and Manticores (0x08, in sequence), with six
 //      and three sets of base under one set of glow, in every release.
 //   3. The pictures: how many ships have a target picture (3000) and a
-//      picture beside the description (5000) numbered from theirs, how many take another's
+//      picture beside the description (5000) at their id, how many take another's
 //      by sharing sprites, and which have none.
 //   4. The Bible's worked values: InherentGovt's ranges, Mass to jump days.
 //

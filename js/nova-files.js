@@ -202,10 +202,10 @@ function novaArchiveFiles(bytes, depth = 0) {
     if (!hasRsrc && !dataFile && !wrapped) continue;
     const plugin = !inFiles && !besideGame && (inPlugins || e.type === 'Np?f' || byContent || ((dataFile || wrapped) && !NOVA_BASE_NAME.test(name)));
     if (!inFiles && !plugin && !NOVA_BASE_NAME.test(name)) continue;
-    // In Nova Files, a file whose name is no part of the game counts only
+    // In Nova Files, a file whose name matches no part of the game counts only
     // as a .rez, an .ndat or a MacBinary or BinHex copy: the race movies
     // have resource forks too. A total conversion's files, named
-    // as it likes, are the part their Mac type gives, else, as Starfleet
+    // as it likes, are the part their Mac type marks them as, else, as Starfleet
     // Adventures' SFA Galaxy 1.bin, data.
     const role = novaFileRole(name) || NOVA_TYPE_ROLE[e.type];
     if (!plugin && !role && !dataFile && !wrapped) continue;

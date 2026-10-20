@@ -130,10 +130,10 @@ function fieldsRead(box, type) {
     try {
       if (n && kind !== 'str' && kind !== 'pad') {
         const parts = input.value.split(',');
-        if (parts.length !== n) throw new Error(`must be ${n} values, with commas between`);
+        if (parts.length !== n) throw new Error(`wants ${n} values, with commas between`);
         rec[f] = parts.map(p => novaFieldParse(kind, p));
       } else rec[f] = novaFieldParse(kind, input.value);
-      if (kind === 'str' && encodeMacRoman(rec[f]).length > n - 1) throw new Error(`must be at most ${n - 1} characters`);
+      if (kind === 'str' && encodeMacRoman(rec[f]).length > n - 1) throw new Error(`takes at most ${n - 1} characters`);
     } catch (e) {
       input.focus();
       return { why: `${f} ${e.message}` };

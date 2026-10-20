@@ -69,8 +69,8 @@ export function rulesFile(rules) {
    lists; run that after changing js/nova-flight.js or js/nova-fight.js.
    =========================================================================
 
-   Each number the flying and battle code uses that the routine of Mac 1.1.1
-   its comments cite contains too: [file, line, number, routine]
+   Each number in the flying and battle code that is also in the Mac 1.1.1
+   routine its comments cite: [file, line, number, routine]
    (how they are found is in utilities/rules.mjs). The Code view has them
    by routine, each linked to the instruction holding it and to the line of
    the site's code that uses it; program_check fails while this list is not

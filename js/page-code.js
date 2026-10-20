@@ -100,7 +100,7 @@ function codeRules(p) {
   for (const s of sites) { if (!by.has(s.routine)) by.set(s.routine, []); by.get(s.routine).push(s); }
   const rows = [...by].map(([name, list]) => `<tr><td><a data-code="${hex(list[0].start)}">${esc(name)}</a></td><td>${list.map(s => `${codeNum({ routine: s.start, addr: s.addr, value: s.value })} <small>${srcLink(s.file, s.line)}</small>`).join(', ')}</td></tr>`);
   return `<h3>The rules the site flies by</h3>
-    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction that contains it, a line the site's code that uses it.</p>
+    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction that holds it, a line the site's code that uses it.</p>
     <table class="kv codeRules">${rows.join('')}</table>`;
 }
 
@@ -211,10 +211,10 @@ function renderCode() {
   // why the view is here: the ringed line put in words, and for a field the other lines that read it
   let why = '';
   const atI = CODE.at !== null ? ops.findIndex(o => o.addr === CODE.at) : -1;
-  if (CODE.field && !sites.length) why = `<p>By the field note, this routine reads ${esc(ftype)} ${esc(fname)}; the line that reads it was not found here.</p>`;
+  if (CODE.field && !sites.length) why = `<p>The field note says this routine reads ${esc(ftype)} ${esc(fname)}; the line that reads it was not found here.</p>`;
   else if (atI >= 0) {
     const ls = labels.get(CODE.at), g = glossHtml(atI);
-    why = `<p><b>Ringed, line ${CODE.at.toString(16)}:</b> ${ls ? ls.join('; ') : 'the line requested'}.</p>
+    why = `<p><b>Ringed, line ${CODE.at.toString(16)}:</b> ${ls ? ls.join('; ') : 'the line asked for'}.</p>
       <p><code>${pick(atI, CODE.at)}</code>${g ? ` — ${g}` : ''}</p>`;
     if (sites.length > 1) why += `<p>${sites.length} lines here touch it: ${sites.map(s => `<a data-code="${hex(r.start)}" data-at="${hex(s.addr)}" data-field="${esc(CODE.field)}">${s.addr.toString(16)}</a>`).join(', ')}.</p>`;
   }

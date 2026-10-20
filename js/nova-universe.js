@@ -15,7 +15,7 @@
    545 systems in 1.1.1 have a test, and 128 places have more than one.
 
    STELLARS belong to a system by being one of its sixteen navigation
-   defaults; in the Bible, one that is not "won't show up on the radar".
+   defaults; according to the Bible, one that is not "won't show up on the radar".
    A stellar's picture is spïn 1000 + its Type. When landed, the game shows
    PICT CustPicID when that is 128 or more, and otherwise PICT 10000 + Type:
    Mac 0x1353d0 loads CustPicID, compares it with 128 and adds 10000 to the
@@ -316,7 +316,7 @@ function novaStellarSystem(u, id, shown) {
    needs: novaCanLand, the stellar in the system you are in (by
    novaStellarSystem), its fee if not dominated ("to pay the hypergate
    fee"; no shipped gate has one), the cloak off, and to be near and slow.
-   A gate that fails novaCanLand or is not the system's is closed: "Your
+   A gate that fails novaCanLand or is not the system's turns you away: "Your
    ship is unable to enter this hypergate - it is offline." or "... this
    wormhole - the radiation levels are too extreme." (STR# 2002, 84-86).
      A hypergate (0x192220) with no HyperLink set does nothing; otherwise
@@ -338,7 +338,7 @@ function novaRandomWormhole(spob) { return !!(spob.Flags2 & 0x2000) && novaGateT
    { refused: true } where it gives the radiation message (STR# 2002, 84
    and 86). Landing's checks come first (0x1932c0): the wormhole can be
    landed on (novaCanLand) and is the system's. Then 0x192a10: one with
-   a HyperLink set tries its slots at random until one is a stellar in a
+   a HyperLink set tries its slots at random until one points to a stellar in a
    shown system, which is a pick among those slots, a stellar named twice
    counting twice; one with none set picks among the wormholes with none
    set that belong to a shown system other than `here`, whether or not they

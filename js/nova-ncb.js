@@ -12,7 +12,7 @@
      Exxx  the player has explored system id xxx
      | & ! ( )
 
-   and has an empty expression as true, and that the evaluator "may do
+   and states that an empty expression is true, and that the evaluator "may do
    unpredictable things" with `b1 & b2 | b3`. ncbParseTest reads a test as
    written, left to right where & and | mix (`mixed: true`); ncbTest,
    ncbGameTree and ncbCompile read it as Mac 1.1.1 does (ncbRead), which

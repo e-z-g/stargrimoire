@@ -134,7 +134,7 @@ function hfspName(b, at) {
 function hfspVolume(read) {
   const vh = read(1024, 512);
   const sig = String.fromCharCode(vh[0], vh[1]);
-  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image has an HFS volume, not HFS Plus' : 'the disk image has no HFS Plus volume');
+  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image holds an HFS volume, not HFS Plus' : 'the disk image holds no HFS Plus volume');
   const bs = u32be(vh, 40);
   const forkBytes = (fork, overflow) => {
     const ext = fork.extents.concat(overflow || []), out = new Uint8Array(fork.size);
@@ -205,7 +205,7 @@ function udifFiles(bytes) {
    a wrapper that runs them. `pkgFiles(bytes)` gives the files of every
    payload in a package, in the shape `udifFiles` gives.
 
-   A flat package is a xar archive: 'xar!', a header of the length it gives
+   A flat package is a xar archive: 'xar!', the header's length
    (28), the table of contents' compressed and uncompressed lengths (big
    endian, 8 bytes each), and the table of contents, zlib-compressed XML,
    followed by the heap that its <data> entries' offsets count from. Each

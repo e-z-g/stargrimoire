@@ -7,7 +7,7 @@
    a ship is dragged from it onto the arena (with a finger, first
    sideways, so that the list still scrolls), or tapped and then the arena
    tapped where it goes, as many at a time as Drop is set to, each flying as
-   Flies as is set (its class's InherentAI, or one chosen). The arena's left
+   the Flies as setting has it (its class's InherentAI, or one chosen). The arena's left
    half is side 1's and its right half side 2's; a ship dropped is that
    half's, facing the other. Until the fight, ships on the arena are
    dragged to move them -- across the middle to change sides -- and off it
@@ -301,7 +301,7 @@ function battleGovts(D) {
    planet-type -- whoever flies it in the game. Twice as many are drawn,
    and dealt strongest first to the side with the less Strength so far,
    so the two come out about even. They are scattered over the arena, the
-   sides mixed, flying as Flies as is set. */
+   sides mixed, flying as the Flies as setting has it. */
 function battleRandom() {
   const D = flightData();
   if (!D) return;

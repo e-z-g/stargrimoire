@@ -36,8 +36,8 @@
    octilinear grid graphs", 2020), 1 for 45 degrees, 1.5 for 90 and 2 for
    135. Two links never share a step; they may cross, at a price, straight
    over each other. Round each system the links leave in that same order,
-   the rule of that paper. A link that finds no
-   way through is given the way through the fewest others, which are then
+   the rule of that paper. A link with no
+   way through is routed through the fewest others, which are then
    routed again (rip-up and reroute, as circuit boards are routed). Last,
    that paper's local search: each link routed again alone, and each system
    tried at its eight neighbouring points with its links routed again,
@@ -60,8 +60,8 @@
    places cannot be drawn within it: each is drawn as near it as the router finds,
    within twice that where it can, and counted (stats.astray). It combines
    with the other two, but room for names is then made another way. Room
-   kept for each name before the links are routed, as the map with room for
-   names has it, is a row of grid points no link crosses, and a link held
+   kept for each name before the links are routed, as on the map with room for
+   names, is a row of grid points no link crosses, and a link held
    within 45 degrees of its heading often has no way round one (a twentieth
    of the stock galaxy's links could not, some turned right back). So room
    is kept for each name as on that map, but a link may pass through it at
@@ -82,7 +82,7 @@
    THE MAP WITH 22.5 DEGREES ONLY WHERE NEEDED (the maintainer's request, 29
    September 2026) is the 22.5-degree map with a piece between the
    45-degree directions only in the links whose 45-degree drawing is
-   awkward (subwayNeedy, where the comment gives why nearness to the true direction is
+   awkward (subwayNeedy, whose comment explains why nearness to the true direction is
    not among the reasons).
 
    WHAT IS LAID OUT is every system and every link there is, all versions
@@ -236,8 +236,8 @@ function subwayModule() {
      least, and each of its links given the port that fit found for it,
      which the placing measures the link from and the router leaves by.
      (Moash Llima, five of whose six links truly head within 65 degrees of
-     north-east, sent two of them out the wrong way to swing round; at the
-     maintainer's request, metro maps' long station, 28 September 2026.)
+     north-east, sent two of them out the wrong way to swing round; metro maps' long station was the
+     maintainer's request, 28 September 2026.)
      Returns each place's bar, {a, len, port: link to port}, or null. */
   function subwayBars(n, links, heading) {
     const out = new Array(n).fill(null);
@@ -642,7 +642,7 @@ function subwayModule() {
           }
         };
         for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) consider(gi[v] + di, gj[v] + dj);
-        // on the map with headings kept, also where each of its neighbours puts its true place,
+        // on the map with headings kept, also where its true position is as seen from each of its neighbours,
         // and round that: a place turned right round is too far from its true side for the steps above
         if (neighbours) for (const { w, dx, dy } of neighbours[v]) {
           const ci = Math.round(gi[w] - dx), cj = Math.round(gj[w] - dy);
@@ -1002,8 +1002,8 @@ function subwayModule() {
     const span = e => { const a = node[links[e][0]], b = node[links[e][1]]; return Math.max(Math.abs(a % W - b % W), Math.abs(((a / W) | 0) - ((b / W) | 0))); };
     const shortestFirst = X => X.slice().sort((a, b) => span(a) - span(b));
 
-    // Route the queue: a link with no way is given the way through the fewest others, which go
-    // back on the queue, or the links at its ends are taken up when their ports leave it none.
+    // Route the queue: a link with no way is routed through the fewest others, which go
+    // back on the queue, or the links at its ends are routed again when their ports leave it none.
     const ripped = new Int32Array(links.length);
     function routeAll(queue, budget) {
       while (queue.length) {
@@ -1155,7 +1155,7 @@ function subwayModule() {
   /* THE 22.5-DEGREE MAP, from the finished 45-degree one: the links it
      draws straight are already at multiples of 22.5 degrees and stay so; each
      one it bends is given the multiple of 22.5 degrees nearest the line
-     between its ends, if two links still do not share a port and the links in
+     between its ends, if no two links then share a port and the links stay in
      order round both ends, and the systems are moved off the grid, by least
      squares, until as many as can be are straight to within a quarter of a
      degree, eps (a link that the rest will
@@ -1306,7 +1306,7 @@ function subwayModule() {
     const segs = [], segAt = index(), placeAt = index(), nameAt = index();
     const addSeg = (p, q, ends, bar) => { segAt.add({ x0: Math.min(p.x, q.x), x1: Math.max(p.x, q.x), y0: Math.min(p.y, q.y), y1: Math.max(p.y, q.y) }, segs.length); segs.push([p, q, ends, bar]); };
     lines.forEach((l, e) => { if (l) for (let k = 0; k + 1 < l.length; k++) addSeg(l[k], l[k + 1], links[e], false); });
-    // a bar is a piece no name comes within SUBWAY_LABEL.bar of, its place's included
+    // a bar is a piece no name comes within SUBWAY_LABEL.bar of, the name of its place included
     // (subwayBars), and its points are its place's for being nearer
     const ptsOf = v => (bars && bars[v] ? subwayBarCells(bars[v], at[v].x, at[v].y).map(([x, y]) => ({ x, y })) : [at[v]]);
     at.forEach((p, v) => { if (bars && bars[v]) { const c = ptsOf(v); addSeg(c[0], c[c.length - 1], [-1, -1], true); } });
@@ -1447,7 +1447,7 @@ function subwayModule() {
     };
     // a quick no first: each place's points within a box round its point (its bar's cells), and over
     // can be true only for a place whose box comes within clear of the piece's, the crossing and the
-    // running along only for pieces whose boxes meet; the slack stops rounding from settling
+    // running along only for pieces whose boxes meet; the slack is so that rounding does not change the answer
     const barBox = at.map((_, v) => { const c = bars && bars[v] ? subwayBarCells(bars[v], 0, 0) : [[0, 0]]; return { x0: Math.min(...c.map(q => q[0])), x1: Math.max(...c.map(q => q[0])), y0: Math.min(...c.map(q => q[1])), y1: Math.max(...c.map(q => q[1])) }; });
     const SLACK = 1e-6;
     const pieceBox = (p, q, m) => ({ x0: Math.min(p.x, q.x) - m, x1: Math.max(p.x, q.x) + m, y0: Math.min(p.y, q.y) - m, y1: Math.max(p.y, q.y) + m });

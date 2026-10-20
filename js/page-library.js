@@ -57,7 +57,7 @@ function libRace(res, id) {
   if (res === 'PICT' && id === 8529) return "the bar's race, behind its Gamble button: the background";
   if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the bar's race: colour ${id % 10 + 1}'s button, ${LIB_RACE_STATES[Math.floor(id / 10) - 853]}`;
   if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time the bar is opened), and a winning bet pays four times what was bet";
-  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} comes first`;
+  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} wins`;
   return '';
 }
 

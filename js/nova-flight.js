@@ -209,7 +209,7 @@ function novaFlightData(u) {
 /* röid n (from 128) and its sprite, spïn 800 + (n - 128) (LoadSprites
    0x2097f): Strength at least 1, SpinRate / 100 frames a step; its yield
    and explosion kept only where LoadObjectData (0x771b0) stores them. Read
-   again when the graphics files are opened, as they may be after the rest. */
+   again when the graphics files are opened, which may be after the rest. */
 function novaFlightRoids(game) {
   const roids = [];
   for (let t = 0; t < 16; t++) {
@@ -1084,7 +1084,7 @@ function novaInterceptorAI(w, s) {
   }
   novaInterceptorTail(w, s, g);
 }
-/* MinerAI 0x8b202, for ships whose Flags3 has them destroy asteroids
+/* MinerAI 0x8b202, for ships whose Flags3 sets them to destroy asteroids
    (0x0001) or scoop debris (0x0002), and lead no fleet: angered, it
    retreats; one that destroys mines the first asteroid of the system's
    (state 16), or parks with none; one that scoops, with a scoop and room,

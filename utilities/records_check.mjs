@@ -116,7 +116,7 @@ const ALIAS = { Visiblility: 'Visibility', spobType: 'Type', MinCoolness: 'MinSt
                 WType: 'WeapType', WCount: 'WeapCount', Ammo: 'AmmoLoad', WType2: 'WeapType2', WCount2: 'WeapCount2', Ammo2: 'AmmoLoad2',
                 DefaultItems2: 'DefaultItms2', AvailShipType: 'AvailShipTyp', HailPICT: 'HailPict',
                 EscortShipType: 'EscortType', EscortMin: 'Min', EscortMax: 'Max' };
-// The dump's names for one type's field that another type has under another name.
+// Fields the dump calls by another name in one type than in the others.
 const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' }, ränk: { Contributes: 'Contrib', flags: 'Flags' },
   röid: { spinRate: 'SpinRate', yieldType: 'YieldType', yieldQty: 'YieldQty', partCount: 'PartCount', partColor: 'PartColor',
           fragType1: 'FragType1', fragType2: 'FragType2', fragCount: 'FragCount', ExplodeType: 'ExplodType' } };

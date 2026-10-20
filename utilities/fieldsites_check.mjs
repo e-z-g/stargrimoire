@@ -72,7 +72,7 @@ if (intel) {
   // the routines a note's link rings a line in, and as a control the same
   // routines read two bytes off each field's place: fieldtrace sees only
   // some of the routines that use a place (its header gives which it
-  // misses), so it is the many listed against the control's few that is checked
+  // misses), so the test is that many are listed against the control's few
   const listed = shift => {
     let on = 0, off = 0;
     for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {

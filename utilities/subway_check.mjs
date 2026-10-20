@@ -209,7 +209,7 @@ function crowded(m) {
   const at = r.at.map(g), boxes = r.labels.map(l => { const a = g({ x: l.box.x0, y: l.box.y0 }), b = g({ x: l.box.x1, y: l.box.y1 }); return { x0: a.x, y0: a.y, x1: b.x, y1: b.y }; });
   const segs = [];
   r.lines.forEach((l, e) => { if (l) for (let i = 0; i + 1 < l.length; i++) segs.push([g(l[i]), g(l[i + 1]), m.links[e]]); });
-  // a bar, its place's included, no nearer than SUBWAY_LABEL.bar
+  // a bar, the name of its place included, no nearer than SUBWAY_LABEL.bar
   (r.bars || []).forEach(b => { if (b) segs.push([g(b.a), g(b.b), [], true]); });
   const grow = (b, c) => ({ x0: b.x0 - c, x1: b.x1 + c, y0: b.y0 - c, y1: b.y1 + c });
   boxes.forEach((b, v) => {

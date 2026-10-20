@@ -184,7 +184,7 @@ const REC_BODY = {
         ${kvRow('Offered when', testLine(r.Availability))}
       </table>
       <h3>Sold at <span class="note">${soldAt.length}</span></h3>
-      <p class="note">Outfitters whose tech level is the outfit's or more, or names it among their special techs; Offered when, its needs, and the day's draw (BuyRandom) then settle it.</p>
+      <p class="note">Outfitters whose tech level is the outfit's or more, or names it among their special techs; Offered when, its needs, and the day's draw (BuyRandom) then decide.</p>
       ${many(soldAt.map(stellarRef), 'outfitters')}
       ${refs.needs.length ? `<h3>Needs</h3><p class="note">Every one of these contribute bits, from the ship, an outfit carried, a rank held or an event running.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
       ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">Added to yours when you buy, capture or start in one (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}
@@ -294,8 +294,8 @@ const REC_BODY = {
         ${kvRow('Government', govtRef(r.Govt))}
         ${kvRow('Prices', `${r.PriceMod > 0 ? r.PriceMod : 100}% at the stellars of its government and its allies`)}
         ${kvRow('Salary', r.Salary ? `${r.Salary.toLocaleString()} credits a day${r.SalaryCap > 0 ? `, while you have under ${r.SalaryCap.toLocaleString()}` : ''}` : '')}
-        ${kvRow('<PRK> in texts', r.ConvName ? esc(r.ConvName) : '')}
-        ${kvRow('<SRK> in texts', r.ShortName ? esc(r.ShortName) : '')}
+        ${kvRow('Name used for <PRK>', r.ConvName ? esc(r.ConvName) : '')}
+        ${kvRow('Name used for <SRK>', r.ShortName ? esc(r.ShortName) : '')}
         ${kvRow('Weight', String(r.Weight))}
         ${kvRow('Contributes', bits.length ? bits.map(maskText).join('<br>') : '')}
       </table>

@@ -125,7 +125,7 @@ async function openGameFiles(picked, opts = {}) {
         await archiveReady(bytes);
         const list = novaArchiveFiles(bytes);
         if (!program) { try { program = novaArchiveProgram(bytes); } catch (e) { program = null; } }
-        if (list.length) found.push(...list); else refused.push(name + ' has no Nova files');
+        if (list.length) found.push(...list); else refused.push(name + ' holds no Nova files');
       } else {
         const one = novaLooseFile(name, bytes);
         if (one) found.push(one); else refused.push(name + ' has no resource fork');
@@ -198,7 +198,7 @@ function chooseClashes(groups) {
   };
   const and = list => list.length < 2 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
   box.innerHTML = `<h2>Plug-ins with the same records</h2>
-    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, in a Mac folder's order; the others' copies are not used.</p>
+    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, as a Mac folder lists them; the others' copies are not used.</p>
     ${groups.map(g => { const n = g.records.reduce((s, r) => s + r.ids.length, 0);
       return `<p>${and(g.files.map(f => `<strong>${esc(f)}</strong>`))}: ${n} record${n === 1 ? '' : 's'}, ${esc(g.files[g.files.length - 1])}'s read<br><small>${g.records.map(r => `${esc(r.type)} ${runs(r.ids)}`).join('; ')}</small></p>`; }).join('')}
     <div class="actions"><button data-a="cancel">Cancel</button><button data-a="ok">Open anyway</button></div>`;
@@ -369,7 +369,7 @@ function wireOpening() {
   document.getElementById('creditsItem').addEventListener('click', e => { e.stopPropagation(); moreShow(false); creditsShow(credits.hidden); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
-                     () => setStatus('Nothing was kept to clear.'));
+                     () => setStatus('Nothing was remembered to forget.'));
   });
   if (srcs.length) fetchAndOpen(srcs.map(s => s === 'archive.org' ? ARCHIVE_ORG.url : s));
   else if (params.get('cache') !== 'skip') keptGet().then(rec => {

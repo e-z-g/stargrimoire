@@ -24,7 +24,7 @@
 // routine a field note cites must be there by name. js/nova-rules.js must
 // be the list the flying and battle code gives (utilities/rules_build.mjs),
 // each number found in its routine, a whole number's word as llvm-mc reads
-// it, and a number not in the routine not found. What the program loads
+// it, and a number that is not in the routine reported as not found. What the program loads
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
 // js/nova-routines.js, where 1.1.1's routines are in 1.0.x, must be what

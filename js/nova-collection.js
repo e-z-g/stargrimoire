@@ -29,9 +29,9 @@ const NOVA_COLLECTIONS = [
   { key: 'extras', label: 'Conversions', item: 'EscapeVelocityPluginCollection', within: /^Extras\/(?!Plugin Converters\/)/, strip: 'Extras/', packages: true,
     note: 'The total conversions kept beside them, and the ports of EV and EV Override that the two sets of ports need.' },
   { key: 'ev', label: 'EV ports', item: 'ev_20250301', within: /^(Plugins|Cheats|Scenarios)\//,
-    note: 'EV\'s plug-ins ported to Nova. In their archive, each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
+    note: 'EV\'s plug-ins ported to Nova. Their archive says each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
   { key: 'evo', label: 'Override ports', item: 'EVO_Ported', within: /^EVO\/(Plugins|Cheats)\//, strip: 'EVO/',
-    note: 'EV Override\'s plug-ins ported to Nova. In their archive, each needs "a port of EV Override for the base Nova Files folder", as EV_Override_for_Nova under Conversions is, and that they are "not fully debugged".' },
+    note: 'EV Override\'s plug-ins ported to Nova. Their archive says each needs "a port of EV Override for the base Nova Files folder", as EV_Override_for_Nova under Conversions is, and that they are "not fully debugged".' },
 ];
 
 const novaCollectionUrl = (...parts) => NOVA_COLLECTION_BASE + parts.join('/').split('/').map(encodeURIComponent).join('/');

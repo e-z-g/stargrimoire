@@ -326,7 +326,7 @@ function flightPanel(sys) {
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-flight="speed:${v}" aria-pressed="${FLIGHT.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   return `<h3>Ships here now</h3>
     <p>${ships.length ? `${ships.length}: ${list}` : 'none'}</p>
-    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Enter the system again, with other ships">Enter again</button></div>`;
+    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
 }
 
 /* A stellar's defence fleet, launched as its hail dialog launches it

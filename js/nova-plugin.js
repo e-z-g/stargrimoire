@@ -59,7 +59,7 @@ function novaRecordBytes(type, rec, base) {
       if (off + n > b.length) break;
       if (kind === 'str' && name in rec) {
         const s = encodeMacRoman(rec[name]);
-        if (s.length > n - 1) throw new Error(`${name} must be at most ${n - 1} characters`);
+        if (s.length > n - 1) throw new Error(`${name} takes at most ${n - 1} characters`);
         // what was there past the old string's NUL is kept, as the game's
         // editors leave it; only the string and its NUL are written
         const old = novaFixedString(b, off, n);
@@ -84,16 +84,16 @@ function novaRecordBytes(type, rec, base) {
 function novaFieldParse(kind, text) {
   const t = String(text).trim();
   const range = (v, lo, hi) => {
-    if (!Number.isInteger(v) || v < lo || v > hi) throw new Error(`must be a whole number from ${lo} to ${hi}`);
+    if (!Number.isInteger(v) || v < lo || v > hi) throw new Error(`wants a whole number from ${lo} to ${hi}`);
     return v;
   };
   if (kind === 'str' || kind === 'cstr') return String(text);
   if (kind === 'h16' || kind === 'h32' || kind === 'rgb') {
     const m = /^(?:0x|#)?([0-9a-f]+)$/i.exec(t);
-    if (!m) throw new Error(kind === 'rgb' ? 'must be a colour, #RRGGBB' : 'must be a hex number');
+    if (!m) throw new Error(kind === 'rgb' ? 'wants a colour, #RRGGBB' : 'wants a hex number');
     return range(parseInt(m[1], 16), 0, kind === 'h16' ? 0xFFFF : 0xFFFFFFFF);
   }
-  if (!/^[-+]?\d+$/.test(t)) throw new Error('must be a whole number');
+  if (!/^[-+]?\d+$/.test(t)) throw new Error('wants a whole number');
   const v = Number(t);
   return kind === 'i16' ? range(v, -32768, 32767) : range(v, -2147483648, 2147483647);
 }

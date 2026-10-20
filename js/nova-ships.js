@@ -63,11 +63,11 @@ const NOVA_SHIP_FLAGS3 = [
   [0x0001, 'Destroys asteroids'], [0x0002, 'Scoops asteroid debris'], [0x0010, 'Ignores gravity'],
   [0x0020, 'Ignores deadly stellars'], [0x0040, 'Turret shots drawn above the ship'],
   [0x0100, 'Hidden in the shipyard when Availability fails'], [0x0200, 'Hidden in the shipyard when Require fails'],
-  [0x4000, 'Higher-numbered ships of the same DispWeight left out of the shipyard'],
+  [0x4000, 'Keeps higher-numbered ships of the same DispWeight out of the shipyard'],
 ];
 const NOVA_SHAN_FLAGS = [
   [0x0001, 'Extra sets bank: level, left, right'], [0x0002, 'Extra sets fold and unfold'],
-  [0x0004, 'Second set shown without its KeyCarried ships aboard'], [0x0008, 'Extra sets play in sequence'],
+  [0x0004, 'Second set shown when not carrying its KeyCarried ships'], [0x0008, 'Extra sets play in sequence'],
   [0x0010, 'Stops animating when disabled'], [0x0020, 'Alternating image hidden when disabled'],
   [0x0040, 'Running lights hidden when disabled'], [0x0080, 'Unfolds to fire'],
   [0x0100, 'Frame chosen to correct off-axis rendering'],
@@ -142,10 +142,10 @@ function novaShipItems(ship) {
   return out;
 }
 
-/* The stellars where the ship can be for sale, by tech level alone: a
+/* The stellars where the ship may be on sale, by tech level alone: a
    shipyard (spöb Flags 0x08) whose TechLevel is the ship's or higher, or
    one of whose eight SpecialTech is exactly the ship's. Availability,
-   Require and BuyRandom then settle it on the day. `stellars` is an iterable
+   Require and BuyRandom then determine whether it is, on the day. `stellars` is an iterable
    of spöb records. */
 function novaShipyards(stellars, ship) {
   const out = [];

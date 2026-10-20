@@ -196,7 +196,7 @@ function novaCopies(prog, ops, access, from, to, type, rec) {
   }
   // a call's destination may be built from an index the registers do not
   // show the whole of: where it lands on a place a store gives another
-  // field, the store's value stands
+  // field, the store's value is the one used
   for (const m of byG.values()) {
     const stored = new Set([...m.values()].filter(p => !p.call).map(p => p.off));
     for (const [at, p] of m) if (p.call && stored.has(p.off)) m.delete(at);
@@ -255,7 +255,7 @@ function novaFieldSites(prog, routine, type, field) {
   }
   return out;
 }
-// A routine's accesses, followed once, since each field of a record's table needs them.
+// A routine's accesses, worked out once, since every field of a record's table needs them.
 function novaRoutineAccesses(prog, routine) {
   if (!prog.accesses) prog.accesses = new Map();
   if (!prog.accesses.has(routine.start)) {

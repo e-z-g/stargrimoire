@@ -320,7 +320,7 @@ function novaFriendStrength(w, s) {
   return str;
 }
 /* AICalculateOddsAgainst 0x84a2e: the Strength of the ship's enemies in
-   the system, and of those attacking it, over its Strength and its allies'. */
+   the system, and of those attacking it, over the Strength of the ship and its allies. */
 function novaCalcOdds(w, s) {
   const D = w.D;
   let own = novaClassFight(D, s.cls).strength, enemy = 0;

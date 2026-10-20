@@ -4,20 +4,20 @@
    The galaxy and every system in it are one picture, as grimoire's World
    tab is one picture of Cythera. A system is a disc at its place in the
    galaxy, and its stellars are drawn inside the disc, scaled down to fit
-   it: a system is not somewhere you go but a place that gets bigger as you
+   it: a system is not somewhere you go but a place that grows as you
    zoom in. Which system you are in is read off the view -- the one whose
-   disc holds the middle of the screen and fills a good part of it -- and
+   disc covers the middle of the screen and fills a good part of it -- and
    the bar, the panel and the address follow. A stellar you land on is a
-   page of its own over the map, the landing picture and the descriptions,
+   separate page over the map, the landing picture and the descriptions,
    reached by a fall onto the stellar as grimoire falls into a cave mouth.
-   The panel beside says what is selected, read from the records, with
-   every field of the record at its foot. The address bar keeps where you
+   The panel beside shows what is selected, read from the records, with
+   every field of the record at its foot. The address bar records where you
    are (#system=130, #stellar=128&system=130), so Back works and a place
    can be linked.
 
    Everything drawn comes from nova-universe.js, and the subway map's
-   places and paths from nova-subway.js; this file decides only how it
-   looks. Choices of its own, said once here: a system is a dot in its
+   places and paths from nova-subway.js; this file sets only how it
+   looks. This file's choices, given once here: a system is a dot in its
    government's Color with a light rim, so the governments whose colour is
    black still show on black; an independent system is grey; a system's
    disc reaches 0.42 of the way to its nearest neighbour, so no two discs
@@ -25,7 +25,7 @@
    system is open; a nebula's picture is laid over the map in screen
    blending, as ResForge's Galaxy Editor does.
 
-   The page's own script: DOM here. LOAD ORDER: after page-open.js, before
+   The page's script: DOM here. LOAD ORDER: after page-open.js, before
    page-ships.js, whose SHIPS, shipsReset and shipsFromHash it uses at run
    time. */
 
@@ -43,7 +43,7 @@ let GALAXY_HOME = null;
 const PICT_CACHE = new Map();
 const SPRITE_CACHE = new Map();
 const MIN_STELLAR = 26;
-/* The numbers that decide how the zoom feels, as grimoire's ATLAS_TUNE
+/* The numbers that set how the zoom feels, as grimoire's ATLAS_TUNE
    does there. A system's stellars begin to replace its dot when its disc
    is fadeFrom pixels across and have replaced it at fadeTo; when their
    names come in is namePlan's and stellarNamePlan's. animMs is grimoire's,
@@ -62,7 +62,7 @@ let STELLARS = true, OPEN_SYS = null;
 /* The subway map (nova-subway.js). mix runs from 0, every place at its true
    position, to 1, the subway map's, and the places and links are drawn
    between the two, so switching slides one into the other. The layout is
-   worked out the first time it is wanted, and kept in the browser's
+   worked out the first time it is needed, and kept in the browser's
    storage for the next visit with the same files. */
 // base: what LAYOUT.mix 0 is, the true positions (null) or, sliding from one subway map to another, the one left
 const LAYOUT = { kind: null, want: null, mix: 0, sub: null, base: null, subs: {}, pending: {} };
@@ -77,9 +77,9 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
    2026), red at one jump to blue at the furthest: turbo (Mikhailov, 2019),
    d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every colour
    is at least 3:1 against the black of the map. */
-// SYS_STYLE: how a system is marked: 'dots', coloured as DOTS_BY says; 'metro', a white stop, or where
+// SYS_STYLE: how a system is marked: 'dots', coloured by DOTS_BY; 'metro', a white stop, or where
 // three links or more meet a larger one ringed, as metro maps mark stations; 'none'
-// PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's asking, 30 September 2026):
+// PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's request, 30 September 2026):
 // one size, never made smaller to fit, semibold, white, outlined in the background's colour
 // NEB_STYLE: the nebulae as their pictures, as plain shapes (nebulaShape), or not at all; NEBULAE, drawn at all
 // FLAT_LINKS: links in government colours each in one (as govtOne), not shading from one end's to the other's
@@ -109,7 +109,7 @@ function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(S
    there was one, and shows none. */
 const LOOK_WORDS = [['names', 'optPlainNames'], ['stations', 'optMetroSys'], ['links', 'optFlatLinks'], ['nebulae', 'optPlainNeb']];
 /* Map options are kept in the browser's storage, as last set by hand, for the next visit; an
-   address naming a view says the subway map's own (applyHash). */
+   address naming a view sets the subway map's options itself (applyHash). */
 const OPTS_STORE = 'stargrimoire-map-options', OPTS_SELECTS = ['linkSel', 'dotSel', 'litSel'];
 function subwayFromAddress(text) { const w = (text || '').split(','); return subwayKind(Object.fromEntries(Object.entries(SUBWAY_WORDS).map(([k, v]) => [k, w.includes(v)]))); }
 
@@ -138,8 +138,8 @@ function descText(id) {
 
 /* ---- pictures ---------------------------------------------------------- */
 
-/* A PICT as something drawImage takes, or null while it is not there. A
-   picture the files do not have is tried again when more files arrive. */
+/* A PICT in a form drawImage accepts, or null while it is not there. A
+   picture the files do not have is tried again when more files are opened. */
 function pictImage(id) {
   if (PICT_CACHE.has(id)) { const v = PICT_CACHE.get(id); return v && v.width ? v : null; }
   const r = GAME.get('PICT', id);
@@ -187,11 +187,11 @@ function stellarSprite(sp) {
 /* Animated stellars (nova-universe.js, novaStellarAnimStep). A sprite's
    frames are drawn one at a time as each is first shown, and kept. The
    animations are stepped thirty times a second, as the game counts its
-   time, while one is on the screen, and not at all where the browser asks
-   for reduced motion. The map takes no stellar as destroyed, as everywhere
+   time, while one is on the screen, and not at all where the browser requests
+   reduced motion. The map shows no stellar as destroyed, as everywhere
    else on it. A hypergate stays shut, as it does with no ship near, but
    while it is being gone through (ENGAGED); a sprite in a PICT sheet (none
-   shipped) keeps its first frame. */
+   shipped) stays on its first frame. */
 const FRAME_CACHE = new Map();    // spïn id -> { bytes, index, count, frames } or null
 const STELLAR_ANIM = new Map();   // stellar id -> novaStellarAnimState()
 let ANIM_SEEN = new Set(), ANIM_TICK = null, ANIM_LAST = 0, ANIM_DUE = 0;
@@ -337,7 +337,7 @@ function applyShowMode() {
    system share one. A place's disc, rho galaxy units across its radius,
    reaches 0.42 of the way to the nearest other place (no further than
    0.42 of roomCap), and the system drawn there is scaled to fit it. A
-   system you go to that is not shown gets a place of its own while you
+   system you go to that is not shown is given a place while you
    are there. */
 let PLACES = [], PLACE_OF = new Map(), EXTRA_SYS = null, S_MAX = 40;
 function buildPlaces() {
@@ -439,7 +439,7 @@ function nearStellars(sys) {
   for (let i = 1; i < list.length; i++) if (list[i].d > 3 * Math.max(list[i - 1].d, 1000)) { k = i; break; }
   return list.slice(0, k).map(x => x.sp);
 }
-/* A system's size in its own units: the circle round (0, 0) that holds
+/* A system's size in system units: the circle round (0, 0) that contains
    its near stellars with 80 units to spare for their sprites, and never
    less than 300, the half-width a system's first view has always had. */
 const GEO = new Map();
@@ -453,12 +453,12 @@ function sysGeo(sys) {
   }
   return g;
 }
-// Galaxy units to one unit of the system's own.
+// Galaxy units to one system unit.
 function kOf(sys) { return placeOf(sys.id).rho / sysGeo(sys).R; }
-/* Where a stellar is drawn, in its system's own units: where it is, or, for
+/* Where a stellar is drawn, in its system's units: where it is, or, for
    one beyond the near ones -- in the shipped game 18 wormholes, each 4,000
    to 12,000 units out, past the neighbouring systems -- in a pocket, a
-   small circle on the rim of the disc in the stellar's own direction, the
+   small circle on the rim of the disc in the stellar's direction, the
    maintainer's idea (1 October 2026), so that it is on the screen with its
    system. The galaxy's mark for a gate is put the same way (drawGateMarks). */
 const POCKET = { at: 1.16, r: 0.24 };   // the pocket's centre and radius, in the disc's radius
@@ -496,8 +496,8 @@ function boxView(x0, y0, x1, y1, pad) {
   return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, s: Math.min(Math.max(CW - pad * 2, 20) / w, Math.max(CH - pad * 2, 20) / h) };
 }
 /* The whole map at once, drawn into ctx at w by h map pixels, for saving it large (the
-   maintainer's asking, 30 September 2026). The stellars are left closed, so that every system is
-   its mark however near; the screen's own context, size and view are put back after. Framed by
+   maintainer's request, 30 September 2026). The stellars are left closed, so that every system is
+   its mark however near; the screen's context, size and view are put back after. Framed by
    wholeMapFrame, a far place with no links brought in to the rest (wholeMapMoves), an arrow at
    its dot pointing the way it truly is. */
 let WHOLE_MOVED = null;   // while the whole map is drawn: place -> the way it truly is, an angle on the screen
@@ -534,7 +534,7 @@ function drawWholeMap(ctx, w, h) {
 /* A place with no links outside the box of those with links, as Starfleet Adventures' Near Gamma
    Hydra is, 2,046 units from its nearest (the next farthest is 400), and so a quarter of the map
    each way: on the whole map, at the nearest point of that box, with an arrow at its dot the way
-   it truly is (the maintainer's asking, 13 October 2026). Map place -> { x, y, angle }. */
+   it truly is (the maintainer's request, 13 October 2026). Map place -> { x, y, angle }. */
 function wholeMapMoves() {
   const linked = new Set();
   for (const l of LINKS) for (const sys of [l.from, l.to]) { const p = PLACE_OF.get(sys.id); if (p) linked.add(p); }
@@ -600,7 +600,7 @@ function redraw() {
 }
 
 /* How far a place's stellars have replaced its dot, 0 to 1: the same for
-   every place at a zoom (the maintainer's asking, 1 October 2026), as for
+   every place at a zoom (the maintainer's request, 1 October 2026), as for
    the largest disc, RHO_REF -- so that whichever system fills the screen
    is open. */
 let RHO_REF = 1;
@@ -610,7 +610,7 @@ function openness(p) {
 }
 
 let DRAWN = [];   // the places on the screen at the last draw
-let LABELS_DRAWN = { systems: 0, stellars: 0, boxes: [] };   // the names the last draw put on the screen, for page_check
+let LABELS_DRAWN = { systems: 0, stellars: 0, boxes: [] };   // the names that the last draw put on the screen, for page_check
 let NAME_BOXES = [];   // every system name the last draw put on the screen, as { x0, y0, x1, y1 }: the nebulae's names keep off them
 let NEB_NAMES = [];   // the nebulae drawn as plain shapes, whose names are put after the systems'
 function draw() {
@@ -652,7 +652,7 @@ function draw() {
   }
 }
 
-/* Which system you are in, read off the view: the place whose disc holds
+/* Which system you are in, read off the view: the place whose disc covers
    the middle of the screen and is at least 0.4 of the screen's shorter
    side across, the nearest to the middle if more than one is. */
 function settle() {
@@ -679,10 +679,10 @@ function settle() {
   renderPanel();
 }
 /* A system zoomed into, or zoomed out of, is a step back and forward walk,
-   as going to it by a tap is: the first change of a zoom gets an entry of
-   its own and those following within a second take it over, so zooming
+   as going to it by a tap is: the first change of a zoom is given a new entry
+   and those following within a second take it over, so zooming
    through a system on the way past it makes no step; and a zoom that ends
-   where it began takes back the entry it made. */
+   where it began removes the entry it made. */
 let SETTLE_FROM = null, SETTLE_TIMER = null, SKIP_POP = false;
 function settleHash() {
   if (SETTLE_TIMER === null) {
@@ -727,7 +727,7 @@ function drawNebulae(ctx) {
   }
   ctx.restore();
 }
-/* A nebula as a plain shape (the maintainer's asking, 30 September 2026: the pictures were hard to
+/* A nebula as a plain shape (the maintainer's request, 30 September 2026: the pictures were hard to
    see the lines over): a rounded patch in its picture's colour, the colour its pixels average to,
    each weighted by its brightness and brought up to a steady brightness, faint enough for the lines
    and stations over it to read, a lighter edge, and its name. */
@@ -750,7 +750,7 @@ function nebulaTint(n, img) {
   return t;
 }
 // The part of a nebula's picture that is the nebula: its coloured pixels, bright as its coloured
-// pixels go, so that the black of space and the nearly colourless name lettered on it are left out, each in its own colour
+// pixels go, so that the black of space and the nearly colourless name lettered on it are left out, each in its colour
 // brought up to full brightness (the maintainer found one colour for a nebula, its average, muddy),
 // its alpha how much so; on a 48 by 48 grid, softened, drawn stretched. And the box, in fractions
 // of the picture, of what is clearly cloud.
@@ -763,7 +763,7 @@ function nebulaMask(n, img) {
   const g = c.getContext('2d');
   g.drawImage(img, 0, 0, k, k);
   const d = g.getImageData(0, 0, k, k), px = d.data;
-  // each pixel its own colour brought up to full brightness, premultiplied by how much it is cloud
+  // each pixel its colour brought up to full brightness, premultiplied by how much it is cloud
   const pm = new Float32Array(k * k * 4);
   // brightness judged against the picture's coloured pixels' own, their 90th centile: the lettering
   // is its brightest (up to 241 in the Rochak Dust Field, whose dust is 41 to 56), and is nearly
@@ -815,7 +815,7 @@ function nebulaShape(ctx, n, img, x, y, w, h, a) {
   const bx = m && m.box ? { x: x + w * m.box.x0, y: y + h * m.box.y0, w: w * (m.box.x1 - m.box.x0), h: h * (m.box.y1 - m.box.y0) } : { x, y, w, h };
   NEB_NAMES.push({ n, ...bx, a, colour: `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})` });
 }
-/* The names of the nebulae drawn as plain shapes, after the systems' (the maintainer's asking, 30
+/* The names of the nebulae drawn as plain shapes, after the systems' (the maintainer's request, 30
    September 2026: they ran into them): each at the first of its spots -- along the top of its
    cloud, in the middle, at the left, at the right, then along the bottom, then just outside it above
    and below, along what of it is on the screen, then beside it -- that is on the screen, comes
@@ -980,10 +980,10 @@ function linkJumps(l, m) {
   if (b !== undefined && (!l.oneWay || !l.forward)) j = Math.min(j, b + 1);
   return j;
 }
-/* The links each in one government's colour (the maintainer's asking, 30 September 2026), rather than
+/* The links each in one government's colour (the maintainer's request, 30 September 2026), rather than
    a blend from one end's to the other's: a link within a government its colour; between two, the
    colour of the one with fewer systems shown; but where two parts of a government -- its systems
-   joined by its own links -- are joined through one other system and only that one, the two links
+   joined by its links -- are joined through one other system and only that one, the two links
    through it are the government's, so that it does not look split in two. Governments with more
    systems are seen to first. */
 let GOVT_ONE = null;
@@ -1048,7 +1048,7 @@ function renderLegend() {
    panel's chips keep that whatever the map shows, as there they say which
    government it is), all in one colour, or by a figure of the system's
    record, on the turbo scale from 1 to the most any shown system has, and
-   in a dark grey where it is 0 (the maintainer's asking, 29 September
+   in a dark grey where it is 0 (the maintainer's request, 29 September
    2026). */
 let DOTS_BY = 'govt';
 const PLAIN_DOT = '#aeb8c6', NONE_DOT = '#3d434c';
@@ -1102,7 +1102,7 @@ const linkFaint = l => linkBeyond(l) || sysUnlit(l.from) || sysUnlit(l.to);
 /* The shortest way from ROUTE.from to ROUTE.to, in jumps along the shown
    links, as jumpMap counts them, and while the gates are drawn a hypergate's
    or a set wormhole's way as one step too (a random wormhole's is not a
-   way to go somewhere; the maintainer's asking, 29 September 2026): the
+   way to go somewhere; the maintainer's request, 29 September 2026): the
    systems on it in order, or null where there is none. Kept until the
    route, the links or the gates change. */
 let ROUTE = { from: null, to: null };
@@ -1162,7 +1162,7 @@ function roundedPath(ctx, pts, R) {
 }
 
 // A hyperspace link stops at the edge of an open system's disc, which is
-// the system's own.
+// the system's alone.
 function drawLinks(ctx) {
   const segs = [];
   for (const l of LINKS) {
@@ -1218,7 +1218,7 @@ function drawLinks(ctx) {
     ctx.stroke();
   }
   ctx.lineWidth = 1;
-  // A link the other end does not return: an arrowhead half way, pointing where it arrives.
+  // A link the other end does not return: an arrowhead half way, pointing towards the end it leads to.
   ctx.fillStyle = 'rgba(125,145,180,0.9)';
   for (const s of segs) if (s.l.oneWay) {
     ctx.globalAlpha = far.has(s) ? FAINT : 1;
@@ -1242,9 +1242,9 @@ function arrowHalfway(ctx, pts) {
   ctx.fill();
 }
 
-/* Hypergates and wormholes (Gates in Map options, the maintainer's
-   asking, 29 September 2026: anything leading from one system to another;
-   off at first since 13 October 2026, as he asked). A gate's way to another system is drawn straight and dashed
+/* Hypergates and wormholes (Gates in Map options, at the maintainer's
+   request, 29 September 2026: anything leading from one system to another;
+   off at first since 13 October 2026, at his request). A gate's way to another system is drawn straight and dashed
    over the hyperspace links, a hypergate's in teal and a wormhole's in
    violet, with an arrowhead where it runs one way. A random wormhole goes
    to any other (novaShownGates), which drawn at once would be a web over
@@ -1301,7 +1301,7 @@ function drawGates(ctx) {
   ctx.restore();
 }
 // The marks beside a system's dot for the gates in it, above it to the left.
-// A place's gates, each a small dot beside the system's in the gate's own
+// A place's gates, each a small dot beside the system's in the gate's
 // direction within its system, as its pocket is (stellarPos): filled where
 // it leads somewhere, a ring where it does not. Dots less than 0.45
 // radians apart are spread.
@@ -1331,7 +1331,7 @@ function drawGateMarks(ctx, d, r) {
    its dot as LAYOUT.mix goes to 1, or from one map's bar to another's; null for a dot. */
 // Whether a place the subway map lays out as a bar (subwayBars) is drawn as one: only while the
 // links shown at it could not all leave one point within 45 degrees of their true directions. The
-// layout decides it once for every link of every version, so that the bits do not change it; the
+// layout settles it once for every link of every version, so that the bits do not change it; the
 // maintainer found Age of the Council's Kelin a bar with two links shown, its other three hidden
 // (30 September 2026). Drawn as a dot, its lines run on from the bar's points into the dot.
 let BAR_KEPT = null;
@@ -1382,11 +1382,11 @@ function drawDots(ctx) {
     ctx.globalAlpha = (1 - d.t) * (dimOther && d.sys.govt !== VIEW.govt ? 0.25 : 1) * (placeFaint(d.p) ? FAINT : 1);
     // the mark itself, unless the systems are drawn not at all (the maintainer found the dots in the
     // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings round it are drawn
-    // either way. As metro stations (the maintainer's asking, the same day): white, a small stop on a
+    // either way. As metro stations (the maintainer's request, the same day): white, a small stop on a
     // line, and where three links or more meet a larger one in a ring the colour of the background,
     // so that the lines stop short of it; and round the white a ring in the colour Systems coloured
     // gives, its government's or a figure's, thin for a stop and thicker where three links or more
-    // meet, and outside it a thin ring of the background (the maintainer's asking, 30 September 2026)
+    // meet, and outside it a thin ring of the background (the maintainer's request, 30 September 2026)
     if (SYS_STYLE === 'dots') {
       markPath(ctx, d, r);
       ctx.fillStyle = dotFill(d.sys);
@@ -1495,7 +1495,7 @@ function namePlan() {
   return (NAME_PLAN = { places: PLACES, mix: LAYOUT.mix, side, from });
 }
 /* The stellars' names, placed the same way within each system: each under
-   its stellar from one zoom of the system's own (the scale readout's
+   its stellar from one zoom of the system (the scale readout's
    "system at"), those that can be landed on first, then the larger, clear
    of every stellar and of the names shown before them, and drawn once the
    stellars are most of the way in. Kept per system until other files are
@@ -1737,7 +1737,7 @@ function zoomVia(hx, hy, to, ms, curve, also) {
 }
 /* A long way at once -- a link to a system across the galaxy, a search --
    goes by van Wijk and Nuij's smooth zoom (2003), the path d3's
-   interpolateZoom takes: out as far as the distance needs, across, and in
+   interpolateZoom computes: out as far as the distance needs, across, and in
    again. A view is its middle and w, the shorter side in galaxy units. */
 function zoomPath(a, b) {
   // where a is now: a is often CAM itself, which the flight moves
@@ -1772,7 +1772,7 @@ async function flyTo(to, quick) {
   Object.assign(CAM, to);
   redraw();
 }
-// A move of its own, not part of going somewhere: the Fit button, a
+// A move by itself, not part of going somewhere: the Fit button, a
 // nebula from the panel, a stellar off the edge.
 async function glide(to) {
   if (MOVING) return;
@@ -1807,14 +1807,14 @@ async function rise(quick) {
   fadeTo(0);
 }
 
-/* Going in on a wormhole or a hypergate is going through it, as the
-   maintainer asked (1 October 2026): the fall into it, and the rise out of
+/* Going in on a wormhole or a hypergate is going through it, at the
+   maintainer's request (1 October 2026): the fall into it, and the rise out of
    the stellar it leads to, in that system. A wormhole picks where
-   (novaWormholeTrip); a hypergate opens and asks, its choices in the panel
-   under the program's own heading (novaHypergateChoices, GATE_PICK), and a
-   hypergate come out of opens too. Where the program would refuse, its
+   (novaWormholeTrip); a hypergate opens and offers its choices in the panel
+   under the program's heading (novaHypergateChoices, GATE_PICK), and a
+   hypergate come out of opens too. Where the program would not allow it, its
    message, over the map. */
-let GATE_PICK = null;   // { spob, sys, choices } while a hypergate asks where to
+let GATE_PICK = null;   // { spob, sys, choices } while a hypergate's destination is being picked
 // Text from STR# 2002, the entries joined by a space as the program shows them.
 function gameText(...ns) { const l = novaStrings(GAME, 2002); return ns.every(n => l[n - 1]) ? ns.map(n => l[n - 1]).join(' ') : null; }
 async function toGate(sys, sp, quick) {
@@ -1968,7 +1968,7 @@ function subwayGet(kind) {
 // own subwayModule, or here, a moment later, where there is none.
 let SUBWAY_BUSY = 0;
 function subwayWork(input) {
-  // a note of its own over the map: the status line is the files'
+  // a separate note over the map: the status line is the files'
   if (!SUBWAY_BUSY++) $('busy').hidden = false;
   return new Promise(resolve => {
     let w = null;
@@ -1987,7 +1987,7 @@ function useSub(sub) {
   if (LAYOUT.sub === sub) return;
   LAYOUT.sub = sub; NEB_SUB.clear(); buildPlaces();
 }
-// The switches as a kind of map says: the one wanted, which may be on its way. None wanted
+// The switches for a kind of map: the one requested, which may be on its way. None requested
 // while the arrangement's switch is on is the subway map left, as the address can.
 function syncOpts(kind = LAYOUT.want) {
   if (kind) {
@@ -1999,7 +1999,7 @@ function syncOpts(kind = LAYOUT.want) {
   showOpts();
 }
 // The subway map is its arrangement of the systems and a look beside it, each part a switch under
-// it, all on with it (the maintainer's asking, 13 October 2026): names and systems as a metro
+// it, all on with it (the maintainer's request, 13 October 2026): names and systems as a metro
 // map's, links each in one colour, and the nebulae as plain shapes.
 function subwayLook() {
   const on = $('optSubway').checked;
@@ -2009,12 +2009,12 @@ function subwayLook() {
   NEBULAE = NEB_STYLE !== 'none';
   FLAT_LINKS = on && $('optFlatLinks').checked;
 }
-// The subway map the switches ask for, null for none; only where needed is a way of having 22.5
+// The subway map the switches select, null for none; only where needed is a way of having 22.5
 // degrees, and goes with them.
 function subwayChosen() {
   return $('optSubway').checked && $('optArrange').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null;
 }
-// The options kept from the last visit (OPTS_STORE), the subway map wanted with them.
+// The options kept from the last visit (OPTS_STORE), the subway map selected with them.
 function optsRestore() {
   let kept = null;
   try { kept = JSON.parse(localStorage.getItem(OPTS_STORE)); } catch (e) { /* none, or storage is off */ }
@@ -2040,7 +2040,7 @@ function showOpts() {
   hide('optShips', !$('optStellars').checked);
   hide('dotSel', SYS_STYLE !== 'dots');
 }
-// At once, as when the address asks for a map, once it is ready; kind null
+// At once, as when the address has a map, once it is ready; kind null
 // is the true positions.
 async function setLayoutNow(kind) {
   LAYOUT.want = kind;
@@ -2055,11 +2055,11 @@ async function setLayoutNow(kind) {
   redraw();
 }
 // Sliding from one to the other once it is ready, and from one subway map
-// straight to another, so that the two can be compared (the maintainer's
-// asking, 30 September 2026: by way of the true positions, the map lost its
+// straight to another, so that the two can be compared (at the maintainer's
+// request, 30 September 2026: by way of the true positions, the map lost its
 // form between them). The system nearest the middle of
 // the screen stays where it is on the screen, and in a system its disc stays
-// the size it was. It waits for any move under way, and asked for another
+// the size it was. It waits for any move under way, and given another
 // meanwhile, it goes on to that.
 async function setLayout(kind) {
   LAYOUT.want = kind;
@@ -2126,7 +2126,7 @@ function writeHash(replace) {
   if (SHIPS.on || BATTLE.on) return false;
   const h = hashFor();
   if (location.hash === h) return false;
-  // an entry made here says so: Back over the panel goes back through it
+  // an entry made here is marked so: Back over the panel goes back through it
   if (!replace) settleEnd();
   if (replace) history.replaceState(history.state, '', h); else history.pushState({ map: 1 }, '', h);
   return !replace;
@@ -2202,7 +2202,7 @@ function renderPanel() {
   else if (VIEW.mode === 'system') html = systemPanel(U.byId.get(VIEW.sys));
   else html = galaxyPanel();
   // Drawn again with the same thing chosen (ships coming and going, a
-  // file read), the panel keeps its place and what was opened in it.
+  // file read), the panel stays at its place and what was opened in it.
   const key = sel ? `${VIEW.mode}:${sel.kind}:${sel.id}` : `${VIEW.mode}:${VIEW.sys}`;
   const same = key === PANEL_KEY, top = el.scrollTop;
   const opened = same ? [...el.querySelectorAll('details')].map(d => d.open) : null;
@@ -2223,8 +2223,8 @@ let PANEL_KEY = null;
    shown now: its stellars and their systems, a random other wormhole, or
    nowhere and why. `sys` is the system whose panel it is. */
 const GATE_WHY = {
-  offline: () => 'nowhere: it cannot be landed on, and says "it is offline"',
-  elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and here says "the radiation levels are too extreme"`,
+  offline: () => 'nowhere: it cannot be landed on, and its text is "it is offline"',
+  elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and here its text is "the radiation levels are too extreme"`,
   unlinked: () => 'nowhere: it links to nothing, and landing on it does nothing',
   nowhere: () => 'nowhere: none of the stellars it names is in a system shown now',
 };
@@ -2262,7 +2262,7 @@ const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr>
 
 // How the game reads a test, where that is not as it is written (ncbAsWritten), kept by text.
 const AS_WRITTEN = new Map();
-const GAME_READS = 'Mac 1.1.1 reads tests its own way: at each & or | it keeps only the last term, so in a run of bare terms only the last two count; it passes over a lone number or a character it does not know; and a test that does not start with b, (, !, p, g, o or e is never true.';
+const GAME_READS = 'Mac 1.1.1 reads tests otherwise than written: at each & or | only the last term is kept, so in a run of bare terms only the last two count; a lone number, or a character outside the syntax, is passed over; and a test that does not start with b, (, !, p, g, o or e is never true.';
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
   const holds = ncbTest(text, STATE);
@@ -2270,7 +2270,7 @@ function testLine(text) {
   const r = AS_WRITTEN.get(text), g = r.game;
   const reads = r.same !== false ? '' : !g ? 'not as written' : g.op === 'true' ? 'as always true' : g.op === 'false' ? 'as never true' : `as <span class="test">${bitText(ncbTreeText(g))}</span>`;
   const where = SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game';
-  return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'holds' : 'does not hold'} ${where}</span>` +
+  return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'is true' : 'is false'} ${where}</span>` +
          (reads ? ` <span class="warn" title="${esc(GAME_READS)}">(the game reads it ${reads})</span>` : '');
 }
 
@@ -2494,7 +2494,7 @@ function storyDeadEndsHtml(key) {
   const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
   return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
-    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (whether what started it can be taken again, its own panel says).</p><ul>${podRows}</ul>` : '');
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (whether what started it can be taken again is in its panel).</p><ul>${podRows}</ul>` : '');
 }
 function missionDeadEndsHtml(id) {
   const m = missionData().byId.get(id);
@@ -2510,7 +2510,7 @@ function missionDeadEndsHtml(id) {
     else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}: it needs ${bitText('b' + h.bit)} off, which that leaves on for good.`);
   }
   for (const o of podLosses([id])) out.push(podText(o));
-  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel says how); whether it was meant, the files do not say.</p>` : '';
+  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (how is in the storyline's panel); whether it was meant is not in the files.</p>` : '';
 }
 
 /* ---- the whole game: the storylines and how they join (novaGameOverview) -- */
@@ -2518,7 +2518,7 @@ function missionDeadEndsHtml(id) {
 const OVERVIEW = { pick: null };
 let OVERVIEW_DATA = null;
 function overviewData() { return OVERVIEW_DATA && OVERVIEW_DATA.m === missionData() ? OVERVIEW_DATA.o : (OVERVIEW_DATA = { m: missionData(), o: novaGameOverview(GAME, missionData()) }).o; }
-// A storyline's openings: its missions no mission of its own leads to.
+// A storyline's openings: its missions that no other of its missions leads to.
 function storyOpenings(s) { const M = missionData(); return s.missions.filter(m => !m.prev.some(p => { const q = M.byId.get(p); return q && q.story && q.story.key === s.key; })); }
 
 /* The whole game as a chart, over the page (#storyMap): the storylines that
@@ -2555,7 +2555,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its own${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2598,7 +2598,7 @@ function overviewPanel() {
   return `<h2>The whole game</h2>
     <div class="sub">${keys.length} storylines, from Ambrosia's notes in the missions' names, and how they join</div>
     <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
-    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions none of its own lead to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
+    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions no other mission of it leads to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
     <h3>What joins each</h3>
     <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. ${[...M.byId.values()].filter(m => !m.story).length} missions belong to no storyline and are left out.</p>
     ${order.map(joinsOf).join('')}
@@ -2685,7 +2685,7 @@ function galaxyPanel() {
   const places = new Set(U.systems.map(s => s.x + ',' + s.y)).size;
   const neb = U.nebulae.map(n => `<a data-nebula="${n.id}">${esc(n.name)}</a>`).join('');
   const files = GAME.files.map(f => `<tr><td>${esc(f.name)}</td><td>${f.plugin ? 'plug-in' : esc(f.role || '')}</td></tr>`).join('');
-  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test holds with those bits set' : 'the systems whose visibility test holds at the start of a new game, when no control bit is set';
+  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test is true with those bits set' : 'the systems whose visibility test is true at the start of a new game, when no control bit is set';
   return `<h2>The galaxy</h2>
     <div class="sub">${shown.length} of ${U.systems.length} systems shown, at ${places} places; ${LINKS.length} hyperspace links; ${GATES.links.length} ways by hypergate or wormhole, and ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
     <p class="note">Shown: ${mode}. Tap a system to see it; tap it again to go in.</p>
@@ -2715,7 +2715,7 @@ function nebulaPanel(n) {
 function systemPanel(sys) {
   const r = sys.rec;
   const inGalaxy = VIEW.mode === 'galaxy';
-  // A link names one version of a place; it goes to whichever version is
+  // A link points at one version of a place; it goes to whichever version is
   // shown there, so two links to two versions are one way out.
   const seenT = new Set();
   const links = novaSystemLinks(U, sys, SHOW_MODE === 'all' ? null : SHOWN).map(({ id, target }) => {
@@ -2777,7 +2777,7 @@ function stellarPanel(sp) {
   const techs = [...(sp.SpecialTech || []), ...(sp.SpecialTech4to8 || [])].filter(t => t > 0);
   const prices = (f & 2) ? novaCommodityPrices(sp).map(p => `<tr><td>${esc(commodityName(p.index))}</td><td>${p.level ? esc(p.level) : '<span class="no">not traded</span>'}</td></tr>`).join('') : '';
   const def = novaDefense(sp);
-  // Only a stellar the player can hail is ever asked for tribute.
+  // Only a stellar the player can hail can be made to pay tribute.
   const tribute = !novaCanHail(sp) ? '' : (sp.Tribute <= 0 ? `${(1000 * sp.TechLevel).toLocaleString()} credits a day (1000 × tech level)` : `${sp.Tribute.toLocaleString()} credits a day`) + ', once dominated';
   const dead = sp.DeadTime === 0 ? ', and regenerates at the end of the day' : sp.DeadTime < 0 ? ', and never regenerates' : `, and regenerates after DeadTime ${sp.DeadTime}`;
   const pw = planetWeapons();
@@ -2799,7 +2799,7 @@ function stellarPanel(sp) {
       ${kvRow('Services', esc(services || 'none'))}
       ${kvRow('Tech level', sp.TechLevel + (techs.length ? `; also exactly ${techs.join(', ')}` : ''))}
       ${kvRow('Landing fee', sp.Fee ? sp.Fee.toLocaleString() + ' credits' : '')}
-      ${kvRow('Landing', (f & 0x20) || !(f & 1) ? '' : typeof minStatus === 'number' ? `refused below a legal status of ${minStatus}` : esc(minStatus))}
+      ${kvRow('Landing', (f & 0x20) || !(f & 1) ? '' : typeof minStatus === 'number' ? `denied below a legal status of ${minStatus}` : esc(minStatus))}
       ${kvRow('Defence', def ? `${esc(resName('düde', def.dude))}: ${def.total} ship${def.total === 1 ? '' : 's'}${def.wave ? `, in waves of ${def.wave}` : ''}` : '')}
       ${def ? kvRow('', defenceControl(sp, sysHere)) : ''}
       ${kvRow('Tribute', tribute)}
@@ -2808,7 +2808,7 @@ function stellarPanel(sp) {
       ${kvRow('Gravity', sp.Gravity ? sp.Gravity : '')}
       ${kvRow('Also', esc(flags2))}
       ${kvRow(gate & 0x2000 ? 'Wormhole to' : 'Hypergate to', gateTo(sp, sysHere))}
-      ${gate ? kvRow('Refused with', (t => (t ? `“${esc(t)}” <span class="note">(STR# 2002, ${codeEntries(2002, [84, gate & 0x2000 ? 86 : 85]).join(' and ')})</span>` : ''))(gameText(84, gate & 0x2000 ? 86 : 85))) : ''}
+      ${gate ? kvRow('Denied with', (t => (t ? `“${esc(t)}” <span class="note">(STR# 2002, ${codeEntries(2002, [84, gate & 0x2000 ? 86 : 85]).join(' and ')})</span>` : ''))(gameText(84, gate & 0x2000 ? 86 : 85))) : ''}
       ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ', its CustPicID' : ` (${figText('landingPict', 10000)} + its Type, ${sp.Type})`}` : '')}
       ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${figText('stellarSpin', NOVA_SPIN_BASE.stellar)} + its Type, ${sp.Type})`)}
     </table>
@@ -2878,7 +2878,7 @@ function asCanvas(img, cls) {
 /* Pinching in on the landing page rises back to the system, as zooming out
    of a place below ground is how grimoire leaves it. The page shrinks under
    the fingers as they close and springs back if they stop short of three
-   quarters. A trackpad pinch, which arrives as a wheel with ctrlKey, does
+   quarters. A trackpad pinch, which comes as a wheel event with ctrlKey, does
    the same on a desktop. */
 function wireLanding() {
   const el = $('planet');
@@ -3163,7 +3163,7 @@ function wireTools() {
     try {
       if (isFull()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
       else { const p = (root.requestFullscreen || root.webkitRequestFullscreen).call(root); if (p && p.catch) p.catch(() => {}); }
-    } catch (e) { /* refused */ }
+    } catch (e) { /* not allowed */ }
   };
   const fullChanged = () => { const on = isFull(); full.classList.toggle('on', on); full.title = on ? 'Leave full screen' : 'Full screen'; full.setAttribute('aria-label', full.title); };
   document.addEventListener('fullscreenchange', fullChanged);
@@ -3173,11 +3173,11 @@ function wireTools() {
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
   // the whole map, large: a PNG with every name (wholeMapSize), up to four times as sharp as the
-  // map's own pixels within 32 million of them, and never less sharp. One larger than that, as a
+  // map's pixels within 32 million of them, and never less sharp. One larger than that, as a
   // big galaxy's is, is drawn a band at a time and written by png-stream.js, on a phone in
-  // smaller bands, so that no canvas is ever larger than a band (the maintainer's asking, 13
+  // smaller bands, so that no canvas is ever larger than a band (the maintainer's request, 13
   // October 2026). Only one wider than a browser draws, 32,000 pixels, leaves names out, and
-  // the visitor is asked first. The SVG, a drawing, has every name anywhere.
+  // a prompt comes first. The SVG, a drawing, has every name anywhere.
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
   $('saveWhole').onclick = async () => {
     const all = wholeMapSize(), size = wholeMapSize(Infinity, 32000), [w, h] = size;
@@ -3214,7 +3214,7 @@ function wireTools() {
     drawWholeMap(ctx, w, h);
     dlBlob(new Blob([ctx.toSVG()], { type: 'image/svg+xml' }), wholeName('svg'));
   };
-  // the map as it is on the screen, at the screen's own pixels, as a PNG
+  // the map as it is on the screen, at the screen's pixels, as a PNG
   $('saveImg').onclick = () => {
     draw();
     const where = VIEW.mode === 'galaxy' ? 'galaxy' : (U.byId.get(VIEW.sys) || {}).name || 'map';

@@ -1,13 +1,13 @@
 /* nova-sprites.js -- EV Nova's run-length sprites, rlëD and rlë8, to RGBA.
    =========================================================================
 
-   A spïn record names a sprite by id; the sprite is a PICT pair (image and
+   A spïn record points at a sprite by id; the sprite is a PICT pair (image and
    mask) or, in everything Ambrosia shipped for stellars, an rlëD (16-bit)
-   or rlë8 (8-bit) resource of the same id. The Bible names the two types
-   and says what spïn holds; it does not give their layout. This decoder was
-   written from the bytes, and utilities/sprite_check.mjs holds it to
+   or rlë8 (8-bit) resource of the same id. The Bible gives the two types
+   and what spïn contains; it does not give their layout. This decoder was
+   written from the bytes, and utilities/sprite_check.mjs checks it against
    ResForge's Sprite Editor (andrews05/ResForge, SpriteWorld.swift, MIT),
-   compiled from its own source, pixel for pixel.
+   compiled from its source, pixel for pixel.
 
    THE LAYOUT, as read here. A 16-byte header: width, height, bit depth
    (8, 16 or 32), a palette word, the frame count, and six bytes unused.
@@ -109,7 +109,7 @@ function novaDecodeRle(b, limit) {
 /* Where each frame starts, found by stepping over the tokens without
    drawing them, so that one frame of a large sprite can be drawn alone: a
    ship's engine glow can be 384 frames of 240 by 240, 88 MB drawn whole.
-   { header, starts }. utilities/sprite_check.mjs holds `starts` to
+   { header, starts }. utilities/sprite_check.mjs checks `starts` against
    novaDecodeRle's. */
 function novaRleIndex(b) {
   const h = novaRleHeader(b), starts = [];

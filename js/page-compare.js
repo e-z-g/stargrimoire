@@ -2,18 +2,18 @@
    =========================================================================
 
    The bar's Compare opens a second set of files beside the game: one of
-   the releases archive.org keeps, or files of the visitor's own. Only
-   their data files and plug-ins are read, as only those hold records
+   the releases on archive.org, or the visitor's files. Only
+   their data files and plug-ins are read, as only those contain records
    (nova-compare.js). Then the map rings each system that changed, or is
    new, in pink; a system's, a stellar's, a ship's and a mission's panels
    say what changed in it, field by field; and the galaxy's panel lists
    every change of every type.
 
-   The page's own script: DOM here. LOAD ORDER: after js/page-open.js and
+   The page's script: DOM here. LOAD ORDER: after js/page-open.js and
    js/nova-compare.js; page-map.js calls compareRefresh, compareRing,
    compareBlock and compareList. */
 
-/* The releases archive.org's item keeps, each byte for byte
+/* The releases in archive.org's item, each byte for byte
    reference/game/'s copy (MD5 compared, 7 October 2026); 1.1.1 is its disk
    image (js/disk-image.js). */
 const ARCHIVE_DIR = 'https://archive.org/cors/Macintosh_Garden_Games_2019_E/';
@@ -31,7 +31,7 @@ function compareAsk() {
   box.innerHTML = `<h2>Compare with</h2>
     <p class="note">What changed from the files chosen here to the ones open: their data files and plug-ins, record by record. Changed systems are ringed in pink on the map, new ones in a dashed ring.</p>
     <div class="actions">${COMPARE_RELEASES.map((r, i) => `<button data-r="${i}">${esc(r.label)} <small>${r.size} from archive.org</small></button>`).join('')}</div>
-    <div class="actions"><label class="btn">Files of your own…<input type="file" multiple hidden></label></div>
+    <div class="actions"><label class="btn">Your files…<input type="file" multiple hidden></label></div>
     <div class="actions">${COMPARE ? '<button data-a="stop">Stop comparing</button>' : ''}<button data-a="cancel">Cancel</button></div>`;
   el.hidden = false;
   box.querySelector('input').onchange = async e => {

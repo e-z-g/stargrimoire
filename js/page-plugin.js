@@ -8,15 +8,15 @@
    and the battle show them as the game would. They are kept in the
    browser's storage, for the next visit, until undone.
 
-   The bar's Plug-in lists them and saves them as a plug-in: a `.rez` for
+   The bar's Plug-in shows them and saves them as a plug-in: a `.rez` for
    the Windows builds and the Community Edition, or a MacBinary `.bin`
-   for the Mac (nova-plugin.js says why a .bin). A field the program has
+   for the Mac (why a .bin is in nova-plugin.js). A field the program has
    been read for has its note under it (nova-fields.js), the routines it was
    read from on hovering; a few words stand for it until Notes in full is
    ticked. While comparing, it also
    saves what differs from the files compared with.
 
-   The page's own script: DOM here. LOAD ORDER: after js/page-compare.js
+   The page's script: DOM here. LOAD ORDER: after js/page-compare.js
    and js/nova-plugin.js; page-map.js and page-ships.js call fieldsTable,
    mapStart calls pluginOnto. */
 
@@ -130,10 +130,10 @@ function fieldsRead(box, type) {
     try {
       if (n && kind !== 'str' && kind !== 'pad') {
         const parts = input.value.split(',');
-        if (parts.length !== n) throw new Error(`wants ${n} values, with commas between`);
+        if (parts.length !== n) throw new Error(`must be ${n} values, with commas between`);
         rec[f] = parts.map(p => novaFieldParse(kind, p));
       } else rec[f] = novaFieldParse(kind, input.value);
-      if (kind === 'str' && encodeMacRoman(rec[f]).length > n - 1) throw new Error(`takes at most ${n - 1} characters`);
+      if (kind === 'str' && encodeMacRoman(rec[f]).length > n - 1) throw new Error(`must be at most ${n - 1} characters`);
     } catch (e) {
       input.focus();
       return { why: `${f} ${e.message}` };

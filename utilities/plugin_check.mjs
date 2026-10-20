@@ -4,16 +4,16 @@
 //    here, written back from its fields comes out as the bytes it was read
 //    from; one field changed changes that field's bytes alone, and reads
 //    back as what was written.
-// 2. `.rez`: every `.rez` in the zips in reference/game (as rez_check takes
+// 2. `.rez`: every `.rez` in the zips in reference/game (as rez_check reads
 //    them), its resources written again in the file's order, is the file
 //    byte for byte where EVNEW wrote it; and every file written here reads
 //    the same through the page's reader and through evnova-workbench's
 //    rez.py, written separately from EVNEW's CPlugIn::Load.
 // 3. Mac: the MacBinary file reads back, through mac-containers.js and
 //    mac-resfork.js, as the resources it was given, with Finder type Npïf
-//    and the game's own creator, as the bytes of the 1.0.10 archive have it.
+//    and the game's creator, as the bytes of the 1.0.10 archive have it.
 // 4. A plug-in made from two releases, put over the older, gives the newer's
-//    records; and the page's in-memory plug-in (setEdits) wins and goes.
+//    records; and the page's in-memory plug-in (setEdits) has precedence and goes.
 //
 // Each comparison is first shown to fail on bytes changed on purpose.
 import fs from 'node:fs';
@@ -53,7 +53,7 @@ for (const v of versions) games[v] = openRelease(S, v, new Set(['data']));
         records++;
         const back = S.novaRecordBytes(type, rec, b);
         if (!same(back, b)) { fail(`${v} ${type} ${e.id}: written back from its fields, ${back.length} bytes unlike the ${b.length} read`); continue; }
-        if (!same(S.novaRecordBytes(type, {}, b), b)) fail(`${v} ${type} ${e.id}: written with no field given, not its own bytes`);
+        if (!same(S.novaRecordBytes(type, {}, b), b)) fail(`${v} ${type} ${e.id}: written with no field given, not its bytes`);
         // one field changed: each number field, and each string, in turn,
         // on the first record of each type in each release
         if (e.id !== g.list(type)[0].id) continue;
@@ -83,11 +83,11 @@ for (const v of versions) games[v] = openRelease(S, v, new Set(['data']));
       }
     }
   }
-  // the writer can fail: a value out of range is refused, and a changed byte is seen
+  // the writer can fail: a value out of range is rejected, and a changed byte is seen
   let refused = 0;
   for (const [kind, text] of [['i16', '40000'], ['i16', 'x'], ['h16', '0x10000'], ['rgb', '#GGGGGG'], ['i32', '1.5']])
     try { S.novaFieldParse(kind, text); } catch (e) { refused++; }
-  if (refused !== 5) fail(`novaFieldParse took ${5 - refused} of 5 values it should refuse`);
+  if (refused !== 5) fail(`novaFieldParse took ${5 - refused} of 5 values it should reject`);
   const s1 = games[versions[0]].get('sÿst', 128).bytes;
   if (same(S.novaRecordBytes('sÿst', { xPos: S.novaRecord('sÿst', s1).xPos + 1 }, s1), s1)) fail('a changed xPos wrote the same bytes');
   console.log(`${records} records in ${versions.join(', ')} written back as read; ${edits} single fields changed alone`);
@@ -99,7 +99,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'stargrimoire-plugin-'));
 try {
   const resourcesOf = f => {
     const out = [];
-    // the file's own order, which is the index's
+    // the file's order, which is the index's
     for (const t of f.typeList) for (const e of f.resourcesByType[t.type])
       out.push({ type: S.novaTypeName(t.type), id: e.id, name: e.name || '', data: f.dataOf(t.type, e), at: e.off });
     return out.sort((a, b) => a.at - b.at);
@@ -218,7 +218,7 @@ print(json.dumps(out))
   }));
   const bin = S.novaWriteMacPlugin(res, 'Test plug-in');
   const forks = S.macBinaryForks(bin);
-  // the type and creator as the game's own archive has the bytes
+  // the type and creator as the game's archive has the bytes
   const sit = path.join(REF, 'game/EV_Nova_1.0.10.sit');
   if (!forks) fail('the MacBinary file is not read as MacBinary');
   else {
@@ -299,7 +299,7 @@ if (versions.length >= 2) {
   };
   const made = (name, recs) => { const bytes = S.novaWriteRez(recs.map(([type, id]) => ({ type, id, name: '', data: Uint8Array.of(id & 255) }))); return { name, plugin: true, bytes, fork: S.novaOpenFork(bytes) }; };
   const files = [made('b10', [['sÿst', 129], ['shïp', 200], ['oütf', 5]]), made('b9', [['sÿst', 129], ['shïp', 200]]), made('a', [['sÿst', 128], ['sÿst', 129]]), made('c', [['gövt', 128]])];
-  // the hand count can tell: one record fewer is another answer
+  // the hand count can distinguish: one record fewer is another answer
   if (JSON.stringify(byHand(files)) === JSON.stringify(byHand([...files.slice(1), made('b10', [['sÿst', 129]])]))) fail('the hand count of shared records cannot see a record gone');
   const got = held('made-up plug-ins', files);
   const sets = got.map(g => g.files.join('|')).sort().join(' / ');

@@ -3,17 +3,17 @@
 
    Each system whose stellars are drawn has a world of nova-flight.js's,
    set up as its stellars start to show, as the game sets one up when the
-   player arrives, with a new seed each time, and dropped when they go, so
+   player comes in, with a new seed each time, and dropped when they go, so
    its ships fade in and out with them. The game runs only the player's
    system; here each open one runs as if the player were there. Their
-   ships come, go to the stellars and leave by their own AI, and only what
+   ships come, go to the stellars and leave by their AI, and only what
    is within a system's circle is drawn, but for the system you are in,
    whose ships just beyond it are drawn fading out with distance from its
    edge (OUTSIDE), off the other systems' circles, so a fight past the
-   edge can be followed (the maintainer's asking, 1 October 2026). They are stepped thirty times a
+   edge can be followed (the maintainer's request, 1 October 2026). They are stepped thirty times a
    second, as the game counts its time, or faster or slower by the panel's
    speed, all together, and not while paused, on a landing page, or with
-   the map hidden. Where the browser asks for reduced motion they start
+   the map hidden. Where the browser requests reduced motion they start
    paused. A hypergate a ship is coming out of opens (flightEngaged).
 
    The asteroids are the player's in the game, kept on and just off the
@@ -24,11 +24,11 @@
    system's scale makes it but never under MIN_SHIP pixels across, as a
    stellar is never under MIN_STELLAR. The sprites are the ships view's
    (shipSprite, shipFrame); the ships and sounds files are read after the
-   pictures in a background thread (page-open.js), or on arriving in a
+   pictures in a background thread (page-open.js), or on coming into a
    system where there is none (wantShipFiles), and the ships come once they
    are.
 
-   The page's own script: DOM here. LOAD ORDER: after page-map.js and
+   The page's script: DOM here. LOAD ORDER: after page-map.js and
    page-ships.js, whose drawing and sprites it uses; page-map.js calls
    drawFlight, flightEngaged and flightPanel. */
 
@@ -76,7 +76,7 @@ function flightSync() {
   if (!FLIGHT.started) { FLIGHT.started = true; FLIGHT.paused = FLIGHT.paused || reducedMotion(); }
   if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); if (flightListed()) renderPanel(); }
 }
-// Whether the panel lists the moving ships: the system's (flightPanel), or a stellar's whose defence ships are out; no other is drawn again as they move.
+// Whether the moving ships are in the panel: the system's (flightPanel), or a stellar's whose defence ships are out; no other is drawn again as they move.
 function flightListed() {
   const sel = VIEW.sel;
   if (VIEW.mode !== 'system' || FLIGHT.sys === null) return false;
@@ -147,7 +147,7 @@ function drawWorld(ctx, d, w) {
   drawFlightThings(ctx, w, at, k * CAM.s, d.t);
   ctx.restore();
 }
-/* What is beyond a system's circle, drawn on a canvas of its own, then
+/* What is beyond a system's circle, drawn on a separate canvas, then
    masked by a ring from OUTSIDE.alpha at the circle's edge to nothing
    OUTSIDE.reach of its radius further out, and laid on the map off every
    open system's circle. */
@@ -184,7 +184,7 @@ function drawOutside(ctx, d, w, at, z) {
    time. */
 let TINT_CANVAS = null;
 /* A ship's silhouette as a dashed line round it, at the size it is drawn:
-   the picture's shape grown by 2 pixels each way, its own shape cut out,
+   the picture's shape grown by 2 pixels each way, its shape cut out,
    and the ring left cut into dashes by diagonal stripes. One canvas (and
    one for the work), drawn over each time. */
 let OUTLINE = null, OUTLINE_WORK = null, OUTLINE_STRIPES = null;
@@ -319,14 +319,14 @@ function flightPanel(sys) {
   if (!FLIGHT.on || VIEW.mode !== 'system' || FLIGHT.sys !== sys.id) return '';
   const w = FLIGHT.world;
   if (!w) return flightData() ? '' : `<h3>Ships here now</h3><p class="note">${SHIP_FILES.length || PENDING.some(f => f.role === 'ships') ? 'Reading the ships…' : 'No ships files are open.'}</p>`;
-  // only those within the system's circle (the maintainer's asking, 1 October 2026)
+  // only those within the system's circle (the maintainer's request, 1 October 2026)
   const R = sysGeo(sys).R, ships = w.ships.filter(s => s && Math.hypot(s.x, s.y) <= R), kinds = new Map();
   for (const s of ships) kinds.set(s.cls.id, (kinds.get(s.cls.id) || 0) + 1);
   const list = [...kinds].map(([id, n]) => `<a data-ship="${id}">${esc(w.D.classes.get(id).name)}</a>${n > 1 ? ` <span class="note">× ${n}</span>` : ''}`).join(', ');
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-flight="speed:${v}" aria-pressed="${FLIGHT.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   return `<h3>Ships here now</h3>
     <p>${ships.length ? `${ships.length}: ${list}` : 'none'}</p>
-    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
+    <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Enter the system again, with other ships">Enter again</button></div>`;
 }
 
 /* A stellar's defence fleet, launched as its hail dialog launches it

@@ -1,8 +1,8 @@
 # What StarGrimoire is built from
 
 Listed on 28 September 2026 so that a fuller credits section, which the
-maintainer wants later, starts from it. Since 10 October 2026 the page has
-one: the name in the bar opens Credits, which names the game's crew as its
+maintainer planned, starts from it. Since 10 October 2026 the page has
+one: the name in the bar opens Credits, which has the game's crew as its
 documentation does (`EV Nova Documentation.pdf`, page 3, "The crew behind
 the scenes") and what follows here. `NOTICE` names Ambrosia and ATMOS,
 grimoire and ResForge. These are the sources
@@ -38,7 +38,7 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   labeling", IEEE TVCG, 2006), and each name's one range of zooms given
   in order of importance (Been, Nöllenburg, Poon and Wolff, "Optimizing
   active ranges for consistent dynamic map labeling", Computational
-  Geometry, 2010); and on the map that keeps each link's heading, names
+  Geometry, 2010); and on the map with headings kept, names
   put greedily and then moved while that helps (Christensen, Marks and
   Shieber, "An empirical study of algorithms for point-feature label
   placement", ACM TOG, 1995).
@@ -55,7 +55,7 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
 ## Code
 
 - **grimoire** (`ratlizard/grimoire`): the `js/mac-*` readers, copied, and the
-  PowerPC decoder (`js/mac-ppc.js` there) used to read the program. Within the
+  PowerPC decoder (`js/mac-ppc.js` there) that reads the program. Within the
   readers: StuffIt's layouts and methods 13 and 15 are ported from Ben
   Letchford's `stuffit-rs` (MIT or Apache-2.0), which descends from The
   Unarchiver's; the PICT reader's opcode table is from Apple's "PICT File

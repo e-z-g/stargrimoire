@@ -3,8 +3,8 @@
 //
 // The reading of a note is held to examples written out here. Every
 // mission's place codes must be ones the Bible's mïsn section gives, and a
-// stellar or system one must name a record. A LAST mission's storyline
-// must go no further by its own links.
+// stellar or system one must point at a record. A LAST mission's storyline
+// must go no further by its links.
 //
 // Then the one outside source: the evnova.miraheze.org wiki's bit templates
 // (reference/wiki, the maintainer's copy), which say of 348 bits "Done Fed
@@ -13,7 +13,7 @@
 // them; each is looked for among the missions that turn the bit on then,
 // by storyline and step as the notes give them. They are people's notes and
 // not all right (Vellos 24 to 29 are one step behind Ambrosia's numbers),
-// so what is held is how many agree, not all of them, and those that do
+// so what is checked is how many match, not all of them, and those that do
 // not are printed.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -53,7 +53,7 @@ for (const v of Object.keys(RELEASES)) {
     if (m.rec.ShipCount > 0 && /^code /.test(S.novaMissionPlace(u, 'ship', m.rec.ShipSyst).text)) problems.push(`mïsn ${m.id} ShipSyst ${m.rec.ShipSyst}`);
   }
   if (problems.length) fail(`${v}: ${problems.length} place codes the Bible does not give or that name nothing: ${problems.slice(0, 6).join('; ')}`);
-  // a LAST mission leads nowhere further in its own storyline
+  // a LAST mission leads nowhere further in its storyline
   const onward = [...M.byId.values()].filter(m => m.story && m.story.last).filter(m => m.next.some(id => { const o = M.byId.get(id); return o.story && o.story.key === m.story.key && (o.story.num ?? 0) > m.story.num; }));
   if (onward.length) fail(`${v}: LAST missions leading further on in their storyline: ${onward.map(m => m.id).join(', ')}`);
   const noted = [...M.byId.values()].filter(m => m.story).length;
@@ -84,8 +84,8 @@ for (const v of Object.keys(RELEASES)) {
     else differ.push(`b${n} "${t.slice(0, 50)}": ${setters.map(m => `${m.id} "${m.note}"`).join(', ') || `no mission turns it on when ${w[1].toLowerCase()}`}`);
   }
   const AGREE = 320;
-  if (agree < AGREE) fail(`the wiki: ${agree} of ${tried} bit names agree with the notes, fewer than the ${AGREE} that did`);
-  console.log(`the wiki: ${agree} of ${tried} bit names that give a storyline's step agree with the notes; the others:\n  ${differ.join('\n  ')}`);
+  if (agree < AGREE) fail(`the wiki: ${agree} of ${tried} bit names match the notes, fewer than the ${AGREE} that did`);
+  console.log(`the wiki: ${agree} of ${tried} bit names that give a storyline's step match the notes; the others:\n  ${differ.join('\n  ')}`);
 }
 // The storyline charts (novaStoryLayout): every mission placed once, no two in one place, every line that is
 // not marked back going down a row, and a line marked back only where following lines alone would loop.
@@ -103,7 +103,7 @@ for (const v of ['1.0.10', '1.1.1']) {
       if (e.back) { backs++; continue; }
       if (!(at.get(e.to).layer > at.get(e.from).layer)) fail(`${v} ${st.name}: a line from ${e.from} to ${e.to} that does not go down`);
     }
-    // the forward lines alone have no loop: a mission's row is above all it leads to, which the test above holds
+    // the forward lines alone have no loop: a mission's row is above all it leads to, which the test above checks
   }
   console.log(`${v}: ${charts} storyline charts, ${backs} lines going back up a loop`);
 }

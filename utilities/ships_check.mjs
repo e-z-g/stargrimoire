@@ -5,13 +5,13 @@
 //   2. The frame counts the page relies on: the base is BaseSetCount sets of
 //      FramesPer; the alternating image AltSetCount sets; the shield 1,
 //      FramesPer or BaseSetCount x FramesPer. The engine glow and running
-//      lights have one frame for each of the base's, which the Bible says
-//      they must ("or Nova will choke", at the foot of the shän section), or
+//      lights have one frame for each of the base's, which the Bible requires
+//      ("or Nova will choke", at the foot of the shän section), or
 //      one set of FramesPer: fifteen stock ships have that, the Argosies
 //      (Flags 0x02, folding) and Manticores (0x08, in sequence), with six
 //      and three sets of base under one set of glow, in every release.
-//   3. The pictures: how many ships have their own target picture (3000)
-//      and picture beside the description (5000), how many take another's
+//   3. The pictures: how many ships have a target picture (3000) and a
+//      picture beside the description (5000) numbered from theirs, how many take another's
 //      by sharing sprites, and which have none.
 //   4. The Bible's worked values: InherentGovt's ranges, Mass to jump days.
 //

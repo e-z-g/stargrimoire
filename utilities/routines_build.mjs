@@ -1,6 +1,6 @@
 // Writes js/nova-routines.js: where each routine the field notes and the
 // rules cite, by the name Mac 1.1.1 gives it, is in 1.0.2, 1.0.8 and 1.0.10
-// (utilities/match.mjs says how they are matched). Needs those releases and
+// (how they are matched is in utilities/match.mjs). Needs those releases and
 // 1.1.1's disk image in reference/game/.
 import fs from 'node:fs';
 import path from 'node:path';

@@ -65,7 +65,7 @@ export function site(opts = {}) {
 
 /* The names each script gives the others, in page order: what is new on the
    global object after it runs, and its top-level const and let. For
-   check_all, to know which scripts a check can reach. */
+   check_all, to find which scripts a check can reach. */
 export function scriptGlobals() {
   const files = pageScripts().filter(f => f.startsWith('js/') && !f.startsWith('js/page-'));
   const ctx = site({ files: [] }), out = new Map();
@@ -98,7 +98,7 @@ const MAP_ROLES = new Set(['data', 'graphics', 'titles']);
 
 // A decompressed fork is kept in $TMPDIR, since the Titles files alone take
 // seconds each. The file is trusted only when it is there at the length the
-// catalog gives: macOS empties $TMPDIR's files and keeps its folders.
+// catalog gives: macOS empties $TMPDIR's files and leaves its folders.
 const FORK_CACHE = path.join(os.tmpdir(), 'stargrimoire-forks');
 function cached(archive, f) {
   const st = fs.statSync(archive);

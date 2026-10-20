@@ -1,7 +1,7 @@
 /* nova-missions.js -- missions, and the storylines they make, from the files.
    =========================================================================
 
-   STORYLINES. Nothing the player sees names a storyline, but Ambrosia's
+   STORYLINES. No storyline has a name the player sees, but Ambrosia's
    mission resources do: 578 of 1.1.1's 791 have a note after a semicolon
    in their name ("Pick up Mu'Randa;Polaris1", "Take Polaris Home;Rebel
    I22 LAST"), which the program cuts off before showing the name
@@ -11,8 +11,8 @@
    "(forced)". A storyline here is the missions whose notes share a name
    before the step, in any case and spacing; the notes are read as written,
    so "Rebel", "Rebel I" and "Rebel II" are three, as Ambrosia wrote them.
-   The evnova.miraheze.org wiki names the same steps ("Done Rebel I.022"),
-   and utilities/missions_check.mjs holds this reading to it.
+   The evnova.miraheze.org wiki has the same steps ("Done Rebel I.022"),
+   and utilities/missions_check.mjs compares this reading with it.
 
    WHERE. AvailStel, TravelStel, ReturnStel and ShipSyst are the Bible's
    codes (its mïsn section): a stellar or system id, or a range that means
@@ -24,7 +24,7 @@
    expression), or turns on the bit the other's AvailBits needs on, as the
    game reads it, that the fewest missions turn on: of the bits a mission
    needs, the rarest is the step it waits for, where a bit many missions
-   turn on (a storyline "in progress") only says it is under way. Turning
+   turn on (a storyline "in progress") only shows it is under way. Turning
    on counts on accepting, on success and with its ships dealt with; ties
    link every mission that turns on any of the tied bits.
 
@@ -51,7 +51,7 @@ function novaStoryNote(note) {
    SelectMissionStellar 0x9a26a), 'ship' (ShipSyst, LoadCurrentMissionData
    0xa0a38 and SelectMissionSystem 0x9b993) or 'aux' (AuxShipSyst,
    ValidAuxShipSystem 0x992b5). `{g}` in the text is where the government
-   goes, kept as 128 + index; 9999 gives 127, no government. js/nova-fields.js says the same in its notes. */
+   goes, kept as 128 + index; 9999 gives 127, no government. js/nova-fields.js has the same in its notes. */
 function novaMissionPlace(u, field, v) {
   const g = (off, what) => ({ text: what, govt: 128 + v - off });
   const govts = where => {
@@ -213,7 +213,7 @@ function novaStoryLayout(missions) {
      leads: a mission of one storyline leads to a mission of another (LEADS
        TO above): [{ from, to, via: [[mission, mission]] }];
      shuts: a mission of one turns on a bit that an opening of another (one
-       no mission of its own storyline leads to) needs off:
+       no other mission of its storyline leads to) needs off:
        [{ from, to, via: [[mission, opening, bit]] }];
      people: a përs whose ActivateOn needs on a bit a storyline's missions
        turn on (it appears with that storyline) or needs it off (it goes):

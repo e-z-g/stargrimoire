@@ -16,7 +16,7 @@ const S = site();
 let fails = 0;
 const fail = m => { console.log('FAIL ' + m); fails++; };
 
-// What a PNG holds, or the first thing wrong with it.
+// What a PNG contains, or the first thing wrong with it.
 function readPng(buf) {
   const sig = [137, 80, 78, 71, 13, 10, 26, 10];
   if (!sig.every((b, i) => buf[i] === b)) return { bad: 'no PNG signature' };
@@ -57,7 +57,7 @@ for (const [w, h, rows] of [[301, 157, 40], [64, 64, 64], [1, 1, 1], [20000, 5, 
   const asked = [];
   const parts = await S.pngWrite(w, h, rows, (y, n) => { asked.push([y, n]); return px.subarray(y * w * 4, (y + n) * w * 4); });
   const buf = Buffer.concat(parts.map(p => Buffer.from(p.buffer, p.byteOffset, p.length)));
-  if (asked.reduce((s, [, n]) => s + n, 0) !== h || asked.some(([y], i) => y !== i * rows)) fail(`${w} by ${h}: the bands asked for were ${JSON.stringify(asked)}`);
+  if (asked.reduce((s, [, n]) => s + n, 0) !== h || asked.some(([y], i) => y !== i * rows)) fail(`${w} by ${h}: the bands requested were ${JSON.stringify(asked)}`);
   const bad = against(readPng(buf), w, h, px);
   if (bad) { fail(`${w} by ${h}: ${bad}`); continue; }
   if (sips) {

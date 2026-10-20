@@ -1,6 +1,6 @@
 // The numbers the flying and battle code uses, each found in the routine of
 // Mac 1.1.1 that its comments cite: the scan that utilities/rules_build.mjs
-// writes into js/nova-rules.js and program_check holds that file to.
+// writes into js/nova-rules.js and program_check compares that file with.
 //
 // A routine is cited as its name and its Intel address ("HandleShip
 // 0x33581", "LoadObjectData (0x79285)", "DamageShip's reactions (0x3b3f3",
@@ -11,7 +11,7 @@
 // where its minus is not a subtraction's, skipped when it is below 5 or an
 // id or angle every routine has (128, 255, 256, 360), and below 10 unless
 // the line itself cites the routine; once a line. It is kept when the cited
-// routine, the nearest citation first, holds it (novaHeldValues: an li,
+// routine, the nearest citation first, contains it (novaHeldValues: an li,
 // addi, cmpwi, cmplwi, mulli or subfic of it or of its negative, an lis of
 // it over 65536, or a float constant it rounds to in single precision).
 import fs from 'node:fs';
@@ -70,8 +70,8 @@ export function rulesFile(rules) {
    =========================================================================
 
    Each number the flying and battle code uses that the routine of Mac 1.1.1
-   its comments cite holds too: [file, line, number, routine]
-   (utilities/rules.mjs says how they are found). The Code view lists them
+   its comments cite contains too: [file, line, number, routine]
+   (how they are found is in utilities/rules.mjs). The Code view has them
    by routine, each linked to the instruction holding it and to the line of
    the site's code that uses it; program_check fails while this list is not
    the one the code gives.

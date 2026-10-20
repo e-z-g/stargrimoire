@@ -3,12 +3,12 @@
    =========================================================================
 
    The bar's Library (#library=table.ship, =text, =pict, =snd). A table
-   holds a record type's fields as the records have them, sorted by any
+   has a record type's fields as the records have them, sorted by any
    column, each row a link to the record's panel. Text, pictures and sounds
-   are listed by id and name; where the program says what one is for (an
-   outfit's description in the outfitter, its picture ...), that is said,
+   are listed by id and name; where the program shows what one is for (an
+   outfit's description in the outfitter, its picture ...), that is given,
    the base it adds to linked to the instruction it was read from
-   (novaFigure, codeNum), and the routines that load one by its own
+   (novaFigure, codeNum), and the routines that load one by its
    number are named and linked (novaProgramUses). The filter finds those
    words too: "race" finds the bar's race, which the landing page doesn't
    offer, and a routine's name what it loads.
@@ -18,7 +18,7 @@
 
 const LIB = { on: false, tab: 'table', type: 'shïp', sort: null, desc: false, q: '' };
 
-// The tables: a type, its columns (fields as the record names them), and where a row links.
+// The tables: a type, its columns (fields as the record has them), and where a row links.
 const LIB_TABLES = [
   ['shïp', 'Ships', ['Cost', 'TechLevel', 'Holds', 'Shield', 'Armor', 'Speed', 'Accel', 'Maneuver', 'Fuel', 'FreeMass', 'MaxGun', 'MaxTur', 'Crew', 'Strength', 'Mass', 'Length', 'BuyRandom']],
   ['oütf', 'Outfits', ['Cost', 'Mass', 'TechLevel', 'Max', 'ModType', 'ModVal', 'BuyRandom', 'DispWeight']],
@@ -57,13 +57,13 @@ function libRace(res, id) {
   if (res === 'PICT' && id === 8529) return "the bar's race, behind its Gamble button: the background";
   if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the bar's race: colour ${id % 10 + 1}'s button, ${LIB_RACE_STATES[Math.floor(id / 10) - 853]}`;
   if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time the bar is opened), and a winning bet pays four times what was bet";
-  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} wins`;
+  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} comes first`;
   return '';
 }
 
-/* What the program says a resource is for: html, or ''. The bases an
-   index is added to, the largest that names a record; and the routines
-   that load it by its own number (novaProgramUses). */
+/* What the program shows a resource is for: html, or ''. The bases an
+   index is added to, the largest that gives a record; and the routines
+   that load it by its number (novaProgramUses). */
 const LIB_BASES = {
   'dësc': [['outfitDesc', 'oütf', "outfitter's description of"], ['shipDesc', 'shïp', "shipyard's description of"], ['escortDesc', 'shïp', 'description for hire of'],
            ['missionOffer', 'mïsn', 'offer of'], ['barDesc', 'spöb', 'bar of'], ['stellarDesc', 'spöb', 'spaceport description of']],
@@ -91,7 +91,7 @@ function libRole(res, id) {
   if (loads) parts.push(loads);
   return parts.join('; ');
 }
-/* The routines that load a resource by its own number, linked: html, or ''. */
+/* The routines that load a resource by its number, linked: html, or ''. */
 function libLoads(res, id) {
   const p = program(), uses = p && novaProgramUses(p, GAME).fixed.get(`${res} ${id}`);
   if (!uses) return '';
@@ -105,7 +105,7 @@ function libLoads(res, id) {
   return (uses.every(u => u.run) ? 'the first of a run the program loads in ' : 'loaded by ') + list.join(', ');
 }
 
-// Whether what a resource is for says the words filtered for.
+// Whether what a resource is for has the words filtered for.
 const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLowerCase().includes(q);
 
 /* ---- in and out of the view -------------------------------------------- */

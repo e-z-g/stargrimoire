@@ -1,6 +1,6 @@
 // js/mac-*.js are copies of ratlizard/mac-files and must stay byte for byte what
 // it has: a change goes to mac-files first and is copied here (its README,
-// *Changing a file*). This finds mac-files where MAC_FILES says (a Cythera
+// *Changing a file*). This finds mac-files at MAC_FILES (a Cythera
 // front's worktree, while a change is tried), else at
 // ~/e-z-g-cythera/mac-files, and fails without it: a check that skips passes
 // unseen.

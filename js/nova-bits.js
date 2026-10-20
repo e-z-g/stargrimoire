@@ -5,11 +5,11 @@
    what the records that set it and test it make of it. This reads every
    test and set expression in the records, as Mac 1.1.1 reads them
    (nova-ncb.js: ncbTestNeeds through the game's reading of a test,
-   ncbSetOps through its reading of a set expression), and says, for each
+   ncbSetOps through its reading of a set expression), and gives, for each
    bit, which records need it on or off and which turn it on, off or over,
    and names it after what turns it on. The fields read are those whose
-   note in nova-fields.js says they are a test of control bits or control
-   bits set (fields_check holds the two lists together), and the
+   note in nova-fields.js calls them a test of control bits or control
+   bits set (fields_check checks the two lists against each other), and the
    {bxxx "..." "..."} choices of descriptions.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js,
@@ -39,7 +39,7 @@ const NOVA_BIT_SOURCES = [
      { n, name, refs: [{ effect, type, kind, id, name, field, event, random }] }
    effect 'on' or 'off' (a test needs it so), or 'set', 'clear', 'toggle';
    random where the change happens in only some of an R(...) choice's
-   outcomes. `name` says what turns it on: the first record to, in the
+   outcomes. `name` is what turns it on: the first record to, in the
    order of NOVA_BIT_SOURCES and then by number, and how many others do;
    failing that what turns it over, then what clears it; null for a bit
    nothing changes. */

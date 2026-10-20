@@ -71,8 +71,8 @@ if (intel) {
   }
   // the routines a note's link rings a line in, and as a control the same
   // routines read two bytes off each field's place: fieldtrace sees only
-  // some of the routines that use a place (its header says which it
-  // misses), so it is the many listed against the control's few that holds
+  // some of the routines that use a place (its header gives which it
+  // misses), so it is the many listed against the control's few that is checked
   const listed = shift => {
     let on = 0, off = 0;
     for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
@@ -147,7 +147,7 @@ if (intel) {
       bent[at + 3] = (bent[at + 3] + 4) & 255;                    // stw r4, 48(r3) -> 52(r3)
       const prog2 = S.novaProgram(bent, R1010.src.readRsrc()), p2 = S.novaFieldPlaces(prog2).get('spöb').places.get(6);
       if (!p2 || p2.off === p.off) fail(`1.0.10 bent: spöb Flags still read at element byte ${p.off}`);
-      else console.log(`1.0.10 bent: spöb Flags moved from element byte ${p.off} to ${p2.off}, as the changed store says`);
+      else console.log(`1.0.10 bent: spöb Flags moved from element byte ${p.off} to ${p2.off}, as the changed store has it`);
     }
   }
 }

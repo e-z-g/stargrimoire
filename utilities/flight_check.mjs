@@ -7,7 +7,7 @@
 //   2. One ship stepped (HandleShip 0x33581): turning at its rate and
 //      snapping to the heading; thrusting to its top speed, a step over at
 //      most, and past it on a second axis; an inertialess ship steering its
-//      velocity; an arrival from 50 a step, stopping where the sum says.
+//      velocity; an arrival from 50 a step, stopping where the sum puts it.
 //   3. A fleet's escorts in formation behind the lead.
 //   4. Odds: a system's düdes and a düde's ship types drawn 200,000 times
 //      each, against Probs; a picker broken on purpose must fail the test.
@@ -44,7 +44,7 @@ const eq = (what, got, want) => { if (JSON.stringify(got) !== JSON.stringify(wan
   if (!bad) console.log('rand: 100,000 draws as the second transcription gives them');
 }
 near('sin 90', S.NOVA_SIN[90], 1, 1e-6); near('cos 180', S.NOVA_COS[180], -1, 1e-6); near('sin 30', S.NOVA_SIN[30], 0.5, 1e-6);
-// The diagonals are a degree short: the table holds atan(1) x 57.2957795 = 44.99999..., truncated;
+// The diagonals are a degree short: the table has atan(1) x 57.2957795 = 44.99999..., truncated;
 // and a ratio is read in whole hundredths, so 577/1000 as 0.57, 29.68 degrees, 29.
 eq('headings toward the middle', [[0, 1000], [1000, 0], [-1000, 0], [0, -1000], [1000, 1000], [-1000, -1000], [1000, 577]].map(([x, y]) => S.novaBearing(x, y, 0, 0)), [0, 270, 90, 180, 314, 134, 299]);
 eq('angles apart', [[10, 350], [350, 10], [90, 270], [0, 179], [0, 181], [170, 190]].map(([a, b]) => S.novaAngleApart(a, b)), [20, 20, 180, 179, 179, 20]);
@@ -79,7 +79,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   for (let i = 0; i < 60; i++) { s.thrust = rate; s.desired = 0; S.novaHandleShip(w, s); }
   if (!(s.vx >= 3 && s.vx < 3.1)) fail(`thrust to top speed: vx ${s.vx}, expected 3 to 3.1`);
   near('no thrust across', s.vy, 0, 1e-4);
-  // Then turned up: the second axis is taken to its own share, the first kept, and the ship runs past its top speed.
+  // Then turned up: the second axis is taken to its share, the first kept, and the ship runs past its top speed.
   s.heading = 0; s.want = 0;
   for (let i = 0; i < 60; i++) { s.thrust = rate; s.desired = 0; S.novaHandleShip(w, s); }
   if (!(Math.hypot(s.vx, s.vy) > 4)) fail(`the program's drift past top speed: ${Math.hypot(s.vx, s.vy)}`);
@@ -102,7 +102,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   for (let k = 0; k < 40; k++) y += speeds[k];
   near('arrival distance', s.y, y, 0.05);
   near('arrival leaves it at', Math.hypot(s.vx, s.vy), speeds[40], 1e-4);
-  if (!(s.timer >= 30 && s.timer < 60)) fail(`after arriving, a coast of 30 to 59 steps: ${s.timer}`);
+  if (!(s.timer >= 30 && s.timer < 60)) fail(`after the arrival, a coast of 30 to 59 steps: ${s.timer}`);
 }
 
 {
@@ -183,7 +183,7 @@ if (haveRelease('1.1.1')) {
   const w = S.novaFlightWorld(D, sys, {}, 11, view), n = sys.rec.Asteroids;
   const live = () => w.roids.filter(a => a.active);
   const inside = v => live().every(a => Math.abs(a.x - v.x) <= 1.05 * (v.hw + 128) + 100 && Math.abs(a.y - v.y) <= 1.05 * (v.hw + 128) + 100);
-  if (live().length !== n) fail(`asteroids on arriving in ${sys.name}: ${live().length}, it has ${n}`);
+  if (live().length !== n) fail(`asteroids on coming into ${sys.name}: ${live().length}, it has ${n}`);
   for (let i = 0; i < 1800; i++) S.novaFlightStep(w);
   if (live().length !== n || !inside(view)) fail(`asteroids after a minute: ${live().length} of ${n}, ${JSON.stringify(live().map(a => [Math.round(a.x), Math.round(a.y)]))}`);
   w.view = { x: 20000, y: 20000, hw: 400, hh: 300 };
@@ -197,7 +197,7 @@ if (haveRelease('1.1.1')) {
 // Worked from Mac 1.1.1's DamageShip, IsDisabled, SelectWarshipTarget, WarshipAI and HandleShipDisplay
 // (evnova-workbench/doc/fighting.md), on 1.0.10's ships in an empty Sol: damage to shields then armour,
 // the shield floor, a disable-only weapon's last point, the disable threshold, turning on an aimed
-// attacker and not on one's own government, the nearest enemy picked and one too strong passed over,
+// attacker and not on one's government, the nearest enemy picked and one too strong passed over,
 // the death throes' length, the out-of-ammunition retreat with its flag and without it, and a battle
 // that ends.
 if (haveRelease('1.0.10')) {
@@ -225,7 +225,7 @@ if (haveRelease('1.0.10')) {
   const c = S.novaPlaceShip(w, DESTROYER, FED, 0, 200, 3);
   c.primary = -1;
   S.novaDamageShip(w, c, a, 0, 5, 5, a.slot, true, true, false, false, false);
-  eq('a hit from its own government: not turned on', c.primary, -1);
+  eq('a hit from its government: not turned on', c.primary, -1);
   // targets: the nearer of two enemies; then a ship too strong for its MaxOdds passed over
   w = empty(2);
   const v = S.novaPlaceShip(w, VIPER, AUR, 0, 0, 3), close = S.novaPlaceShip(w, VIPER, FED, 400, 0, 3), far = S.novaPlaceShip(w, VIPER, FED, 900, 0, 3);
@@ -234,7 +234,7 @@ if (haveRelease('1.0.10')) {
   w.ships[close.slot] = null; w.ships[far.slot] = null;
   const big = S.novaPlaceShip(w, CRUISER, FED, 400, 0, 3);
   v.primary = -1; S.novaSelectTarget(w, v);
-  if (v.primary === big.slot) fail(`a Viper picked a cruiser of Strength ${S.novaClassFight(D, big.cls).strength} over its own odds`);
+  if (v.primary === big.slot) fail(`a Viper picked a cruiser of Strength ${S.novaClassFight(D, big.cls).strength} over its odds`);
   // the death throes: DeathDelay steps from the first, then gone
   w = empty(3);
   const d = S.novaPlaceShip(w, DESTROYER, FED, 0, 0, 3), delay = S.novaClassFight(D, d.cls).deathDelay;

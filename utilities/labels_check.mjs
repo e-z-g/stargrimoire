@@ -1,6 +1,6 @@
-// js/nova-labels.js: names placed once for every zoom hold to what its header
-// says. labelsMeetUntil, the greatest zoom at which two boxes overlap, agrees
-// with trying a dense run of zooms, for names beside dots whose size is
+// js/nova-labels.js: names placed once for every zoom checked against its
+// header. labelsMeetUntil, the greatest zoom at which two boxes overlap, matches
+// a dense run of zooms tried, for names beside dots whose size is
 // clamped and for names under sprites that grow with the zoom. labelRanges
 // gives every name one side and one zoom from which it shows, and at every
 // zoom tried no two names then shown overlap and no name covers another's
@@ -46,7 +46,7 @@ const underBox = (p, w, h0) => s => { const x = p.x * s, y = p.y * s + spriteH(h
     if (last > 0 && !(got >= last - 1e-9 && got <= next + 1e-9)) fail(`boxes ${t}: last meet in the run ${last}, solved as ${got}`);
     if (last > 0) { worst = Math.max(worst, Math.abs(got - last) / last); n++; }
   }
-  if (!fails) console.log(`labelsMeetUntil agrees with ${ZOOMS.length} zooms tried for 400 pairs (${n} that meet), within ${(worst * 100).toFixed(2)}% of a step`);
+  if (!fails) console.log(`labelsMeetUntil matches ${ZOOMS.length} zooms tried for 400 pairs (${n} that meet), within ${(worst * 100).toFixed(2)}% of a step`);
 }
 
 // ---- names placed once: none overlaps another shown, or another's dot -----

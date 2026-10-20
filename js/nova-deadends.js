@@ -15,7 +15,7 @@
    a nebula explored; a stellar dominated, released, destroyed and
    regenerated; the pilot's chär begins. Whatever any of those may turn on
    may be on. A mission started by an S is taken too. It over-reaches on
-   purpose: what it says cannot happen cannot.
+   purpose: what it finds cannot happen cannot.
 
    A STORYLINE'S STATES (novaStoryDeadEnds). Every state from a new game
    over the bits its missions' AvailBits read, which of its missions are
@@ -36,7 +36,7 @@
    a lock made by another storyline is not seen here; the next pass finds
    that kind. The ends are its missions nothing of it follows that can be
    finished (with none, a mission of it that can still be taken). A state
-   from which no end can be reached, once the storyline has begun, is stuck; each is told by the last thing done in the
+   from which no end can be reached, once the storyline has begun, is stuck; each is labelled by the last thing done in the
    storyline on the way there.
 
    A BIT LEFT ON FOR GOOD (novaHeldBits). A bit a mission turns on when
@@ -69,7 +69,7 @@ function novaSetSteps(text) {
   }
   return v;
 }
-// Every operation any outcome of a set expression carries out.
+// Every operation in any outcome of a set expression.
 const novaSetAny = text => novaSetSteps(text).flat();
 
 // The terms a test reads: [{ L, n }], B n by number, G, P, O n and E n free.
@@ -107,7 +107,7 @@ function novaTestCan(text, may) {
   }
 }
 
-// Why a mission is never offered by its own fields (not its bits), or null.
+// Why a mission is never offered by its fields (not its bits), or null.
 function novaMissionNever(game, m) {
   if (/never offered/.test(novaFieldRead(game, 'mïsn', 'AvailStel', m) || '')) return 'its AvailStel offers it nowhere';
   if (!(m.AvailLoc >= 0 && m.AvailLoc <= 6)) return `AvailLoc ${m.AvailLoc} offers it nowhere`;
@@ -186,7 +186,7 @@ function* novaReachSteps(game, opts = {}) {
   return { may, on, taken, offered, why, happened, failed: F.failed };
 }
 // What novaReach reads of a game, read once: the records with set expressions, the missions that may
-// be offered by their own fields, those an F fails.
+// be offered by their fields, those an F fails.
 const NOVA_REACH_FACTS = new WeakMap();
 function novaReachFacts(game) {
   const it = novaReachFactsSteps(game);
@@ -350,7 +350,7 @@ function* novaStoryDeadEndsSteps(game, story, reach, opts = {}) {
   for (let si = 0; si < keys.length && !tooMany; si++) {
     if (si % 2000 === 1999) yield si;
     const [bits, as, bg] = keys[si].split('|'), active = as ? as.split(',').map(Number) : [], begun0 = +bg, begun = begun0 || 1;
-    if (begun0 === 2) continue;   // an end reached: what follows is not asked
+    if (begun0 === 2) continue;   // an end reached: what follows is not searched
     if (!ends.size && (active.length || local.some(x => !x.never && !active.includes(x.id) && testIn(x.m.AvailBits, bits)))) takable[si] = 1;
     const go = (texts, ev, bgn, without) => { for (const [b, a] of run(texts, bits, without ? active.filter(y => y !== without) : active)) push(b, a, bgn, si, ev); };
     for (const { id, m, lands, fails, never, neutral } of local) {

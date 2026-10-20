@@ -1,7 +1,7 @@
 // js/nova-sprites.js held to ResForge's Sprite Editor, pixel for pixel, over
 // every rlëD and rlë8 in the releases' graphics files.
 //
-// The oracle is ResForge's own decoder (reference/ResForge, andrews05/ResForge,
+// The oracle is ResForge's decoder (reference/ResForge, andrews05/ResForge,
 // MIT): SpriteWorld.swift and what it needs -- Sprite.swift, BinaryDataReader
 // and BinaryDataWriter, ColorTable.swift -- copied unchanged to a build
 // directory except for their `import RFSupport` / `import ImageEditor`
@@ -11,7 +11,7 @@
 // (Xcode's command-line tools); without it this check skips.
 //
 // SPRITE_ROLES=ships widens it to the ship files, which is most of the
-// sprites there are and takes minutes rather than seconds.
+// sprites there are and runs for minutes rather than seconds.
 //
 // The frame index (novaRleIndex), which lets the page draw one frame of a
 // large sprite alone, is held to where novaDecodeRle found each frame, and
@@ -29,7 +29,7 @@ const FILES = ['RFSupport/BinaryDataReader.swift', 'RFSupport/BinaryDataWriter.s
 const MAIN = `import AppKit
 // Each argument is a sprite file; for each, write width, height and frame
 // count as big-endian UInt32 and then every frame as RGBA, or a width of
-// 0xFFFFFFFF when ResForge refuses the sprite.
+// 0xFFFFFFFF when ResForge rejects the sprite.
 var out = Data()
 func be(_ v: Int) { var x = UInt32(truncatingIfNeeded: v).bigEndian; out.append(Data(bytes: &x, count: 4)) }
 for arg in CommandLine.arguments.dropFirst() {
@@ -56,8 +56,8 @@ function buildOracle() {
   const hash = crypto.createHash('sha1').update(texts.join('\0') + glue + MAIN).digest('hex').slice(0, 12);
   const dir = path.join(os.tmpdir(), 'stargrimoire-rlefeed-' + hash);
   const bin = path.join(dir, 'rlefeed');
-  // The binary, not the directory, is what says it is built: macOS empties
-  // $TMPDIR's files and keeps its folders.
+  // The binary, not the directory, is what shows it is built: macOS empties
+  // $TMPDIR's files and leaves its folders.
   if (!fs.existsSync(bin)) {
     fs.mkdirSync(dir, { recursive: true });
     const names = FILES.map(f => path.basename(f));
@@ -87,7 +87,7 @@ function oracle(o, sprites) {
 }
 
 // Where two frames first differ, or null. Pixels with alpha 0 are compared
-// on alpha alone: what colour a transparent pixel holds is not the sprite.
+// on alpha alone: what colour a transparent pixel has is not the sprite.
 function firstDiff(a, b) {
   for (let i = 0; i < a.length; i += 4) {
     if (a[i + 3] !== b[i + 3]) return i / 4;
@@ -114,14 +114,14 @@ for (const v of ['1.0.10', '1.1.1']) {
     const batch = [];
     for (let size = 0; i < sprites.length && (!batch.length || size < 150e6); i++) {
       batch.push(sprites[i]);
-      try { const h = S.novaRleHeader(sprites[i].bytes); size += h.width * h.height * 4 * h.frames; } catch (e) { /* refused below */ }
+      try { const h = S.novaRleHeader(sprites[i].bytes); size += h.width * h.height * 4 * h.frames; } catch (e) { /* rejected below */ }
     }
     const theirs = oracle(o, batch);
     batch.forEach((s, j) => {
       const t = theirs[j];
       let ours;
       try { ours = S.novaDecodeRle(s.bytes); } catch (e) { ours = { error: e.message }; }
-      if (!t) { if (ours.error) ok++; else bad.push(`${s.type} ${s.id}: ResForge refuses it and this reads it`); return; }
+      if (!t) { if (ours.error) ok++; else bad.push(`${s.type} ${s.id}: ResForge rejects it and this reads it`); return; }
       if (ours.error) { bad.push(`${s.type} ${s.id}: ${ours.error}`); return; }
       if (ours.width !== t.w || ours.height !== t.h || ours.frames.length !== t.frames.length) {
         bad.push(`${s.type} ${s.id}: ${ours.width}×${ours.height}×${ours.frames.length} here, ${t.w}×${t.h}×${t.frames.length} in ResForge`);

@@ -1,10 +1,10 @@
-// What a check reads, for check_all to know when it need not run again.
+// What a check reads, for check_all to find when it need not run again.
 //
 //   node --import ./utilities/check_trace.mjs utilities/x_check.mjs
 //
 // With CHECK_TRACE naming a file, writes there at exit, as JSON, every file
 // the check read (its modules, by the loader; the rest through fs), every
-// folder it listed with what was in it, every path it asked about and
+// folder it listed with what was in it, every path it queried and
 // whether it was there, and every file it gave a program it started. Files
 // it wrote itself, and anything in $TMPDIR (caches of what it read
 // elsewhere), are left out.

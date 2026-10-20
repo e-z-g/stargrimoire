@@ -3,13 +3,13 @@
 // pages read from it.
 //
 // Held to:
-//   - the PEF loader's own list of imports: every transition vector the
+//   - the PEF loader's list of imports: every transition vector the
 //     program imports has its glue found and named, and no glue names
 //     anything else;
 //   - LLVM's PowerPC disassembler (llvm-mc --disassemble --triple=powerpc),
 //     separate from mac-ppc.js: the word at each figure's address,
-//     disassembled there, holds the figure's value;
-//   - the workbench's own layout of 1.0.10's code (tools/pefreloc_nova.py,
+//     disassembled there, contains the figure's value;
+//   - the workbench's layout of 1.0.10's code (tools/pefreloc_nova.py,
 //     written apart from this): the description loader it found at
 //     0x12ce10 (js/nova-ships.js cites it) is where the reader finds it;
 //   - each other: every figure is found in every release, the same value
@@ -20,11 +20,11 @@
 // 1.1.1's Mach-O program, its PowerPC half, is held to llvm-nm (every
 // routine its symbols name, by name and address) and llvm-objdump's
 // indirect symbols (every stub named), and each of its figures to LLVM's
-// reading of the word and to the value the site's own code uses; every
+// reading of the word and to the value the site's code uses; every
 // routine a field note cites must be there by name. js/nova-rules.js must
 // be the list the flying and battle code gives (utilities/rules_build.mjs),
 // each number found in its routine, a whole number's word as llvm-mc reads
-// it, and a number the routine does not hold not found. What the program loads
+// it, and a number not in the routine not found. What the program loads
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
 // js/nova-routines.js, where 1.1.1's routines are in 1.0.x, must be what
@@ -132,7 +132,7 @@ else {
       let sb = 0;
       for (const m of want) { const r = prog.byStart.get(parseInt(m[1], 16)); if (!r || !r.glue || r.name !== m[2]) { if (sb++ < 5) fail(`1.1.1: the stub at 0x${m[1]} is ${m[2]}, the page ${r ? r.name : 'nothing'}`); } }
       if (!want.length) fail('1.1.1: llvm-objdump listed no stubs');
-      console.log(`1.1.1: ${ours.length} routines named as llvm-nm names them, ${want.length} stubs as llvm-objdump names them, read in ${ms} ms`);
+      console.log(`1.1.1: ${ours.length} routines named as by llvm-nm, ${want.length} stubs as by llvm-objdump, read in ${ms} ms`);
     }
     // every routine a field note cites
     const cited = new Set();
@@ -149,7 +149,7 @@ else {
       figureHeld('1.1.1', prog, name, f);
     }
     usesCheck('1.1.1', prog);
-    // the rules: the list the code gives, each found where it says
+    // the rules: the list the code gives, each found where it points
     const want = JSON.stringify(scanRules(S, prog)), have = JSON.stringify(S.NOVA_RULES);
     if (want !== have) fail('1.1.1: js/nova-rules.js is not the list the code gives; run node utilities/rules_build.mjs');
     const sites = S.novaRuleSites(prog);
@@ -158,7 +158,7 @@ else {
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
     for (const s of sites) {
       const o = prog.ops(prog.routineAt(s.addr)).find(x => x.addr === s.addr);
-      // a float constant: read from the file where the load points, by this check's own offsets
+      // a float constant: read from the file where the load points, by this check's offsets
       if (o.op.mn === 'lfs' || o.op.mn === 'lfd') {
         const at = fileOffset(bytes, o.data), x = at < 0 ? NaN : o.op.mn === 'lfs' ? dv.getFloat32(at) : dv.getFloat64(at);
         if (Math.fround(x) !== Math.fround(s.value) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}): the constant at ${S.hex(o.data)} is ${x}`);
@@ -230,7 +230,7 @@ function routinesCheck(mac) {
 }
 // A figure's word as LLVM reads it (a list's words are comparisons, each holding
 // its number or one less; a rule's word is not a number), its words for the
-// Code view, and the site's own value where it has one.
+// Code view, and the site's value where it has one.
 function figureHeld(v, prog, name, f) {
   const each = Array.isArray(f.value) ? f.value.map((x, i) => [f.addrs[i], x]).filter(([a]) => a !== null) : [[f.addr, f.value]];
   if (LLVM && typeof f.value !== 'string') for (const [a, x] of each) {
@@ -240,10 +240,10 @@ function figureHeld(v, prog, name, f) {
   }
   const words = S.NOVA_FIGURE_WORDS[name];
   if (!words) fail(`${v}: ${name} has no words for the Code view`);
-  else if (words[1] && JSON.stringify(words[1]()) !== JSON.stringify(f.value)) fail(`${v}: ${name}: the program has ${f.value}, the site's own code ${words[1]()}`);
+  else if (words[1] && JSON.stringify(words[1]()) !== JSON.stringify(f.value)) fail(`${v}: ${name}: the program has ${f.value}, the site's code ${words[1]()}`);
 }
 
-// What a program loads by number: each word holds its number as LLVM reads it;
+// What a program loads by number: each word contains its number as LLVM reads it;
 // the outfitter's background is loaded where its dialog is opened.
 function usesCheck(v, prog) {
   const u = S.novaProgramUses(prog, null);

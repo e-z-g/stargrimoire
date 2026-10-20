@@ -1,15 +1,15 @@
 /* page-svg.js -- a stand-in for a canvas's 2D context that writes SVG, so
    that the map can be saved as a drawing as well as a picture (the
-   maintainer's asking, 30 September 2026). It takes the calls the map's
+   maintainer's request, 30 September 2026). It accepts the calls the map's
    drawing makes (page-map.js, draw) and no others: paths of lines, arcs and
    rounded corners, strokes and fills in plain colours or a linear gradient,
    dashes, text, pictures, the transform, save and restore. A path's points
    are transformed as they are added, as a canvas does; text and pictures
-   carry the transform as it stands. Pictures are embedded as PNG.
+   have the transform as it stands. Pictures are embedded as PNG.
 
    svgContext(w, h) gives the context; its toSVG() the document.
 
-   The page's own script: DOM here. LOAD ORDER: before page-map.js. */
+   The page's script: DOM here. LOAD ORDER: before page-map.js. */
 
 function svgContext(w, h) {
   const out = [], defs = [];

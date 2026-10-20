@@ -21,7 +21,7 @@ for (const line of execFileSync('nm', ['-arch', 'i386', PROG], { maxBuffer: 1 <<
   if (p.length === 3 && /^[tT]$/.test(p[1])) syms.set(p[2].replace(/^_/, ''), parseInt(p[0], 16));
 }
 const held = (name, at) => syms.get(name) === at;
-if (!held('ApplyGravity', 0x7c5a) || held('ApplyGravity', 0x7c5b) || held('NoSuchRoutine', 0x7c5a)) fail('the symbol test cannot tell a right routine from a wrong one');
+if (!held('ApplyGravity', 0x7c5a) || held('ApplyGravity', 0x7c5b) || held('NoSuchRoutine', 0x7c5a)) fail('the symbol test cannot distinguish a right routine from a wrong one');
 
 let notes = 0, cites = 0;
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
@@ -47,7 +47,7 @@ console.log(`${notes} field notes, ${cites} routines cited, each a routine of Ma
 // it, before the next routine's start. Flags 0x0008 and the like name no routine.
 const starts = [...new Set(syms.values())].sort((a, b) => a - b);
 const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
-if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot tell a place in a routine from one outside it');
+if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot distinguish a place in a routine from one outside it');
 let places = 0;
 for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => /^nova-.*\.js$/.test(f) && f !== 'nova-fields.js')) {
   const text = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace(/\n[\s*\/]*(?=0x[0-9a-f]{3,6}\b)/g, ' ');
@@ -68,16 +68,16 @@ for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const fiel
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_SHORT)) for (const field of Object.keys(fields))
   if (!S.novaFieldNote(type, field)) fail(`${type} ${field}: few words with no note`);
 
-// The fields nova-bits.js reads are those whose note says they are a test of control bits or control bits set.
+// The fields nova-bits.js reads are those whose note calls them a test of control bits or control bits set.
 const bitFields = new Map();
 for (const [type, , fields] of S.NOVA_BIT_SOURCES) for (const [field, how] of fields) if (how !== 'desc') bitFields.set(`${type} ${field}`, how);
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) for (const [field, n] of Object.entries(fields)) {
   const how = /^A test of control bits/.test(n.note) ? 'test' : /^Control bits set/.test(n.note) ? 'set' : null, k = `${type} ${field}`;
-  if (how && bitFields.get(k) !== how) fail(`${k}: its note says it is a ${how === 'test' ? 'test' : 'set expression'}, and nova-bits.js reads it ${bitFields.has(k) ? 'as a ' + bitFields.get(k) : 'not at all'}`);
-  if (!how && bitFields.has(k)) fail(`${k}: nova-bits.js reads it as a ${bitFields.get(k)}, and its note does not say so`);
+  if (how && bitFields.get(k) !== how) fail(`${k}: its note calls it a ${how === 'test' ? 'test' : 'set expression'}, and nova-bits.js reads it ${bitFields.has(k) ? 'as a ' + bitFields.get(k) : 'not at all'}`);
+  if (!how && bitFields.has(k)) fail(`${k}: nova-bits.js reads it as a ${bitFields.get(k)}, and its note calls it neither`);
 }
 for (const k of bitFields.keys()) { const [type, field] = k.split(' '); if (!S.novaFieldNote(type, field)) fail(`${k}: nova-bits.js reads it, and it has no note`); }
-console.log(`${bitFields.size} fields of control bits, each as its note says`);
+console.log(`${bitFields.size} fields of control bits, each as its note has it`);
 
 // Every reading (NOVA_FIELD_READS) run over every record of its type in every
 // release: each must give words, for a field its table names. What the shipped

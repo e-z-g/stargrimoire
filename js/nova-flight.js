@@ -2,15 +2,15 @@
    who comes, where each goes, and how it moves.
    =========================================================================
 
-   Read from Mac 1.1.1's program, whose Intel half keeps its function names
+   Read from Mac 1.1.1's program, whose Intel half has its function names
    (an address below is in that half), with evnova-decomp's reconstruction
    of the Community Edition read beside it to find the way; where the two
    differ the program is kept, and ../evnova-workbench/doc/findings.md
-   § *Ships in flight* says where.
+   § *Ships in flight* gives where.
 
-   THE WORLD. A system's own units, x to the right and y down, as its
+   THE WORLD. A system's units, x to the right and y down, as its
    stellars' xPos and yPos are; headings in degrees, 0 up and clockwise;
-   numbers in single precision, as the program keeps them. The program
+   numbers in single precision, as in the program. The program
    moves everything by gSpeedMult, a running mean of the frame's length in
    30ths of a second (HandleTimeAdjustment 0x33332); here a step is always
    one 30th, and its clock in 60ths (TickCount) two a step. It has 64 ship
@@ -24,12 +24,12 @@
    0x42704), else one of the system's düdes (RandomShipSpawn 0x3c0f3); then
    each of its eight persons by its PersonProb. A düde's ship is put at
    random within 750 of the middle, facing anywhere, and set off at its
-   class's top speed. A fleet arrives: by hyperspace, from about 2,100
+   class's top speed. A fleet comes in: by hyperspace, from about 2,100
    units out at 50 a step, slowing by 1.165 a step to its top speed, its
    escorts in formation (HyperSpawnFleet 0x41c8d); or out of a hypergate.
    WHO COMES after (EnterMoreShips 0x43459): while there are fewer than
-   AvgShips, each step a chance in 250 of a ship arriving (HyperShipSpawn
-   0x4291a) and one in 500 of one of the system's own fleets.
+   AvgShips, each step a chance in 250 of a ship coming in (HyperShipSpawn
+   0x4291a) and one in 500 of one of the system's fleets.
 
    WHERE EACH GOES (AIDispatch 0x8fb52 and the supervisors it calls, then
    HighLevelAIHandler 0x8d453 and LowLevelAIHandler 0x851da): a trader
@@ -42,7 +42,7 @@
    Nothing here fights: the targets, attacks and the rest are stage 4.
 
    HOW THEY MOVE (HandleShip 0x33581): position by velocity; turning toward
-   the heading wanted at the class's turn rate; thrust along the heading
+   the target heading at the class's turn rate; thrust along the heading
    held to the top speed axis by axis (AdjustedAccel 0x2ae4b), or, for an
    inertialess ship, a speed it steers its velocity to (0x3349c); an
    arrival's slowing; a jump's run-up.
@@ -124,10 +124,10 @@ function novaAngleApart(a, b) {
   if (d > 180) d = 360 - d;
   return d;
 }
-// Whether a heading wanted is within `slack` degrees past the turn rate (the modes' test before thrusting).
+// Whether a target heading is within `slack` degrees past the turn rate (the modes' test before thrusting).
 const novaLinedUp = (s, slack) => novaAngleApart(s.want, Math.trunc(s.heading)) < f32(novaShipTurn(s) + slack);
 
-/* ---- the records, as the program holds them -------------------------- */
+/* ---- the records, as the program stores them ------------------------- */
 
 /* What the ships need from the game, once: each shïp with its shän, scaled
    as LoadObjectData (0x771b0) and LoadShipSprites (0x23e3e) keep them; the
@@ -137,7 +137,7 @@ const novaLinedUp = (s, slack) => novaAngleApart(s.want, Math.trunc(s.heading)) 
    0x83fab): for each outfit of ModType 25, the ModVal not of that outfit
    but of the oütf whose number is 128 plus the outfit's place among the
    class's eight (the program reads the outfit table by the place): `pos`
-   where that value is above 0, `neg` where the outfit's own is below 0. */
+   where that value is above 0, `neg` where the outfit's value is below 0. */
 function novaBoardingMods(items, counts, outfits) {
   const out = { pos: 0, neg: 0 };
   for (let i = 0; i < 8; i++) {
@@ -161,7 +161,7 @@ function novaFlightData(u) {
   for (const s of novaAll(game, 'shïp')) {
     const shan = novaGet(game, 'shän', s.id) || {};
     const items = [...(s.DefaultItems || []), ...(s.DefaultItms2 || [])], counts = [...(s.ItemCount || []), ...(s.ItemCount2 || [])];
-    // a ship's class as LoadObjectData (0x7aa25) keeps it
+    // a ship's class as LoadObjectData (0x7aa25) stores it
     classes.set(s.id, {
       id: s.id, name: novaNameParts(s.name).name, rec: s,
       accel: f32(s.Accel / 10000), speed: f32(s.Speed / 100), turn: f32(s.Maneuver * 0.1),
@@ -208,8 +208,8 @@ function novaFlightData(u) {
 }
 /* röid n (from 128) and its sprite, spïn 800 + (n - 128) (LoadSprites
    0x2097f): Strength at least 1, SpinRate / 100 frames a step; its yield
-   and explosion kept only where LoadObjectData (0x771b0) keeps them. Read
-   again when the graphics files arrive, as they may after the rest. */
+   and explosion kept only where LoadObjectData (0x771b0) stores them. Read
+   again when the graphics files are opened, as they may be after the rest. */
 function novaFlightRoids(game) {
   const roids = [];
   for (let t = 0; t < 16; t++) {
@@ -217,7 +217,7 @@ function novaFlightRoids(game) {
     const spr = spin && (game.get('rlëD', spin.SpritesID) || game.get('rlë8', spin.SpritesID));
     let ix = null;
     if (spr) try { ix = novaRleIndex(spr.bytes).header; } catch (e) { ix = null; }
-    // as LoadObjectData keeps them: a yield of a commodity (0 to 6) or junk (1000 to 1127), else none; fragments 128 to 143 as 0 to 15
+    // as LoadObjectData stores them: a yield of a commodity (0 to 6) or junk (1000 to 1127), else none; fragments 128 to 143 as 0 to 15
     let yieldType = r ? r.YieldType : -1, yieldQty = r ? r.YieldQty : 0;
     if (yieldQty < 0) { yieldQty = 0; yieldType = -1; }
     if ((yieldType >= 7 && yieldType < 1000) || yieldType < 0 || yieldType > 1127) { yieldType = -1; yieldQty = 0; }
@@ -232,7 +232,7 @@ function novaFlightRoids(game) {
   return roids;
 }
 
-/* How long a jump takes, in 60ths of a second (LoadSounds 0x1c03b): snd
+/* How long a jump lasts, in 60ths of a second (LoadSounds 0x1c03b): snd
    128, "Warp up", its sample frames (ParseSndHeader) x 60 / its whole
    sample rate; 350 without it. The stock sound is IMA 4:1, 2,094 packets
    of 64 samples at 22,050 a second: 364. (Double-time play uses snd 129;
@@ -251,7 +251,7 @@ function novaJumpTicks(game) {
   return 350;
 }
 
-/* A system as the loader, LoadObjectData (0x77f08), keeps it: its eight DudeTypes with those
+/* A system as the loader, LoadObjectData (0x77f08), stores it: its eight DudeTypes with those
    from -128 to -383 taken out as fleets, the flët |id| at the same odds, and
    the düdes' odds scaled to sum to 100 when they do not; its sixteen
    navigation defaults. */
@@ -313,11 +313,11 @@ function novaGovtEnemies(D, a, b) {
 /* Whether a flët or përs may come to a system by its LinkSyst (SpawnFleet
    0x42704, SpawnPerson 0x408d5): -1 anywhere; the system; 10000 + n the
    systems of government 128 + n, 15000 + n those of its allies, 20000 + n
-   all but its, 25000 + n those of its enemies. The program holds
+   all but its, 25000 + n those of its enemies. The program stores
    governments as 0 to 255 and compares n with that. A përs's government
-   window starts at 9999, a flët's at 10000, so 9999 takes a përs to the
+   window starts at 9999, a flët's at 10000, so 9999 sends a përs to the
    independent systems; and a LinkSyst below 128 equal to the system's id
-   less 128 takes either there. */
+   less 128 sends either there. */
 function novaLinkSystOk(D, link, sys, isPerson) {
   const g = novaGovtOk(sys.govt) ? sys.govt - 128 : -1;
   if (link === -1 || link === sys.id - 128 || link === sys.id) return true;
@@ -379,7 +379,7 @@ const novaJumping = s => (s.state === 2 || s.state === 0xb || s.state === 3) && 
 /* ---- who is there ------------------------------------------------------- */
 
 /* A system's world after you arrive: { D, sys, state, random, ships, t }.
-   `state` is the control bits the map holds (nova-ncb.js); `seed` starts
+   `state` is the control bits set on the map (nova-ncb.js); `seed` starts
    the random numbers, so the same seed gives the same ships. */
 function novaFlightWorld(D, sys, state, seed, view) {
   const w = { D, sys, si: novaSysInfo(D, sys), state: state || {}, random: novaRandom(seed), ships: new Array(64).fill(null), last: new Array(64).fill(null), t: 0, gone: [],
@@ -452,7 +452,7 @@ function novaPickDude(w) {
   return novaWeighted(w, i => si.dudes[i] >= 128 && w.D.dudes.has(si.dudes[i]), si.probs);
 }
 /* SelectShipFieldFromDude 0x65c2: one of a düde's sixteen ship types, by
-   Probs, among those whose AppearOn holds, or with `any` among them all. */
+   Probs, among those whose AppearOn is true, or with `any` among them all. */
 function novaPickShipType(w, dude, any) {
   const ok = i => { const c = w.D.classes.get(dude.ShipTypes[i]); return !!c && !c.missing && (any || w.holds(c.appearOn)); };
   return novaWeighted(w, ok, dude.Probs);
@@ -485,11 +485,11 @@ function novaSpawnDudeShip(w) {
   return null;
 }
 
-/* AIHasAfterburner 0x64f5, asked as a ship is made (+0xbd): never when
+/* AIHasAfterburner 0x64f5, called as a ship is made (+0xbd): never when
    another ship swarms with it, nor for Flags 0x0400; always for Flags
    0x0040; for Flags 0x0020 when Rand(1344) + 256 is at most the player's
    kills (w.kills, 0 unless a battle sets them) over the Strength of the
-   first ship class -- the first's, not the ship's own, as the program has
+   first ship class -- the first's, not the ship's, as the program has
    it. A first class of Strength 0 would divide by 0; here it gives none. */
 function novaHasAfterburner(w, s) {
   if (s.slot !== 0) for (let i = 1; i < 64; i++) { const o = w.ships[i]; if (i !== s.slot && o && o.mate === s.slot) return false; }
@@ -517,7 +517,7 @@ function novaSpawnBlank(w, reserve = 8) {
 }
 
 /* SpawnPerson 0x408d5: a përs, `forced` or one at random among those whose
-   LinkSyst takes them here and whose ActivateOn holds, but derelicts when
+   LinkSyst sends them here and whose ActivateOn is true, but derelicts when
    `noDerelicts`; never one whose name a person in the system already has.
    A derelict is disabled and still, facing anywhere. */
 function novaSpawnPerson(w, forced, noDerelicts) {
@@ -549,7 +549,7 @@ function novaSpawnFleet(w) {
   const id = 128 + w.rand(0x100);
   if (ok.has(id)) novaHyperSpawnFleet(w, D.fleets.get(id));
 }
-// SelectFleetFromSystem 0x682c: one of the system's own fleets, by their odds, among those available.
+// SelectFleetFromSystem 0x682c: one of the system's fleets, by their odds, among those available.
 function novaPickSystemFleet(w) {
   const list = w.si.fleets.filter(f => { const r = w.D.fleets.get(f.id); return r && w.D.classes.has(r.LeadShipType) && w.holds(r.activateOn); });
   const i = novaWeighted(w, () => true, list.map(f => f.w));
@@ -637,13 +637,13 @@ function novaArriveFromHyperspace(w, s) {
   const v = { x: 0, y: 0 }; novaAccel(Math.trunc(s.heading), 50, v); s.vx = v.x; s.vy = v.y;
 }
 
-// HyperSpawnFleet 0x41c8d: a flët's lead and escorts, arriving.
+// HyperSpawnFleet 0x41c8d: a flët's lead and escorts, coming in.
 function novaHyperSpawnFleet(w, f) {
   const D = w.D, lc = D.classes.get(f.LeadShipType);
   const lead = novaSpawnBlank(w);
   if (!lead) return;
   Object.assign(lead, { cls: lc, fleet: f.id, govt: f.Govt, ai: lc.ai });
-  lead.boost = novaHasAfterburner(w, lead);   // the lead only: the escorts are not asked
+  lead.boost = novaHasAfterburner(w, lead);   // the lead only: the escorts are not tested
   if ((f.Flags & 1) && lc.ai <= 2) { const k = w.rand(6); lead.cargo[k] = w.rand(lc.holds) + 1; }
   lead.vx = lead.vy = lead.speed = 0;
   const gate = novaPickEmerge(w, lead);
@@ -679,7 +679,7 @@ function novaHyperSpawnFleet(w, f) {
 /* AICalcFormationPositions 0x85040 and AICalcShipFormPos 0x84cb8: the
    places behind a fleet's lead its escorts keep, in rows a little wider
    than the widest of them (six tenths of its sprite, 24 to 60 units); on
-   arriving (`snap`) each escort is put there, but one in a hypergate. */
+   coming in (`snap`) each escort is put there, but one in a hypergate. */
 const NOVA_FORM = [[0, 0], [-1, -1], [-1, 1], [-2, -2], [-2, 2], [-3, -1], [-3, 1], [-2, 0],
   [-3, -3], [-3, 3], [-4, 0], [-4, -2], [-4, 2], [-4, -4], [-4, 4], [-5, -1], [-5, 1], [-5, -3], [-5, 3], [-5, -5], [-5, 5]];
 function novaFormation(w, lead, snap) {
@@ -713,7 +713,7 @@ function novaKeepFormation(w, s, snap) {
 }
 
 /* SetupShipsInSystem 0x42b61, without the player's escorts and mission
-   ships: the AvgShips draws, then the system's own persons. A ship drawn
+   ships: the AvgShips draws, then the system's persons. A ship drawn
    singly is set going at its class's top speed (AdjustedAccel from rest);
    a derelict's is stopped again. */
 function novaSetupShips(w) {
@@ -755,7 +755,7 @@ const novaDefenceWave = sp => ((sp.DefCount % 10) + 10) % 10;
 function novaDefenceOut(w, spId) { let n = 0; for (const s of w.ships) if (s && s.home === spId) n++; return n; }
 /* SpawnStellarDefenseShip 0x3d2c9: SpecificDudeSpawn 0x3d0eb's ship of its
    DefenseDude (two slots kept free; a class whose AppearOn fails only when
-   no other is left), then the stellar's own government, the warship AI, on
+   no other is left), then the stellar's government, the warship AI, on
    the stellar facing anywhere at its top speed. The program then sets it on
    the player (AIMakeShipAttackPlayer); with no player here, it flies as a
    warship does. */
@@ -824,7 +824,7 @@ function novaArrivals(w) {
   if (novaPickDude(w) >= 0) novaHyperShipSpawn(w);
 }
 /* HyperShipSpawn 0x4291a: one in seven a person (no derelicts), else one
-   in seven a fleet, else a düde's ship; arriving out of a gate or by
+   in seven a fleet, else a düde's ship; coming in out of a gate or by
    hyperspace, as a fleet does. */
 function novaHyperShipSpawn(w) {
   let s;
@@ -980,7 +980,7 @@ function novaCloakFade(w, s) {
 // A ship leaves the system (it jumped, or went into a gate).
 function novaGone(w, s, how) { w.ships[s.slot] = null; w.last[s.slot] = s; w.gone.push({ slot: s.slot, cls: s.cls.id, how, t: w.t, ship: s }); }
 
-/* AIDispatch 0x8fb52. At thirty frames a second every ship thinks every
+/* AIDispatch 0x8fb52. At thirty frames a second every ship's AI runs every
    frame (aiComplexity 1, set by HandleTimeAdjustment); slower frames
    spread the thinking over two to sixteen. */
 function novaAI(w, s) {
@@ -1084,7 +1084,7 @@ function novaInterceptorAI(w, s) {
   }
   novaInterceptorTail(w, s, g);
 }
-/* MinerAI 0x8b202, for ships whose Flags3 says they destroy asteroids
+/* MinerAI 0x8b202, for ships whose Flags3 has them destroy asteroids
    (0x0001) or scoop debris (0x0002), and lead no fleet: angered, it
    retreats; one that destroys mines the first asteroid of the system's
    (state 16), or parks with none; one that scoops, with a scoop and room,
@@ -1118,16 +1118,16 @@ function novaMinerAI(w, s) {
 // TotalCargo 0x4a0b: the six commodities' tons together.
 const novaTotalCargo = s => (s.cargo.reduce((a, b) => a + b, 0) << 16) >> 16;
 /* EscortAI 0x838d2, for a fleet's escorts and a carrier's fighters: with
-   no lead, or a dying one, back to its class's own AI; with a lead leaving
+   no lead, or a dying one, back to its class's AI; with a lead leaving
    -- jumping (mode 4 or 13), braking to leave (state 2, mode 1) or with
    its jump timer running -- it makes ready to go with it (state 11), or,
-   inertialess, leaves on its own. Otherwise it does as its lead's last
-   order says (novaIssueEscortOrders): 1, defend, attacks the nearest ship
+   inertialess, leaves alone. Otherwise it follows its lead's last
+   order (novaIssueEscortOrders): 1, defend, attacks the nearest ship
    threatening the lead within 550 of it; 2, attack, the nearest anywhere;
-   3, for a fighter, comes back aboard (state 5); 4 holds (state 6); and
-   with none, or 0, it keeps station (state 10), shooting at a ship that
+   3, for a fighter, comes back aboard (state 5); 4 waits in place (state 6); and
+   with none, or 0, it stays in formation (state 10), shooting at a ship that
    threatens its lead when it is in reach. A fighter out of ammunition
-   (class Flags2 0x0080) told to defend or attack comes back instead. */
+   (class Flags2 0x0080) ordered to defend or attack comes back instead. */
 function novaEscortAI(w, s) {
   if (s.state === 0x16) return;
   if (s.leader !== 0 && (s.state === 9 || s.state === 0xf)) return;
@@ -1224,7 +1224,7 @@ function novaHighLevel(w, s) {
         Object.assign(o, { leader: -1, follows: -1, ai: Math.min(s.ai, 3), anger: -1, primary: -1, sec: s.sec, state: 0x14, mode: 0 });
     }
   }
-  // 0x15: in a gate, coming out once the timer runs down (then arriving, below)
+  // 0x15: in a gate, coming out once the timer runs down (then coming in, below)
   if (s.state === 0x15) { s.mode = 0; s.primary = -1; if (s.timer <= 0) { s.timer = -1; s.state = 8; s.sec = -1; s.gate = -1; } }
   // 2: leaving: within 1,000 of the middle, away from it (mode 3); else braking (1) until still, then the jump (4)
   if (s.state === 2) {
@@ -1280,12 +1280,12 @@ function novaHighLevel(w, s) {
     else if (Math.abs(f32(s.x - t.x)) > 100 || Math.abs(f32(s.y - t.y)) > 100) s.mode = 9;
     else { s.state = 0; s.primary = -1; }
   }
-  // 8: arriving
+  // 8: coming in
   if (s.state === 8) { s.jump = -999; s.mode = 10; }
   if (s.state === 0) s.mode = 0;
 }
 
-/* LowLevelAIHandler 0x851da: the heading wanted and the thrust, for the
+/* LowLevelAIHandler 0x851da: the target heading and the thrust, for the
    modes that need no target, in the program's order. Nothing is done by a
    disabled ship. */
 function novaLowLevel(w, s) {
@@ -1333,7 +1333,7 @@ function novaLowLevel(w, s) {
     s.jump = f32(s.jump + 1);
     if (novaNow(w) - s.jumpStart >= f32(D.jumpTicks / s.cls.jumpPace)) { novaGone(w, s, 'jump'); return; }
   }
-  // 13: going with the lead's jump: alongside it while it is not jumping; turned with it, then stopped and counting, and off on its own after 30
+  // 13: going with the lead's jump: alongside it while it is not jumping; turned with it, then stopped and counting, and off alone after 30
   if (s.mode === 0xd && ok) {
     const lead = w.ships[s.leader];
     if (lead) {
@@ -1452,20 +1452,20 @@ function novaLowLevel(w, s) {
       } else s.thrust = novaShipAccel(D, s);
     }
   }
-  // 10: arriving
+  // 10: coming in
   if (s.mode === 10) { if (s.desired >= 0) s.desired = -50; s.thrust = f32(-1.165); }
 }
 
 /* ---- asteroids ------------------------------------------------------------ */
 
-/* The asteroids are the player's: the program keeps up to the system's
+/* The asteroids are the player's: the program has up to the system's
    Asteroids of them, of the röid types its AstTypes names, in a pool of 16,
    on and just off the player's screen. Here the map's view stands in for
    that screen: w.view is its middle in the system's units and its half
    width and height (screenCenter), set by the page; a node check sets its
    own.
 
-   CreateAsteroids 0x3fa05, on arriving: as many as the system has, then
+   CreateAsteroids 0x3fa05, on coming into the system: as many as the system has, then
    all 16 places scattered over the middle of the screen, (half + 128) wide
    and high, drifting up to 2 a step either way. */
 function novaCreateAsteroids(w) {
@@ -1479,11 +1479,11 @@ function novaCreateAsteroids(w) {
     a.vx = f32((w.rand(400) - 200) * 0.01); a.vy = f32((w.rand(400) - 200) * 0.01);
   }
 }
-/* SpawnAsteroid 0x3a233, each step (`edge`) and on arriving: while fewer
+/* SpawnAsteroid 0x3a233, each step (`edge`) and on coming into the system: while fewer
    are about than the system's Asteroids, one more in the first free
    place, off a corner of the screen -- 0.7 of the larger of (half + 128)
    out, and up to half that again, each way, drifting in at up to 2 a step
-   -- or, on arriving, anywhere in the middle; of a type the system names,
+   -- or, on coming into the system, anywhere in the middle; of a type the system names,
    on a random frame, turning at 80 to 120% of its röid's SpinRate either
    way. */
 function novaSpawnAsteroid(w, edge) {
@@ -1513,8 +1513,8 @@ function novaSpawnAsteroid(w, edge) {
 }
 /* HandleAsteroids 0x361ac: with a miner about, the first asteroid kept in
    the first place, its target; each moved and turned, and gone once more
-   than 32 pixels off the screen past its own width -- the program puts it
-   back on the far side first, but takes it away all the same, and one
+   than 32 pixels off the screen past its width -- the program puts it
+   back on the far side first, but removes it all the same, and one
    comes in again at a corner. */
 function novaHandleAsteroids(w) {
   const R = w.roids, D = w.D;
@@ -1636,7 +1636,7 @@ function novaHandleShipLate(w, s) {
     if (s.tractorAt + 30 <= novaNow(w)) s.tractor = -1;
   }
   /* A ship dying, half through its death throes, with an escape ship in a
-     bay (a class of Flags 0x8000): one chance in three it gets away, with
+     bay (a class of Flags 0x8000): one chance in three it escapes, with
      some of its shields and half its speed; then the bays are empty. */
   if (novaDying(s) && s.death <= f32(novaClassFight(D, c).deathDelay * 0.5)) {
     const bay = s.weap.find(r => { const W = novaWeapOf(D, r.i), e = W && W.guid === 99 && r.ammo > 0 && D.classes.get(W.ammoType); return e && (e.flags & 0x8000); });
@@ -1659,10 +1659,10 @@ function novaSteerInertialess(D, s) {
   s.vx = toward(v.x, was.x); s.vy = toward(v.y, was.y);
 }
 
-/* The thrust block of HandleShip (0x33581): toward the top speed, toward a speed
-   wanted, or, with a negative speed wanted, that speed along the heading,
-   wanted less by the thrust each step until it is the top speed -- the
-   arrival -- when the ship stops arriving and coasts for one to two
+/* The thrust block of HandleShip (0x33581): toward the top speed, toward a target
+   speed, or, with a negative target speed, that speed along the heading,
+   the target lowered by the thrust each step until it is the top speed -- the
+   arrival -- when the ship ends its arrival and coasts for one to two
    seconds unless it follows a lead. */
 function novaThrust(D, w, s) {
   const h = Math.trunc(s.heading), step = s.thrust, inert = novaInertialess(s);

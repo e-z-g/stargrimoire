@@ -1,21 +1,21 @@
-/* nova-collection.js -- the community's plug-ins, as archive.org keeps them.
+/* nova-collection.js -- the community's plug-ins, as on archive.org.
    =========================================================================
 
    The bar's Plug-ins lists what three archive.org items keep, for a
    visitor to open into the game from there: the page publishes none of
    them. EscapeVelocityPluginCollection is Ambrosia's add-on files whole:
-   its EVN.zip holds the Nova plug-ins and cheats, each beside a .txt of
+   its EVN.zip has the Nova plug-ins and cheats, each beside a .txt of
    the add-on page's title, size and author, date, downloads and text, and
    its Extras folder the conversions, among them the ports of EV and EV
    Override that the other two items need. ev_20250301 and EVO_Ported are
    EV's and EV Override's plug-ins ported to Nova, each a .rez in a zip.
 
-   archive.org lists a zip's contents as a page of HTML (novaCollectionZip)
+   archive.org gives a zip's contents as a page of HTML (novaCollectionZip)
    and an item's files as JSON (novaCollectionItem), and hands out any one
    file, from an item or from inside its zip, at its /cors/ address, which
-   answers a page on another site. reference/archive-org keeps both
-   listings as they were taken, and collection_check holds this reading of
-   them to the copies in reference/game/collections.
+   answers a page on another site. reference/archive-org has both
+   listings as they were taken, and collection_check compares this reading of
+   them with the copies in reference/game/collections.
 
    PURE: no DOM. LOAD ORDER: anywhere; page-collection.js uses it. */
 
@@ -29,16 +29,16 @@ const NOVA_COLLECTIONS = [
   { key: 'extras', label: 'Conversions', item: 'EscapeVelocityPluginCollection', within: /^Extras\/(?!Plugin Converters\/)/, strip: 'Extras/', packages: true,
     note: 'The total conversions kept beside them, and the ports of EV and EV Override that the two sets of ports need.' },
   { key: 'ev', label: 'EV ports', item: 'ev_20250301', within: /^(Plugins|Cheats|Scenarios)\//,
-    note: 'EV\'s plug-ins ported to Nova. Their archive says each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
+    note: 'EV\'s plug-ins ported to Nova. In their archive, each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
   { key: 'evo', label: 'Override ports', item: 'EVO_Ported', within: /^EVO\/(Plugins|Cheats)\//, strip: 'EVO/',
-    note: 'EV Override\'s plug-ins ported to Nova. Their archive says each needs "a port of EV Override for the base Nova Files folder", as EV_Override_for_Nova under Conversions is, and that they are "not fully debugged".' },
+    note: 'EV Override\'s plug-ins ported to Nova. In their archive, each needs "a port of EV Override for the base Nova Files folder", as EV_Override_for_Nova under Conversions is, and that they are "not fully debugged".' },
 ];
 
 const novaCollectionUrl = (...parts) => NOVA_COLLECTION_BASE + parts.join('/').split('/').map(encodeURIComponent).join('/');
 const novaCollectionUnescape = s => s.replace(/&(amp|lt|gt|quot|#39|#x27);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", '#x27': "'" })[e]);
 
 /* A collection's plug-ins as [{ path, name, folder, size, url, about }]:
-   `folder` without the item's own top folder or the one-letter folders the
+   `folder` without the item's top folder or the one-letter folders the
    ports are sorted into, `about` the address of its description, where it
    has one. */
 function novaCollectionEntries(c, files) {
@@ -82,7 +82,7 @@ function novaCollectionZip(html) {
   for (const m of html.matchAll(/<a href="[^"]*">([^<]+)<\/a><td><td>[^<]*<td id="size">(\d*)/g)) out.push({ path: novaCollectionUnescape(m[1]), size: +m[2] || 0 });
   return out;
 }
-// archive.org's JSON of an item: its own files, not those it made from them ([{ path, size }]).
+// archive.org's JSON of an item: its files, not those it made from them ([{ path, size }]).
 function novaCollectionItem(json) {
   return (json.files || []).filter(f => f.source === 'original').map(f => ({ path: f.name, size: +f.size || 0 }));
 }

@@ -4,7 +4,7 @@
 
    A ship class is a shïp record and the shän of the same id, the sprites
    it flies as. Every rule below is the Bible's (Part II, the shïp, shän and
-   dësc sections) unless it names an address in the program, which is the
+   dësc sections) unless it cites an address in the program, which is the
    Mac 1.0.10 build's PowerPC code as evnova-workbench's tools/pefreloc_nova.py lays it out
    (code at 0x100000).
 
@@ -13,14 +13,14 @@
    hiring one as an escort, and the program picks one or the other on one
    flag in the routine that shows them (0x13c150). The target picture is
    PICT 3000 + (id - 128), and a ship without one uses that of the first
-   ship with the same base sprites. PICT 5000 + (id - 128), which the Bible
-   does not name, is the ship's picture beside its description: the program
-   looks for it when it loads the ships (0x19b7d8), and without it takes the
+   ship with the same base sprites. PICT 5000 + (id - 128), which is not in the
+   Bible, is the ship's picture beside its description: the program
+   looks for it when it loads the ships (0x19b7d8), and without it uses the
    one of the ship whose sprites this one shares (0x19b810, the index kept
    at 0x1a0810 when a ship's sprites are found already loaded); that routine
    draws it for each of up to 20 ships in a grid (0x13c944) and for the one
    selected (0x13cda8), and the communications window shows it unless a
-   përs's HailPict replaces it (0x11cb80). The dësc's own Graphic field,
+   përs's HailPict replaces it (0x11cb80). The dësc's Graphic field,
    PICT 20128 onward for the stock ships, is read into a global by the
    routine that loads any dësc (0x12ce10); where the shipyard draws it is
    not traced.
@@ -29,11 +29,11 @@
    it, the alternating image, the engine glow, the running lights, the
    weapon glow and the shield -- each an rlëD or rlë8 of that id or a PICT
    sheet with a mask; in the four releases every one is an rlëD
-   (utilities/ships_check.mjs counts them). The base holds
+   (utilities/ships_check.mjs counts them). The base has
    BaseSetCount sets of FramesPer frames; frame 0 points up and the frames
    go round clockwise (seen in the frames; ResForge's Shan Editor turns its
    exit points the same way). The glow and lights have one frame for each
-   of the base's, as the Bible says they must, or only FramesPer: fifteen
+   of the base's, as the Bible requires, or only FramesPer: fifteen
    stock ships, the Argosies and Manticores, fly several sets of base over
    one set of glow, drawn at the heading's frame. The shield has 1,
    FramesPer or BaseSetCount x FramesPer.
@@ -63,11 +63,11 @@ const NOVA_SHIP_FLAGS3 = [
   [0x0001, 'Destroys asteroids'], [0x0002, 'Scoops asteroid debris'], [0x0010, 'Ignores gravity'],
   [0x0020, 'Ignores deadly stellars'], [0x0040, 'Turret shots drawn above the ship'],
   [0x0100, 'Hidden in the shipyard when Availability fails'], [0x0200, 'Hidden in the shipyard when Require fails'],
-  [0x4000, 'Keeps higher-numbered ships of the same DispWeight out of the shipyard'],
+  [0x4000, 'Higher-numbered ships of the same DispWeight left out of the shipyard'],
 ];
 const NOVA_SHAN_FLAGS = [
   [0x0001, 'Extra sets bank: level, left, right'], [0x0002, 'Extra sets fold and unfold'],
-  [0x0004, 'Second set shown when not carrying its KeyCarried ships'], [0x0008, 'Extra sets play in sequence'],
+  [0x0004, 'Second set shown without its KeyCarried ships aboard'], [0x0008, 'Extra sets play in sequence'],
   [0x0010, 'Stops animating when disabled'], [0x0020, 'Alternating image hidden when disabled'],
   [0x0040, 'Running lights hidden when disabled'], [0x0080, 'Unfolds to fire'],
   [0x0100, 'Frame chosen to correct off-axis rendering'],
@@ -92,7 +92,7 @@ function novaShipSpriteOwner(game, id) {
 }
 
 // The two pictures numbered from a ship's: the target display's and the shipyard's (1.1.1's LoadSprites and
-// LoadShipSprites; novaFigure's shipTargetPict and shipyardPict, which program_check holds these to).
+// LoadShipSprites; novaFigure's shipTargetPict and shipyardPict, which program_check compares these with).
 const NOVA_SHIP_PICT = { target: 3000, shipyard: 5000 };
 /* A ship's picture in the 3000 (target) or 5000 (beside its description)
    series: { id, from } with `from` the ship whose picture it is, or null
@@ -106,7 +106,7 @@ function novaShipPict(game, id, base) {
 }
 
 /* InherentGovt: the government a ship is of in combat, and the one whose
-   attributes (voice, jamming) it takes; -1 each for none. */
+   attributes (voice, jamming) it has; -1 each for none. */
 function novaShipGovts(v) {
   if (v >= 128 && v <= 383) return { combat: v, attrs: v };
   if (v >= 1128 && v <= 1383) return { combat: -1, attrs: v - 1000 };
@@ -114,7 +114,7 @@ function novaShipGovts(v) {
   return { combat: -1, attrs: -1 };
 }
 
-/* Days a hyperspace jump takes, by Mass: 1 below 100 tons, 2 below 200, 3
+/* Days a hyperspace jump lasts, by Mass: 1 below 100 tons, 2 below 200, 3
    from 200. Null for a mass of 0 or less, which the Bible does not cover. */
 function novaShipJumpDays(mass) {
   return mass >= 200 ? 3 : mass >= 100 ? 2 : mass >= 1 ? 1 : null;
@@ -142,10 +142,10 @@ function novaShipItems(ship) {
   return out;
 }
 
-/* The stellars whose shipyard can sell the ship, by tech level alone: a
+/* The stellars where the ship can be for sale, by tech level alone: a
    shipyard (spöb Flags 0x08) whose TechLevel is the ship's or higher, or
    one of whose eight SpecialTech is exactly the ship's. Availability,
-   Require and BuyRandom then decide on the day. `stellars` is an iterable
+   Require and BuyRandom then settle it on the day. `stellars` is an iterable
    of spöb records. */
 function novaShipyards(stellars, ship) {
   const out = [];

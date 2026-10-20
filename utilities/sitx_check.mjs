@@ -2,13 +2,13 @@
 // them: every .sitx among the Nova plug-ins of the archive.org collection
 // in reference/game/collections (EscapeVelocityPluginCollection's EVN.zip),
 // through novaArchiveFiles (and through the archive in a MacBinary copy,
-// as unwrapArchive in page-open.js takes it), every fork held to what
+// as unwrapArchive in page-open.js reads it), every fork held to what
 // `unar` extracts, and every plug-in read as the page reads one, its
 // resources counted. And an archive in an archive: reference/game's
 // EstarGuars is a StuffIt whose files are MacBinary copies of StuffIt
 // archives, and its 14 plug-ins must come out of them.
 //
-// js/mac-stuffitx.js is grimoire's (copies_check holds it so), a port of
+// js/mac-stuffitx.js is grimoire's (copies_check checks it is), a port of
 // The Unarchiver's, and grimoire's sitx_check.mjs is where it is held to
 // the CRC-32s each archive stores and its controls are; `unar` is the same
 // code, so this shows the page's path faithful to it over the archives the
@@ -40,7 +40,7 @@ for (const f of files) {
   let list;
   try { list = S.novaArchiveFiles(bytes); } catch (e) { unread.push(`${f} (${e.message.replace(/^StuffIt X: /, '')})`); continue; }
   const out = path.join(TMP, 'x-' + f.replace(/\W/g, '_')), inner = out + '.sitx';
-  // unar is given the archive as the page reads it, out of its wrapper (unar takes off only the wrapper)
+  // unar is given the archive as the page reads it, out of its wrapper (unar removes only the wrapper)
   fs.writeFileSync(inner, bytes);
   try { execFileSync('unar', ['-q', '-f', '-D', '-o', out, inner], { stdio: 'ignore' }); } catch (e) { /* compared as far as it got */ }
   for (const nf of list) {
@@ -63,7 +63,7 @@ const ESTAR = path.join(REF, 'game/EstarGuars_Nova_1.sit');
 let nested = 'EstarGuars not here';
 if (fs.existsSync(ESTAR)) {
   const list = S.novaArchiveFiles(new Uint8Array(fs.readFileSync(ESTAR))), inner = list.filter(f => /\.sit\.bin\//.test(f.path) && f.plugin);
-  // read smallest first, until one holds star systems
+  // read smallest first, until one has star systems
   let g = null, which = null;
   for (const f of [...inner].sort((x, y) => x.size - y.size)) { const t = S.novaGame(); t.add(f, f.read()); if (t.list('sÿst').length) { g = t; which = f.path.split('/').pop(); break; } }
   const n = g ? g.list('sÿst').length : 0;

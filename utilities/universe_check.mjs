@@ -1,7 +1,7 @@
 // js/nova-universe.js and js/nova-ncb.js: the rules, on examples the Bible
 // works through, and then every release in reference/ read through them, with
 // what must hold for the map to draw -- every test parses, every link and
-// navigation default names a record, every stellar has a sprite that decodes,
+// navigation default points at a record, every stellar has a sprite that decodes,
 // every stellar you can land on has its landing picture, every nebula a
 // picture, every gate is in a system and links only to gates in one. The
 // figures are printed, not asserted.
@@ -90,7 +90,7 @@ if (haveRelease('1.0.10')) {
   // "Link" in S7evyn (514) names Obatta's (468), in Obatta (155)
   const s7 = at(all, 514), link = S.novaWormholeTrip(u, all, u.stellars.get(514), s7, () => 0);
   eq('Link to Obatta', link.to && [link.to.spob.id, link.to.sys.id], [468, 155]);
-  // wormhole 466 is Spica's, so from K-005, which lists it too, it refuses
+  // wormhole 466 is Spica's, so from K-005, which lists it too, it is closed
   const k005 = [...u.byId.values()].find(s => s.name === 'K-005' && s.stellars.includes(466));
   eq('466 from K-005', k005 && !!S.novaWormholeTrip(u, all, u.stellars.get(466), k005, () => 0).refused, true);
   // with no shown system listing a random wormhole but Sol's, nowhere to go
@@ -98,7 +98,7 @@ if (haveRelease('1.0.10')) {
   const alone = new Set([...newGame].filter(id => !u.byId.get(id).stellars.some(t => others.has(t))));
   eq('Sol\'s wormhole alone', !!S.novaWormholeTrip(u, alone, u.stellars.get(465), u.byId.get(130), () => 0).refused, true);
   // Hypergates (Mac 1.1.1 PlayerEnterHypergate): HG-Kania's links, each system once by its first slot; with
-  // Koria's other version (533) shown, the link to HG-Koria arrives there; HG-Vega is offline
+  // Koria's other version (533) shown, the link to HG-Koria leads there; HG-Vega is offline
   const pick = (shown, gate, sys) => { const r = S.novaHypergateChoices(u, shown, u.stellars.get(gate), u.byId.get(sys)); return r.choices ? r.choices.map(c => [c.sys.id, c.spob.id]) : r; };
   eq('HG-Kania at a new game', pick(newGame, 1404, 128), [[129, 1405], [298, 1413], [483, 1418]]);
   const koria533 = new Set([...newGame].filter(id => id !== 483).concat([533]));
@@ -106,7 +106,7 @@ if (haveRelease('1.0.10')) {
   eq('HG-Vega', pick(newGame, 131, 137), { refused: true });
   eq('HG-Kania from Tichel', pick(newGame, 1404, 129), { refused: true });
 }
-// A link to a gate no shown system lists arrives in the version shown at the place of the first system
+// A link to a gate no shown system lists leads to the version shown at the place of the first system
 // that lists it (Mac 0x1b4820, 0x1b16b0); no shipped link needs it, so a made-up galaxy of two places.
 {
   const a = { id: 10, name: 'A', versions: [] }, b1 = { id: 20, name: 'B', versions: [] }, b2 = { id: 21, name: 'B2', versions: [] };
@@ -177,7 +177,7 @@ for (const v of Object.keys(RELEASES)) {
     }
   }
   if (problems.length) fail(`${v}: ${problems.length} problems: ${problems.slice(0, 6).join('; ')}`);
-  // every test: the game's reading as a tree agrees with ncbTest in every state of its bits; those read otherwise than written
+  // every test: the game's reading as a tree matches ncbTest in every state of its bits; those read otherwise than written
   const otherwise = [];
   for (const [type, , fields] of S.NOVA_BIT_SOURCES) for (const rec of S.novaAll(game, type)) for (const [field, how] of fields) {
     const text = rec[field];
@@ -190,7 +190,7 @@ for (const v of Object.keys(RELEASES)) {
       if (S.ncbEval(tree, state) !== S.ncbTest(text, state)) { fail(`${v} ${type} ${rec.id} ${field}: the game tree ${S.ncbTreeText(tree)} and the game's reading differ`); break; }
     }
   }
-  // every record with a panel of its own followed to what names it: an outfit sold only at outfitters of its tech
+  // every record with a separate panel followed to what names it: an outfit sold only at outfitters of its tech
   // level, a weapon fired only by outfits of ModType 1 naming it, every system named one there is
   const refs = S.novaRefs(game, u), refProblems = [];
   let soldSomewhere = 0;
@@ -233,7 +233,7 @@ else {
   console.log(`Starfleet Adventures' zip of MacBinary copies: ${files.length} files, ${data.length} of them data, ${plugins.length} plug-ins; ${u.systems.length} systems`);
 }
 // And one in Mac form: 1.0.10 with every file in its Nova Files renamed, so
-// that only its Mac type says which part of the game it is.
+// that only its Mac type shows which part of the game it is.
 if (haveRelease('1.0.10')) {
   const bytes = new Uint8Array(fs.readFileSync(path.join(REF, RELEASES['1.0.10'].sit)));
   const roles = fs => fs.filter(f => !f.plugin).map(f => f.role).sort().join(' ');

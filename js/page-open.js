@@ -8,31 +8,31 @@
    before the pictures are. The ships files, a hundred megabytes of
    sprites and pictures, are held back until the ships are first looked at
    (wantShipFiles), and with them the sounds file, for the length of the
-   warp sound, which is how long a ship takes to jump out (nova-flight.js).
+   warp sound, which is how long a ship's jump out lasts (nova-flight.js).
 
    Opening base data files starts a new game; opening only plug-ins adds
    them to the one that is open.
 
-   The page's own script: DOM here. LOAD ORDER: after js/nova-*.js, before
+   The page's script: DOM here. LOAD ORDER: after js/nova-*.js, before
    js/page-map.js and js/page-ships.js, whose mapStart, mapFilesChanged and
    shipsFilesChanged it calls. */
 
 /* archive.org's copy: Macintosh Garden's EV_Nova_1.0.10.sit, which
-   archive.org keeps in its item Macintosh_Garden_Games_2019_E, byte for byte
+   archive.org has in its item Macintosh_Garden_Games_2019_E, byte for byte
    the release (MD5 0fa71952..., compared 30 September 2026). Its /cors/
    address answers a page on another site. The page publishes no game file;
-   this is where a visitor with no copy of their own reads one. */
+   this is where a visitor without a copy reads one. */
 const ARCHIVE_ORG = {
   item: 'https://archive.org/details/Macintosh_Garden_Games_2019_E',
   url: 'https://archive.org/cors/Macintosh_Garden_Games_2019_E/EV_Nova_1.0.10.sit',
 };
 
 /* Remembering what was opened between visits, as grimoire does: the files
-   that started the game (archive.org's copy or the visitor's own) and any
+   that started the game (archive.org's copy or the visitor's) and any
    plug-ins opened after, kept in IndexedDB and opened again on the next
-   visit with no download. ?src= and ?cache=skip pass it by; Forget clears
-   it. IndexedDB is refused on some file:// pages, so every call gives up
-   quietly and the page carries on without it. */
+   visit with no download. ?src= and ?cache=skip pass it by; the bar's Forget clears
+   it. IndexedDB is not allowed on some file:// pages, so every call gives up
+   quietly and the page goes on without it. */
 const KEEP_DB = 'stargrimoire', KEEP_STORE = 'opened', KEEP_KEY = 'current';
 function keepTx(mode, fn) {
   return new Promise((resolve, reject) => {
@@ -85,7 +85,7 @@ async function readPicked(files) {
 /* An archive the page opens as a set of files: StuffIt, StuffIt X, zip,
    Compact Pro, RAR or disk image. One of StuffIt X whose streams undo the English
    preprocessing needs its dictionary, 1 MB the page does not load
-   otherwise: it comes from the address index.html keeps for it
+   otherwise: it comes from the address index.html has for it
    (#sitxEnglish), once, before the archive is read. */
 const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes) || looksLikeUdif(bytes);
 // A BinHex or MacBinary copy of an archive (a .sit.hqx, a .sitx.bin): the archive in its data fork.
@@ -125,7 +125,7 @@ async function openGameFiles(picked, opts = {}) {
         await archiveReady(bytes);
         const list = novaArchiveFiles(bytes);
         if (!program) { try { program = novaArchiveProgram(bytes); } catch (e) { program = null; } }
-        if (list.length) found.push(...list); else refused.push(name + ' holds no Nova files');
+        if (list.length) found.push(...list); else refused.push(name + ' has no Nova files');
       } else {
         const one = novaLooseFile(name, bytes);
         if (one) found.push(one); else refused.push(name + ' has no resource fork');
@@ -135,7 +135,7 @@ async function openGameFiles(picked, opts = {}) {
     }
   }
   // Plug-ins that come as alternatives or extras -- in several folders, or
-  // beside a game of their own outside a Nova Plug-ins folder -- are for
+  // beside a separate game outside a Nova Plug-ins folder -- are for
   // the person to choose; the rest are what the archive is.
   const loose = found.filter(f => f.plugin && !/(^|\/)Nova Plug-?ins(\/|$)/i.test(f.folder));
   const folders = new Set(loose.map(f => f.folder));
@@ -158,7 +158,7 @@ async function openGameFiles(picked, opts = {}) {
     await nextPaint();
     try { const bytes = f.read(); read.push({ f, bytes, fork: novaOpenFork(bytes) }); } catch (e) { refused.push(f.name + ': ' + e.message); }
   }
-  // plug-ins that have the same records as each other, or as those already open, asked about first
+  // plug-ins that have the same records as each other, or as those already open, brought up first
   const opening = read.filter(r => r.f.plugin).map(r => ({ name: r.f.name, plugin: true, fork: r.fork }));
   const open = fresh ? [] : GAME.files.filter(f => f.plugin && !f.edits);
   const names = new Set(opening.map(f => f.name));
@@ -198,7 +198,7 @@ function chooseClashes(groups) {
   };
   const and = list => list.length < 2 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
   box.innerHTML = `<h2>Plug-ins with the same records</h2>
-    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, as a Mac folder lists them; the others' copies are not used.</p>
+    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, in a Mac folder's order; the others' copies are not used.</p>
     ${groups.map(g => { const n = g.records.reduce((s, r) => s + r.ids.length, 0);
       return `<p>${and(g.files.map(f => `<strong>${esc(f)}</strong>`))}: ${n} record${n === 1 ? '' : 's'}, ${esc(g.files[g.files.length - 1])}'s read<br><small>${g.records.map(r => `${esc(r.type)} ${runs(r.ids)}`).join('; ')}</small></p>`; }).join('')}
     <div class="actions"><button data-a="cancel">Cancel</button><button data-a="ok">Open anyway</button></div>`;
@@ -234,10 +234,10 @@ function choosePlugins(list) {
 
 /* UNPACKING IN THE BACKGROUND. A file from an archive is decompressed when
    it is read, half a second for each ships file of 1.0.10, which on the
-   page's own thread stops the map that long each time. So the files read
+   page's thread stops the map that long each time. So the files read
    after the galaxy is up are decompressed in a background thread made of
-   the page's own mac-bytes, mac-containers, mac-vise, mac-stuffit and
-   mac-zip, unchanged, which keeps a copy of each archive until nothing is
+   the page's mac-bytes, mac-containers, mac-vise, mac-stuffit and
+   mac-zip, unchanged, which retains a copy of each archive until nothing is
    left to read. Where a thread cannot load them (a page opened from a
    file:// address) the page reads as before. */
 let UNPACKER = null;   // { worker, ready: Promise<boolean>, sent: Map(archive -> id), waiting: Map(n -> callbacks), n }
@@ -343,7 +343,7 @@ function wireOpening() {
     openGameFiles(await readPicked([...e.dataTransfer.files]));
   });
   // ?src=a.sit&src=b.rez: fetched, for a page served over HTTP. From
-  // file:// the browser refuses the fetch, and the status says so.
+  // file:// the browser blocks the fetch, and the status shows it.
   // ?src=archive.org is archive.org's copy, as the start page's button is.
   const params = new URLSearchParams(location.search);
   const srcs = params.getAll('src');
@@ -369,7 +369,7 @@ function wireOpening() {
   document.getElementById('creditsItem').addEventListener('click', e => { e.stopPropagation(); moreShow(false); creditsShow(credits.hidden); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
-                     () => setStatus('Nothing was remembered to forget.'));
+                     () => setStatus('Nothing was kept to clear.'));
   });
   if (srcs.length) fetchAndOpen(srcs.map(s => s === 'archive.org' ? ARCHIVE_ORG.url : s));
   else if (params.get('cache') !== 'skip') keptGet().then(rec => {
@@ -382,7 +382,7 @@ function wireOpening() {
 }
 
 /* One URL's bytes, fetched whole, counting in the status as they come
-   (archive.org's copy is 96 MB); `from` is said after the name. */
+   (archive.org's copy is 96 MB); `from` is shown after the name. */
 async function fetchBytes(url, from = '') {
   const name = decodeURIComponent(url.split('/').pop());
   setStatus(`Fetching ${name}${from}`);
@@ -420,7 +420,7 @@ async function fetchAndOpen(urls) {
 }
 
 // On a phone the map, or the battle, sits above its panel, and dragging the grip between them
-// moves the line, which the page remembers for the next visit.
+// moves the line, which is kept for the next visit.
 function wireGrip(grip, box, key) {
   const MIN = 0.15, MAX = 0.85;
   let id = null, f = null;

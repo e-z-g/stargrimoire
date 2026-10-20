@@ -1,7 +1,7 @@
 /* nova-fieldsites.js -- where in the program a record's field is read.
    =========================================================================
 
-   A field note (nova-fields.js) names the routines a field was read from;
+   A field note (nova-fields.js) cites the routines a field was read from;
    this finds the instructions in them that touch it, so the note's link
    can ring the line that reads the field, not the routine's first.
 
@@ -14,7 +14,7 @@
    and a text field by a call with the element's place in r3 and the
    record's in r4, so the copies give each field's place in the element
    (novaFieldPlaces). A routine then reads the field where an instruction
-   loads or stores at that place off a register that holds the same
+   loads or stores at that place off a register that contains the same
    array's address, plus whatever index, or hands that place to a call
    (novaFieldSites). Copies of another shape (lists in a loop, a value
    worked out first) give no place, and a routine that reaches the element
@@ -26,9 +26,9 @@
    reader names `data 0x…`) is a static array's address, and a word loaded
    from there an allocated one's; in 1.1.1 the same from the address the
    Mach-O names (`address of stellarData`), a load the reader names by
-   its global, or a constant that holds a global's address (shipClass's
+   its global, or a constant that contains a global's address (shipClass's
    is kept in __const as well as reached by name). The record itself is reached the same way, through the
-   global its handle is kept in, which is how a copy tells it apart.
+   global its handle is kept in, which distinguishes it from a copy.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js and
    nova-program.js. */
@@ -46,7 +46,7 @@ const NOVA_ACCESS_SIZE = { lwz: 4, stw: 4, lha: 2, lhz: 2, sth: 2, lbz: 1, stb: 
 function novaArrayAccesses(prog, ops, each) {
   const at = new Map();     // register -> { g: 'global:depth', k: place added }
   const plus = new Map();   // register not an array's -> a constant added to it
-  const type = new Map();   // register -> a resource type it holds ('mïsn')
+  const type = new Map();   // register -> a resource type it contains ('mïsn')
   const kept = new Map();   // a place in memory ('sp@56', or an array's) -> what was stored there
   const macho = prog.kind === 'macho';
   const volatile = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].concat(macho ? [2] : []);
@@ -58,7 +58,7 @@ function novaArrayAccesses(prog, ops, each) {
     if (op.branch) {
       if (op.lk) {
         each(o, i, { call: true, args: [3, 4, 5, 6].map(r => at.get(r)) });
-        // a resource asked for by type: what comes back is its handle, and a load through that its record
+        // a resource requested by type: what comes back is its handle, and a load through that its record
         const t = /^Get1?Resource$/.test(o.note || '') ? type.get(3) : undefined;
         for (const r of volatile) forget(r);
         if (t) at.set(3, { g: `'${t}':0`, k: 0 });
@@ -117,7 +117,7 @@ function novaArrayAccesses(prog, ops, each) {
       if (b) at.set(op.rd, { g: b.g, k: b.k + op.imm }); else if (c !== undefined) plus.set(op.rd, c);
       return;
     }
-    // anything else that writes a register forgets what it held
+    // for anything else that writes a register, what it held is dropped
     if (op.rd !== undefined) forget(op.rd);
     else if (op.rs !== undefined && op.ra !== undefined) forget(op.ra);
     else if (op.rt !== undefined && op.mn[0] === 'l') forget(op.rt);
@@ -155,7 +155,7 @@ function novaFieldPlaces(prog) {
 }
 
 /* The copies of a record's fields into arrays in ops[from, to): Map array
-   -> Map record offset -> { off, addr }. With rec, the record's own
+   -> Map record offset -> { off, addr }. With rec, the record's
    register name ("'mïsn':1"), only what is read through it; without, in
    LoadObjectData, a load from anything but the array stored to, the stack
    or 1.0.x's TOC. */
@@ -196,7 +196,7 @@ function novaCopies(prog, ops, access, from, to, type, rec) {
   }
   // a call's destination may be built from an index the registers do not
   // show the whole of: where it lands on a place a store gives another
-  // field, the store's holds
+  // field, the store's value stands
   for (const m of byG.values()) {
     const stored = new Set([...m.values()].filter(p => !p.call).map(p => p.off));
     for (const [at, p] of m) if (p.call && stored.has(p.off)) m.delete(at);
@@ -205,7 +205,7 @@ function novaCopies(prog, ops, access, from, to, type, rec) {
 }
 
 /* Copies of records into arrays elsewhere than LoadObjectData: in each
-   routine that asks for a resource by type, what is stored into an array
+   routine that requests a resource by type, what is stored into an array
    from the record. Map type -> [{ g, places, routine }]. Cached. */
 function novaFieldCopies(prog) {
   if (prog.fieldCopies) return prog.fieldCopies;
@@ -232,7 +232,7 @@ function novaFieldCopies(prog) {
 
 /* The instructions in a routine that read or write a record's field, or
    hand its place to a call: [{ addr, load, call }], in order; empty where
-   none is found. A field is read through the record's handle, at its own
+   none is found. A field is read through the record's handle, at its
    offset, or out of an array a copy put it in (novaFieldPlaces,
    novaFieldCopies), at its place there. */
 function novaFieldSites(prog, routine, type, field) {
@@ -247,7 +247,7 @@ function novaFieldSites(prog, routine, type, field) {
     if (a.call) { if (a.args.some(x => x && hit(x.g, x.k))) out.push({ addr, call: true }); }
     else if (hit(a.g, a.off)) out.push({ addr, load: a.load });
   }
-  // in LoadObjectData, where the copy reads the field, when the record's own register was not followed there
+  // in LoadObjectData, where the copy reads the field, when the record's register was not followed there
   const loader = novaRoutineNamed(prog, 'LoadObjectData'), t = novaFieldPlaces(prog).get(type);
   if (loader && routine.start === loader.start && t && !out.some(s => s.load)) {
     for (const rec of recs) if (t.places.has(rec)) out.push({ addr: t.places.get(rec).addr, load: true });
@@ -255,7 +255,7 @@ function novaFieldSites(prog, routine, type, field) {
   }
   return out;
 }
-// A routine's accesses, followed once: a record's table asks for each field.
+// A routine's accesses, followed once, since each field of a record's table needs them.
 function novaRoutineAccesses(prog, routine) {
   if (!prog.accesses) prog.accesses = new Map();
   if (!prog.accesses.has(routine.start)) {

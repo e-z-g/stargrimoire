@@ -7,7 +7,7 @@
 // following B replaces, a ! with no B. The test needs (ncbTestNeeds) on cases
 // the game reads otherwise than written. Then every test and set expression
 // in every release is read; the set expressions the game reads otherwise than
-// a reading of them as written would are listed, as universe_check lists the
+// a reading of them as written would are printed, as universe_check prints the
 // tests. Then the catalog: every bit named in the files is in it, and b147,
 // which Sol's visibility rests on, is named after the mission that sets it.
 import { site, openRelease, haveRelease, RELEASES } from './load.mjs';

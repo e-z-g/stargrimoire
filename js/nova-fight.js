@@ -7,7 +7,7 @@
    FireAIShipWeapon), shots (SpawnShot, HandleShot), hits by sprite mask
    or bounding circle and by proximity, damage to shields and armour and
    what a ship hit does about it (DamageShip), disabling, the death
-   throes and the explosions. Each function names the routine it follows
+   throes and the explosions. Each function cites the routine it follows
    and its address in the Intel half of 1.1.1.
 
    Then guided missiles, beams, fighters and their bays, fleets' orders
@@ -21,7 +21,7 @@
 
    The player is in none of it: every branch about the player is left
    out. The player's combat rating (kills) is w.kills, 0 unless a battle
-   sets it: it decides some complex manoeuvres and, at a ship's making,
+   sets it: it determines some complex manoeuvres and, at a ship's making,
    some afterburners (novaHasAfterburner).
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-flight.js. */
@@ -29,7 +29,7 @@
 /* ---- the records ---------------------------------------------------------- */
 
 /* The weapons, explosions and sprites a fight needs, read once into D.fight:
-   wëap 128 + i at index i as LoadObjectData (0x79285) keeps it, with its
+   wëap 128 + i at index i as LoadObjectData (0x79285) stores it, with its
    range worked out as the loader works it (0x79e80); bööm 128 + i with
    FrameAdvance x 0.01 (0x7d05d). */
 function novaFightData(D) {
@@ -94,11 +94,11 @@ function novaWeaponRange(F, w) {
   return r;
 }
 // The least kills for each combat rating, whose names are STR# 138 (1.1.1's DrawCombatRatingString 0x57e5;
-// novaFigure's combatRatings, which program_check holds this to).
+// novaFigure's combatRatings, which program_check compares this with).
 const NOVA_COMBAT_RATINGS = [0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600];
 
 /* The sprite a spïn names (a weapon's 3000 + Graphic, an explosion's 400 +
-   GraphicIndex), looked up when wanted, since the graphics files may come
+   GraphicIndex), looked up when needed, since the graphics files may come
    after the rest. */
 function novaSpinSprite(D, spinId) {
   const F = D.fight;
@@ -251,7 +251,7 @@ function novaSetDisabled(D, s) {
 const novaDying = s => s.death > 0 || s.armor <= 0;
 const novaActive = (w, i) => i >= 0 && i < 64 && !!w.ships[i];
 /* ShipVisibleToShip 0x9721: a ship coming out of a hypergate cannot be
-   seen, nor a cloaked one, but by its own escorts with cloaks and a
+   seen, nor a cloaked one, but by its escorts with cloaks and a
    person 1023 (0x3ff). */
 const novaVisible = (a, b) => a.state !== 0x15 && !!b && (!novaCloaked(a) || (b.leader === a.slot && b.cls.cloak >= 0) || b.pers === 0x3ff);
 
@@ -277,7 +277,7 @@ function novaThreatens(w, o, s) {
   return false;
 }
 /* IsShipThreatenedByMyEnemy 0x824f6, despite its name: o is attacking an
-   enemy of s (the program asks whether that enemy is threatened by o). */
+   enemy of s (the program tests whether that enemy is threatened by o). */
 function novaThreatenedByMyEnemy(w, o, s) {
   for (let i = 1; i < 64; i++) {
     const e = w.ships[i];
@@ -300,7 +300,7 @@ const novaShareParent = (w, a, b) => novaRoot(w, a) === novaRoot(w, b);
 /* AIShipFriendStrength 0x825a8: a ship's class Strength by its shields
    (between a quarter and all), and its escorts' and allies' in the system
    added, each doubled when an enemy of the ship threatens it. A ship with
-   no shield capacity keeps the fraction of the ship before it, as the
+   no shield capacity is given the fraction of the ship before it, as the
    program does. */
 function novaFriendStrength(w, s) {
   const D = w.D;
@@ -320,7 +320,7 @@ function novaFriendStrength(w, s) {
   return str;
 }
 /* AICalculateOddsAgainst 0x84a2e: the Strength of the ship's enemies in
-   the system, and of those attacking it, over its own and its allies'. */
+   the system, and of those attacking it, over its Strength and its allies'. */
 function novaCalcOdds(w, s) {
   const D = w.D;
   let own = novaClassFight(D, s.cls).strength, enemy = 0;
@@ -349,8 +349,8 @@ function novaOddsRound(w) {
 /* ---- weapons ------------------------------------------------------------ */
 
 /* WeaponHasAmmo 0xb95a, for a ship not the player's: not one the player
-   alone may fire (Flags2 0x0100); a fighter bay's own ammunition, or the
-   weapon's own (an ammunition type 0 to 255), or fuel (-1000 and below). */
+   alone may fire (Flags2 0x0100); a fighter bay's ammunition, or the
+   weapon's ammunition (a type 0 to 255), or fuel (-1000 and below). */
 function novaHasAmmo(w, s, i) {
   const W = novaWeapOf(w.D, i), r = s.wi.get(i);
   if (!W || !r) return false;
@@ -481,7 +481,7 @@ function novaSelectTarget(w, s) {
   }
   /* Then, for both (a xenophobe's choice standing only if nothing here is
      found): the nearest enemy seen, not too strong, disabled ones only with
-     a weapon that destroys; a lead with escorts takes the heaviest. The
+     a weapon that destroys; a lead with escorts picks the heaviest. The
      xenophobe's candidates stay among those weighed. */
   let n = 0;
   for (let i = 1; i < 64; i++) {
@@ -607,7 +607,7 @@ function novaInterceptorTail(w, s, g) {
 }
 /* The traders hit back (WimpyTraderAI 0x8b029, BraveTraderAI 0x8b493):
    angered by a ship it can name, a wimpy trader flees (state 3); a brave
-   one fights within 1,250, else flees. Their calls for help reach only
+   one fights within 1,250, else flees. Their requests for help reach only
    the player. */
 function novaTraderFight(w, s, brave) {
   if (!(s.anger > 0) || s.primary === -1) return;
@@ -734,8 +734,8 @@ function novaHopeless(w, s) {
 
 /* The attack moves (LowLevelAIHandler 0x851da): 5 heading away from the
    target, turrets firing; 6 at it, guns firing within three turns of
-   lining up, breaking away head-on (10) or boosting (17) when the program
-   says; 7 aiming as the guided weapons need; 14 braking while aiming; 16
+   lining up, breaking away head-on (10) or boosting (17) where the program
+   has it; 7 aiming as the guided weapons need; 14 braking while aiming; 16
    the break-away; 17 the boost. Returns nothing; nova-flight.js's modes
    take the rest. */
 function novaLowAttack(w, s) {
@@ -1334,7 +1334,7 @@ function novaHandleShot(w, sh) {
   w.shots[sh.slot] = null;
 }
 
-/* ShotCanHitShip 0x4477e: not its own ship or one of its squad or
+/* ShotCanHitShip 0x4477e: not the ship that fired it or one of its squad or
    government; a homing shot only its target (unless Flags2 0x0800); a
    turret's shot past a small ship by its roll (dodge); the hidden-ship
    flags matching. */
@@ -1519,12 +1519,12 @@ function novaIonize(s, W, at) {
 /* DamageShip 0x3a807: the ship pushed by the Impact (unless jumping);
    energy damage taken by the shields, mass damage by the armour once the
    shields are down (or always, Flags 0x0020), shields no lower than a
-   tenth of their capacity below 0; a disable-only weapon never takes the
+   tenth of their capacity below 0; a disable-only weapon never removes the
    last point of armour. Hit by a weapon, a ship with an AI turns on its
    attacker, and its fleet's lead with it, unless the attacker is of its
    own government or squad, the hit was harmless, or a stray shot from a
    ship aiming elsewhere; a ship busy fighting another, much nearer,
-   keeps to it. `hit`, a weapon's hit (a20); `aimed`, the shot was aimed
+   stays on it. `hit`, a weapon's hit (a20); `aimed`, the shot was aimed
    at this ship (a24); `noKill` (a28); `atThreshold` (a2c); `armorOnly`
    (a30). */
 function novaDamageShip(w, t, src, impact, mass, energy, attacker, hit, aimed, noKill, atThreshold, armorOnly) {
@@ -1647,7 +1647,7 @@ function novaDeathThroes(w, s) {
 
 /* CreateExplosion 0x3f698: a bööm (0 to 63), or a big one (1000 to 1063)
    with smaller ones round it, scattered over its blast. SpawnExplod
-   0x3f5dc keeps up to 32; HandleExplods 0x2f5d2 plays each, after its
+   0x3f5dc has up to 32; HandleExplods 0x2f5d2 plays each, after its
    wait, at FrameAdvance / 100 frames a step. */
 function novaCreateExplosion(w, x, y, boom, blast, sound) {
   if (!(boom >= 0 && boom <= 63) && !(boom >= 1000 && boom <= 1063)) return;
@@ -1711,7 +1711,7 @@ function novaShipUpkeep(w, s) {
   novaSetDisabled(D, s);
 }
 /* HandleShip, after the ship moves: the chosen weapon fired (and chosen
-   again for one that keeps firing, Flags 0x0002), the death throes
+   again for one that goes on firing, Flags 0x0002), the death throes
    counted down and their escape pods launched, fuel regained, the hit
    flash fading. */
 function novaShipFire(w, s) {
@@ -1769,7 +1769,7 @@ function novaHandleEscapePods(w) {
   }
 }
 /* HandleShip 0x35305: fuel regained by the class's rate (novaFlightData's
-   fuelGen), held to what the class holds and to 0 or more. */
+   fuelGen), kept to the class's capacity and to 0 or more. */
 function novaFuelRegen(w, s) {
   const rate = s.cls.fuelGen;
   if (rate !== null && rate !== undefined) s.fuel = f32(s.fuel + rate);
@@ -1925,7 +1925,7 @@ function novaHandleBeams(w) {
           else if (W.impact !== 0 && t.mass > 0) {
             const oc = novaClassFight(D, s.cls);
             if (W.impact < 0 && oc.mass < t.mass * 0.5 && oc.mass > 0 && !(oc.flags & 0x0400)) {
-              // a tractor beam on an asteroid much heavier than the ship pulls the ship, and holds it
+              // a tractor beam on an asteroid much heavier than the ship pulls the ship, and stops it
               if (Math.abs(f32(o.x - a.x)) >= 50 || Math.abs(f32(o.y - a.y)) >= 50) {
                 const v = { x: s.vx, y: s.vy }; novaAdjustedAccel(novaBearing(a.x, a.y, o.x, o.y), f32(W.impact / oc.mass), s.cls.speed, v);
                 const m = novaShipMaxSpeed(D, s); s.vx = Math.min(m, Math.max(-m, v.x)); s.vy = Math.min(m, Math.max(-m, v.y));
@@ -2046,8 +2046,8 @@ function novaLaunchFighter(w, s, i) {
 /* DoPlayGameWork 0x43e70, after the collisions: each escort whose lead is
    gone or disabled finds a new one (AICheckParentExists); a lead with
    escorts is marked to give them orders, a swarm's lead as one, and each
-   ship the one whose formation it keeps -- its swarm's lead while it
-   attacks, else its own lead. */
+   ship the one whose formation it flies in -- its swarm's lead while it
+   attacks, else its lead. */
 function novaFleetBookkeeping(w) {
   const prev = w.ships.map(s => s ? s.leader : -1);
   for (const s of w.ships) if (s) { s.hasEscorts = false; s.mateLead = false; s.formLead = false; }
@@ -2071,9 +2071,9 @@ function novaFleetBookkeeping(w) {
 /* AICheckParentExists 0x8926a: with its lead gone or disabled, the
    heaviest (class Mass) live ship that had the same lead, the first of
    equals, leads instead; a fighter becomes a plain escort, and waits
-   (state 19) unless jumping. The new lead itself takes on its old lead's
+   (state 19) unless jumping. The new lead itself is given its old lead's
    target and states if they share a government, and with none left the
-   escort goes back to its own AI, waiting. */
+   escort goes back to its AI, waiting. */
 function novaCheckParentExists(w, s, prev) {
   const D = w.D, L = s.leader;
   if (L < 0 || L > 63) return;
@@ -2179,7 +2179,7 @@ function novaNearestThreatToParent(w, s, range) {
 }
 /* AIVerifySwarmLeader 0x7e2fe, AIFindSwarmLeader 0x7e39e: a ship of a
    class that swarms (Flags2 0x0001) follows the first live swarming ship
-   in a slot below its own with the same target and the same government
+   in a lower slot with the same target and the same government
    or lead. */
 function novaSwarmMate(w, s, j) {
   const o = w.ships[j];
@@ -2265,7 +2265,7 @@ function novaPirateWarshipAI(w, s) {
   if ((s.state === 4 || s.state === 0xd) && novaOutOfAmmo(w, s) === 2) Object.assign(s, { state: 0, mode: 0, primary: -1, sec: -1 });
   void D;
 }
-/* AIFindShipToPlunder 0x7fd10: the nearest live disabled ship, not its own
+/* AIFindShipToPlunder 0x7fd10: the nearest live disabled ship, not its
    escort nor being boarded, with a crew, not of an allied government -- a
    warship (InherentAI 3 or more, and flying as one) only when it has no
    weapon that can destroy (the program's test). */
@@ -2323,8 +2323,8 @@ function novaPlunder(w, s, t) {
 }
 
 /* The test HighLevelAIHandler makes of a target in states 4 and 13: one of
-   the ship's own fleet -- its lead, a ship with the same lead, or a lead
-   above the target's one shared with its own -- is let be (state 0). */
+   the ship's fleet -- its lead, a ship with the same lead, or a lead
+   above the target's one shared with its -- is let be (state 0). */
 function novaFleetMateTarget(w, s) {
   const L = s.leader;
   if (L === -1) return false;
@@ -2469,7 +2469,7 @@ function novaNearestShotTarget(w, sh) {
 /* SpriteWorld's layers as lists in the order its collisions walk them:
    InitSprites 0x? adds the ships' sprites 63 down to 0 and the shots' 0 up
    to 127; a sprite put in another layer goes to its end (PutSpriteInLayer
-   0x?), and one put in its own stays where it is. */
+   0x?), and one put in the same layer stays where it is. */
 function novaLayers() {
   const L = { ship: [], escort: [], disabled: [], shot: [], guided: [], turret: [], pd: [], of: new Map() };
   for (let i = 63; i >= 0; i--) { L.ship.push(i); L.of.set('s' + i, 'ship'); }

@@ -2,13 +2,13 @@
    =========================================================================
 
    A list of the ship classes beside the one chosen: its sprites turning at
-   its own turn rate, its pictures and description, and what its record
-   says, in the Bible's units. The address bar keeps it (#ships, #ship=128),
+   its turn rate, its pictures and description, and what its record
+   has, in the Bible's units. The address bar records it (#ships, #ship=128),
    and the bar's Map and Ships switch between this and the map.
 
    The ships files, a hundred megabytes, are read only when the ships are
    first looked at; the list is there before them, from the shïp records in
-   the data files, and the sprites and pictures arrive as the files do.
+   the data files, and the sprites and pictures come as the files do.
 
    HOW THE LAYERS ARE DRAWN is ResForge's Shan Editor's way, since the Bible
    does not say: the base and alternating images over black at the base's
@@ -17,11 +17,11 @@
    Bible's: frames and sets from nova-ships.js, the alternating image and
    the extra sets that play in sequence changing every AnimDelay 30ths of a
    second, the lights' three blink modes with BlinkA to BlinkD read as the
-   Bible's shän section lists them (ResForge reads A and B of the square
+   Bible's shän section has them (ResForge reads A and B of the square
    wave the other way round), and the ship turning at 3 degrees a second
    for each point of Maneuver ("10 = 30°/sec").
 
-   The page's own script: DOM here. LOAD ORDER: after js/page-map.js, whose
+   The page's script: DOM here. LOAD ORDER: after js/page-map.js, whose
    helpers (esc, resName, govtName, pictImage, asCanvas, fieldsTable,
    testLine, goStellar) it uses; page-map calls shipsFromHash at run time. */
 
@@ -136,7 +136,7 @@ function shipsFilesChanged() {
   if (partial) renderShip(); else renderShipPictures();
 }
 
-/* A fresh game: forget the last one's ships. */
+/* A fresh game: the last one's ships cleared. */
 function shipsReset() {
   SHIP_SPRITES.clear();
   SHIP_FRAMES.clear();
@@ -211,7 +211,7 @@ function renderShipList() {
 
 // The chosen ship's row marked, and scrolled to when the choice is new. Its
 // look is opened whenever the row is hidden in it, unless that look was
-// shut by hand since the ship was chosen: the ships files arrive in parts,
+// shut by hand since the ship was chosen: the ships files come in parts,
 // and a look gains its classes as they do.
 let SHIP_MARKED = null, SHIP_SCROLL = false;
 function markShipRow() {
@@ -262,7 +262,7 @@ function fillThumbs() {
 /* ---- one ship ----------------------------------------------------------- */
 
 const fmtNum = v => Number(v).toLocaleString('en');
-// Many ship classes share a name, so a link says which by its number.
+// Many ship classes share a name, so a link shows which by its number.
 const shipLink = id => `<a data-ship="${id}">${esc(shipName(id))}</a> <span class="note">${id}</span>`;
 
 function renderShip() {

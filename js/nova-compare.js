@@ -9,7 +9,7 @@
 
    No DOM. LOAD ORDER: after js/nova-files.js and js/nova-records.js. */
 
-/* The game's data files and plug-ins, as a game of their own. */
+/* The game's data files and plug-ins, as a separate game. */
 function novaDataGame(game) {
   const g = novaGame();
   g.files.push(...game.files.filter(f => f.plugin || f.role === 'data'));

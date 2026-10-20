@@ -2,15 +2,15 @@
    =========================================================================
 
    Every Nova record is a fixed run of big-endian fields, and a table here
-   says what they are: a name, a kind, and for a repeated field how many.
-   novaRecord(type, bytes) reads one; novaLayout(type) says where each field
-   sits, which is what the check holds against the templates.
+   gives what they are: a name, a kind, and for a repeated field how many.
+   novaRecord(type, bytes) reads one; novaLayout(type) gives where each field
+   sits, which is what the check compares with the templates.
 
    WHERE THE TABLES CAME FROM. Written from the Nova Bible (Part II), with
-   the field order and widths as Ambrosia's own ResEdit templates give them
+   the field order and widths as Ambrosia's ResEdit templates give them
    -- the `Templates` file in 1.0.10's Documentation folder. The names are
-   the Bible's where it has one. utilities/records_check.mjs holds each table
-   to that file's TMPL, offset for offset and width for width, and the values
+   the Bible's where it has one. utilities/records_check.mjs checks each table
+   against that file's TMPL, offset for offset and width for width, and the values
    read from 1.1.1 to the ConText dump of 1.1.1 in evnova-utils, field for
    field. Two sources, neither of them this file.
 
@@ -106,7 +106,7 @@ const NOVA_RECORDS = {
   ],
   // The templates write a run of four words as one RECT; each is a field
   // with a count of 4 here. They name two runs of four twice (ItemCount,
-  // and the weapons' second halves); the second takes a 2 here.
+  // and the weapons' second halves); the second has a 2 here.
   'shïp': [
     ['Holds', 'i16'], ['Shield', 'i16'], ['Accel', 'i16'], ['Speed', 'i16'], ['Maneuver', 'i16'],
     ['Fuel', 'i16'], ['FreeMass', 'i16'], ['Armor', 'i16'], ['ShieldRech', 'i16'],
@@ -229,7 +229,7 @@ const NOVA_KIND_SIZE = { i16: 2, h16: 2, i32: 4, h32: 4, rgb: 4 };
 
 /* Where each field sits: [{ name, kind, index, offset, size }], one entry
    per repetition, `index` null for a field that does not repeat. A `cstr`
-   has no fixed place, so a layout stops at the first one and says so with
+   has no fixed place, so a layout stops at the first one and marks it with
    `variable: true` on it; what follows it is placed by novaRecord alone. */
 function novaLayout(type) {
   const table = NOVA_RECORDS[type];

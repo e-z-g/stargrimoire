@@ -3,11 +3,11 @@
    =========================================================================
 
    A classic Mac release's EV Nova is a PEF container (mac-pef.js) whose
-   code section is PowerPC (mac-ppc.js). Its own routines carry no names
+   code section is PowerPC (mac-ppc.js). Its routines have no names
    -- only the 151 of the runtime library CodeWarrior linked in end with a
    named traceback table -- so a routine is found from the code itself: it
    starts where a `bl` lands, where a transition vector in the data points,
-   or where a traceback table says. What a routine does shows in what it
+   or where a traceback table has one. What a routine does shows in what it
    names:
 
      a call to glue, the six instructions that load a transition vector out
@@ -30,7 +30,7 @@
 
    Figures the site states from the program are read from it by the shape
    of the instructions around them (novaFigure), never by an address, and
-   come back with the address of the instruction that holds them, which
+   come back with the address of the instruction that contains them, which
    the page links to.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after mac-ppc.js, mac-pef.js,
@@ -72,7 +72,7 @@ function novaProgram(bytes, rsrc) {
   }
   if (img.pef.loader && img.pef.loader.mainSection === dataIdx) { const v = u32be(data, img.pef.loader.mainOffset); if (v < code.length) starts.add(v); }
 
-  // what a TOC word holds once loaded
+  // what a TOC word contains once loaded
   const toc = img.toc;
   const slot = d => (toc ? pefPointerAt(img, toc.section, toc.offset + d) : null);
   // glue: lwz r12,d(r2); stw r2,20(r1); lwz r0,0(r12); lwz r2,4(r12); mtctr r0; bctr
@@ -119,7 +119,7 @@ function novaProgram(bytes, rsrc) {
   const printable4 = v => [24, 16, 8, 0].every(k => { const c = (v >>> k) & 255; return c >= 0x20 && c !== 0x7f && c !== 0xff; });
   const four = v => decodeMacRoman(new Uint8Array([v >>> 24, (v >>> 16) & 255, (v >>> 8) & 255, v & 255]));
 
-  // a floating-point constant: CodeWarrior keeps one in the TOC itself, or in the data a TOC word points to
+  // a floating-point constant: CodeWarrior puts one in the TOC itself, or in the data a TOC word points to
   const dataView = new DataView(data.buffer, data.byteOffset, data.length);
   const floatAt = (off, double) => (off >= 0 && off + (double ? 8 : 4) <= data.length ? (double ? dataView.getFloat64(off) : dataView.getFloat32(off)) : null);
 
@@ -174,11 +174,11 @@ function novaProgram(bytes, rsrc) {
 }
 
 /* Mac 1.1.1's program is a Mach-O file with an Intel and a PowerPC half;
-   the PowerPC half is read, with the names its symbol table keeps. Its
+   the PowerPC half is read, with the names in its symbol table. Its
    code is GCC's, not CodeWarrior's: no TOC, a global or a string reached
    by `lis` and the low half added or used as a displacement, a call into
    the system through a stub the indirect symbol table names. Addresses
-   are the program's own, as llvm-objdump --arch=ppc prints them. */
+   are the program's, as llvm-objdump --arch=ppc prints them. */
 function novaMachOProgram(file) {
   let bytes = file;
   if (u32be(file, 0) === 0xCAFEBABE) {
@@ -229,7 +229,7 @@ function novaMachOProgram(file) {
     if (s.type === 6 || s.type === 7) for (let k = 0; k < s.size / 4; k++) {
       const n = ind(s.r1 + k), slotAt = s.addr + 4 * k;
       if (n) { if (!dataName.has(slotAt)) dataName.set(slotAt, n); }
-      else if (s.type === 6) pointsTo.set(slotAt, word(slotAt));      // a pointer to the program's own global
+      else if (s.type === 6) pointsTo.set(slotAt, word(slotAt));      // a pointer to one of the program's globals
     }
   }
 
@@ -318,7 +318,7 @@ function novaMachOProgram(file) {
         if (/^l(?!f)/.test(op.mn)) hiOf.delete(op.rt);
         continue;
       }
-      // anything else that writes a register forgets what it held
+      // for anything else that writes a register, what it held is dropped
       if (op.rd !== undefined) hiOf.delete(op.rd);
       if (op.rs !== undefined && op.ra !== undefined) hiOf.delete(op.ra);
       if (op.rt !== undefined && /^l(?!f)/.test(op.mn)) hiOf.delete(op.rt);
@@ -332,8 +332,8 @@ function novaMachOProgram(file) {
 
 function hex(v) { return '0x' + (v >>> 0).toString(16); }
 
-/* A routine by the name Mac 1.1.1 gives it: from the program's own names
-   where it keeps them (1.1.1), else where js/nova-routines.js found the
+/* A routine by the name Mac 1.1.1 gives it: from the program's names
+   where it has them (1.1.1), else where js/nova-routines.js found the
    routine of that name in this release (1.0.2 to 1.0.10); or null. */
 function novaRoutineNamed(prog, name) {
   if (!prog.byName) {
@@ -379,7 +379,7 @@ function novaSearchProgram(prog, q, limit = 200) {
    makes, a dialog whose item list the program's resource fork names. A
    reader that does not find its shape gives null, and the page leaves the
    figure out. A figure is { value, addr, routine }: the instruction that
-   holds it and the routine it is in. */
+   contains it and the routine it is in. */
 
 // The last instruction before `i` that sets register `reg`, within `back` instructions and no call between.
 function novaSetterBefore(ops, i, reg, back = 12) {
@@ -404,7 +404,7 @@ function novaNamedRoutines(prog, game) {
   const out = [];
   const desc = novaFigure(prog, 'descLoader', game);
   if (desc) out.push({ routine: prog.byStart.get(desc.routine), name: 'Loads a description', why: "makes the resource type 'dësc', and is called most of the routines that do" });
-  for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `asks GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
+  for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `calls GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
   const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
   for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
   for (const r of prog.routines) if (r.as && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.as, why: `the routine Mac 1.1.1 names ${r.as}: matched to it by the system calls, strings, numbers and record fields both use, and by their callers and callees` });
@@ -443,8 +443,8 @@ function novaDialogRoutines(prog) {
 }
 
 /* What each figure is, for the Code view's note on the line it is read
-   from, and the value the site's own code uses where it has one, which
-   program_check holds to the program's. */
+   from, and the value the site's code uses where it has one, which
+   program_check compares with the program's. */
 const NOVA_FIGURE_WORDS = {
   outfitDesc: [v => `an outfit's description in the outfitter: dësc ${v} + the oütf's number less 128`],
   outfitPict: [v => `an outfit's picture in the outfitter: PICT ${v} + the oütf's number less 128`],
@@ -549,7 +549,7 @@ const NOVA_FIGURES = {
     }
     return null;
   },
-  // a ship's shipyard picture: the routine that asks whether PICT base + the ship's index is there, and then base +
+  // a ship's shipyard picture: the routine that tests whether PICT base + the ship's index is there, and then base +
   // the index of the ship whose sprites it shares, the same base twice
   shipyardPict(prog) {
     const asks = new Map();
@@ -570,7 +570,7 @@ const NOVA_FIGURES = {
   shotSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[1]; },
   explodSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[2]; },
   // which nebula picture is drawn: a routine reading the map's nebula pictures that reads a picture's frame from
-  // its header (the words at 2 and 6) and keeps it only if no wider and no taller than the rectangle
+  // its header (the words at 2 and 6) and uses it only if no wider and no taller than the rectangle
   nebulaFit(prog) {
     const d = novaDialogRoutines(prog).find(x => x.name === 'Map');
     if (!d) return null;
@@ -747,7 +747,7 @@ function novaNamedCalls(prog, inName, toName) {
   const ops = prog.ops(r);
   return { r, ops, calls: ops.map((o, i) => ({ o, i })).filter(x => x.o.target !== null && want.has(x.o.target)) };
 }
-// What the register holds at a call, where an `addi` of a positive number or an `li` set it: a figure, or null.
+// What the register contains at a call, where an `addi` of a positive number or an `li` set it: a figure, or null.
 function novaArgFigure(prog, inName, toName, reg, nth = 0, back = 16) {
   const c = novaNamedCalls(prog, inName, toName);
   if (!c || !c.calls[nth]) return null;
@@ -761,7 +761,7 @@ function novaCallNearGlobal(prog, inName, toName, g) {
   const hit = c && c.calls.find(({ i }) => c.ops.slice(Math.max(0, i - 40), i + 5).some(o => o.note === 'address of ' + g));
   return hit ? { r: c.r, ops: c.ops, i: hit.i } : null;
 }
-// What a register holds at that call, where an `li` or an `addi` of a positive number set it, however far back.
+// What a register contains at that call, where an `li` or an `addi` of a positive number set it, however far back.
 function novaGlobalArgFigure(prog, inName, toName, g, reg) {
   const c = novaCallNearGlobal(prog, inName, toName, g), s = c && novaTraceArg(c.ops, c.i, reg, 80);
   return s && (s.o.op.mn === 'li' || (s.o.op.mn === 'addi' && s.o.op.imm > 0)) ? { value: s.o.op.imm, addr: s.o.addr, routine: c.r.start } : null;
@@ -806,7 +806,7 @@ const NOVA_MACHO_FIGURES = {
     return null;
   },
   // a ship's target picture, a loop from this into targetInfoPic; its shipyard picture, the PICT a loop
-  // from this asks ResourceExists for as the ships load
+  // from this passes to ResourceExists as the ships load
   shipTargetPict(prog) { return novaGlobalArgFigure(prog, 'LoadSprites', 'GetPicture', 'targetInfoPic', 3); },
   shipyardPict(prog) {
     const c = novaNamedCalls(prog, 'LoadShipSprites', 'ResourceExists');
@@ -843,7 +843,7 @@ const NOVA_MACHO_FIGURES = {
   },
   // a nebula's pictures: a loop from this, counted down from nebulaPicts for each nebula
   nebulaPict(prog) { return novaArgFigure(prog, 'DoSystemMap', 'GetPicture', 3, 0, 32); },
-  // which of them is drawn: the loop over them in MapDialogUpdate that keeps the last whose bounds
+  // which of them is drawn: the loop over them in MapDialogUpdate that settles on the last whose bounds
   // (QDGetPictureBounds) are no wider and no taller than the rectangle; the figure is the call
   nebulaFit(prog) {
     const c = novaNamedCalls(prog, 'MapDialogUpdate', 'QDGetPictureBounds');
@@ -882,7 +882,7 @@ const NOVA_LOADERS = [
   ['GetPicture', 'PICT', 3], ['GetCIcon', 'cicn', 3], ['ST_LoadSndResource', 'snd ', 3],
   ['GetIndString', 'STR#', 4, 5], ['StrcatIndCString', 'STR#', 4, 5], ['DrawIndString', 'STR#', 3, 4],
 ];
-// As novaTraceReg, but on past a call for the registers a call keeps (r13 to r31).
+// As novaTraceReg, but on past a call for the registers a call preserves (r13 to r31).
 function novaTraceArg(ops, i, reg, back = 40) {
   for (let hop = 0; hop < 6; hop++) {
     let found = null;
@@ -914,7 +914,7 @@ function novaProgramUses(prog, game) {
   for (const r of prog.routines) {
     if (r.glue) continue;
     const ops = prog.ops(r);
-    // where each unconditional branch goes: a call can be reached from one, past its own set-up
+    // where each unconditional branch goes: a call can be reached from one, past its set-up
     const into = new Map();
     ops.forEach((o, k) => { if (o.op && o.op.mn === 'b') { const t = o.addr + o.op.disp; if (!into.has(t)) into.set(t, []); into.get(t).push(k); } });
     for (let i = 0; i < ops.length; i++) {
@@ -950,7 +950,7 @@ function novaProgramUses(prog, game) {
 /* ---- the rules the site's flying and battles use ---------------------------
 
    NOVA_RULES (js/nova-rules.js) lists each number the flying and battle
-   code uses that the routine its comments cite holds too. Each is found
+   code uses that the routine its comments cite contains too. Each is found
    there, in 1.1.1 by the routine's name and in 1.0.x where
    js/nova-routines.js found that routine: the first instruction of the
    routine holding it (novaHeldValues). Found, not read: the number is the
@@ -966,10 +966,10 @@ function novaHeldValues(prog, name) {
     if (!op) return;
     const vals = [];
     if (op.imm !== undefined && /^(li|addi|cmpwi|cmplwi|mulli|subfic)$/.test(op.mn)) vals.push(op.imm, -op.imm);
-    // a comparison tested by greater-than holds the next number too: `x >= 100` is `cmpwi x, 99` and a test of greater
+    // a comparison tested by greater-than covers the next number too: `x >= 100` is `cmpwi x, 99` and a test of greater
     if (/^cmpl?wi$/.test(op.mn)) for (const q of os.slice(i + 1, i + 6)) if (q.op && q.op.conditional && q.op.bi !== undefined && q.op.bi >> 2 === op.crf) { if ((q.op.bi & 3) === 1) vals.push(op.imm + 1); break; }
     if (op.mn === 'lis') vals.push(op.imm * 65536);
-    // (CodeWarrior keeps x * -0.5 as 0.5 and subtracts, GCC as -0.5 and adds: in 1.0.x, either sign)
+    // (CodeWarrior stores x * -0.5 as 0.5 and subtracts, GCC as -0.5 and adds: in 1.0.x, either sign)
     if ((op.mn === 'lfs' || op.mn === 'lfd') && typeof o.value === 'number') vals.push(o.value, ...(prog.kind === 'pef' ? [-o.value] : []));
     for (const v of vals) { const k = Math.fround(v); if (!m.has(k)) m.set(k, o.addr); }
   });
@@ -988,7 +988,7 @@ function novaRuleSites(prog) {
 /* ---- an instruction, for reading -------------------------------------------
 
    mac-ppc.js spells an instruction as LLVM does, registers as bare numbers
-   (`addi 4, 4, 3000`), which is what program_check holds it to. The Code
+   (`addi 4, 4, 3000`), which is what program_check compares it with. The Code
    view shows it with each register named (`addi r4, r4, 3000`) and a
    branch's target as the address it goes to, and beside it what it does
    in plain terms (`r4 = r4 + 3000`). */
@@ -1100,7 +1100,7 @@ function novaOpGloss(prog, ops, i) {
   if (op.mn === 'frsp') return `f${op.args[0]} = f${op.args[1]}, rounded to 4 bytes`;
   if (op.mn === 'fctiwz') return `f${op.args[0]} = f${op.args[1]} as a whole number, toward 0`;
   if (/^fcmp/.test(op.mn)) return `compare f${op.args[1]} with f${op.args[2]}`;
-  // a branch on a comparison: said as the comparison, where the one that set it is near
+  // a branch on a comparison: written as the comparison, where the one that set it is near
   if ((/^b[tf][-+]?$/.test(op.mn)) && target) {
     const crf = op.bi >> 2, bit = op.bi & 3, cond = NOVA_COND[bit][op.mn[1] === 't' ? 0 : 1];
     for (let k = i - 1; k >= Math.max(0, i - 12); k--) {

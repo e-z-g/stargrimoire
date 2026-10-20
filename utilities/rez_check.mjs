@@ -2,7 +2,7 @@
 // the same format written separately, in Python, from EVNEW's CPlugIn::Load
 // -- over every `.rez` in the zips in reference/game: the Community Edition's
 // data files and the plug-ins. Both must give the same resources: type, id,
-// name and bytes. The zips are opened with the page's own mac-zip.js.
+// name and bytes. The zips are opened with the page's mac-zip.js.
 //
 // Then, for the figures only: the Community Edition's records against
 // 1.1.1's, type by type, as many the same and as many changed.

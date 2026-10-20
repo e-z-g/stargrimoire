@@ -1,4 +1,4 @@
-/* nova-routines.js -- written by utilities/routines_build.mjs, which says
+/* nova-routines.js -- written by utilities/routines_build.mjs, whose comments give
    how the routines were matched; run it after changing which routines the
    field notes (js/nova-fields.js) or the rules (js/nova-rules.js) cite.
    =========================================================================
@@ -6,7 +6,7 @@
    Where each routine the field notes and the rules cite, by the name Mac
    1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which keep
    no names: NOVA_ROUTINES.releases is each release and the length of its
-   program's code, by which the page knows it; NOVA_ROUTINES.at[name] is the
+   program's code, by which the page identifies it; NOVA_ROUTINES.at[name] is the
    routine's address in each, in that order, 0 where it was not matched.
    program_check fails while this is not what the matcher gives. */
 

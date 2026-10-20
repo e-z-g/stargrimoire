@@ -7,12 +7,12 @@
    of 34 bytes for each channel, a 16-bit word (the predictor in its top
    nine bits, the step index in its low seven) and 32 bytes holding 64
    four-bit codes, the low nibble first, channels' packets in turn; a
-   packet keeps the predictor carried over from the last where its header's
+   packet retains the predictor carried over from the last where its header's
    step index is the same and its predictor within 127, as Apple's decoder
    does (afconvert differs from a plain restart at every packet). The
    step and index tables are the IMA's (IMA Recommended Practices for
    Enhancing Digital Audio Compatibility, 1992). utilities/sound_check.mjs
-   holds every compressed sound, decoded here, to macOS's own decoder
+   checks every compressed sound, decoded here, against macOS's decoder
    (afconvert) over the same packets.
 
    novaSndSamples(bytes) -> { samples: Int16Array (interleaved), rate,
@@ -84,7 +84,7 @@ function novaSndSamples(b) {
 function novaSndToWav(b) {
   const s = novaSndSamples(b);
   if (s.plain) return s.plain;
-  // as the resource would hold them, big-endian, which wavFromPcmBytes takes
+  // as the resource would hold them, big-endian, which wavFromPcmBytes accepts
   const bytes = new Uint8Array(s.samples.length * 2);
   s.samples.forEach((v, i) => { bytes[2 * i] = (v >> 8) & 255; bytes[2 * i + 1] = v & 255; });
   return { blob: new Blob([wavFromPcmBytes(bytes, Math.round(s.rate), 16, s.channels)], { type: 'audio/wav' }), rate: s.rate, channels: s.channels, frames: s.frames };

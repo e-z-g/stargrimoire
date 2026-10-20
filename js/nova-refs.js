@@ -1,18 +1,18 @@
 /* nova-refs.js -- which records name a record.
    =========================================================================
 
-   An outfit's outfitters, the ships that carry it and the expressions that
+   An outfit's outfitters, the ships with it and the expressions that
    give or take it; a weapon's outfits, ships, people and stellars; where a
    person, a fleet or a düde is met; a government's places, ships and
    friends; a commodity's stellars. What each field means is its note in
    nova-fields.js, read from Mac 1.1.1's code; this follows the ids, by the
    rules those notes give:
 
-     an outfitter (spöb Flags 0x04) lists an outfit of TechLevel 0 to 32766
-       at most its own or equal to one of its eight SpecialTech
+     an outfitter (spöb Flags 0x04) has an outfit of TechLevel 0 to 32766
+       at most its TechLevel or equal to one of its eight SpecialTech
        (SetupPortAvailableItems 0xbedb);
-     Gxxx in a set expression gives one of oütf xxx and Dxxx takes one,
-       128 to 639, and Kxxx gives ränk xxx and Lxxx takes it (EvalSetExp
+     Gxxx in a set expression gives one of oütf xxx and Dxxx removes one,
+       128 to 639, and Kxxx gives ränk xxx and Lxxx removes it (EvalSetExp
        0x150fc);
      a requirement is met when every bit of it is among the contribute bits
        of the ship, the outfits carried, the ranks held and the events
@@ -23,7 +23,7 @@
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js,
    nova-bits.js, nova-ships.js and nova-flight.js. */
 
-// The record types with a page of their own, and the plain name each goes by in an address.
+// The record types with a separate page, and the plain name each goes by in an address.
 const NOVA_REC_TYPES = [
   ['oütf', 'outf'], ['wëap', 'weap'], ['përs', 'pers'], ['flët', 'flet'], ['gövt', 'govt'],
   ['düde', 'dude'], ['crön', 'cron'], ['öops', 'oops'], ['jünk', 'junk'], ['chär', 'char'], ['ränk', 'rank'],
@@ -31,14 +31,14 @@ const NOVA_REC_TYPES = [
 const NOVA_REC_BY_WORD = new Map(NOVA_REC_TYPES.map(([t, w]) => [w, t]));
 const NOVA_REC_WORD = new Map(NOVA_REC_TYPES);
 
-// The outfits a set expression gives (G) and takes (D): [{ op: 'give'|'take', id }].
+// The outfits a set expression gives (G) and removes (D): [{ op: 'give'|'take', id }].
 function novaSetOutfits(text) {
   const out = [];
   for (const o of ncbSetOps(text)) if ((o.letter === 'G' || o.letter === 'D') && o.n >= 128 && o.n <= 639) out.push({ op: o.letter === 'G' ? 'give' : 'take', id: o.n, random: o.random });
   return out;
 }
 
-// The ranks a set expression gives (K) and takes (L): [{ op: 'give'|'take', id }] (EvalSetExp, ActivateRank, DeactivateRank).
+// The ranks a set expression gives (K) and removes (L): [{ op: 'give'|'take', id }] (EvalSetExp, ActivateRank, DeactivateRank).
 function novaSetRanks(text) {
   const out = [];
   for (const o of ncbSetOps(text)) if ((o.letter === 'K' || o.letter === 'L') && o.n >= 128) out.push({ op: o.letter === 'K' ? 'give' : 'take', id: o.n, random: o.random });
@@ -69,7 +69,7 @@ function novaRefs(game, u) {
     for (const g of novaSetOutfits(rec[field])) push(given, g.id, { type, kind, id: rec.id, field, event, op: g.op, random: g.random });
     for (const g of novaSetRanks(rec[field])) push(rankGiven, g.id, { type, kind, id: rec.id, field, event, op: g.op, random: g.random });
   }
-  // what carries or fires what
+  // what has or fires what
   const carriedBy = new Map(), firedBy = new Map(), ammoFor = new Map(), builtIn = new Map(), persWeap = new Map(), subOf = new Map(), maxBy = new Map();
   for (const s of ships) {
     for (const it of novaShipItems(s)) push(carriedBy, it.id, { id: s.id, count: it.count });

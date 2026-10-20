@@ -1,32 +1,32 @@
-/* page-battle.js -- the battle simulator, a view of its own.
+/* page-battle.js -- the battle simulator, a separate view.
    =========================================================================
 
-   An arena and a hangar (the maintainer's asking, 1 October 2026: the
-   ships and the battle together, by drag and drop). The hangar lists every
+   An arena and a hangar (the maintainer's request, 1 October 2026: the
+   ships and the battle together, by drag and drop). The hangar has every
    ship class that can fly, as the Ships view does, each with its picture;
    a ship is dragged from it onto the arena (with a finger, first
    sideways, so that the list still scrolls), or tapped and then the arena
-   tapped where it goes, as many at a time as Drop says, each flying as
-   Flies as says (its class's InherentAI, or one chosen). The arena's left
+   tapped where it goes, as many at a time as Drop is set to, each flying as
+   Flies as is set (its class's InherentAI, or one chosen). The arena's left
    half is side 1's and its right half side 2's; a ship dropped is that
    half's, facing the other. Until the fight, ships on the arena are
    dragged to move them -- across the middle to change sides -- and off it
    to take them away. Fight puts them in empty space with no other ship
-   arriving, to fight by the game's rules as nova-flight.js and
+   coming in, to fight by the game's rules as nova-flight.js and
    nova-fight.js have them; a ship dropped during the fight joins it at
    once. The two sides are enemies and never retreat or leave (the
-   maintainer's asking, 6 October 2026): each side flies as a government
+   maintainer's request, 6 October 2026): each side flies as a government
    that is the other's enemy (battleGovts), and the world's noRetreat
    turns off every retreat and departure. Set up again goes back to the
    arena as it was set. Ammunition never runs out, when ticked, tops each
    ship's ammunition and fuel back up to what it started with after every
-   step (the maintainer's asking, 6 October 2026).
+   step (the maintainer's request, 6 October 2026).
 
    The view follows the ships, zoomed to keep them all on the screen,
-   until it is zoomed or dragged by hand; Follow takes it back. The bar's
-   Battle, and the address #battle, which keeps the setup (battleHash).
+   until it is zoomed or dragged by hand; Follow brings it back. The bar's
+   Battle, and the address #battle, which records the setup (battleHash).
 
-   The page's own script: DOM here. LOAD ORDER: after page-flight.js and
+   The page's script: DOM here. LOAD ORDER: after page-flight.js and
    page-ships.js, whose flightData, drawFlightThings, shipSprite and
    shipFrame it uses. */
 
@@ -74,7 +74,7 @@ function battleShow(opts = {}) {
 /* The setup in the address, so that a link opens it again:
    #battle[&ammo=1]&ships=<class>.<x>.<y>[.<ai>[.<side>]],…
    in the arena's units, the AI type given when it is not 3 (0 is the
-   class's own); a ship's side is the half it is in, or given (0 left, 1
+   class's AI); a ship's side is the half it is in, or given (0 left, 1
    right) when it is not, as a random battle's are. */
 function battleHash() {
   const ships = BATTLE.setup.map(e => { const half = e.x < 0 ? 0 : 1, tail = e.side !== half ? `.${e.ai}.${e.side}` : e.ai !== 3 ? `.${e.ai}` : ''; return `${e.cls}.${Math.round(e.x)}.${Math.round(e.y)}${tail}`; }).join(',');
@@ -295,13 +295,13 @@ function battleGovts(D) {
   for (const a of ids) for (const b of ids) if (a < b && foes(a, b)) return [a, b];
   return null;
 }
-/* A random battle (the maintainer's asking): each `BATTLE.side` ships of any class that fights --
+/* A random battle (the maintainer's request): each `BATTLE.side` ships of any class that fights --
    Warship or Interceptor by its InherentAI, with a weapon that does
    damage or a fighter bay, able to move, not
    planet-type -- whoever flies it in the game. Twice as many are drawn,
    and dealt strongest first to the side with the less Strength so far,
    so the two come out about even. They are scattered over the arena, the
-   sides mixed, flying as Flies as says. */
+   sides mixed, flying as Flies as is set. */
 function battleRandom() {
   const D = flightData();
   if (!D) return;
@@ -334,7 +334,7 @@ function battleRandom() {
   }
   BATTLE.strength = sum;
 }
-// Empty space: Sol's system with no stellars and no asteroids, a system of its own (-1).
+// Empty space: Sol's system with no stellars and no asteroids, a separate system (-1).
 function battleEmptySystem() {
   const base = U.byId.get(130) || U.byId.values().next().value;
   return base && { ...base, id: -1, name: 'Empty space', rec: { ...base.rec, Asteroids: 0, Nav: new Array(16).fill(-1) } };
@@ -390,7 +390,7 @@ const battleFromScreen = (px, py) => [(px - BATTLE.cw / 2) / BATTLE.cam.s + BATT
 /* A ship tapped in the fight: its shields, armour, fuel, what it is doing
    and to whom, and each weapon's count, ammunition and reload, kept up to
    date about ten times a second. The states named are those the
-   program's own routines name (IsShipAttacking, AIShipIsPlundering,
+   program's routines have names for (IsShipAttacking, AIShipIsPlundering,
    AIShipIsAttackingAsteroid); the rest are given by number. */
 const BATTLE_STATES = { 4: 'attacking', 0xd: 'plundering', 0x10: 'attacking an asteroid' };
 // The fight's ship at a point on the screen, the nearest within its ring.
@@ -634,7 +634,7 @@ function wireBattle() {
   let moving = null, tapAt = null;
   cv.addEventListener('wheel', e => { e.preventDefault(); hand(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
   cv.addEventListener('pointerdown', e => {
-    try { cv.setPointerCapture(e.pointerId); } catch (_) { /* a pointer the browser does not know */ }
+    try { cv.setPointerCapture(e.pointerId); } catch (_) { /* a pointer the browser does not track */ }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     pinch = null;
     const r = cv.getBoundingClientRect(), i = pts.size === 1 ? battleSetupAt(e.clientX - r.left, e.clientY - r.top) : -1;

@@ -1,5 +1,5 @@
-// js/disk-image.js: EV Nova 1.1.1's disk image read here, held to the files
-// macOS's own hdiutil copied out of it (reference/EV_Nova_1.1.1/Nova Files).
+// js/disk-image.js: EV Nova 1.1.1's disk image read here, checked against the files
+// macOS's hdiutil copied out of it (reference/EV_Nova_1.1.1/Nova Files).
 //
 // Every .ndat novaArchiveFiles finds in the image must be byte for byte the
 // one hdiutil gave, and none of those may be missing. Then the negative
@@ -48,12 +48,12 @@ try {
     if (!Buffer.from(a).equals(Buffer.from(b))) changed++;
   }
 } catch (e) { refused = e.message; }
-if (refused) console.log(`a byte changed in each compressed chunk: the volume no longer reads (${refused})`);
+if (refused) console.log(`a byte changed in each compressed chunk: the volume cannot be read (${refused})`);
 else if (!changed) fail('a byte changed in every compressed chunk reads back as nothing changed');
 else console.log(`a byte changed in each compressed chunk: ${changed} file${changed === 1 ? '' : 's'} read differently or not at all`);
 if (good.length !== one.size) fail('Nova Data 1 is not its catalog length');
 
-// 1.1 beta 2.10.7: its image holds an installer package (pkgFiles); each .rez read through the image, the package and
+// 1.1 beta 2.10.7: its image has an installer package (pkgFiles); each .rez read through the image, the package and
 // its payload is byte for byte what macOS's xar, gzip and cpio give from the same package; and a byte changed in the
 // payload's compressed stream does not read back the same
 {

@@ -1,8 +1,8 @@
 // js/nova-sound.js: every snd resource of every Mac release read as a WAV,
-// the IMA4-compressed ones held to macOS's own decoder.
+// the IMA4-compressed ones checked against macOS's decoder.
 //
 // Each compressed sound's packets go unchanged into an AIFF-C file whose
-// COMM chunk names 'ima4' and carries the sound header's own 80-bit sample
+// COMM chunk names 'ima4' and has the sound header's 80-bit sample
 // rate; afconvert, Apple's decoder, turns that into 16-bit samples, and
 // every sample must equal ours. Then a packet's byte changed on purpose
 // must change ours, so the comparison can fail. The plain sounds go

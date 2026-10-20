@@ -9,19 +9,19 @@
 //   - the page loads with no console error or exception and shows its start;
 //   - with a release from reference/ opened through ?src=, the galaxy comes
 //     up, every picture file is read, zooming in on Sol a wheel step at a
-//     time opens it and puts you in it and zooming out takes you back to
+//     time opens it and puts you in it and zooming out brings you back to
 //     the galaxy, and going to Sol and landing on Earth draws the landing
 //     picture, pinching in on the landing page rises back to Sol, and
 //     scrolling in on Earth lands on it again, and back and forward walk
 //     Earth, a mission over Sol's panel and a zoom out to the galaxy --
 //     on a desktop window and a phone's;
-//   - the subway map, switched to in Sol, keeps you in Sol with every place
+//   - the subway map, switched to in Sol, leaves you in Sol with every place
 //     moved, and in the galaxy draws links with bends; switched back, the
 //     true positions and the address without it; to 22.5 degrees and back,
-//     the address saying so; the map with room for names routes every link
+//     the address showing it; the map with room for names routes every link
 //     and gives Sol its name's room; #system=130&subway opens Sol on the
-//     subway map, and #galaxy&subway=heading the map that keeps each
-//     link's heading, its switch on; #galaxy&subway=22.5,mixed,heading
+//     subway map, and #galaxy&subway=heading the map with headings
+//     kept, its switch on; #galaxy&subway=22.5,mixed,heading
 //     22.5 degrees only where needed on it, its switches on, with Moash
 //     Llima drawn as a bar that a tap on its end picks; &subway=heading,dots
 //     draws it as a point, and the switch back on as a bar again;
@@ -35,7 +35,7 @@
 //     showing them gives it back;
 //   - a nebula chosen in the panel from a view zoomed in elsewhere is
 //     reached without the view swinging away; the links coloured by jumps
-//     from Sol reach most systems and the key says so, and goes when the
+//     from Sol reach most systems and the key shows it, and goes when the
 //     colouring does; every nebula moves with the subway map;
 //   - a route chosen in the panel from Sol to the system furthest from it
 //     is that many jumps, every step a shown link, and in the address;
@@ -70,7 +70,7 @@
 //     the system's ships fly about thirty steps a second and Pause stops
 //     them -- on both screens, and on the phone the list gives way to the
 //     ship and back.
-// SHOTS=<dir> keeps a screenshot of each view.
+// SHOTS=<dir> saves a screenshot of each view.
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT, pageScripts, haveRelease, RELEASES } from './load.mjs';
@@ -232,7 +232,7 @@ try {
             return out;
           })()`);
           // The subway map, switched to inside Sol and back from the galaxy,
-          // and asked for by the address.
+          // and requested by the address.
           out.subway = await p.evaluate(`(async () => {
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
             // at first the subway map is off and every switch under it on, and hidden
@@ -370,7 +370,7 @@ try {
               document.querySelector('#panel [data-bit-map="147"]').click();
               Object.assign(bits, { mode: SHOW_MODE, typed: $('bitsIn').value, changed: SHOWN.size !== was || !SHOWN.has(130), still: VIEW.sel && VIEW.sel.kind === 'bit' });
               document.querySelector('#panel [data-bit-map="147"]').click();
-              // Back over the panel is the browser's back, the bit having an entry of its own
+              // Back over the panel is the browser's back, the bit having a separate entry
               const popped = new Promise(r => addEventListener('popstate', r, { once: true }));
               document.querySelector('#panel [data-bit-back]').click();
               await Promise.race([popped, new Promise(r => setTimeout(r, 2000))]);
@@ -425,7 +425,7 @@ try {
               await filled();
               o.dead600 = (document.querySelector('#panel [data-dead="mission"]') || {}).textContent || '';
             }
-            // the whole game: every storyline a box, what shuts what drawn when asked, a box opening its storyline and Back to the whole
+            // the whole game: every storyline a box, what shuts what drawn on request, a box opening its storyline and Back to the whole
             VIEW.sel = null; renderPanel();
             const whole = document.querySelector('#panel button[data-story="*"]');
             if (whole) {
@@ -445,13 +445,13 @@ try {
               OVERVIEW.pick = null;
               o.overview = ov;
             }
-            // Federation Resupply's test holds a bare 467, which the game passes over
+            // Federation Resupply's test has a bare 467, which the game passes over
             VIEW.sel = { kind: 'mission', id: 428, back: null }; renderPanel();
             o.reads = (document.querySelector('#panel .warn[title]') || {}).textContent || null;
             return o;
           })()`);
           await shot('story');
-          // Earth's panel drawn again (as ships coming and going did) keeps its place and its open box;
+          // Earth's panel drawn again (as ships coming and going did) stays at its place with its box open;
           // the moving ships draw only the system's panel; a field's few words until Notes in full.
           out.keep = await p.evaluate(`(async () => {
             const wait = ms => new Promise(r => setTimeout(r, ms)), el = $('panel');
@@ -576,7 +576,7 @@ try {
             return { jumps, legendAfter, moved, nebulae: U.nebulae.length, nebulaHidden };
           })()`);
           // The names: the system names all at one zoom, the stellars' at another, and the map with
-          // room for names that keeps each link's heading.
+          // room for names and headings kept.
           out.names = await p.evaluate(`(async () => {
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
             await setLayoutNow(null);
@@ -634,8 +634,8 @@ try {
             const went = { mode: VIEW.mode, sys: VIEW.sys, kind: sp && novaGateKind(sp), own: sp && (novaStellarSystem(U, sp.id, SHOWN) || {}).id, page: $('planet').classList.contains('on'), hash: location.hash, fade: $('fade').style.opacity };
             history.replaceState(null, '', '#stellar=465&system=130'); applyHash(); await new Promise(r => setTimeout(r, 100)); await idle();
             const hash = { mode: VIEW.mode, sys: VIEW.sys, sel: VIEW.sel, page: $('planet').classList.contains('on') };
-            // HG-Kania: it opens and asks, under the program's heading, Tichel, Dani or Koria; Dani, and
-            // out of HG-Dani, which opens; HG-Vega is offline, and says so
+            // HG-Kania: it opens and offers, under the program's heading, Tichel, Dani or Koria; Dani, and
+            // out of HG-Dani, which opens; HG-Vega is offline, with its message
             await show('planet', { sys: 128, stellar: 1404 }); await idle();
             await new Promise(r => setTimeout(r, 1200));
             const ask = { pick: GATE_PICK && GATE_PICK.choices.map(c => c.sys.id), head: ($('panel').querySelector('h3') || {}).textContent,
@@ -739,7 +739,7 @@ try {
       if (so.byHash.mix !== 1 || so.byHash.mode !== 'system' || so.byHash.sys !== 130 || so.byHash.sel !== 'true,false,false') fail(`${dev.name}: the subway map from the address: ${JSON.stringify(so.byHash)}`);
       const hd = so.heading;
       if (hd.kind !== 'heading' || hd.mix !== 1 || !/&subway=heading$/.test(hd.hash) || hd.sel !== 'true,false,false,true' || hd.stats.failed || !(hd.stats.astray < 12))
-        fail(`${dev.name}: the map that keeps each link's heading, from the address: ${JSON.stringify(hd)}`);
+        fail(`${dev.name}: the map with headings kept, from the address: ${JSON.stringify(hd)}`);
       const mx = so.mixed;
       if (mx.kind !== 'fine-mixed-heading' || mx.mix !== 1 || !/&subway=22\.5,mixed,heading$/.test(decodeURIComponent(mx.hash)) || mx.sel !== 'true,true,false,true' || mx.stats.failed || mx.stats.loose || !(mx.stats.bars >= 1) || !mx.bar || !mx.picked)
         fail(`${dev.name}: 22.5 degrees only where needed, keeping headings, from the address: ${JSON.stringify(mx)}`);
@@ -775,10 +775,10 @@ try {
         fail(`${dev.name}: through Sol's wormhole: ${JSON.stringify(tr.went)}`);
       if (tr.hash.mode !== 'system' || tr.hash.sys !== 130 || !tr.hash.sel || tr.hash.sel.id !== 465 || tr.hash.page) fail(`${dev.name}: Sol's wormhole from the address: ${JSON.stringify(tr.hash)}`);
       if (JSON.stringify(tr.ask.pick) !== '[129,298,483]' || tr.ask.head !== 'Hypergate Destination:' || tr.ask.buttons.join() !== 'Tichel,Dani,Koria' || !tr.ask.open)
-        fail(`${dev.name}: HG-Kania asking: ${JSON.stringify(tr.ask)}`);
+        fail(`${dev.name}: HG-Kania's choices: ${JSON.stringify(tr.ask)}`);
       if (tr.gone.sys !== 298 || !tr.gone.sel || tr.gone.sel.id !== 1413 || tr.gone.pick || !tr.gone.open || tr.gone.fade !== '0') fail(`${dev.name}: through HG-Kania to Dani: ${JSON.stringify(tr.gone)}`);
       if (tr.vega.sys !== 137 || tr.vega.note !== 'Your ship is unable to enter this hypergate - it is offline.' || tr.vega.pick) fail(`${dev.name}: HG-Vega: ${JSON.stringify(tr.vega)}`);
-      console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through; HG-Kania opened and asked, and went to Dani; HG-Vega offline`);
+      console.log(`${dev.name}: through Sol's wormhole to system ${tr.went.sys}; from the address it is shown, not gone through; HG-Kania opened and offered its choices, and went to Dani; HG-Vega offline`);
       const ko = o.kept;
       if (!ko.saved || ko.names !== false || ko.gates !== true || ko.stellars !== false || ko.links !== 'govt' || !ko.dots || !ko.shipsHidden)
         fail(`${dev.name}: Map options kept for the next visit: ${JSON.stringify(ko)}`);
@@ -816,7 +816,7 @@ try {
       if (sy.reads !== '(the game reads it as !(b511 | b515) & !(b50 | b6666))') fail(`${dev.name}: mission 428's test as the game reads it: ${JSON.stringify(sy.reads)}`);
       console.log(`${dev.name}: ${sy.list} storylines listed; Take Polaris Home from b147, Rebel I's step 22 and last; Rebel I's ${sy.rows} missions, ${sy.ringed} places ringed`);
       if (!/None found/.test(sy.deadRebel) || !/escape pod during it leaves b511 on/.test(sy.dead266) || !(sy.dead266Links >= 12) || !/escape pod during it loses it.*b285/.test(sy.dead600)) fail(`${dev.name}: dead ends: ${JSON.stringify({ rebel: sy.deadRebel.slice(-80), m266: sy.dead266.slice(0, 300), links: sy.dead266Links, m600: sy.dead600.slice(0, 300) })}`);
-      else console.log(`${dev.name}: dead ends: none in Rebel I; mïsn 266's panel says an escape pod during it leaves b511 on, ${sy.dead266Links} missions linked; 600's that one loses it and b285`);
+      else console.log(`${dev.name}: dead ends: none in Rebel I; mïsn 266's panel: an escape pod during it leaves b511 on, ${sy.dead266Links} missions linked; 600's that one loses it and b285`);
       const ov = sy.overview;
       if (!ov || ov.title !== 'The whole game' || ov.boxes !== ov.stories || !(ov.shut > 5) || !(ov.joins > 40) || !ov.opened || ov.back !== 'The whole game' || !/(^#|&)story=\*$/.test(ov.hash))
         fail(`${dev.name}: the whole game: ${JSON.stringify(ov)}`);
@@ -898,7 +898,7 @@ try {
           const galaxy = document.getElementById('panel').textContent;
           VIEW.sel = { kind: 'system', id: 288 }; renderPanel();
           const kipa = [...document.querySelectorAll('#panel table.compare tr')].map(tr => tr.textContent.trim());
-          // 1.0.10's program keeps no names: the field notes' routines and the rules reach it through js/nova-routines.js
+          // 1.0.10's program has no names: the field notes' routines and the rules reach it through js/nova-routines.js
           const prog = program(), div = document.createElement('div');
           document.body.appendChild(div);
           div.innerHTML = fieldsTable('spöb', U.stellars.get(128), true);
@@ -917,7 +917,7 @@ try {
     for (const e of pageErrors(r.console)) fail('the comparison: ' + describe(e));
     if (!r.met) fail('the comparison never finished');
     const o = r.more || {};
-    if (!o.listed) fail('the comparison: the galaxy\'s panel does not list what changed');
+    if (!o.listed) fail('the comparison: what changed is not in the galaxy\'s panel');
     if (o.ring !== 'changed') fail(`the comparison: Kipa is ${o.ring}, not ringed as changed`);
     if (!(o.kipa || []).some(t => /^Govt\s*137\s*170$/.test(t))) fail('the comparison: Kipa\'s panel does not give Govt 137 then 170: ' + JSON.stringify(o.kipa));
     const c = o.code || {};
@@ -928,7 +928,7 @@ try {
   }
 
   // The plug-in editor: Sol's xPos changed from its panel, a bad value
-  // refused, the map moved, the change kept in the browser's storage, saved
+  // rejected, the map moved, the change kept in the browser's storage, saved
   // as a .rez and for the Mac and both read back, then undone.
   if (!haveRelease('1.0.10')) console.log('SKIP the plug-in editor: no 1.0.10 in reference/');
   else {
@@ -987,7 +987,7 @@ try {
     if (!r.met) fail('the plug-in editor: the page never opened');
     else {
       if (o.boxes !== o.want) fail(`the plug-in editor: ${o.boxes} boxes for Sol's ${o.want} fields and name`);
-      if (!/xPos/.test(o.refused || '') || o.editsAfterRefused !== 0) fail(`the plug-in editor: 'abc' for xPos was not refused (${JSON.stringify(o.refused)})`);
+      if (!/xPos/.test(o.refused || '') || o.editsAfterRefused !== 0) fail(`the plug-in editor: 'abc' for xPos was not rejected (${JSON.stringify(o.refused)})`);
       if (o.moved !== 50 || o.movedAfterLoad !== 50) fail(`the plug-in editor: Sol moved ${o.moved}, after loading ${o.movedAfterLoad}, not 50`);
       if (!/from Changed here/.test(o.from || '') || !o.open) fail(`the plug-in editor: Sol's fields say ${JSON.stringify(o.from)}, open ${o.open}`);
       if (o.stored !== 1 || o.rows !== 1 || !/\(1\)/.test(o.button || '')) fail(`the plug-in editor: stored ${o.stored}, listed ${o.rows}, button ${o.button}`);
@@ -1195,7 +1195,7 @@ try {
   }
 
   // The Community Edition's zip of .rez files, and a plug-in chosen out of
-  // a zip that holds several.
+  // a zip that contains several.
   const ce = 'reference/game/EV_Nova_Community_Edition.zip', gp = "reference/game/extras/Geek's Planets.zip";
   if (!fs.existsSync(path.join(ROOT, ce))) console.log('SKIP the Community Edition: not in reference/game');
   else {

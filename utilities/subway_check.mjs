@@ -1,23 +1,23 @@
-// js/nova-subway.js: the subway maps hold to what its header says, over
+// js/nova-subway.js: the subway maps checked against its header, over
 // every release in reference/. On the 45-degree map every link is drawn,
 // from its place to its place, in steps of one grid step at a multiple of
 // 45 degrees; no two links share a step; no link runs over a place other
 // than its ends; no two places are nearer than the spacing. On the
 // 22.5-degree map every piece of every link is within a quarter of a degree
-// of a multiple of 22.5 degrees (those it holds straight by least squares;
+// of a multiple of 22.5 degrees (those made straight by least squares;
 // its bends are exact), none passes over a place or runs along another
 // link, and no two
 // places are nearer than its least distance. The map with room for names
-// holds to the 45-degree map's tests, and no link passes a point a name
-// takes, no other place is on or beside a name, no two names meet or sit
+// passes the 45-degree map's tests, and no link passes a point a name
+// covers, no other place is on or beside a name, no two names meet or sit
 // side by side in a row, and every name's letters fit its room. The map
-// that keeps each link's heading holds to the tests of the map it is made
+// with headings kept passes the tests of the map it is made
 // on, and every piece of every drawn link is within 45 degrees of the way
 // the link truly runs (a 22.5-degree piece within that and its quarter of a
 // degree) but for the links the layout counts in stats.astray, which are
 // printed and must be fewer than one in fifty; a place whose links cannot
-// all leave one point keeping it is a bar (subwayBars), its points in a row
-// one step apart round its own, a link from it leaves from one of them, and
+// all leave one point within it is a bar (subwayBars), its points in a row
+// one step apart round its point, a link from it leaves from one of them, and
 // no link runs over or cuts across one. With room for names too,
 // its names are put where the lines leave room: none on a line, a place or
 // another name, but for those the layout counts in stats.unnamed, fewer
@@ -42,7 +42,7 @@ let fails = 0;
 const fail = m => { console.log('FAIL ' + m); fails++; };
 
 // The properties, as a list of what is wrong with a laid-out galaxy.
-// The points a place takes: its own, or its bar's, from one end to the other a step apart.
+// The points a place covers: its point, or its bar's, from one end to the other a step apart.
 function barPoints(r, v) {
   const b = r.bars && r.bars[v];
   if (!b) return [r.at[v]];
@@ -51,7 +51,7 @@ function barPoints(r, v) {
   return out;
 }
 // What is wrong with the bars: each a row of an odd number of points one step apart along a
-// multiple of 45 degrees, its place's own in the middle.
+// multiple of 45 degrees, its place's point in the middle.
 function barProblems(r) {
   const out = [], k = r.step;
   (r.bars || []).forEach((b, v) => {
@@ -209,11 +209,11 @@ function crowded(m) {
   const at = r.at.map(g), boxes = r.labels.map(l => { const a = g({ x: l.box.x0, y: l.box.y0 }), b = g({ x: l.box.x1, y: l.box.y1 }); return { x0: a.x, y0: a.y, x1: b.x, y1: b.y }; });
   const segs = [];
   r.lines.forEach((l, e) => { if (l) for (let i = 0; i + 1 < l.length; i++) segs.push([g(l[i]), g(l[i + 1]), m.links[e]]); });
-  // a bar, its own place's too, no nearer than SUBWAY_LABEL.bar
+  // a bar, its place's included, no nearer than SUBWAY_LABEL.bar
   (r.bars || []).forEach(b => { if (b) segs.push([g(b.a), g(b.b), [], true]); });
   const grow = (b, c) => ({ x0: b.x0 - c, x1: b.x1 + c, y0: b.y0 - c, y1: b.y1 + c });
   boxes.forEach((b, v) => {
-    // its own place's lines may come nearer than others', and its own place is beside it
+    // its place's lines may come nearer than others', and its place is beside it
     const bl = grow(b, L.line - 1e-6), bo = grow(b, L.ownLine - 1e-6), bp = grow(b, L.place - 1e-6), bb = grow(b, L.bar - 1e-6);
     if (segs.some(([p, q, ends, bar]) => S.subwaySegmentInBox(p, q, bar ? bb : ends.includes(v) ? bo : bl)) || at.some((p, w) => w !== v && p.x > bp.x0 && p.x < bp.x1 && p.y > bp.y0 && p.y < bp.y1) ||
         boxes.some((o, w) => w !== v && b.x0 < o.x1 - 1e-6 && o.x0 < b.x1 - 1e-6 && b.y0 < o.y1 - 1e-6 && o.y0 < b.y1 - 1e-6)) out.push(v);
@@ -393,8 +393,8 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
 }
 
 {
-  // a place five of whose six links truly head within 70 degrees of north-east: a bar on each map that
-  // keeps headings, every link from a point of it and within its heading; then a link from beside
+  // a place five of whose six links truly head within 70 degrees of north-east: a bar on each map with
+  // headings kept, every link from a point of it and within its heading; then a link from beside
   // the bar, and a piece cut across it
   const deg = [-20, -40, -55, -75, -88, 150], R = [60, 50, 45, 55, 40, 50];
   const pos = [{ x: 0, y: 0 }, ...deg.map((d, i) => ({ x: R[i] * Math.cos(d * Math.PI / 180), y: R[i] * Math.sin(d * Math.PI / 180) }))];
@@ -414,10 +414,10 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
       if (!(F.fine ? problemsFine : problems)({ ...m, layout: { ...r, lines: across } }).some(p => /cuts across|runs over place 0/.test(p))) fail(`the bar tests, ${kind}, miss a piece cut across a bar`);
     } else fail(`the bar tests, ${kind}: the bar is not at a slant, so a piece across it is not tried`);
   }
-  // asked for points only (dots), the same place is a point, every link from it
+  // set to points only (dots), the same place is a point, every link from it
   const dots = S.subwayLayout(pos, links, S.SUBWAY_TUNE, 'heading-dots'), dp = problems({ places: pos, links, layout: dots });
-  if (dots.bars || dots.stats.bars !== 0 || dp.length) fail(`a crowded place asked for as a point: ${JSON.stringify(dots.stats)}; ${dp.join('; ')}`);
-  if (fails === before) console.log('a crowded place is a bar on each map that keeps headings, and a point when asked for points only; the bar tests catch a link from beside the bar and a piece cut across it');
+  if (dots.bars || dots.stats.bars !== 0 || dp.length) fail(`a crowded place set to be a point: ${JSON.stringify(dots.stats)}; ${dp.join('; ')}`);
+  if (fails === before) console.log('a crowded place is a bar on each map with headings kept, and a point when set to points only; the bar tests catch a link from beside the bar and a piece cut across it');
 }
 
 {

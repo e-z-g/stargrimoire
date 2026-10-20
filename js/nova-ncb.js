@@ -1,5 +1,5 @@
-/* nova-ncb.js -- control-bit test expressions: read one, and say whether it
-   holds for a given state.
+/* nova-ncb.js -- control-bit test expressions: reading one, and whether it
+   is true for a given state.
    =========================================================================
 
    The Nova Bible ("A quick word about control bits") gives the terms and
@@ -12,7 +12,7 @@
      Exxx  the player has explored system id xxx
      | & ! ( )
 
-   and says an empty expression is true, and that the evaluator "may do
+   and has an empty expression as true, and that the evaluator "may do
    unpredictable things" with `b1 & b2 | b3`. ncbParseTest reads a test as
    written, left to right where & and | mix (`mixed: true`); ncbTest,
    ncbGameTree and ncbCompile read it as Mac 1.1.1 does (ncbRead), which
@@ -103,15 +103,15 @@ function ncbEval(tree, state) {
    GetToken, step for step, over values that `A` makes and combines -- 0 and
    1 for a state (ncbTest), or trees (ncbGameTree).
 
-   The game keeps two values along a run of terms, the result so far and
+   The game tracks two values along a run of terms, the result so far and
    the last term's. At every & or | the result becomes the last term's, so
-   in a run of bare terms only the last two count: `b1 & b2 & b3` holds
+   in a run of bare terms only the last two count: `b1 & b2 & b3` is true
    whenever b2 and b3 do, whatever b1 is. A bracketed term instead folds
    into the last term's value, so `(b1 & b2) & b3` reads as written. A
    test that does not start with b, (, !, p, g, o or e (either case) is
-   false; an empty one is true; a lone number, or a character the game does
-   not know, is passed over; a second ! before a term is the first again.
-   Two forms the Bible leaves out: `[t t ...]` counts the terms that hold
+   false; an empty one is true; a lone number, or a character outside the game's
+   syntax, is passed over; a second ! before a term is the first again.
+   Two forms the Bible leaves out: `[t t ...]` counts the terms that are true
    (each closing bracket inside brackets ends the level, where the game
    then reads on from), and a count followed by <, > or = and a number
    compares the two. */
@@ -182,7 +182,7 @@ function ncbRead(text, A) {
   return exp();
 }
 
-/* Whether a test holds for a state ({ bits, registered, days, male,
+/* Whether a test is true for a state ({ bits, registered, days, male,
    outfits, explored }; a part left out reads as 0, but registered as
    true), as the game reads it (ncbRead). */
 function ncbTest(text, state) {
@@ -278,7 +278,7 @@ function ncbTreeText(t, inside) {
 
 /* What a test needs of each bit it names, as the game reads it: [{ n, on }],
    on false where the bit is under a negation. A test the game reads as
-   never needs nothing. A bit inside a count ([ ]) cannot be said to be
+   never needs nothing. A bit inside a count ([ ]) cannot be called
    needed either way; it is listed as needed on (no shipped test counts). */
 function ncbTestNeeds(text) {
   const tree = ncbGameTree(text), out = [];
@@ -298,14 +298,14 @@ function ncbTestNeeds(text) {
 /* SET EXPRESSIONS, as Mac 1.1.1 reads them (EvalMissionBitSetString 0x99dc5,
    EvalSetExp 0x150fc). The string is read a character at a time, its end
    included. A letter of !ACDEFGHKLMNPQSTUXY^ (either case) is the operation
-   to come and starts its number afresh; B does the same but keeps a ! or ^
+   to come and starts its number afresh; B does the same but retains a ! or ^
    already read (so !b5 clears and ^b5 toggles); a digit adds to the number,
    in 16 bits; R draws Rand(2) for a choice. Any other character ends the
    token: the operation is carried out on its number, if there is one, and
    forgotten. So b5 sets bit 5, !b5 clears it, ^b5 turns it over (bits
    above 9999 are passed over), Sn starts mission n as if accepted, An
-   aborts it (its OnAbort run), Fn fails it, Gn gives outfit n, Dn takes it,
-   Kn gives rank n, Ln takes it (the other letters' operations are not read
+   aborts it (its OnAbort run), Fn fails it, Gn gives outfit n, Dn removes it,
+   Kn gives rank n, Ln removes it (the other letters' operations are not read
    here); a bare number does nothing; "b1b2" sets b2
    only, the B before 2 replacing the token before it was ended; and "!123",
    with no B, clears bit 123.

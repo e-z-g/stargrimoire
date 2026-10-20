@@ -1,5 +1,5 @@
 // Every Nova plug-in in archive.org's EscapeVelocityPluginCollection (EVN.zip's
-// Plugins and Cheats, as Add plug-ins lists them), opened as the page opens it,
+// Plugins and Cheats, as in Add plug-ins), opened as the page opens it,
 // and the StuffIt reader held to The Unarchiver's tools on them:
 //
 // 1. Opened: each file unwrapped and read as openGameFiles reads it
@@ -10,26 +10,26 @@
 //    they like and a split zip's pieces read by their local headers; 960 with
 //    Compact Pro, RAR, ZipIt's self-extractor, StuffIt X's Deflate and four
 //    .rez files whose lists are misplaced (Mr.T's Paint, an installer unar
-//    cannot read either, no longer counted for its own resource fork). What
+//    cannot read either, no longer counted for its resource fork). What
 //    stays shut is printed by why: StuffIt X catalogs unar cannot read
 //    either, copies damaged where they are kept, and files that are no plug-in.
 // 1b. Joined: the three pieces of rEV_Windows, a zip split across files, opened
 //    together, as Add plug-ins opens what is ticked (novaJoinParts): JOINED of
 //    their Nova files read, "rEV Escort Sell" among them, its DLOG list
 //    given past its map's end (part 5).
-// 2. lsar: every StuffIt archive's files, as the page's reader lists them,
+// 2. lsar: every StuffIt archive's files, as the page's reader reads them,
 //    against `lsar -j`, ':' in lsar's names read as the '/' it stands for. The
 //    three LSAR_DIFFERS are lsar's: two read a Mac Roman ƒ as Cyrillic, one
-//    lists a single file where its folder holds four.
+//    has a single file where its folder has four.
 // 3. unar: every fork in StuffIt methods 2, 3 and 5, decompressed by the page
 //    and by `unar -k visible` (its resource forks from the AppleDouble it
 //    writes), byte for byte; and one of them with a byte bent must differ.
 // 4. formats: every Nova file read from the Compact Pro, RAR, ZipIt and
-//    StuffIt X Deflate files is a file unar extracts; a bent RAR is refused.
-// 5. rez: a .rez list read where the one before it ends, and refused when the
-//    entry there names another type.
+//    StuffIt X Deflate files is a file unar extracts; a bent RAR is rejected.
+// 5. rez: a .rez list read where the one before it ends, and rejected when the
+//    entry there is another type.
 //
-// Without EVN.zip it skips; without lsar or unar, parts 2 and 3 do. It takes
+// Without EVN.zip it skips; without lsar or unar, parts 2 and 3 do. It runs for
 // some minutes, the files read one at a time out of a 1.1 GB zip.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -106,8 +106,8 @@ else {
     if (JSON.stringify(ours) === JSON.stringify(theirs)) same++; else differ.push(name.slice(4));
   }
   const unknown = differ.filter(n => !LSAR_DIFFERS.includes(n)), gone = LSAR_DIFFERS.filter(n => !differ.includes(n));
-  if (unknown.length) fail(`StuffIt archives listed otherwise than lsar lists them: ${unknown.slice(0, 8).join(', ')}`);
-  if (gone.length) console.log(`  (lsar now agrees on ${gone.join(', ')}: LSAR_DIFFERS can lose it)`);
+  if (unknown.length) fail(`StuffIt archives listed otherwise than by lsar: ${unknown.slice(0, 8).join(', ')}`);
+  if (gone.length) console.log(`  (lsar now matches on ${gone.join(', ')}: LSAR_DIFFERS can lose it)`);
   console.log(`lsar: ${same} of ${stuffIts.length} StuffIt archives list the same files; ${differ.length} do not, lsar's misreadings`);
 }
 
@@ -150,7 +150,7 @@ else {
 // Every Nova file the page reads out of the files in these formats, each the
 // same bytes as a file `unar` extracts from it, unar run again on what it
 // extracts that is itself an archive (BinHex and MacBinary copies, a RAR in
-// a zip). And a byte bent in a RAR stream must be refused (its CRC-32).
+// a zip). And a byte bent in a RAR stream must be rejected (its CRC-32).
 if (!has('unar')) console.log('formats: SKIP, no unar');
 else {
   const appleDouble = buf => { if (buf.length < 26 || buf.readUInt32BE(0) !== 0x00051607) return null; const n = buf.readUInt16BE(24); for (let i = 0; i < n; i++) { const e = 26 + i * 12; if (buf.readUInt32BE(e) === 2) return buf.subarray(buf.readUInt32BE(e + 4), buf.readUInt32BE(e + 4) + buf.readUInt32BE(e + 8)); } return null; };
@@ -186,13 +186,13 @@ else {
   let refused = '';
   try { S.parseRarArchive(bent).entries.find(e => e.name === entry.name).read('data'); } catch (e) { refused = e.message; }
   if (!refused) fail('a byte bent in a RAR stream was handed back');
-  console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? '; a bent RAR stream is refused' : ''));
+  console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? '; a bent RAR stream is rejected' : ''));
 }
 
 // ---- 5. a .rez list where the one before it ends ---------------------------
 // Get Rich Quick! gives its DLOG and vers lists past its map's end; read where
-// the list before ends, since the entry there names the type. With that entry
-// naming another type, the file must be refused, not read some other way.
+// the list before ends, since the entry there is the type. With that entry
+// naming another type, the file must be rejected, not read some other way.
 {
   const zip = new Uint8Array(execFileSync('unzip', ['-p', EVN, 'EVN/Cheats/Get_Rich_Quick.zip'], { maxBuffer: 1 << 26 }));
   const e = S.parseZipArchive(zip).entries.find(x => /\.rez$/.test(x.name));
@@ -207,7 +207,7 @@ else {
   try { S.novaOpenFork(broken); } catch (err) { refused = err.message; }
   if (!/DLOG/.test(types) || !/vers/.test(types)) fail(`Get Rich Quick!: its types read as ${types}`);
   else if (!refused) fail('Get Rich Quick! with its DLOG entry naming another type was read all the same');
-  else console.log(`rez: Get Rich Quick!'s ${types} read, DLOG and vers where the list before ends; with the DLOG entry naming another type, refused`);
+  else console.log(`rez: Get Rich Quick!'s ${types} read, DLOG and vers where the list before ends; with the DLOG entry naming another type, rejected`);
 }
 fs.rmSync(TMP, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

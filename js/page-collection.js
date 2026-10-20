@@ -5,10 +5,10 @@
    each plug-in a row with its size and folder, and, for the Nova ones,
    its description, fetched when opened. The ticked ones, from any of the
    sets, are fetched whole and opened into the game together, as the
-   visitor's own would be (openGameFiles), and remembered with it. A
+   visitor's files would be (openGameFiles), and remembered with it. A
    listing is fetched once a visit, when its set is first shown.
 
-   The page's own script: DOM here. LOAD ORDER: after js/page-open.js and
+   The page's script: DOM here. LOAD ORDER: after js/page-open.js and
    js/nova-collection.js; page-map.js shows the button. */
 
 const COLLECTION = { at: 'nova', lists: new Map(), ticked: new Map(), q: '', about: new Map() };

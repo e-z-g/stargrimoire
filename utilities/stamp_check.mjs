@@ -1,4 +1,4 @@
-// index.html's script tags carry the hash of what they load (utilities/stamp.mjs): fails on any
+// index.html's script tags have the hash of what they load (utilities/stamp.mjs): fails on any
 // script without a tag or with a stale one, and is first shown to fail on a tag broken on purpose.
 import fs from 'node:fs';
 import path from 'node:path';

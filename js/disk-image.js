@@ -2,8 +2,8 @@
    =========================================================================
 
    A UDIF image, as Mac OS X's Disk Utility writes one, holding an HFS Plus
-   volume: EV Nova 1.1.1 ships as one. `udifFiles(bytes)` lists the files
-   on the volume as `parseStuffItArchive` lists an archive's, and reads
+   volume: EV Nova 1.1.1 ships as one. `udifFiles(bytes)` gives the files
+   on the volume as `parseStuffItArchive` gives an archive's, and reads
    either fork of any of them, inflating only the parts of the image that
    fork lies in: the 1.1.1 image is a 512 MB volume in 94 MB, most of it
    empty.
@@ -16,11 +16,11 @@
    document of Apple's; its layout here (the 512-byte `koly` trailer at the
    end, an XML property list whose `blkx` entries each hold a `mish` table
    of chunks) was read off EV Nova 1.1.1's image itself on 8 October 2026.
-   `utilities/dmg_check.mjs` holds what this reads to the files macOS's own
+   `utilities/dmg_check.mjs` compares what this reads with the files macOS's
    `hdiutil` copied out of the same image.
 
    Chunks read: zeros (0 and 2), stored (1) and zlib (0x80000005), which is
-   all 1.1.1's image uses. Others (ADC, bzip2, LZFSE) are refused by name.
+   all 1.1.1's image uses. Others (ADC, bzip2, LZFSE) are rejected by name.
 
    No DOM. LOAD ORDER: after js/mac-vise.js, whose inflateRaw it uses. */
 
@@ -134,7 +134,7 @@ function hfspName(b, at) {
 function hfspVolume(read) {
   const vh = read(1024, 512);
   const sig = String.fromCharCode(vh[0], vh[1]);
-  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image holds an HFS volume, not HFS Plus' : 'the disk image holds no HFS Plus volume');
+  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image has an HFS volume, not HFS Plus' : 'the disk image has no HFS Plus volume');
   const bs = u32be(vh, 40);
   const forkBytes = (fork, overflow) => {
     const ext = fork.extents.concat(overflow || []), out = new Uint8Array(fork.size);
@@ -201,11 +201,11 @@ function udifFiles(bytes) {
 /* ---- an installer package inside an image (.pkg) -------------------------
 
    EV Nova 1.1 beta 2.10.7 for the Mac ships as an image holding one
-   installer package, whose payload holds the game's Windows files beside
-   a wrapper that runs them. `pkgFiles(bytes)` lists the files of every
+   installer package, whose payload has the game's Windows files beside
+   a wrapper that runs them. `pkgFiles(bytes)` gives the files of every
    payload in a package, in the shape `udifFiles` gives.
 
-   A flat package is a xar archive: 'xar!', a header of its own length
+   A flat package is a xar archive: 'xar!', a header of the length it gives
    (28), the table of contents' compressed and uncompressed lengths (big
    endian, 8 bytes each), and the table of contents, zlib-compressed XML,
    followed by the heap that its <data> entries' offsets count from. Each
@@ -213,7 +213,7 @@ function udifFiles(bytes) {
    ('070707': fields in octal, a 76-byte header, then the name with its
    NUL, then the file). Read off this package on 10 October 2026 and
    checked against macOS's `xar` and `cpio`; other payload encodings
-   (pbzx, bzip2) are refused by name. */
+   (pbzx, bzip2) are rejected by name. */
 function looksLikeXar(b) { return b && b.length > 28 && b[0] === 0x78 && b[1] === 0x61 && b[2] === 0x72 && b[3] === 0x21; }   // 'xar!'
 function pkgFiles(bytes) {
   if (!looksLikeXar(bytes)) throw new Error('not an installer package (xar)');

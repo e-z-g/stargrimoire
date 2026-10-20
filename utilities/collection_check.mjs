@@ -1,6 +1,6 @@
 // The bar's Add plug-ins: archive.org's listings of the three plug-in
 // collections, read as the page reads them (js/nova-collection.js), held
-// to the items themselves as reference/game/collections keeps them, each
+// to the items themselves as reference/game/collections has them, each
 // file there checked against the item's md5 when it was taken. The
 // listings are reference/archive-org's, taken by its fetch.sh as the page
 // fetches them.
@@ -22,7 +22,7 @@ import { site, REF } from './load.mjs';
 const S = site();
 const LIST = path.join(REF, 'archive-org'), COLL = path.join(REF, 'game/collections');
 const EVN = path.join(COLL, 'EscapeVelocityPluginCollection/EVN.zip');
-if (!fs.existsSync(path.join(LIST, 'EVN.zip.html'))) { console.log('SKIP: no reference/archive-org (its fetch.sh takes the listings)'); process.exit(0); }
+if (!fs.existsSync(path.join(LIST, 'EVN.zip.html'))) { console.log('SKIP: no reference/archive-org (its fetch.sh fetches the listings)'); process.exit(0); }
 if (!fs.existsSync(EVN)) { console.log('SKIP: no EVN.zip in reference/game/collections'); process.exit(0); }
 let fails = 0;
 const fail = m => { console.log('FAIL ' + m); fails++; };

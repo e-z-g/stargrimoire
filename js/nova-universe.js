@@ -3,7 +3,7 @@
    =========================================================================
 
    Built from the records (nova-records.js) and nothing else. Every rule
-   below is the Bible's unless it names an address in the program; those
+   below is the Bible's unless it cites an address in the program; those
    were read from the Mac 1.0.10 build's PowerPC code, laid out as
    evnova-workbench's tools/pefreloc_nova.py lays it out (code at 0x100000).
 
@@ -15,20 +15,20 @@
    545 systems in 1.1.1 have a test, and 128 places have more than one.
 
    STELLARS belong to a system by being one of its sixteen navigation
-   defaults; the Bible says one that is not "won't show up on the radar".
+   defaults; in the Bible, one that is not "won't show up on the radar".
    A stellar's picture is spïn 1000 + its Type. When landed, the game shows
    PICT CustPicID when that is 128 or more, and otherwise PICT 10000 + Type:
    Mac 0x1353d0 loads CustPicID, compares it with 128 and adds 10000 to the
    Type in the other branch (the copy from the resource into memory at
-   0x124b00 is what says which memory field is which).
+   0x124b00 is what shows which memory field is which).
 
-   DEFENCE FLEETS. DefCount above 1000 means waves; the program keeps the
+   DEFENCE FLEETS. DefCount above 1000 means waves; the program stores the
    total as DefCount / 10 - 100, or DefCount / 10 - 1000 above 10000
    (0x124fb4), which is the Bible's "minus 1 from the first digit". The
    wave size, the last digit, is the Bible's.
 
    NEBULAE. nëbu n (from 128) owns PICT 9500 + 7(n - 128) and the six after,
-   smallest first. To draw one, 1.1.1's MapDialogUpdate takes the last of
+   smallest first. To draw one, 1.1.1's MapDialogUpdate uses the last of
    the seven that is no wider and no taller than the rectangle it is drawn
    into, the first when none is (and nothing when that one is missing), and
    stretches it to the rectangle (novaNebulaPict). Its rectangle is the
@@ -178,13 +178,13 @@ function novaNebulaPictIds(neb) { return Array.from({ length: 7 }, (_, i) => 950
    its Graphic; an explosion's, 400 + its GraphicIndex; the boxes', 500 + n;
    an asteroid's, 800 + n; a stellar's, 1000 + its Type (1.1.1's
    LoadSprites and LoadMasterStellarSprite; novaFigure's shotSpin ...
-   stellarSpin, which program_check holds these to). */
+   stellarSpin, which program_check compares these with). */
 const NOVA_SPIN_BASE = { shot: 3000, explod: 400, box: 500, asteroid: 800, stellar: 1000 };
 function novaStellarSpin(spob) { return NOVA_SPIN_BASE.stellar + spob.Type; }
 function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID : 10000 + spob.Type; }
 
 /* ANIMATION, read from Mac 1.1.1's HandleStellarSprites (the Intel half,
-   0x2e6f1), which has its function names; the Bible's spöb section says
+   0x2e6f1), which has its function names; the Bible's spöb section has
    the same in fewer words, and evnova-decomp's NovaStellar_AdvanceAnimationFrame
    is the Community Edition's. A stellar whose sprite has two frames or more
    animates while it is not destroyed, or, with Flags2 0x0080, only while it
@@ -192,7 +192,7 @@ function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID :
      Time is counted in 30ths of a second. Once AnimDelay of them have
    passed, or AnimDelay times Frame0Bias on the first frame when that is
    above 1, the count starts again and the frame moves on. The program
-   keeps the frame shown and the one to show next (`cur`, `next`): the next
+   stores the frame shown and the one to show next (`cur`, `next`): the next
    becomes the shown one, and a new next is the one after it, or with Flags2
    0x0002 one at random that is not the one now shown. With 0x0001 the first
    frame comes between every two others, and the random pick is never it.
@@ -254,7 +254,7 @@ function novaStellarAnimStep(spob, a, count, ticks, engaged, rand) {
 
 /* Descriptions: the spaceport loads dësc 128 + the stellar's index (its id
    less 128), the bar dësc 10000 + it (1.1.1's DoPortDialog and DoBarDialog;
-   novaFigure's stellarDesc and barDesc, which program_check holds these to). */
+   novaFigure's stellarDesc and barDesc, which program_check compares these with). */
 function novaStellarDescId(spob) { return 128 + spob.id - 128; }
 function novaStellarBarDescId(spob) { return 10000 + spob.id - 128; }
 
@@ -285,26 +285,26 @@ function novaDefense(spob) {
    only when destroyed") is set. Destroyed there is a Strength above 0 with
    the stellar's strength run below 0 or its dead time still counting; the
    map shows the game as it starts, when nothing is (no shipped stellar
-   starts destroyed, Flags2 0x0040). Landing (0x1932c0) and hailing ask it. */
+   starts destroyed, Flags2 0x0040). Landing (0x1932c0) and hailing call it. */
 function novaCanLand(spob, destroyed = false) {
   return !!(spob.Flags & 0x01) && (destroyed ? !!(spob.Flags & 0x80) : !(spob.Flags & 0x80));
 }
 
-/* Whether the player can hail a stellar, and so ever ask it for tribute.
+/* Whether the player can hail a stellar, and so ever demand tribute of it.
    Mac 1.0.10 0x1906b4-0x19070c: a stellar that is uninhabited (Flags 0x20),
    cannot be landed on now (novaCanLand), or is a hypergate or a wormhole
    (Flags2 0x1000, 0x2000) answers "No response." (STR# 2002, 53) and the
    hail window is not opened. The beta history in the Community Edition's
-   documentation says the same of gates. */
+   documentation has the same of gates. */
 function novaCanHail(spob) {
   return !(spob.Flags & 0x20) && novaCanLand(spob) && !(spob.Flags2 & 0x3000);
 }
 
 /* The system a stellar belongs to (Mac 0x173b40, run whenever visibility
    changes): the first shown system, in id order, whose navigation list
-   holds it, or null. A stellar listed by two shown systems is drawn in
+   has it, or null. A stellar listed by two shown systems is drawn in
    both, but belongs to the first: it can be landed on only there, and a
-   ship arriving at it arrives there. */
+   ship going to it goes there. */
 function novaStellarSystem(u, id, shown) {
   let best = null;
   for (const s of u.inSystems.get(id) || []) if (shown.has(s) && (best === null || s < best)) best = s;
@@ -316,12 +316,12 @@ function novaStellarSystem(u, id, shown) {
    needs: novaCanLand, the stellar in the system you are in (by
    novaStellarSystem), its fee if not dominated ("to pay the hypergate
    fee"; no shipped gate has one), the cloak off, and to be near and slow.
-   A gate that fails novaCanLand or is not the system's own refuses: "Your
+   A gate that fails novaCanLand or is not the system's is closed: "Your
    ship is unable to enter this hypergate - it is offline." or "... this
    wormhole - the radiation levels are too extreme." (STR# 2002, 84-86).
      A hypergate (0x192220) with no HyperLink set does nothing; otherwise
    the player picks a system and the gate goes to the linked stellar whose
-   system is it: the stellar's own system, or the first system listing it
+   system is it: the stellar's system, or the first system listing it
    (0x1b4820), as the version shown at that place (0x1b16b0).
      A wormhole (0x192a10) with a HyperLink set goes to one of them at
    random, of those in a shown system. One with none set goes to a random
@@ -337,8 +337,8 @@ function novaRandomWormhole(spob) { return !!(spob.Flags2 & 0x2000) && novaGateT
    systems `shown`, as the program does it: { to: { sys, spob } }, or
    { refused: true } where it gives the radiation message (STR# 2002, 84
    and 86). Landing's checks come first (0x1932c0): the wormhole can be
-   landed on (novaCanLand) and is the system's own. Then 0x192a10: one with
-   a HyperLink set tries its slots at random until one names a stellar in a
+   landed on (novaCanLand) and is the system's. Then 0x192a10: one with
+   a HyperLink set tries its slots at random until one is a stellar in a
    shown system, which is a pick among those slots, a stellar named twice
    counting twice; one with none set picks among the wormholes with none
    set that belong to a shown system other than `here`, whether or not they
@@ -385,7 +385,7 @@ function novaHypergateChoices(u, shown, spob, here) {
    it, as { sys, spob, why }: 'offline' (novaCanLand fails), 'elsewhere'
    (it belongs to a system at another place), 'unlinked' (a hypergate with no
    HyperLink) or 'nowhere' (none it names is in a shown system). */
-// Where a hypergate's link arrives: its stellar's own system, or failing
+// Where a hypergate's link leads: its stellar's system, or failing
 // one the first system listing it, as the version shown at its place.
 function novaGateArrival(u, id, shown) {
   const own = novaStellarSystem(u, id, shown);

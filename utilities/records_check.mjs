@@ -7,7 +7,7 @@
 //      game ships.
 //   2. VALUES. The ConText dump of 1.1.1 in evnova-utils
 //      (Context/NovaConText.txt): every record of every type both have, read
-//      from 1.1.1's own files by our tables, field for field.
+//      from 1.1.1's files by our tables, field for field.
 //
 // A field the dump does not have is listed, not failed; a column the dump has
 // and the tables do not is a failure.
@@ -116,7 +116,7 @@ const ALIAS = { Visiblility: 'Visibility', spobType: 'Type', MinCoolness: 'MinSt
                 WType: 'WeapType', WCount: 'WeapCount', Ammo: 'AmmoLoad', WType2: 'WeapType2', WCount2: 'WeapCount2', Ammo2: 'AmmoLoad2',
                 DefaultItems2: 'DefaultItms2', AvailShipType: 'AvailShipTyp', HailPICT: 'HailPict',
                 EscortShipType: 'EscortType', EscortMin: 'Min', EscortMax: 'Max' };
-// Names the dump gives one type's field that another type uses for its own.
+// The dump's names for one type's field that another type has under another name.
 const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color' }, ränk: { Contributes: 'Contrib', flags: 'Flags' },
   röid: { spinRate: 'SpinRate', yieldType: 'YieldType', yieldQty: 'YieldQty', partCount: 'PartCount', partColor: 'PartColor',
           fragType1: 'FragType1', fragType2: 'FragType2', fragCount: 'FragCount', ExplodeType: 'ExplodType' } };
@@ -125,7 +125,7 @@ const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color'
 // the template's layout alone.
 const DUMP_OMITS = { ränk: ['ConvName', 'ShortName'] };
 // The dump writes a quotation mark as \q and CR and LF as \r and \n, and a
-// backslash as itself, so a ShortName's own two characters \n (the Bible's
+// backslash as itself, so a ShortName's two characters \n (the Bible's
 // line break in the shipyard) read back as LF. Our value is escaped the
 // dump's way and compared, which has no such ambiguity.
 const escape = s => s.replace(/["\r\n]/g, c => ({ '"': '\\q', '\r': '\\r', '\n': '\\n' })[c]);
@@ -137,7 +137,7 @@ function dumpSections() {
     const m = /^• Begin (.+)$/.exec(rows[i][0]);
     if (!m) continue;
     const head = rows[i + 1].map(h => h.replace(/^"|"$/g, ''));
-    // A column named twice keeps its first place: the mïsn header names
+    // A column named twice stays at its first place: the mïsn header names
     // RefuseButton twice and its rows are a column short of it, so the
     // second would read the end-of-record mark.
     const recs = [];

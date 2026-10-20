@@ -1,7 +1,7 @@
 /* nova-plugin.js -- records changed in the browser, written as a plug-in.
    =========================================================================
 
-   A plug-in is a file of resources the game reads after its own, each one
+   A plug-in is a file of resources the game reads after its data files, each one
    replacing the game's resource of the same type and id. So the records a
    visitor changes are kept as exactly that, a plug-in in memory, put last
    in the game (novaGame's `setEdits`), and the page reads the game through
@@ -10,26 +10,26 @@
 
      .rez    the Windows builds' and the Community Edition's plug-ins, in
              the layout EVNEW's CPlugIn::Save writes (`novaWriteRez`).
-             utilities/plugin_check.mjs holds it to every `.rez` in
+             utilities/plugin_check.mjs checks it against every `.rez` in
              reference/game, rewritten byte for byte, and to
              evnova-workbench's tools/rez.py.
      .bin    a Mac plug-in, MacBinary II: a resource fork written by
              mac-resfork.js, and the Finder type `Npïf` that the Mac
-             program's loader asks for (`../evnova-workbench/doc/findings.md`
+             program's loader looks for (`../evnova-workbench/doc/findings.md`
              § *Formats and facts*). A browser cannot hand over a file with
              a resource fork; StuffIt Expander or The Unarchiver turns the
              .bin back into one.
 
    A changed record is written from its type's table in nova-records.js
-   over the bytes it had, so a field the table does not name (an Unused
-   run, the tail of a record longer than its table) keeps its bytes.
+   over the bytes it had, so a field not in the table (an Unused
+   run, the tail of a record longer than its table) is left as it was.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after mac-bytes.js,
    mac-containers.js, mac-resfork.js, nova-files.js and nova-records.js. */
 
 /* A record's bytes from its fields: `rec` as novaRecord gives it, written
    over `base`, the bytes it was read from (a copy is returned; `base` is
-   not changed). A field absent from `rec` keeps its bytes. A record
+   not changed). A field absent from `rec` is left as it was. A record
    shorter than its table stays as long as it was; a field past its end is
    not written. */
 function novaRecordBytes(type, rec, base) {
@@ -59,7 +59,7 @@ function novaRecordBytes(type, rec, base) {
       if (off + n > b.length) break;
       if (kind === 'str' && name in rec) {
         const s = encodeMacRoman(rec[name]);
-        if (s.length > n - 1) throw new Error(`${name} takes at most ${n - 1} characters`);
+        if (s.length > n - 1) throw new Error(`${name} must be at most ${n - 1} characters`);
         // what was there past the old string's NUL is kept, as the game's
         // editors leave it; only the string and its NUL are written
         const old = novaFixedString(b, off, n);
@@ -84,23 +84,23 @@ function novaRecordBytes(type, rec, base) {
 function novaFieldParse(kind, text) {
   const t = String(text).trim();
   const range = (v, lo, hi) => {
-    if (!Number.isInteger(v) || v < lo || v > hi) throw new Error(`wants a whole number from ${lo} to ${hi}`);
+    if (!Number.isInteger(v) || v < lo || v > hi) throw new Error(`must be a whole number from ${lo} to ${hi}`);
     return v;
   };
   if (kind === 'str' || kind === 'cstr') return String(text);
   if (kind === 'h16' || kind === 'h32' || kind === 'rgb') {
     const m = /^(?:0x|#)?([0-9a-f]+)$/i.exec(t);
-    if (!m) throw new Error(kind === 'rgb' ? 'wants a colour, #RRGGBB' : 'wants a hex number');
+    if (!m) throw new Error(kind === 'rgb' ? 'must be a colour, #RRGGBB' : 'must be a hex number');
     return range(parseInt(m[1], 16), 0, kind === 'h16' ? 0xFFFF : 0xFFFFFFFF);
   }
-  if (!/^[-+]?\d+$/.test(t)) throw new Error('wants a whole number');
+  if (!/^[-+]?\d+$/.test(t)) throw new Error('must be a whole number');
   const v = Number(t);
   return kind === 'i16' ? range(v, -32768, 32767) : range(v, -2147483648, 2147483647);
 }
 
 /* A plug-in held in memory, from [{ type, id, name, data }] (`type` the
    type's name, as 'sÿst'), answering as a fork from mac-resfork.js does as
-   far as novaGame asks. */
+   far as novaGame needs. */
 function novaPluginFork(resources) {
   const resourcesByType = {}, typeList = [];
   for (const r of resources) {
@@ -117,7 +117,7 @@ function novaPluginFork(resources) {
   };
 }
 
-/* The resources in the order a plug-in file holds them: by type, in the
+/* The resources in the order a plug-in file has them: by type, in the
    order of first appearance, and by id within a type. */
 function novaPluginOrder(resources) {
   const types = [];
@@ -133,7 +133,7 @@ function novaPluginOrder(resources) {
    type its four bytes, the offset of its list from the map and its count,
    and per resource its index, type, id and a 256-byte name.
    The resources go in the order given, a type's kept together. `first`,
-   1 unless given, is the first index: Ambrosia's own files number theirs
+   1 unless given, is the first index: Ambrosia's files number theirs
    on from the file before (Nova Titles 3's from 1,271), which is how the
    check rewrites them byte for byte. */
 function novaWriteRez(resources, first = 1) {
@@ -180,9 +180,9 @@ function novaWriteRez(resources, first = 1) {
 }
 
 /* A Mac plug-in of [{ type, id, name, data }], as MacBinary II: the
-   resources in a resource fork, Finder type Npïf. The loader wants any
-   creator but zero; this is the game's own, Növä, which its data files
-   carry, and the only Mac plug-ins in reference/game that kept their
+   resources in a resource fork, Finder type Npïf. The loader accepts any
+   creator but zero; this is the game's, Növä, which its data files
+   have, and the only Mac plug-ins in reference/game that kept their
    Finder type (Polycon's, in PolyconEV1.2Update.sit). */
 const NOVA_PLUGIN_CREATOR = 'Növä';
 function novaWriteMacPlugin(resources, name) {
@@ -193,7 +193,7 @@ function novaWriteMacPlugin(resources, name) {
 /* The records of `now` that are not as they are in `was` -- new, or with
    other bytes or another name -- as resources for a plug-in that turns
    `was` into `now`. Only the types with a table in nova-records.js, which
-   are the ones the site reads; a record taken away cannot be said by a
+   are the ones the site reads; a record taken away cannot be expressed in a
    plug-in and is left out. */
 function novaPluginFromGames(was, now) {
   const out = [];

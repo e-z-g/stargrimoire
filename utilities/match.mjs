@@ -1,6 +1,6 @@
 // Where the routines Mac 1.1.1 names are in the programs of 1.0.2, 1.0.8 and
 // 1.0.10, which keep no names: what utilities/routines_build.mjs writes into
-// js/nova-routines.js and program_check holds that file to.
+// js/nova-routines.js and program_check compares that file with.
 //
 // 1.1.1 was built by GCC and 1.0.x by CodeWarrior, so no instruction is the
 // same; what a routine does survives, and each is described by it, in order:
@@ -239,7 +239,7 @@ export function routinePlaces(S, mac, pefs, names) {
   return releases;
 }
 
-// The names a page cites: the field notes' routines and the rules'.
+// The routine names cited on a page: the field notes' routines and the rules'.
 export function citedRoutines(S) {
   const cited = new Set();
   for (const t of Object.values(S.NOVA_FIELD_NOTES)) for (const f of Object.values(t)) for (const [n] of f.code) cited.add(n);
@@ -252,7 +252,7 @@ export function routinesFile(releases) {
   const order = [...releases].sort((a, b) => a[1] - b[1]);
   const names = [...new Set(order.flatMap(([, , at]) => [...at.keys()]))].sort();
   const hex = v => '0x' + v.toString(16);
-  return `/* nova-routines.js -- written by utilities/routines_build.mjs, which says
+  return `/* nova-routines.js -- written by utilities/routines_build.mjs, whose comments give
    how the routines were matched; run it after changing which routines the
    field notes (js/nova-fields.js) or the rules (js/nova-rules.js) cite.
    =========================================================================
@@ -260,7 +260,7 @@ export function routinesFile(releases) {
    Where each routine the field notes and the rules cite, by the name Mac
    1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which keep
    no names: NOVA_ROUTINES.releases is each release and the length of its
-   program's code, by which the page knows it; NOVA_ROUTINES.at[name] is the
+   program's code, by which the page identifies it; NOVA_ROUTINES.at[name] is the
    routine's address in each, in that order, 0 where it was not matched.
    program_check fails while this is not what the matcher gives. */
 

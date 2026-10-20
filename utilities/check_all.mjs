@@ -6,24 +6,24 @@
 //   node utilities/check_all.mjs --fresh    # every check run, none taken as before
 //
 // --quick leaves out subway and page, about 11 of a full run's 13 minutes,
-// and says so at the end. A front is landed on a full run, never a quick one.
+// and reports it at the end. A front is landed on a full run, never a quick one.
 //
 // A check that passed is not run again while everything it read is as it
 // was: check_trace.mjs notes, as it runs, every file it reads, every folder
-// it lists, every path it asks about and every file it hands a program it
+// it lists, every path it queries and every file it hands a program it
 // starts, and the run is kept in ~/.cache/stargrimoire-checks against them
 // (a file of up to 4 MB by its contents, a larger one by its size and
 // time). A check that loads the site's scripts through load.mjs's site()
 // still loads them all, but is taken to read only those it can reach: a
 // script whose names (scriptGlobals) appear in the check, in a module of
 // utilities/ it imports, or in a script it reaches; and of index.html only
-// its list of scripts, not their stamps. The table says "same" for such a
+// its list of scripts, not their stamps. The table shows "same" for such a
 // check. The last few passing
 // runs of each are kept, so a front and the main checkout do not undo
-// each other's. --fresh runs them all and keeps what they read.
+// each other's. --fresh runs them all and records what they read.
 //
 // One at a time: the page check runs Chrome over a 96 MB release, and this
-// machine has 8 GB. A check whose inputs are missing skips and says why;
+// machine has 8 GB. A check whose inputs are missing skips and reports why;
 // SKIP is not a failure, and the table shows it.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -94,7 +94,7 @@ function remember(name, entry) {
 
 const CHECKS = [
   ['copies', 'js/mac-*.js are ratlizard/mac-files\', byte for byte'],
-  ['stamp', 'every script index.html loads tagged with its contents\' hash, so no visitor gets an old one'],
+  ['stamp', 'every script index.html loads tagged with its contents\' hash, so no visitor is given an old one'],
   ['records', 'record tables against Ambrosia\'s templates and the ConText dump'],
   ['dmg', 'the 1.1.1 disk image read here against the files hdiutil copied out of it'],
   ['rez', 'the .rez reader against the workbench\'s rez.py'],

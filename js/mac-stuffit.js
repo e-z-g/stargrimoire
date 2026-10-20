@@ -4,10 +4,10 @@
 
    Cythera's installer is mirrored as a StuffIt archive -- archive.org's
    `cythera.sit` and old.mac.gdn's `Cythera_Installer.sit` are StuffIt 5,
-   Ambrosia's own `Cythera_1.0.4_Installer.sit` is the classic `SIT!`
+   Ambrosia's `Cythera_1.0.4_Installer.sit` is the classic `SIT!`
    format -- and in every one of them the file that matters, the installer
    application's 6.8 MB data fork, is STORED: method 0, no compression at
-   all. That is also true of the 28 MB four-in-one bundle the page's own
+   all. That is also true of the 28 MB four-in-one bundle the page's
    gate downloads: all four installers' data forks in it are stored, and
    only their resource forks are compressed, which the page has no use for.
    So reading the catalog and handing back stored forks was enough for a
@@ -30,7 +30,7 @@
    **And method 15, Arsenic, since 16 September 2026**, which is what the
    rest of the corpus is: the 3D Cursors add-on, the I.M.Cheater saved game,
    and every resource fork in the four-in-one bundle. Until then the page
-   could list those files and not hand them over, and the installer's own
+   could list those files and not hand them over, and the installer's
    resource fork -- where its VISE icon is -- could only be reached from a
    MacBinary copy. See the Arsenic section at the foot of this file.
 
@@ -54,8 +54,8 @@ const SIT_METHOD_NAMES = {
 };
 
 /* StuffIt X, the .sitx format, opens with "StuffIt!". It is a different format
-   from the two above rather than a later version of them, with compressors of
-   its own, and this file reads none of it. Recognised only so that a refusal
+   from the two above rather than a later version of them, with different
+   compressors, and this file reads none of it. Recognised only so that a rejection
    can say what the file is. */
 function looksLikeStuffItX(bytes) {
   return !!bytes && bytes.length >= 8 && latin1(bytes.subarray(0, 8)) === 'StuffIt!';
@@ -113,15 +113,15 @@ function parseStuffItClassic(bytes) {
 
 /* ---- StuffIt 5 -----------------------------------------------------------
  * An 80-byte banner, a small header, and a linked list of entries whose
- * offsets are XORed with 0xA5A5A5A5 unless the archive says otherwise. The
+ * offsets are XORed with 0xA5A5A5A5 unless the archive sets otherwise. The
  * entry header is 48 bytes plus the name, an optional comment, then a
- * metadata block carrying the Finder identity and, when bit 0 of its first
+ * metadata block with the Finder identity and, when bit 0 of its first
  * word is set, the resource fork's lengths. The forks follow: resource fork
  * first, then data fork. */
 /* A StuffIt 5 entry's name: Mac Roman, except that StuffIt on Mac OS X wrote
    UTF-8 ("Fireworks ƒ" as the bytes of UTF-8's ƒ, read in Mac Roman "∆í"),
    and a name that is valid UTF-8 with any byte past ASCII is taken as that,
-   as lsar takes it; Mac Roman text is almost never valid UTF-8. */
+   as lsar reads it; Mac Roman text is almost never valid UTF-8. */
 function sit5Name(b) {
   if (b.some(v => v > 127)) {
     try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { /* Mac Roman, then */ }
@@ -138,9 +138,9 @@ function parseStuffIt5(bytes) {
   let remaining = u16be(bytes, 92);
   const entries = [];
   const dirs = new Map();
-  /* Where to carry on after each folder ends. A folder's header gives the
+  /* Where to continue after each folder ends. A folder's header gives the
      offset of its first child, and the walk jumps there -- so without
-     somewhere to put the folder's OWN next-entry pointer, the walk descends
+     somewhere to put the folder's next-entry pointer, the walk descends
      into the first folder it meets and never comes back up. That is not
      hypothetical: `Cythera Installed Folder with Preferences & License.sit`
      listed 12 entries of 51, everything in it stopping at the end of the
@@ -165,7 +165,7 @@ function parseStuffIt5(bytes) {
     const name = sit5Name(bytes.subarray(at, at + nameLen));
     at += nameLen;
     if (isFolder && nameLen === 0) {            // end-of-folder marker
-      // The stack first, the marker's own pointer as a fallback, and never a
+      // The stack first, the marker's pointer as a fallback, and never a
       // jump to zero: a folder with nothing after it at its level has a null
       // next-entry pointer, and following it would land on the header at
       // offset 0 and throw on the marker check.
@@ -206,7 +206,7 @@ function parseStuffIt5(bytes) {
                      dataLen, dataPackedLen, dataMethod, dataOffset: at + rsrcPackedLen,
                      encrypted: !!(eflags & 0x20) });
       // on to the entry this one names as next: the entries need not lie in order (X-series
-      // prototypes.sit, in archive.org's EV Nova collection, keeps its first at the end of the
+      // prototypes.sit, in archive.org's EV Nova collection, stores its first at the end of the
       // file); with none named, the one after this one's forks
       at = nextOff ? off(nextOff) : at + rsrcPackedLen + dataPackedLen;
     }
@@ -217,7 +217,7 @@ function parseStuffIt5(bytes) {
 
 /* One fork of one entry: stored, or decompressed if the method is one this
  * file implements. `which` is 'data' or 'rsrc'. Throws, naming the method,
- * for anything else, and the message is what tells a user which file to
+ * for anything else, and the message is what shows a user which file to
  * extract by hand.
  *
  * Was `stuffItStoredFork` until method 13 landed. Renamed rather than kept
@@ -233,10 +233,10 @@ function stuffItFork(bytes, entry, which) {
   if (offset + packedLen > bytes.length) throw new Error('"' + entry.name + '" runs past the end of the archive');
   if (method === 0) {
     // A stored fork's packed length IS its length. When it is not, the entry
-    // says stored and is not, and handing back the first `len` bytes would
+    // is marked stored and is not, and handing back the first `len` bytes would
     // quietly produce a wrong file rather than an error.
     if (packedLen !== len)
-      throw new Error('"' + entry.name + '" ' + which + ' fork says it is stored but is ' +
+      throw new Error('"' + entry.name + '" ' + which + ' fork is marked stored but is ' +
                       packedLen + ' bytes for a length of ' + len);
     return bytes.subarray(offset, offset + len);
   }
@@ -249,7 +249,7 @@ function stuffItFork(bytes, entry, which) {
     const out = method === 13 ? sit13Decompress(packed, len) : arsenicDecompress(packed, len);
     if (out.length !== len)
       throw new Error('"' + entry.name + '" ' + which + ' fork decompressed to ' + out.length +
-                      ' bytes where the catalog says ' + len);
+                      ' bytes where the catalog has ' + len);
     return out;
   }
   throw new Error('"' + entry.name + '" ' + which + ' fork is compressed with StuffIt method ' + method +
@@ -264,12 +264,12 @@ function stuffItFork(bytes, entry, which) {
    `614_MagpiePumpkinPatch.sit.hqx`. Without this, using that section meant
    unpacking the .sit on a desktop with `unar` first, which is not a thing a
    phone can do, so the feature's front door was shut to exactly the person
-   most likely to want it. Method 13 also opens Pandora's Box and the 1.0.1
+   most likely to need it. Method 13 also opens Pandora's Box and the 1.0.1
    and 1.0.2 installers, whose forks are both method 13.
 
    WHERE IT CAME FROM. Ported, near line for line, from `Sit13Decoder` in
    `stuffit-rs` 0.1.8 (Ben Letchford, MIT OR Apache-2.0) -- the same source
-   this file's header layouts came from, and it in turn carries the tables
+   this file's header layouts came from, and it in turn has the tables
    from The Unarchiver's `XADStuffIt13Handle.m` (LGPL), which is where the
    comments in that crate point. CLAUDE.md's licensing note allows this for
    infrastructure with no oracle role, with attribution in the header, and
@@ -290,16 +290,16 @@ function stuffItFork(bytes, entry, which) {
    WHAT IT IS. An LZ77 window with three Huffman codes over it: `first` for
    the literal or match token when the last thing emitted was a literal,
    `second` for the same when the last thing was a match, and `offset` for
-   the bit length of the match distance. The first nibble of the stream says
+   the bit length of the match distance. The first nibble of the stream sets
    which set of codes to use -- 0 for codes written into the stream ahead of
-   the data, 1 to 5 for one of five built-in sets -- and our own files use
+   the data, 1 to 5 for one of five built-in sets -- and these files use
    0, 1 and 2. */
 
 /* Bits, low bit first, which is the order method 13 reads in.
 
-   The Rust keeps a 64-bit accumulator. JavaScript's bitwise operators are
-   32-bit, so this keeps at most 24 bits buffered and refills before each
-   read: the widest single read the format asks for is 15 bits, so 24 is
+   The Rust has a 64-bit accumulator. JavaScript's bitwise operators are
+   32-bit, so this buffers at most 24 bits and refills before each
+   read: the widest single read the format uses is 15 bits, so 24 is
    always enough and the accumulator never reaches bit 32.
 
    Running out of input is not an error here. The Rust would underflow its
@@ -378,7 +378,7 @@ function sit13Decode(tree, br) {
   }
 }
 
-/* One code table written into the stream, as a run-length coding of its own
+/* One code table written into the stream, as a run-length coding
    symbol lengths through the metacode. Verbatim from the Rust, including the
    trailing write after the switch, which is what makes most branches advance
    two entries rather than one. */
@@ -401,7 +401,7 @@ function sit13ParseCode(br, numCodes, metatree) {
 }
 
 /* `packed` is one fork's compressed bytes, `outLen` the length the catalog
-   says it should come back as. Returns what it managed; the caller checks
+   gives for its output. Returns what it managed; the caller checks
    the length, so a stream that stops early is an error there rather than a
    silently short file here. */
 function sit13Decompress(packed, outLen) {
@@ -416,7 +416,7 @@ function sit13Decompress(packed, outLen) {
   if (code === 0) {
     const meta = sit13TreeFromCodes(SIT13_META_CODES, SIT13_META_LENGTHS, 37);
     firstTree = sit13ParseCode(br, 321, meta);
-    // Bit 3 says the second code is the first one over again, which is how a
+    // Bit 3 marks the second code as the first one over again, which is how a
     // stream avoids writing 321 lengths twice.
     secondTree = (first & 0x08) ? firstTree : sit13ParseCode(br, 321, meta);
     offsetTree = sit13ParseCode(br, (first & 0x07) + 10, meta);
@@ -463,7 +463,7 @@ const SIT13_OFFSET = [[5,6,3,3,3,3,3,3,3,4,6],[5,6,4,4,3,3,3,3,3,4,4,4,6],[6,7,4
    the rest of them. Every resource fork in archive.org's four-in-one bundle
    is Arsenic, and so are the 3D Cursors add-on and the I.M.Cheater saved
    game -- so the page could list a file and not hand it over, and the
-   installer's own resource fork, which is where its VISE icon lives, was
+   installer's resource fork, which is where its VISE icon lives, was
    reachable only from a MacBinary copy.
 
    WHAT IT IS. Arsenic is bzip2's shape under a different coder: the block is
@@ -471,8 +471,8 @@ const SIT13_OFFSET = [[5,6,3,3,3,3,3,3,3,4,6],[5,6,4,4,3,3,3,3,3,4,4,4,6],[6,7,4
    symbols are written by an adaptive binary-free arithmetic coder rather than
    Huffman. Decoding runs the same pipeline backwards.
 
-   - **The coder** keeps a 26-bit range and code word, reads bits high bit
-     first, and takes a symbol by dividing the code by the range over the
+   - **The coder** has a 26-bit range and code word, reads bits high bit
+     first, and reads a symbol by dividing the code by the range over the
      model's total frequency. Every model is adaptive: a symbol's frequency
      rises by the model's increment each time it is read, and when the total
      passes the model's limit every frequency halves.
@@ -483,7 +483,7 @@ const SIT13_OFFSET = [[5,6,3,3,3,3,3,3,3,4,6],[5,6,4,4,3,3,3,3,3,4,4,4,6],[6,7,4
      ends the block.
    - **The inverse transform** is the usual counting sort: the number of bytes
      below each value gives each row's place, and walking that vector from the
-     index the block carries reproduces the original order.
+     index in the block reproduces the original order.
    - **Randomisation** is a flag on the block. When it is set, the byte at
      every position named by a walk of the 256-entry table has its low bit
      flipped back. Nothing in the Cythera corpus sets it, so that path is
@@ -493,9 +493,9 @@ const SIT13_OFFSET = [[5,6,3,3,3,3,3,3,3,4,6],[5,6,4,4,3,3,3,3,3,4,4,4,6],[6,7,4
 
    WHERE THE FORMAT CAME FROM. Ported from `SitArsenicDecoder` in stuffit-rs
    0.1.8 (Ben Letchford, MIT OR Apache-2.0), the same crate this file's header
-   layouts came from, which carries The Unarchiver's tables and cites
+   layouts came from, which has The Unarchiver's tables and cites
    `XADStuffItArsenicHandle.m`. The randomisation table is transcribed from
-   it. `utilities/sit_methods_check.mjs` holds the result to `unar` byte for
+   it. `utilities/sit_methods_check.mjs` checks the result against `unar` byte for
    byte, which is the implementation all of these descend from. */
 
 // The 256 gaps between the positions a randomised block flips. Transcribed
@@ -556,7 +556,7 @@ function arsDecoder(data) {
     while (n < m.n - 1 && cum + m.freq[n] <= want) { cum += m.freq[n]; n++; }
     const size = m.freq[n], low = step * cum;
     this.code -= low;
-    // The last symbol takes what is left of the range rather than its own
+    // The last symbol is given what is left of the range rather than its proportional
     // share of it, so that the range never loses a count to the division.
     this.range = (cum + size === m.total) ? this.range - low : size * step;
     while (this.range <= ARS_HALF) { this.range <<= 1; this.code = (this.code << 1) | this.bit(); }
@@ -638,7 +638,7 @@ function arsenicDecompress(packed, outLen) {
       }
       taken++;
       if (same === 4) {
-        // Four of a kind, and this byte says how many more.
+        // Four of a kind, and this byte is the count of further repeats.
         same = 0;
         if (b === 0) continue;
         run = b - 1;
@@ -656,7 +656,7 @@ function arsenicDecompress(packed, outLen) {
    Unix compress's LZW without its three-byte header: codes from 9 to 14 bits,
    low bit first; code 256 clears the table, so the first free code is 257.
    Like compress, codes come in groups of eight: when the width grows, or a
-   clear arrives, the rest of the current group of eight codes is skipped. */
+   clear comes in, the rest of the current group of eight codes is skipped. */
 function sitLzwDecompress(packed, outLen) {
   const out = new Uint8Array(outLen);
   const prefix = new Uint16Array(1 << 14), suffix = new Uint8Array(1 << 14), stack = new Uint8Array(1 << 14);
@@ -689,7 +689,7 @@ function sitLzwDecompress(packed, outLen) {
     if (next < (1 << 14)) { prefix[next] = prev; suffix[next] = first; next++; }
     prev = code;
   }
-  if (o !== outLen) throw new Error('StuffIt method 2: ' + o + ' bytes where ' + outLen + ' were wanted');
+  if (o !== outLen) throw new Error('StuffIt method 2: ' + o + ' bytes where ' + outLen + ' were expected');
   return out;
 }
 

@@ -5,9 +5,9 @@
    Not a Mac format, but Mac files went round in it: EV Nova's plug-ins, as
    a Windows player's RAR of `.rez` files (three in archive.org's EV Nova
    collection: one named .rar, one named .zip, one inside a zip). It was
-   StarGrimoire's own until 14 October 2026. An archive opens with
+   StarGrimoire's until 14 October 2026. An archive opens with
    "Rar!" 1A 07 00 and is a run of blocks, each a CRC, a type, flags and a
-   size: the archive's own header (0x73), then a header per file (0x74)
+   size: the archive's header (0x73), then a header per file (0x74)
    with its data after it. A file is stored (method 0x30) or compressed;
    files flagged solid continue the stream of the one before, so reading
    one means reading those before it.
@@ -20,8 +20,8 @@
    PPMd, variant H, which this file reads too. And a stretch of output may
    be put through a filter, sent as a program for RAR's virtual machine:
    the ones WinRAR wrote are known by their programs' CRC-32, and are run
-   here as code of their own, as XADMaster runs them: E8 and E8E9 (x86
-   call addresses), delta and audio. Any other program is refused.
+   here as native code, as XADMaster runs them: E8 and E8E9 (x86
+   call addresses), delta and audio. Any other program throws.
 
    PORTED, not written independently, from XADMaster, The Unarchiver's
    library ("Copyright (c) 2017-present, MacPaw Way Ltd.", LGPL-2.1-or-later,
@@ -68,7 +68,7 @@ function parseRarArchive(bytes) {
       if (flags & 0x100) at += 8;   // the high halves of 64-bit sizes, which nothing here is big enough to need
       const raw = bytes.subarray(at, at + nameLen);
       const zero = raw.indexOf(0);
-      // a Unicode name keeps a plain one before a zero byte; the plain one is what is read here
+      // a Unicode name has a plain one before a zero byte; the plain one is what is read here
       const plain = (flags & 0x200) && zero >= 0 ? raw.subarray(0, zero) : raw;
       const path = rarDecodeName(plain).replace(/\\/g, '/');
       const isFolder = (flags & 0xE0) === 0xE0;
@@ -118,7 +118,7 @@ function rarFile(bytes, part, path) {
 }
 
 /* ---- Reading bits, high bit first, and whole bytes ----------------------
- * One position in bits; a byte read takes the next whole byte. */
+ * One position in bits; a byte read consumes the next whole byte. */
 function rarReader(b, start, end) { return { b, pos: start * 8, end: end * 8 }; }
 function rarBits(r, n) {
   if (r.pos + n > r.end) throw new Error('RAR: the compressed data ends early');
@@ -178,7 +178,7 @@ const RAR_SHORT_BITS = [2,2,3,4,5,6,6,6];
 const RAR_FILTERS = { '1d:0e06077d': 'delta', 'd8:bc85e701': 'audio', '35:ad576887': 'e8', '39:3cd7e57e': 'e8e9' };
 
 /* The files of one solid run, decompressed one after another into one
-   array, each from its own compressed data; the filters run over it after. */
+   array, each from its compressed data; the filters run over it after. */
 function rar30Decode(bytes, files) {
   const total = files.reduce((a, f) => a + f.size, 0);
   const win = new Uint8Array(total);
@@ -393,9 +393,9 @@ function rarApplyFilters(win, filters) {
   let prevStart = -1, prevLength = -1;
   for (const f of filters) {
     if (typeof f.kind !== 'string' || f.kind.indexOf(':') >= 0)
-      throw new Error('RAR: a filter program this page does not know (' + f.kind + ')');
+      throw new Error('RAR: a filter program this page does not recognise (' + f.kind + ')');
     const chained = f.start === prevStart && f.length === prevLength;
-    const length = f.registers[4];   // XADMaster takes the register, not the block length
+    const length = f.registers[4];   // XADMaster uses the register, not the block length
     const blockLen = f.length;
     if (f.start + blockLen > out.length) throw new Error('RAR: a filter runs past the end of the data');
     const mem = out.subarray(f.start, f.start + blockLen);
@@ -471,8 +471,8 @@ function rarAudioByte(s, delta) {
  * The model lives in one heap, as in the C: a context is 12 bytes (its last
  * state's index, flags, the sum of its frequencies, its states, its suffix),
  * a state 6 (symbol, frequency, successor), little-endian, and a context
- * with one state keeps it in place of the sum and the pointer. A pointer is
- * an offset into the heap, 0 none. Variant H keeps the text it has seen at
+ * with one state stores it in place of the sum and the pointer. A pointer is
+ * an offset into the heap, 0 none. Variant H stores the text it has seen at
  * the foot of the heap, and a successor that points there, at or below
  * pText, is text and not yet a context. The heap starts 16 bytes in, the
  * allocator's sentinel block in those bytes. */

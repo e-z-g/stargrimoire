@@ -10,9 +10,9 @@
    its Finder type and creator, dates, Finder flags, a CRC-32, flags, and
    each fork's length unpacked and packed). The resource fork comes first in
    the archive, the data fork after it. Each fork is run-length coded, and,
-   when its flag says so (2 for the resource fork, 4 for the data fork),
+   when its flag is set (2 for the resource fork, 4 for the data fork),
    LZH-coded over that: blocks of about 128 KB, each with three Huffman codes
-   of its own (literals, lengths, the top bits of an offset) into an 8 KB
+   (literals, lengths, the top bits of an offset) into an 8 KB
    window. A self-extracting Compact Pro archive (Finder type PACT, a .sea)
    is the same, in its data fork.
 
@@ -22,9 +22,9 @@
    at commit 7cb9ee0a, 21 September 2026): XADCompactProParser.m,
    XADCompactProLZHHandle.m, XADCompactProRLEHandle.m, and the canonical
    codes of XADPrefixCode.m. A fork that is the only one its file has is
-   held to the CRC-32 the catalog gives, as XADMaster holds it; a file with
+   held to the CRC-32 the catalog gives, as XADMaster checks it; a file with
    both forks has one CRC-32 over the two, which XADMaster does not check
-   and neither does this. The catalog keeps a CRC-32's complement.
+   and neither does this. The catalog stores a CRC-32's complement.
 
    Returns the shape parseStuffItArchive does: { format, entries: [{ path,
    name, isFolder, type, creator, finderFlags, dataLen, rsrcLen }] }, and
@@ -190,7 +190,7 @@ function cptLzh(input) {
       else {
         count += 3;
         const n = length(bit);
-        // an offset of 0 reaches the whole window back, to the byte the window's slot still holds
+        // an offset of 0 reaches the whole window back, to the byte still in the window's slot
         const back = ((offset(bit) << 6) | bits(6)) || 8192;
         const from = out.length - back;
         for (let k = 0; k < n; k++) out.push(from + k >= 0 ? out[from + k] : 0);

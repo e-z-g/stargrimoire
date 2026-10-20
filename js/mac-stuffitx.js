@@ -3,13 +3,13 @@
    =========================================================================
 
    StuffIt X opens with "StuffIt!" (mac-stuffit.js's looksLikeStuffItX) and
-   is a different format from the two that file reads, with compressors of
-   its own. The archive is a run of elements, each a bit-packed header (a
+   is a different format from the two that file reads, with other
+   compressors. The archive is a run of elements, each a bit-packed header (a
    type, attributes and the algorithms used) and data: files and folders,
    forks that say which file's data or resource fork is which stretch of a
    stream, a catalog of names and Finder information, and data elements,
    each a solid stream compressed whole, that the forks slice up. Each data
-   element carries the CRC-32 of what it holds.
+   element has the CRC-32 of what it contains.
 
    PORTED, not written independently, from XADMaster, The Unarchiver's
    library ("Copyright (c) 2017-present, MacPaw Way Ltd.", LGPL-2.1-or-later,
@@ -21,18 +21,18 @@
    SubAllocatorBrimstone.c. The Unarchiver is the only implementation known
    (stuffit-rs has none of these compressors), so a port is what there is;
    and because `unar` is the same code, holding this file to it shows the
-   port faithful, not the format understood. utilities/sitx_check.mjs holds
+   port faithful, not the format understood. utilities/sitx_check.mjs checks
    every fork to `unar` and every stream to the CRC-32 the archive stores
-   for it, which is the archive's own word, and fails on a byte changed.
+   for it, which is the archive's word, and fails on a byte changed.
 
-   READ: Brimstone (StuffIt's PPMd, variant G with an allocator of its
-   own), Cyanide and Iron (two block-sorting compressors, each with its own
+   READ: Brimstone (StuffIt's PPMd, variant G with StuffIt's
+   allocator), Cyanide and Iron (two block-sorting compressors, each with a different
    coder), Deflate (XADDeflateHandle's StuffIt X variant: a byte giving the
    window, then RFC 1951 with the count of distance codes in six bits, read
    by mac-vise.js's inflateRaw), and the English preprocessing, which puts
    words back from a dictionary of 100,366 (mac-stuffitx-english.js,
    STUFFITX_ENGLISH_WORDS, loaded only for an archive that needs it). NOT
-   READ, and refused by name: Darkhorse, Blend, RC4 and the x86 filter,
+   READ, and rejected by name: Darkhorse, Blend, RC4 and the x86 filter,
    which none of the archives this was written for use, and encryption.
 
    Returns the shape parseStuffItArchive does, so that a caller can take
@@ -49,7 +49,7 @@ const SITX_PREPROCESS_NAMES = { 0: 'English', 1: 'Biff', 2: 'x86', 3: 'PEFF', 4:
 
 /* ---- Reading bits and bytes ----------------------------------------------
  * XADMaster's handles read bits least significant first from the byte at
- * hand, and a byte read takes the next whole byte, the rest of a byte
+ * hand, and a byte read consumes the next whole byte, the rest of a byte
  * whose bits were begun being passed over. So one position in bits, `bp`,
  * serves both: a byte read starts at the next byte boundary. */
 function sitxReader(bytes, start) { return { b: bytes, bp: (start || 0) * 8 }; }
@@ -107,7 +107,7 @@ function sitxReadElement(r) {
   el.dataoffset = sitxAt(r);
   return el;
 }
-// Past an element's data, keeping the CRC-32 it carries (ScanElementData).
+// Past an element's data, retaining the CRC-32 it has (ScanElementData).
 function sitxScanData(r, el) {
   sitxSeek(r, el.dataoffset);
   for (;;) { const len = sitxP2(r, true); if (!len) break; sitxSkip(r, len); }
@@ -176,7 +176,7 @@ function parseStuffItXArchive(bytes) {
   };
 }
 
-// A name: UTF-8 when it reads as UTF-8, else Mac Roman, as mac-zip.js takes names.
+// A name: UTF-8 when it reads as UTF-8, else Mac Roman, as mac-zip.js reads names.
 function sitxName(raw) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(raw); } catch (e) { return decodeMacRoman(raw); }
 }
@@ -214,7 +214,7 @@ function stuffItXFork(bytes, entry, which) {
   const f = entry.sitx && entry.sitx.forks[which];
   if (!f || !f.length) return new Uint8Array(0);
   const el = entry.sitx.elements.get(f.stream);
-  if (!el) throw new Error('"' + entry.name + '" is in a StuffIt X stream the archive does not hold');
+  if (!el) throw new Error('"' + entry.name + '" is in a StuffIt X stream the archive does not contain');
   if (!el.decoded) el.decoded = sitxElementBytes(bytes, el, true);
   if (f.offs + f.length > el.decoded.length) throw new Error('"' + entry.name + '" runs past the end of its StuffIt X stream');
   return el.decoded.subarray(f.offs, f.offs + f.length);
@@ -583,7 +583,7 @@ function sitxIronBlock(r, blocksize, block, sorted, fancymtf, maxf, sh) {
  * The model lives in one heap, as in the C: a context is 12 bytes (its last
  * state's index, flags, the sum of its frequencies, its states, its suffix),
  * a state 6 (symbol, frequency, successor), all little-endian, and a
- * context with one state keeps it in place of the sum and the pointer. A
+ * context with one state stores it in place of the sum and the pointer. A
  * pointer is an offset into the heap, 0 none; the heap starts a little way
  * in so that no unit is at 0. */
 const SITX_PPM = { MAX_O: 255, INT_BITS: 7, PERIOD_BITS: 7, TOT_BITS: 14, MAX_FREQ: 124, INTERVAL: 128, BIN_SCALE: 1 << 14, UNIT: 12, BASE: 16 };

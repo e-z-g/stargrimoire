@@ -1,12 +1,12 @@
 /* mac-zip.js -- read a zip archive: its central directory, each file stored or
-   deflated, and the resource fork and Finder type a Mac keeps beside a file.
+   deflated, and the resource fork and Finder type a Mac stores beside a file.
    =========================================================================
 
    WHY A ZIP READER, IN A TREE ABOUT CLASSIC MAC FILES. Two reasons, and the
    second is the one that matters. One of the community's add-ons, Rocky the
    Flying Chicken, is a .zip holding two saved games. And a saved game shared
-   today arrives as one: the Finder's Compress and the Files app's Compress
-   both make a zip, so a player on a phone who is sent a save gets a zip and
+   today comes as one: the Finder's Compress and the Files app's Compress
+   both make a zip, so a player on a phone who is sent a save receives a zip and
    has no way to take the file out of it before handing it to this page.
 
    WHAT IT READS. The end-of-central-directory record, found by scanning back
@@ -15,9 +15,9 @@
    written before its data may hold zeroes and a data descriptor after it);
    and each entry's local header, only for where its data starts. Stored
    (method 0) and deflated (method 8) entries are read; every other method is
-   named and refused, as are encrypted entries, split archives and Zip64.
-   Every entry read is held to the CRC-32 the directory carries for it, which
-   is the format's own checksum and the only thing that tells a correct
+   named and rejected, as are encrypted entries, split archives and Zip64.
+   Every entry read is held to the CRC-32 the directory has for it, which
+   is the format's checksum and the only thing that distinguishes a correct
    inflate from a plausible one.
 
    THE MAC PART. A zip has nowhere to put a resource fork or a Finder type, so
@@ -26,19 +26,19 @@
    path under a top-level `__MACOSX/`. Those entries are read here, joined to
    the file they describe, and taken out of the entry list, so a caller sees
    one file with `type`, `creator` and a resource fork, the way a StuffIt entry
-   looks (js/mac-stuffit.js). An `._` entry that does not hold AppleDouble is
+   looks (js/mac-stuffit.js). An `._` entry that does not contain AppleDouble is
    left in the list as an ordinary file.
 
-   NAMES. UTF-8 when the entry's flag says so, and also when the bytes are
+   NAMES. UTF-8 when the entry's flag is set, and also when the bytes are
    valid UTF-8 without it, because the Finder writes UTF-8 names and does not
    set the flag. Otherwise Mac Roman: a zip made on a classic Mac is the case
-   this page cares about, and a name that is not valid UTF-8 is far likelier
+   this page is for, and a name that is not valid UTF-8 is far likelier
    to be Mac Roman than the IBM code page the specification names.
 
    THE INFLATER is `inflateRaw` in js/mac-vise.js, the one the installer
    reader uses. Not repeated here: two classic scripts share one
    global scope, and a second DEFLATE decoder would be a second thing to be
-   wrong. The browser player defines an async `inflateRaw` of its own, so this
+   wrong. The browser player defines a different async `inflateRaw`, so this
    file cannot be vendored there as it stands.
 
    LOAD ORDER: after mac-bytes.js (crc32, decodeMacRoman),
@@ -59,7 +59,7 @@ const zipU32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] 
 /* A local file header or an empty archive's end record at byte 0; or a ZipIt
    self-extracting archive's data fork, a PowerPC program ('Joy!', a PEF)
    with the zip after it, its offsets counted from the start of the fork, as
-   XADMaster's XADZipItSEAParser takes it. ZipIt keeps each file there as a
+   XADMaster's XADZipItSEAParser reads it. ZipIt stores each file there as a
    MacBinary copy. Another program in front of a zip (a self-extracting .exe)
    is not something this page is handed. */
 function looksLikeZip(bytes) {
@@ -87,7 +87,7 @@ function looksLikeZip(bytes) {
    end to end. The walk starts at the first header (past the split marker, or
    past the tail of an entry the part before held) and stops at the first
    that is not a header, or whose data runs past the end: an entry cut off by
-   the end of its part. An entry that keeps its lengths in a data descriptor
+   the end of its part. An entry that stores its lengths in a data descriptor
    after its data is found by the descriptor whose packed length is the
    distance walked. */
 function zipLocalEntries(bytes) {
@@ -162,7 +162,7 @@ function parseZipArchive(bytes) {
   let p = cdOff;
   for (let n = 0; n < count; n++) {
     if (p + 46 > end || zipU32(bytes, p) !== 0x02014b50)
-      throw new Error('central directory entry ' + n + ' of ' + count + ' is not where the directory says');
+      throw new Error('central directory entry ' + n + ' of ' + count + ' is not where the directory has it');
     const flags = zipU16(bytes, p + 8), method = zipU16(bytes, p + 10);
     const crc = zipU32(bytes, p + 16), packedLen = zipU32(bytes, p + 20), len = zipU32(bytes, p + 24);
     const nameLen = zipU16(bytes, p + 28), extraLen = zipU16(bytes, p + 30), commentLen = zipU16(bytes, p + 32);
@@ -220,8 +220,8 @@ function zipFork(bytes, entry, which) {
   if (entry.flags & 1) throw new Error(where + ' is encrypted');
   const h = entry.headerOffset;
   if (h + 30 > bytes.length || zipU32(bytes, h) !== 0x04034b50)
-    throw new Error(where + ' has no local header where the directory says');
-  // The local header's own name and extra lengths, which need not match the
+    throw new Error(where + ' has no local header where the directory has it');
+  // The local header's name and extra lengths, which need not match the
   // directory's: the extra field in particular is often different.
   const start = h + 30 + zipU16(bytes, h + 26) + zipU16(bytes, h + 28);
   if (start + entry.packedLen > bytes.length) throw new Error(where + ' runs past the end of the archive');
@@ -229,7 +229,7 @@ function zipFork(bytes, entry, which) {
   let out;
   if (entry.method === 0) {
     if (entry.packedLen !== entry.len)
-      throw new Error(where + ' says it is stored but is ' + entry.packedLen + ' bytes for a length of ' + entry.len);
+      throw new Error(where + ' is marked stored but is ' + entry.packedLen + ' bytes for a length of ' + entry.len);
     out = packed;
   } else if (entry.method === 8) {
     try { out = inflateRaw(packed, entry.len, 8); }
@@ -242,6 +242,6 @@ function zipFork(bytes, entry, which) {
   const got = crc32(out);
   if (got !== entry.crc)
     throw new Error(where + ' fails its CRC-32: ' + got.toString(16).padStart(8, '0') +
-      ' where the archive says ' + entry.crc.toString(16).padStart(8, '0'));
+      ' where the archive has ' + entry.crc.toString(16).padStart(8, '0'));
   return out;
 }

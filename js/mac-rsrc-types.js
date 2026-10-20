@@ -7,27 +7,27 @@
  * general-purpose than this repository, and everything in it that Cythera
  * needs is here instead: both of Cythera's files are stuffed with these types
  * -- "Cythera Data" has 18 of them across 113 resources, and the application
- * has 52 across 339 -- so index.html reads its own resource fork with the
+ * has 52 across 339 -- so index.html reads its resource fork with the
  * same decoders rather than sending anyone to a second tool.
  *
- * GENERIC TIER. Nothing here knows Cythera exists; this belongs beside the
+ * GENERIC TIER. Nothing here depends on Cythera; this belongs beside the
  * other mac-* modules, not beside delv-*. It is Apple's formats, and the
  * palettes near the middle are Apple's standard 4- and 8-bit tables, which are
- * NOT the same thing as Cythera's own CLUT in delv-graphics.js.
+ * NOT the same thing as Cythera's CLUT in delv-graphics.js.
  *
  * These decoders take bytes and return a value: a string, a record, or a
  * canvas already drawn. The canvas ones are the exception to the usual rule
  * that drawing stays in the page, and they earn it -- utilities/
  * rsrc_snapshot.mjs hashes what they draw, pixel for pixel, so they are as
- * checkable as the ones that return text. What is NOT here is the page's own
+ * checkable as the ones that return text. What is NOT here is the page's
  * furniture: the panes, the ids, the file input. That is index.html's job.
  *
  * TWO RENAMES on the way in, because the two pages were never loaded together
  * and each had a function the other also had. A function declaration in a
  * classic script is a global binding, so the later file would simply have won:
  *
- *   samplesToWav -> pcmToWavBlob   explorer's takes (rate, samples) and
- *                                  returns bytes; this one takes
+ *   samplesToWav -> pcmToWavBlob   explorer's accepts (rate, samples) and
+ *                                  returns bytes; this one accepts
  *                                  (samples, rate, bits, channels) and returns
  *                                  a Blob. Reversed arguments, silently.
  *   hexDump      -> rsrcHexDump    js/delv-archive.js has one with a different
@@ -45,9 +45,9 @@
 // getting a whole fork out in one click, and PNG/WAV payloads barely compress.
 // crc32 and buildZip are in js/mac-export.js -- the data viewer grew the same
 // store-only ZIP writer, field for field.
-// Remember the palette indices a canvas was drawn from, so it can be saved as
+// Record the palette indices a canvas was drawn from, so it can be saved as
 // a real indexed PNG instead of being re-photographed as truecolour. A canvas
-// drawn through a 1-bit mask keeps its alpha and is left alone: PNG's tRNS can
+// drawn through a 1-bit mask retains its alpha and is left alone: PNG's tRNS can
 // make one palette slot transparent, not an arbitrary shape.
 function tagIndexed(canvas, W, H, indices, palette, maskBits){
   if(maskBits) return canvas;
@@ -67,7 +67,7 @@ function tagIndexed(canvas, W, H, indices, palette, maskBits){
    spell and the rest, by their reach in half-squares.
 
    Drawn here as the shape it is, so a reader can see the falloff rather than
-   read that one exists. The map's lighting layer still draws its own
+   read that one exists. The map's lighting layer still draws its
    gradients; joining these to it needs the rule that picks a table for a
    light, which is not read yet. */
 function decodeLite(data){
@@ -112,16 +112,16 @@ function decodeLite(data){
    distinct tiles in the archive's sheets, only the two solid black ones match:
    the other fourteen -- banded walls, a lattice frieze, pillars, a starfield,
    grey stone, lava, foliage, panel frames and a pair of arrows -- appear
-   nowhere in Cythera. It is art the executable carries and the shipped
+   nowhere in Cythera. It is art the executable contains and the shipped
    scenario never draws. It uses the animated palette slots (0xE8, 0xEC, 0xEE
    in the water cycle, and 0xF1, 0xF8), so whoever drew it was working to the
-   engine's own conventions.
+   engine's conventions.
 
    Drawn as the 4x4 grid the tile-sheet galleries use, with index 0
-   transparent, which is what `transparentIndexFor(141)` says for a sheet out
+   transparent, which is what `transparentIndexFor(141)` returns for a sheet out
    of the archive. The delv-* tier owns the format; this reaches across to it
-   rather than carrying a second copy, and feature-tests first so that the
-   mac-* tier still loads on its own. */
+   rather than having a second copy, and feature-tests first so that the
+   mac-* tier still loads alone. */
 function decodeTileSheetResource(data){
   if(typeof decompressDCG!=='function'||typeof reshapeTileSheetGrid!=='function'||
      typeof PAL_RGB==='undefined') return null;
@@ -146,7 +146,7 @@ function decodeTileSheetResource(data){
         anim.map(v=>'0x'+v.toString(16).toUpperCase()).join(', ')+')':'')+'.' };
 }
 
-/* Text styles. Cythera's own type, in both forks: one byte of point size, one
+/* Text styles. Cythera's type, in both forks: one byte of point size, one
    byte of QuickDraw face bits, then a Pascal string naming the family. The
    application's eight are the Mac faces the game falls back to (Chicago,
    Geneva, Espy Sans); the data file's twelve name ArgosANouveau, Geneva and
@@ -154,7 +154,7 @@ function decodeTileSheetResource(data){
    "Labels", "Stats", "Text", "Lang0 Small".
 
    One is not a style at all. `TxSt` 999 in the data fork is four bytes with no
-   room for the name a style needs, and the fork says why: `RMAP` 128, itself
+   room for the name a style needs, and the fork shows why: `RMAP` 128, itself
    named "TxSt", declares that id 999 in type `TxSt` is really a `TxCl`. Its
    four bytes are palette indices, drawn here as the swatches they are. */
 function decodeTxSt(data){
@@ -178,7 +178,7 @@ function decodeTxCl(data){
     Array.from(data,v=>'0x'+v.toString(16).toUpperCase().padStart(2,'0')).join(', ') };
 }
 
-/* `RMAP` says that a resource of one type is to be read as another. The single
+/* `RMAP` declares that a resource of one type is to be read as another. The single
    one here, `RMAP` 128, maps `TxSt` 999 onto `TxCl`: a four-char type, a count,
    then that many { id, four-char type } entries. */
 function decodeRMAP(data){
@@ -195,7 +195,7 @@ function decodeRMAP(data){
    header. They read as the parts of the engine that can be logged --
    Wind(ows), stup, LgUI, LgAI, Scrn, LgGP, Schd, CAct, Levl, Eggs, heap, Spel,
    file -- and are listed as they are stored, without a gloss, because nothing
-   read so far says what any of them switches on. */
+   read so far shows what any of them switches on. */
 function decodeAudt(data){
   if(!data||!data.length||data.length%4) return null;
   const tags=[]; for(let i=0;i<data.length;i+=4) tags.push(decodeMacRoman(data.slice(i,i+4)));
@@ -203,14 +203,14 @@ function decodeAudt(data){
   return tags.length+' audit categories: '+tags.join(', ');
 }
 
-/* The help pages the Delver engine carries, which Cythera never shows.
+/* The help pages the Delver engine contains, which Cythera never shows.
 
    Thirteen `Page` resources, named for their topics ("Delver Topics", "About
    Delver", "Playing", "Main Map View"...). Ten of the thirteen hold a single
    byte: the two that have prose are "About Delver" and "Playing", and the
-   contents page lists the rest. The prose says what they are -- "This is a
+   contents page links to the rest. The prose states what they are -- "This is a
    prerelease version of Delver, not indented [sic] for distribution" -- so
-   these are the engine's own help, shipped inside the finished game.
+   these are the engine's help, shipped inside the finished game.
 
    Bytes with the high bit set are layout markers between the runs of text.
    What each one means is not read, so they are shown as their values rather
@@ -229,7 +229,7 @@ function decodePage(data){
   // not a reading of it -- run them together and the contents page becomes one
   // word ("Delver TopicsAbout Delver...").
   const words=parts.filter(p=>p[0]!=='〈').map(p=>p.trim()).filter(Boolean);
-  return (words.length?words.join('\n')+'\n\n':'This page holds no text.\n\n')+
+  return (words.length?words.join('\n')+'\n\n':'This page has no text.\n\n')+
     'As stored: '+parts.join('');
 }
 
@@ -251,7 +251,7 @@ function decodePage(data){
    resource rather than a format. There is no second `CMNU` anywhere on hand to
    test it against, so it stays a byte count. */
 
-/* The editor's saved game states: 64 bytes each, and the resource name says
+/* The editor's saved game states: 64 bytes each, and the resource name gives
    which state it is. Three are stored -- "Base", all zero; "Plague Cured",
    which differs from Base at byte 34 alone; and "Olpheltius Murdered", which
    differs at byte 35 alone. That is a global per byte, in the order the
@@ -268,11 +268,11 @@ function decodeMSta(data){
 
 /* A table of { u16 id, NUL-terminated name } records. `DATA` 260 in the data
    fork is the editor's tile palette in this shape: 75 entries, a short list
-   beside the 548 the archive's own terrain table (0xF004) carries, and 69 of
-   the 75 names are identical to it. The six that are not are the editor's own
-   words -- tile 0xCF is "wall" where 0xF004 says "abyss", 0x43F "steel door"
+   beside the 548 the archive's terrain table (0xF004) has, and 69 of
+   the 75 names are identical to it. The six that are not are the editor's
+   words -- tile 0xCF is "wall" where 0xF004 has "abyss", 0x43F "steel door"
    against "metal door", 0x45F "stone door" against "secret door" -- plus
-   "tableleg" for 0x359, which 0xF004 does not name at all.
+   "tableleg" for 0x359, which 0xF004 has no name for at all.
 
    Detected by shape rather than by id, because `DATA` is a generic type with
    ten resources of several shapes in this fork alone. */
@@ -287,7 +287,7 @@ function decodeIdNameTable(data){
     // Ids ascend through the real table and the trailing zero padding is where
     // they stop, which is how loadTerrainNames reads 0xF004 as well. A drop
     // before there is a table to speak of is not padding, it is a resource of
-    // some other shape, so it is refused rather than truncated.
+    // some other shape, so it is rejected rather than truncated.
     if(id<prev){ if(rows.length<8) return null; break; }
     prev=id;
     if(nm){ named++; if(!/^[\x20-\x7e]+$/.test(nm)) return null; }
@@ -302,11 +302,11 @@ function decodeIdNameTable(data){
 
    Six big-endian shorts each. The first two look like a width and a height --
    they read 256 by 256, 64 by 64 and 64 by 64, which are sizes the archive's
-   own maps come in -- but that is weaker evidence than it first appears, and
+   maps come in -- but that is weaker evidence than it first appears, and
    an earlier version of this comment called them "level templates" on the
    strength of it. The archive has maps at 32x32, 48x48, 56x72, 128x128 and
    five other shapes besides, so matching two common sizes is not much of a
-   test. What can be said is what the bytes are; what they are for is not read.
+   test. What can be stated is what the bytes are; what they are for is not read.
 
    One thing that would fit and is not established: DATA 258 and 265 are 8,192
    bytes each and DATA 268 is 4,096, which are exactly a 64 by 64 level's
@@ -320,15 +320,15 @@ function decodeLINF(data){
          `The first two read as a size, ${s[0]} by ${s[1]}. Nobody has worked out what the record is for.`;
 }
 
-/* The colour cycles, as the editor holds them.
+/* The colour cycles, as the editor stores them.
 
    Five three-byte entries, (first index, length, flag), ending at a pair of
-   zero bytes. The page animates five cycles of its own and the two agree
+   zero bytes. The page animates five cycles itself and the two match
    entry for entry on the lengths and the order -- 8, 8, 4, 4, 4 -- with every
    starting index in this table exactly 16 below the one the game uses. The
-   game's own values are the ones observed animating, so the 16 is this
+   game's values are the ones observed animating, so the 16 is this
    table's, presumably the editor's palette being indexed from a different
-   base; that part is not read, and the text says so rather than quietly
+   base; that part is not read, and the text states it rather than quietly
    adding 16. */
 function decodeCycleTable(data){
   if(data.length<9||data.length>64) return null;
@@ -345,7 +345,7 @@ function decodeCycleTable(data){
     '\n\nThe starting indices here are 16 lower than the ones the game animates; nobody has worked out why they differ by 16.';
 }
 
-// A resource that is entirely zero is read, not unread, and saying which it is
+// A resource that is entirely zero is read, not unread, and stating which it is
 // costs nothing. Four of the data file's DATA resources are 512, 1,024, 4,096
 // and 8,192 bytes of nothing at all.
 function allZeroText(data){
@@ -417,13 +417,13 @@ function exportArtifacts(fork, type, entry, data){
   else if(COLOR_TABLE_TYPES[type]) cvs(decodeClut(data).canvas);
   else if(type==='NFNT'||type==='FONT'){
     const f=decodeNFNT(data);
-    // The alphabet first: it is what a reader wants to see, and it is what the
-    // gallery cell picks up, since the cell takes the first canvas it finds.
+    // The alphabet first: it is what a reader needs to see, and it is what the
+    // gallery cell picks up, since the cell uses the first canvas it finds.
     const sheet=glyphSheet(f); if(sheet) cvs(sheet,'glyphs');
     txt(f.info); cvs(f.canvas,'strike');
     f.glyphs.forEach(g=>cvs(g.canvas, g.missing?'missing':'char'+g.code));
   }
-  else if(type==='sfnt') out.push({ext:'ttf', bytes:sfntToTrueType(data)});   // with the OS/2 table a browser insists on
+  else if(type==='sfnt') out.push({ext:'ttf', bytes:sfntToTrueType(data)});   // with the OS/2 table a browser requires
   else if(type==='snd ') out.push({ext:'wav', blob:decodeSndToWav(data).blob});
   else if(type==='PICT'){
     const r=decodePict(data);
@@ -545,8 +545,8 @@ function decodeSndToWav(data){
 }
 
 // Mac 8-bit samples are unsigned and 16-bit samples are signed big-endian;
-// WAV wants unsigned 8-bit and signed little-endian 16-bit.
-// The WAV writer is in js/mac-media.js. This wrapper keeps the Blob the
+// WAV needs unsigned 8-bit and signed little-endian 16-bit.
+// The WAV writer is in js/mac-media.js. This wrapper retains the Blob the
 // preview and the download expect.
 function pcmToWavBlob(samples, rate, bits, channels){
   return new Blob([wavFromPcmBytes(samples, rate, bits, channels)], {type:'audio/wav'});
@@ -688,7 +688,7 @@ function decodePpat(data){
       return c;
     }
   }
-  // pat1Data: the 1-bit pattern every PixPat carries for black-and-white
+  // pat1Data: the 1-bit pattern every PixPat has for black-and-white
   // screens. It is at offset 20, not 0.
   const c=decodePAT(data.slice(20,28));
   c.info = patType===0 ? '8×8 monochrome pattern (patType 0)'
@@ -716,7 +716,7 @@ function renderIndexedPixels(data,pixOff,rowBytes,W,H,pixelSize,palette,maskBits
 }
 // ---- PICT v2 decoder: indexed PackBitsRect/Rgn AND true-color DirectBitsRect/Rgn ----
 // Opcode data-length table derived from Apple's "PICT File Format Notes" (1990).
-// Most opcodes carry fixed-size data we don't render (pen state, colors, text,
+// Most opcodes have fixed-size data we don't render (pen state, colors, text,
 // shapes, etc); we walk past all of them until we reach the actual image opcode.
 // QuickDraw Rect fields are SIGNED 16-bit; reading them unsigned turns any
 // negative origin into ~65000 and yields nonsense widths.
@@ -727,7 +727,7 @@ function readRect(data,p){return {top:s16(data,p),left:s16(data,p+2),bottom:s16(
 // entry stands for; with it set the table is a device colour table, every
 // `value` is written 0, and the entry's POSITION is its pixel value. Four of
 // the nineteen PICTs in Cythera Data are that second kind -- 131, 512 and 513
-// (8-bit, in the game's own palette) came out as one colour, since every
+// (8-bit, in the game's palette) came out as one colour, since every
 // entry landed on palette[0] and the other 255 pixel values fell to the
 // magenta placeholder. Inside Macintosh: Imaging With QuickDraw, "Color
 // Tables" (ctFlags), is the reference, and both other implementations
@@ -864,7 +864,7 @@ function findPictImageOpcode(data){
     let op;
     if(v2){ op=u16be(data,p); p+=2; } else { op=data[p]; p+=1; }
     if(op===0x0000) continue;
-    // QuickTime-compressed opcodes carry a 4-byte payload length; the JPEG or
+    // QuickTime-compressed opcodes have a 4-byte payload length; the JPEG or
     // PNG lives INSIDE that payload. Return it so the caller can look there
     // instead of scanning the whole resource for a signature.
     if(op===0x8200||op===0x8201){ const size=u32be(data,p); return {op,p:p+4,size,quicktime:true}; }
@@ -894,7 +894,7 @@ function findPictImageOpcode(data){
     if(op>=0x0100 && op<=0x7FFF){ p+=(op>>8)*2; continue; }
     if(op>=0x8000 && op<=0x80FF){ continue; }
     if(op>=0x8100 && op<=0xFFFF){ const size=u32be(data,p); p+=4+size; continue; }
-    // Truly unknown opcode: Apple's own convention for future/reserved
+    // Truly unknown opcode: Apple's convention for future/reserved
     // opcodes in this range is a 2-byte length prefix, so fall back to that
     // rather than throwing away the whole picture.
     { const size=u16be(data,p); p+=2+size; }
@@ -929,7 +929,7 @@ function decodePictPackBits(data,pre){
     return {canvas,width:W,height:H,pixelSize:1,mode,opcode:foundOp,opcodeOffset:found.p-2,colorSpace:'1-bit bitmap',dst,end:p};
   }
   if(foundOp===0x0098||foundOp===0x0099){
-    // PackBitsRect/Rgn may carry either a PixMap (high bit of rowBytes set) or
+    // PackBitsRect/Rgn may have either a PixMap (high bit of rowBytes set) or
     // an old-style 1-bit BitMap. The BitMap header is only rowBytes+bounds and
     // has no colour table, so parsing it as a PixMap reads 36 bytes of garbage.
     if(!(u16be(data,p)&0x8000)){
@@ -1020,7 +1020,7 @@ function decodeClut(data){
 
 // ---- sfnt (raw TrueType/OpenType font data) ----
 // Code Fragment Manager resource: what PowerPC (and CFM-68K) code this file
-// carries, where each fragment lives and what it is called. One `cfrg` says
+// has, where each fragment lives and what it is called. One `cfrg` shows
 // more about a fat binary than nine `CODE` resources do.
 const CFRG_ARCH={'pwpc':'PowerPC','m68k':'CFM-68K'};
 const CFRG_USAGE=['import library','application','drop-in addition','stub library','weak stub library'];
@@ -1028,7 +1028,7 @@ const CFRG_WHERE=['in this file','in a data fork','in memory','(reserved)','in a
 function decodeCfrg(data){
   // CFragResource: 30 bytes of reserved fields, then a UInt16 member count at
   // 30, then the members. Every member is a CFragResourceMember, whose own
-  // memberSize at offset 42 says where the next one starts -- the name is a
+  // memberSize at offset 42 locates the next one -- the name is a
   // Pascal string at 44 and the record is padded to an even length, so walking
   // by a fixed size does not work.
   if(data.length<32) throw new Error(`cfrg needs 32 bytes of header, got ${data.length}`);
@@ -1069,8 +1069,8 @@ function decodeCfrg(data){
 
 // 68K executable code: CODE, and the definition procedures that are the same
 // thing under a different name. There is no disassembler here and there should
-// not be one, but "9 resources, no decoder" told you nothing at all -- these
-// have real headers, and CODE 0 in particular is the jump table that says how
+// not be one, but "9 resources, no decoder" reported nothing at all -- these
+// have real headers, and CODE 0 in particular is the jump table that records how
 // many entry points the application has.
 const CODE_TYPES={'CODE':'code segment','CDEF':'control definition','WDEF':'window definition',
   'MDEF':'menu definition','LDEF':'list definition','PACK':'package','INIT':'init',
@@ -1114,7 +1114,7 @@ function decodeCodeResource(type, id, data){
 // An 'sfnt' resource is a TrueType font as it sits in the file: the table
 // directory and the tables, nothing else. A browser will load one from bytes
 // (FontFace), but Chrome and Firefox pass every font through OTS first, and
-// OTS refuses a TrueType font with no OS/2 table -- which is what a font made
+// OTS rejects a TrueType font with no OS/2 table -- which is what a font made
 // on a classic Mac usually lacks, the Mac having never read that table.
 // Cythera's Argos A Nouveau is one: cmap, cvt, fpgm, glyf, head, hhea, hmtx,
 // loca, maxp, name, post, prep, and no OS/2. This adds one when it is missing,
@@ -1146,7 +1146,7 @@ function sfntToTrueType(data){
   // subtable is built from the Mac Roman one -- each byte's code point from
   // MACROMAN_HIGH, one segment per code point, idDelta doing the mapping --
   // and offered twice, as (0,3) and (3,1), which is what the copy in res/
-  // that did work carries. The Mac Roman table stays for the Mac.
+  // that did work has. The Mac Roman table stays for the Mac.
   if(cmap&&!hasUnicodeCmap){
     const c=cmap.bytes; const n=u16be(c,2); let mac=null;
     for(let i=0;i<n;i++){ const p=4+i*8; const off=u32be(c,p+4); if(u16be(c,p)===1&&u16be(c,off)===0) mac=c.slice(off,off+262); }
@@ -1164,7 +1164,7 @@ function sfntToTrueType(data){
       dv.setUint16(6,sc*2); dv.setUint16(8,es*2); dv.setUint16(10,esl); dv.setUint16(12,sc*2-es*2);
       segs.forEach((sg,i)=>{ dv.setUint16(14+i*2,sg.end); dv.setUint16(16+sc*2+i*2,sg.start); dv.setUint16(16+sc*4+i*2,sg.delta); dv.setUint16(16+sc*6+i*2,0); });
       // Three records, platform-ordered: (0,3) and (3,1) share the new
-      // subtable, (1,0) keeps the old one.
+      // subtable, (1,0) retains the old one.
       const out=new Uint8Array(4+3*8+f4.length+mac.length); const odv=new DataView(out.buffer);
       odv.setUint16(0,0); odv.setUint16(2,3);
       const uniOff=4+24, macOff=uniOff+f4.length;
@@ -1205,23 +1205,23 @@ function sfntToTrueType(data){
    sfntToTrueType gives a browser a font the classic Mac made. This gives the
    classic Mac a font the modern world made, which is a different problem: the
    Mac addresses glyphs by MAC ROMAN BYTE through a platform-1 cmap subtable,
-   and a font built this century almost always carries a Unicode cmap and
+   and a font built this century almost always has a Unicode cmap and
    nothing else. Loaded as it stands such a font draws nothing at all in
    Cythera -- every byte the game passes misses.
 
    So: read whatever Unicode subtable the font has, look up the code point
    each Mac Roman byte stands for (MACROMAN_HIGH again, the same table read
    the other way round), and write a platform-1 subtable of the results. Format
-   0 is the 1984 one every Mac understands and holds a byte per glyph, so it
+   0 is the 1984 one every Mac reads, with a byte per glyph, so it
    can only name the first 256 glyphs; a font whose Latin-1 accents live above
-   that gets format 6 instead, which is also in the 1990 specification and
+   that is given format 6 instead, which is also in the 1990 specification and
    which the Font Manager reads. The Unicode subtable is kept alongside, so the
    same bytes still preview in a browser.
 
    Layout tables (GPOS, GSUB, GDEF) and the digital signature are dropped:
    the classic rasteriser reads none of them, and they are most of the weight
    of a modern font. The name table is left as it came, since a classic Mac
-   takes the family name from the FOND resource rather than from the font. */
+   reads the family name from the FOND resource rather than from the font. */
 function sfntUnicodeLookup(c){
   const n=u16be(c,2); const subs=[];
   for(let i=0;i<n;i++){ const p=4+i*8; subs.push({pl:u16be(c,p), enc:u16be(c,p+2), off:u32be(c,p+4)}); }
@@ -1375,12 +1375,12 @@ function rebuildSfnt(data,tables){
      its Mac Roman cmap subtable (format 0, platform 1) pointing each code of
      `codes` ({ byte: index into added }) at one. glyf, loca, hmtx, maxp,
      hhea and head's bounds are written again; post goes to format 3, which
-     names no glyphs, since a format 2 table would need a name for each new
+     has no glyph names, since a format 2 table would need a name for each new
      one and the Mac never reads them; the instructions of the old glyphs are
      kept and the new ones have none. Written 29 September 2026 for the
      translation's accented letters (js/delv-translate.js), which the proofs
      of 24 September built with fontTools in Python; this is the same
-     arithmetic in the page, so a visitor's own copy of the font is the one
+     arithmetic in the page, so a visitor's copy of the font is the one
      changed. */
 function sfntTablesOf(data){
   const out={}, n=u16be(data,4);
@@ -1617,7 +1617,7 @@ function decodeDITL(data){
     const r=readRect(data,p); p+=8;
     const raw=data[p++], enabled=!(raw&0x80), kind=raw&0x7f;
     const len=data[p++]; let text='';
-    // A control (7), an icon (32) and a picture (64) carry a resource id, not text.
+    // A control (7), an icon (32) and a picture (64) have a resource id, not text.
     if(kind===7||kind===32||kind===64){ text='resource #'+u16be(data,p); }
     else text=decodeMacRoman(data.slice(p,p+len));
     p+=len; if(p%2)p++;
@@ -1652,9 +1652,9 @@ function decodeMENU(data){
 }
 
 // The items of a MENU and of a DITL as plain lists, item n at index n - 1,
-// for a reader that wants an item's own text rather than the description
+// for a reader that needs an item's text rather than the description
 // the two decoders above print: a program that checks menu item 10 or
-// dialog item 3 is named by what the resource says those items are.
+// dialog item 3 is named by the resource's text for those items.
 function menuItemTexts(data){
   if(!data || data.length<14) return [];
   let p=pstr(data,14).p; const out=[];
@@ -1840,12 +1840,12 @@ function cropBits(bits,rowBytes,H,x0,W){
    time and could not be seen, which is the same as not being there.
 
    So a font's first picture is now the alphabet: every glyph the strike
-   carries, cut out at its own width and set in a grid. The proportions are
+   has, cut out at its width and set in a grid. The proportions are
    near enough square that the cell scaler shows it at a useful size, and the
-   detail view gets the same picture larger.
+   detail view shows the same picture larger.
 
    Glyphs are drawn from the location table rather than from the strike
-   wholesale, so a code the font has no image for takes no cell: Seldane has
+   wholesale, so a code the font has no image for is given no cell: Seldane has
    25 letters and shows 25, not 26 with a gap. */
 function glyphSheet(f){
   const cells=f.glyphs.filter(g=>g.canvas&&g.width>0);
@@ -1872,7 +1872,7 @@ function glyphSheet(f){
    font comes back byte for byte. Both of Cythera's do -- NFNT 25740 (904
    bytes) and 25746 (1,478), the Seldane script at 12 and 18 point -- and a
    single flipped bit in the strike moves the output, which is the control that
-   says the strike is being written rather than copied from the input.
+   shows the strike is being written rather than copied from the input.
 
    The layout, and the one field that has to be counted right: the location
    table has nGlyphs + 1 entries, the sentinel included, and the offset/width
@@ -1926,8 +1926,8 @@ function writeNFNT(f){
    above the baseline being 0. A square is lit when its centre is inside
    the outline by non-zero winding, which is exact for outlines that run
    along the grid. The points are taken as a polygon; an off-curve point
-   would be read as a corner, so a glyph with one is refused rather than
-   guessed at. */
+   would be read as a corner, so a glyph with one is rejected rather than
+   approximated. */
 function sfntPixels(glyph, unit){
   const cs=glyph.contours;
   if(!cs.length) return [];
@@ -1950,7 +1950,7 @@ function sfntPixels(glyph, unit){
 // A font's glyph for each Mac Roman code: from its (1, 0) cmap, format 0,
 // when it has one, and otherwise from a Unicode cmap, format 4, each code
 // through its code point (MACROMAN_HIGH above 0x7F). FontStruct's fonts
-// carry only the Unicode ones.
+// have only the Unicode ones.
 function sfntMacRomanGlyphs(data){
   const cmap=sfntTablesOf(data).cmap;
   if(!cmap) throw new Error('the font has no cmap');
@@ -1986,8 +1986,8 @@ function sfntMacRomanGlyphs(data){
    image is its columns from its leftmost pixel to its rightmost, its
    offset that leftmost column less kernMax, kernMax the furthest left any
    glyph starts (never right of the pen), fRectWidth the widest reach from
-   kernMax, nDescent the negated ascent as Apple's own strikes have it,
-   and widMax the widest advance. A pixel outside the frame is refused. */
+   kernMax, nDescent the negated ascent as Apple's strikes have it,
+   and widMax the widest advance. A pixel outside the frame throws. */
 function nfntFromPixels(f){
   const H=f.ascent+f.descent, all=[];
   for(let c=0;c<256;c++) all.push(f.glyphs[c]||null);
@@ -2020,7 +2020,7 @@ function nfntFromPixels(f){
     rowWords, strikeBytes:strike.length, strike, loc, ow, owOff, nGlyphs:n, tail:new Uint8Array([0xFF,0xFF])});
 }
 
-/* A font family record for strikes of one's own, written whole: family
+/* A font family record for new strikes, written whole: family
    `famID`, the association table `entries` ([size, style, NFNT id]), and
    the family's frame as fractions of an em in 4.12 fixed point from the
    strike given as `m` (its size, ascent, descent, leading, widMax). The
@@ -2042,10 +2042,10 @@ function fondForStrikes(famID, entries, m){
 /* The strike as a TrueType font, so it can leave here.
 
    `writeNFNT` puts a modern face into the game. This is the other direction
-   and the one a reader asks for: the Seldane script out of the game and into
+   and the one a reader requests: the Seldane script out of the game and into
    a font a phone, a browser or a word processor can set text in. Cythera
    Guides distributes a Seldane TrueType already, traced by hand in FontForge;
-   this one is derived from the strike in the reader's own file, in the
+   this one is derived from the strike in the reader's file, in the
    browser, and comes out of the bytes rather than out of a drawing.
 
    HOW THE PIXELS BECOME OUTLINES. Every lit pixel is a square, so the glyph
@@ -2058,12 +2058,12 @@ function fondForStrikes(famID, entries, m){
    same glyph.
 
    THE GRID IS KEPT EXACT. One pixel is 64 font units and the em is the
-   strike's own ascent plus descent, so the em of the 12-point strike is 896
+   strike's ascent plus descent, so the em of the 12-point strike is 896
    units and every coordinate in the font is a whole number of pixels. Set at
-   14px -- the cell height -- the font draws the bitmap at its own size, and
+   14px -- the cell height -- the font draws the bitmap at its size, and
    at any integer multiple it is the same pixels scaled. Nothing rounds.
 
-   WHAT IS NOT INVENTED. A code the strike has no image for gets no glyph and
+   WHAT IS NOT INVENTED. A code the strike has no image for is given no glyph and
    no cmap entry, so the font has no space: the strike has none, the game
    draws its missing symbol for one, and the TrueType on Cythera Guides has
    none either (its cmap starts at 0x21). The missing symbol becomes glyph 0,
@@ -2134,8 +2134,8 @@ function nfntToTrueType(f, opts){
     for(const [x] of pts){ dv.setInt16(p,x-prev); prev=x; p+=2; }
     prev=0;
     for(const [,y] of pts){ dv.setInt16(p,y-prev); prev=y; p+=2; }
-    // hmtx carries the ink's own xMin: the outline coordinates are absolute,
-    // so this moves nothing, and a left bearing that disagrees with xMin is
+    // hmtx has the ink's xMin: the outline coordinates are absolute,
+    // so this moves nothing, and a left bearing that differs from xMin is
     // the kind of thing a validator stops on.
     return {bytes:out, adv, lsb:xMin, points:pts.length, contours:n, xMin, yMin, xMax, yMax};
   }
@@ -2174,7 +2174,7 @@ function nfntToTrueType(f, opts){
   const head=new Uint8Array(54); const hd=new DataView(head.buffer);
   hd.setUint32(0,0x00010000); hd.setUint32(4,0x00010000);
   hd.setUint32(12,0x5F0F3CF5);                     // magic
-  // Baseline at y=0 and integer ppem, which is what a pixel font wants; the
+  // Baseline at y=0 and integer ppem, which is what a pixel font needs; the
   // dates stay at the epoch so two exports of the same strike are the same
   // bytes, which is what the check compares.
   hd.setUint16(16,0x0009);
@@ -2283,8 +2283,8 @@ function nfntToTrueType(f, opts){
   return rebuildSfnt(new Uint8Array([0,1,0,0]), tables);
 }
 
-// FOND: 52-byte family record, then the font association table that says
-// which NFNT resource holds which size and style.
+// FOND: 52-byte family record, then the font association table that maps
+// each size and style to its NFNT resource.
 const FOND_STYLES=[[1,'bold'],[2,'italic'],[4,'underline'],[8,'outline'],[16,'shadow'],[32,'condensed'],[64,'extended']];
 function decodeFOND(data){
   if(data.length<54) throw new Error('FOND too short');
@@ -2308,7 +2308,7 @@ function decodeFOND(data){
 // ============================================================
 // Show what the bytes spell as Mac Roman text rather than a wall of hex:
 // resource forks are full of embedded names, paths and messages, and those
-// are what you actually want to see when there's no decoder.
+// are what is actually useful to see when there's no decoder.
 // (the table is MACROMAN_HIGH in js/mac-bytes.js, as code points)
 function charDump(bytes, limit){
   const n=Math.min(bytes.length, limit);
@@ -2345,7 +2345,7 @@ const COLOR_TABLE_TYPES={'clut':'color table','dctb':'dialog color table','actb'
 
 // ---- acur ---------------------------------------------------
 // acur is 4-byte header (count, current index) then one 4-byte entry per
-// frame: cursor resource ID + a reserved word. It carries NO timing data --
+// frame: cursor resource ID + a reserved word. It has NO timing data --
 // the advance rate lived in the application's event loop, so any frame
 // duration here is our choice, not the resource's.
 function decodeAcur(data){

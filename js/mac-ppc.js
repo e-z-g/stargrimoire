@@ -2,18 +2,18 @@
 
    A PowerPC application's code is a run of 32-bit big-endian words, one
    instruction each, and this turns a word into what it does: a mnemonic,
-   its operands, and the fields a reader wants to test (the register, the
-   constant, the branch displacement). Nothing here knows Cythera exists;
+   its operands, and the fields a reader needs to test (the register, the
+   constant, the branch displacement). Nothing here depends on Cythera;
    this is the mac-* tier, beside the PEF container reader it serves.
 
    ppcDecode(word)  -> { mn, args, text, word, and the fields } or null
 
-   WHY IT EXISTS. The site states rules the game's executable decides -- the
+   WHY IT EXISTS. The site states rules the game's executable sets -- the
    clock's hour, how often a fed character heals, how long a talk balloon
    stays up -- and until 11 September 2026 every one of those figures was
    typed into the page from a trace made outside it. A figure typed from a
    trace is a copy of the program's bytes that nobody can follow back, so
-   the page reads the instruction that holds each one instead, and links to
+   the page reads the instruction that contains each one instead, and links to
    it. That needs instructions, and this is them.
 
    THE SPELLING IS LLVM'S. `utilities/ppc_check.mjs` hands the same words
@@ -27,9 +27,9 @@
    those, `bt` and `bf` for a conditional branch on one bit with the later
    architecture's `-` and `+` hints, `sub` and `subc` for subf and subfc
    with the operands turned round, `crmove`, `crnot`, `crclr` and `crset`,
-   the register names LLVM knows, `.+n` and `.-n` for a displacement. The
+   the register names LLVM accepts, `.+n` and `.-n` for a displacement. The
    two were written separately -- this one from the PowerPC architecture's
-   field layouts, LLVM's from its own tables -- which is what makes the
+   field layouts, LLVM's from its tables -- which is what makes the
    agreement evidence. The spellings were settled by failing the check, not
    by reading LLVM's source.
 
@@ -40,7 +40,7 @@
    and later architectures, which in Cythera's code section is data (a
    traceback table, a string). The check allows LLVM to read what this
    does not and counts it, and fails the other way round: this never reads
-   a word LLVM refuses, and every word inside a routine is read. A few
+   a word LLVM rejects, and every word inside a routine is read. A few
    32-bit instructions no compiler of the period emitted for an
    application (the byte-reversed loads, the string moves, fmadd, fsel, the
    segment-register ones) are among the unread; add one here and the check
@@ -139,13 +139,13 @@ function ppcDecode(word) {
   return null;
 }
 
-/* The conditional branch. BO says what is tested: bit 0x10 set means the
+/* The conditional branch. BO selects what is tested: bit 0x10 set means the
    condition bit is ignored, bit 0x04 set means the counter is not
    decremented; with both it always branches. bt and bf are the one-bit
    tests with the counter left alone. LLVM reads the two low bits of BO as
    the later architecture's "at" hint, so 6 and 7 are bf- and bf+, 14 and
    15 bt- and bt+, 24 to 27 bdnz-, bdnz+, bdz- and bdz+, and a BO whose
-   hint is the reserved 01 (5, 13, 17...) keeps the plain bc. An absolute
+   hint is the reserved 01 (5, 13, 17...) is printed as the plain bc. An absolute
    target is the displacement sign-extended to a full word. */
 const PPC_AT_HINT = { 6: '-', 7: '+', 14: '-', 15: '+', 24: '-', 25: '+', 26: '-', 27: '+' };
 function ppcDecodeBc(w, bo, bi) {
@@ -200,7 +200,7 @@ function ppcDecode19(w, bo, bi, c) {
   return null;
 }
 
-/* Opcode 31: the register-to-register forms. The arithmetic ones carry an
+/* Opcode 31: the register-to-register forms. The arithmetic ones have an
    overflow bit (OE) above a nine-bit extended opcode; the rest have ten. */
 function ppcDecode31(w, a, b, c, rc) {
   const xo = (w >>> 1) & 0x3FF, xo9 = (w >>> 1) & 0x1FF, oe = (w >>> 10) & 1;
@@ -213,7 +213,7 @@ function ppcDecode31(w, a, b, c, rc) {
     const o = oe ? 'o' : '';
     if ((xo9 === 11 || xo9 === 75) && oe) return null;         // mulhw has no overflow form
     // LLVM's sub and subc turn the operands round; the overflow forms keep
-    // their own names and order.
+    // their names and order.
     if (arith === 'subf' && !oe) return mk('sub' + dot, [a, c, b], { rd: a, ra: b, rb: c });
     if (arith === 'subfc' && !oe) return mk('subc' + dot, [a, c, b], { rd: a, ra: b, rb: c });
     if (arith === 'neg' || arith === 'subfze' || arith === 'addze' || arith === 'subfme' || arith === 'addme') {

@@ -3,8 +3,8 @@
    A PEF container is what a PowerPC classic Mac application's data fork is:
    a header, a table of sections (code, data, the loader), and inside the
    loader section the list of shared libraries the program imports and the
-   symbols it takes from each, its exports, and its entry point. Nothing
-   here knows Cythera exists; this is the mac-* tier, like the resource
+   symbols it imports from each, its exports, and its entry point. Nothing
+   here depends on Cythera; this is the mac-* tier, like the resource
    fork reader beside it.
 
    parsePEF(bytes)          -> { arch, version, sections, loader } or null
@@ -16,8 +16,8 @@
    end ends every routine with an AIX-style traceback table: a zero word,
    eight bytes of flags, then optional fields as the flags say, among them
    the routine's length (has_tboff) and its name (name_present, a 16-bit
-   length and the bytes, with a leading '.'). So the code section carries
-   its own map of where every routine starts and what it was called, and a
+   length and the bytes, with a leading '.'). So the code section has
+   a map of where every routine starts and what it was called, and a
    walk over the section reads it back -- 1,877 of them in Cythera 1.0.4.
    The layout is the AIX traceback table as documented for the PowerPC
    ABI; the field order matters and is spelt out at pefTracebacks. The
@@ -121,7 +121,7 @@ function parsePEFLoader(b, base, size) {
     if (o + 10 > b.length) break;
     const v = pefU32(b, o), cls = (v >> 24) & 0x0F;
     const nameOff = v & 0x00FFFFFF;
-    const len = pefU16(b, keyBase + i * 4);   // the key holds the name's length
+    const len = pefU16(b, keyBase + i * 4);   // the key has the name's length
     let name = ''; for (let k = 0; k < len && strs + nameOff + k < b.length; k++) name += String.fromCharCode(b[strs + nameOff + k]);
     exports.push({ classCode: cls, className: PEF_SYMBOL_CLASSES[cls] || ('class ' + cls), name, value: pefU32(b, o + 4), sectionIndex: pefU16(b, o + 8) | 0 });
   }
@@ -130,7 +130,7 @@ function parsePEFLoader(b, base, size) {
 
 /* ---- the sections as the loader leaves them -----------------------------
    Reading a figure out of a PowerPC program means following its pointers:
-   a routine finds its globals through r2, the TOC, and a TOC slot holds an
+   a routine finds its globals through r2, the TOC, and a TOC slot contains an
    address that only exists once the Code Fragment Manager has laid the
    sections out and relocated them. So this does what the loader does, as
    far as reading needs: the sections' contents, the pattern-packed data
@@ -138,17 +138,17 @@ function parsePEFLoader(b, base, size) {
    since there is no memory to put them in, but to say of every relocated
    word which section or which import it points into. A stored word plus
    "relocated by section 1" is an offset into section 1, which is all a
-   reader wants.
+   reader needs.
 
    Written from the PEF format as the Mac OS runtime architecture documents
    it (Apple, "Mac OS Runtime Architectures", chapter 8), not from a loader.
-   `utilities/pef_check.mjs` holds it to the structure's own arithmetic --
+   `utilities/pef_check.mjs` checks it against the structure's arithmetic --
    the pattern stream ends exactly at the declared size, each relocation
    stream is consumed exactly, and every relocated word lands inside the
    section or the import list it names -- and, with the workbench beside
    this repository, to that repository's separate loader simulator. */
 
-// The pattern-initialised data a kind-2 section holds, expanded. Each
+// The pattern-initialised data a kind-2 section contains, expanded. Each
 // opcode is a byte, the high three bits the operation and the low five a
 // count, 0 meaning the count follows as an argument; arguments are seven
 // bits a byte, high bit set to continue.
@@ -263,7 +263,7 @@ function pefRelocations(pef, bytes) {
 
 /* A program laid out for reading: every section's contents, the
    relocations, and the TOC. The TOC is the data word the entry point's
-   transition vector holds second, which the loader relocates by the data
+   transition vector has second, which the loader relocates by the data
    section, so the stored word is the TOC's offset in that section. */
 function pefLoad(bytes) {
   const pef = parsePEF(bytes);
@@ -310,13 +310,13 @@ function pefPointerAt(img, sectionIndex, offset) {
      flags3  stores_bc 0x80, fpr_saved 0x7E
      flags4  gpr_saved 0x3F (the high bits are reserved)
      fixedparms (byte), floatparms 0xFE | parmsonstk 0x01 (byte)
-   and then, in this order and only when the flag says so: parminfo (4,
+   and then, in this order and only when the flag is set: parminfo (4,
    when either parm count is not 0), tb_offset (4, has_tboff: the distance
    back to the routine's start), hand_mask (4, int_hndl), ctl_info (4 for
    the count then 4 each, has_ctl), name (2 for the length then the bytes,
    name_present), alloca_reg (1, uses_alloca).
 
-   A routine is taken only when the table says how long it is and what it
+   A routine is taken only when the table records how long it is and what it
    is called, its start is at or after the previous routine's end, and the
    name is printable: a zero word followed by plausible flag bytes occurs
    in data too, and those three tests are what keep it out. */
@@ -424,14 +424,14 @@ function pefDemangle(m) {
 
 /* ---- two applications against each other ----------------------------------
    A classic Mac application is a PEF data fork and a resource fork, and this
-   compares both. Nothing here knows Cythera exists, which is the rule for
+   compares both. Nothing here depends on Cythera, which is the rule for
    this tier: it is two applications, and it would say the same things about
    any pair built by the same compiler.
 
    WHAT IT REPORTS AND WHAT IT SUPPRESSES. A routine's OFFSET moves whenever
    anything before it changes size, so between two builds of the same program
    most routines have moved and nothing follows from it -- 1,772 of 1,970 in
-   one real pair. Moved-only is counted and not listed. What carries meaning
+   one real pair. Moved-only is counted and not listed. What has meaning
    is a routine that appeared, one that went, and one whose LENGTH changed,
    because the compiler emitted different code for it.
 
@@ -440,7 +440,7 @@ function pefDemangle(m) {
    and the routine half of the report is then empty while the fork half still
    works. Two routines can share a name -- overloads mangle differently, so in
    practice they do not -- and where they do, the first is taken and the count
-   says so.
+   shows it.
 
    THE RESOURCE FORK is compared by type and id, which is the identity the
    Resource Manager uses. A resource whose bytes differ is reported; a
@@ -479,7 +479,7 @@ function describeApplicationDiff(a, b) {
        *
        * The census is the multiset of OPCODES, operands ignored. A recompile
        * shuffles registers and operands and leaves the census alone; an edit
-       * moves it, and which opcodes arrived says what kind of edit: a new `bl`
+       * moves it, and the opcodes that appeared show what kind of edit: a new `bl`
        * is a call, `mr.`+`bt` is a null check, `stb` with `ori` is a flag
        * being written.
        *
@@ -492,7 +492,7 @@ function describeApplicationDiff(a, b) {
        * same kind reads as a recompile, and so does a bit test re-emitted in a
        * different instruction form. So the census is reported, not just a
        * verdict. Needs js/mac-ppc.js, which loads after this file; the call
-       * happens long after both are in, and the guard says so. */
+       * happens long after both are in, and the guard checks it. */
       if (typeof ppcDecode === 'function') {
         const census = (data, r) => {
           const pef2 = parsePEF(data);

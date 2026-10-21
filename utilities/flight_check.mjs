@@ -1,4 +1,4 @@
-// js/nova-flight.js: ships in flight, held to figures worked by hand from
+// js/nova-flight.js: ships in flight, checked against figures worked by hand from
 // Mac 1.1.1's code, and to the records' odds over many draws.
 //
 //   1. Rand (0xa4c76) against a second transcription of its instructions,
@@ -106,7 +106,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
 }
 
 {
-  // A trader making for a stellar 2,000 to its right: turned, thrust to top speed, a quarter of it within 500,
+  // A trader heading for a stellar 2,000 to its right: turned, thrust to top speed, a quarter of it within 500,
   // braking at 0.98 a step within (9 - 3) x 8 + 32 = 80, stopped, and waiting 300 to 499 steps, the stellar its last visit.
   const sp = { id: 128, xPos: 2000, yPos: 0, Flags: 1, Flags2: 0, Govt: -1, Type: 0 };
   const w = world([sp]), s = ship(cls(), { state: 1, sec: 128, heading: 0 });
@@ -197,7 +197,7 @@ if (haveRelease('1.1.1')) {
 // Worked from Mac 1.1.1's DamageShip, IsDisabled, SelectWarshipTarget, WarshipAI and HandleShipDisplay
 // (evnova-workbench/doc/fighting.md), on 1.0.10's ships in an empty Sol: damage to shields then armour,
 // the shield floor, a disable-only weapon's last point, the disable threshold, turning on an aimed
-// attacker and not on one's government, the nearest enemy picked and one too strong passed over,
+// attacker and not on a ship of its government, the nearest enemy picked and one too strong passed over,
 // the death throes' length, the out-of-ammunition retreat with its flag and without it, and a battle
 // that ends.
 if (haveRelease('1.0.10')) {

@@ -38,7 +38,7 @@
    nova-records.js and nova-ncb.js. */
 
 
-/* The six commodities the Flags long prices, in the Bible's order, each a
+/* The six commodities whose prices are in the Flags long, in the Bible's order, each a
    nibble of Low 1, Medium 2, High 4, not traded 0. */
 const NOVA_COMMODITY_SHIFTS = [28, 24, 20, 16, 12, 8];
 const NOVA_PRICE_WORDS = { 0: null, 1: 'Low', 2: 'Medium', 4: 'High' };
@@ -197,7 +197,7 @@ function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID :
    0x0002 one at random that is not the one now shown. With 0x0001 the first
    frame comes between every two others, and the random pick is never it.
      A hypergate (Flags2 0x1000) has two parts, split at CustPicID when that
-   is from 1 to two short of the frame count, and in half otherwise
+   is from 1 to the frame count less 2, and in half otherwise
    (novaGateTransition). It opens through the first part while a ship is near
    it or bound for it (`engaged`) and then loops the second as above, the
    frame at the split standing for the first frame; with no ship near it
@@ -282,9 +282,9 @@ function novaDefense(spob) {
 
 /* Whether the player can land on a stellar now (Mac 1.0.10 0x1b4300): it
    has Flags 0x01, and it is destroyed exactly when Flags 0x80 ("can land
-   only when destroyed") is set. Destroyed there is a Strength above 0 with
+   only when destroyed") is set. Destroyed means a Strength above 0, with
    the stellar's strength run below 0 or its dead time still counting; the
-   map shows the game as it starts, when nothing is (no shipped stellar
+   map shows the game as it starts, when no stellar is destroyed (no shipped stellar
    starts destroyed, Flags2 0x0040). Landing (0x1932c0) and hailing call it. */
 function novaCanLand(spob, destroyed = false) {
   return !!(spob.Flags & 0x01) && (destroyed ? !!(spob.Flags & 0x80) : !(spob.Flags & 0x80));
@@ -295,7 +295,7 @@ function novaCanLand(spob, destroyed = false) {
    cannot be landed on now (novaCanLand), or is a hypergate or a wormhole
    (Flags2 0x1000, 0x2000) answers "No response." (STR# 2002, 53) and the
    hail window is not opened. The beta history in the Community Edition's
-   documentation has the same of gates. */
+   documentation describes gates the same way. */
 function novaCanHail(spob) {
   return !(spob.Flags & 0x20) && novaCanLand(spob) && !(spob.Flags2 & 0x3000);
 }
@@ -321,7 +321,7 @@ function novaStellarSystem(u, id, shown) {
    wormhole - the radiation levels are too extreme." (STR# 2002, 84-86).
      A hypergate (0x192220) with no HyperLink set does nothing; otherwise
    the player picks a system and the gate goes to the linked stellar whose
-   system is it: the stellar's system, or the first system listing it
+   system is the one picked: the stellar's system, or the first system listing it
    (0x1b4820), as the version shown at that place (0x1b16b0).
      A wormhole (0x192a10) with a HyperLink set goes to one of them at
    random, of those in a shown system. One with none set goes to a random
@@ -339,8 +339,8 @@ function novaRandomWormhole(spob) { return !!(spob.Flags2 & 0x2000) && novaGateT
    and 86). Landing's checks come first (0x1932c0): the wormhole can be
    landed on (novaCanLand) and is the system's. Then 0x192a10: one with
    a HyperLink set tries its slots at random until one points to a stellar in a
-   shown system, which is a pick among those slots, a stellar named twice
-   counting twice; one with none set picks among the wormholes with none
+   shown system, which amounts to a pick among those slots, a stellar listed
+   twice counting twice; one with none set picks among the wormholes with none
    set that belong to a shown system other than `here`, whether or not they
    can themselves be entered. `rand(n)` is a whole number from 0 to n - 1. */
 function novaWormholeTrip(u, shown, spob, here, rand) {
@@ -384,7 +384,7 @@ function novaHypergateChoices(u, shown, spob, here) {
    and `dead`, the gates in a shown system's list that lead nowhere from
    it, as { sys, spob, why }: 'offline' (novaCanLand fails), 'elsewhere'
    (it belongs to a system at another place), 'unlinked' (a hypergate with no
-   HyperLink) or 'nowhere' (none it names is in a shown system). */
+   HyperLink) or 'nowhere' (none of its stellars is in a shown system). */
 // Where a hypergate's link leads: its stellar's system, or failing
 // one the first system listing it, as the version shown at its place.
 function novaGateArrival(u, id, shown) {
@@ -463,7 +463,7 @@ function novaPlanetWeapons(game) {
 /* dësc text with its choices made for a state. The Bible's dësc section:
    {bXXX "one" "two"} on a control bit, {G "one" "two"} on the player being
    male, {P "one" "two"} or {Pxxx ...} on the game being registered; `!`
-   before the letter negates; a missing second string is nothing; \" is a
+   before the letter negates; a missing second string counts as empty; \" is a
    quotation mark inside a string. The test is the same term as in a
    control-bit test, so it is read by nova-ncb.js. A choice that does not
    parse is left as written. */

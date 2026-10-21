@@ -1,7 +1,7 @@
-// The PNG writer the whole map uses on a computer (js/png-stream.js), held
-// to node's zlib: images of random pixels written a band of rows at a time,
-// every chunk's CRC-32 held to zlib.crc32, IHDR read back, the IDAT data
-// inflated by zlib and every row's filter and pixels held to what was
+// The PNG writer the whole map uses on a computer (js/png-stream.js), checked
+// against node's zlib: images of random pixels written a band of rows at a time,
+// every chunk's CRC-32 checked against zlib.crc32, IHDR read back, the IDAT data
+// inflated by zlib and every row's filter and pixels checked against what was
 // written; one image 20,000 pixels wide, wider than a 64 KB row. macOS's
 // sips must read each one's size. Two controls: a byte changed in an IDAT
 // chunk, and a pixel changed in what is compared, must each be found.

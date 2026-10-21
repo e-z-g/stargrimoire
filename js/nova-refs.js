@@ -1,4 +1,4 @@
-/* nova-refs.js -- which records name a record.
+/* nova-refs.js -- which records refer to a record.
    =========================================================================
 
    An outfit's outfitters, the ships with it and the expressions that
@@ -18,7 +18,7 @@
        of the ship, the outfits carried, the ranks held and the events
        running (PlayerMeetsRequirements 0x776f, GetPlayerContributeBits);
      a përs or flët is met where its LinkSyst allows (novaLinkSystOk), or
-       a system's Person list names it.
+       is in a system's Person list.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js,
    nova-bits.js, nova-ships.js and nova-flight.js. */
@@ -89,7 +89,7 @@ function novaRefs(game, u) {
   for (const o of outfits) for (const b of novaMaskBits(o.Contributes)) push(contributors, b, { type: 'oütf', id: o.id });
   for (const c of crons) for (const b of novaMaskBits(c.Contrib)) push(contributors, b, { type: 'crön', id: c.id });
   for (const k of ranks) for (const b of novaMaskBits(k.Contrib)) push(contributors, b, { type: 'ränk', id: k.id });
-  // where people, fleets and düdes are named by systems, stellars and missions
+  // where people, fleets and düdes are listed by systems, stellars and missions
   const sysPers = new Map(), sysDude = new Map(), reinf = new Map(), defends = new Map(), missionDude = new Map(), linkMission = new Map();
   for (const s of systems) {
     (s.Person || []).forEach((p, i) => { if (p >= 128) push(sysPers, p, { id: s.id, prob: s.PersonProb[i] }); });

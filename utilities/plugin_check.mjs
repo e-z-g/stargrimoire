@@ -13,7 +13,7 @@
 //    mac-resfork.js, as the resources it was given, with Finder type Npïf
 //    and the game's creator, as the bytes of the 1.0.10 archive have it.
 // 4. A plug-in made from two releases, put over the older, gives the newer's
-//    records; and the page's in-memory plug-in (setEdits) has precedence and goes.
+//    records; and the page's in-memory plug-in (setEdits) has precedence and can be removed.
 //
 // Each comparison is first shown to fail on bytes changed on purpose.
 import fs from 'node:fs';
@@ -112,16 +112,16 @@ try {
   /* Laid out as EVNEW's CPlugIn::Save lays a file out: the resources'
      bytes in index order, flush from the end of the header, and nothing in
      a 256-byte name after its NUL, an index entry for each resource and
-     the map and no more, and the map naming them in index order and no type with none. Other tools wrote some of the files
+     the map and no more, and the map listing them in index order, with no empty type. Other tools wrote some of the files
      here, which leave bytes after a name or put the data in another order;
-     those are read back, not held byte for byte. */
+     those are read back, not checked byte for byte. */
   const evnewLaidOut = (b, res) => {
     const le = o => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
     const n = le(20);
     let p = 24 + 12 * n + 13;
     for (let i = 0; i < n - 1; i++) { if (le(24 + 12 * i) !== p) return false; p += le(28 + 12 * i); }
     const map = le(24 + 12 * (n - 1)), types = (b[map + 6] << 8) | b[map + 7];
-    if (n !== res.length + 1) return false;   // an index entry no resource names
+    if (n !== res.length + 1) return false;   // an index entry no resource uses
     for (let t = 0; t < types; t++) if (!b[map + 19 + 12 * t] && !b[map + 18 + 12 * t] && !b[map + 17 + 12 * t] && !b[map + 16 + 12 * t]) return false;   // a type of none
     const first = le(16);
     for (let q = map + 8 + 12 * types, k = 0; q < b.length; q += 266, k++) {
@@ -264,7 +264,7 @@ if (versions.length >= 2) {
   const r = g.get('sÿst', 128);
   const changed = S.novaRecordBytes('sÿst', { xPos: S.novaRecord('sÿst', r.bytes).xPos + 5 }, r.bytes);
   g.setEdits([{ type: 'sÿst', id: 128, name: r.name, data: changed }, { type: 'sÿst', id: 9999, name: 'New', data: r.bytes }]);
-  if (!same(g.get('sÿst', 128).bytes, changed) || g.get('sÿst', 128).file !== 'Changed here') fail('setEdits: the changed record does not win');
+  if (!same(g.get('sÿst', 128).bytes, changed) || g.get('sÿst', 128).file !== 'Changed here') fail('setEdits: the changed record is not the one read');
   if (!g.list('sÿst').some(e => e.id === 9999)) fail('setEdits: a new record is not listed');
   g.setEdits([]);
   if (!same(g.get('sÿst', 128).bytes, r.bytes) || g.list('sÿst').some(e => e.id === 9999)) fail('setEdits([]): the edits stay');

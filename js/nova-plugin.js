@@ -11,7 +11,7 @@
      .rez    the Windows builds' and the Community Edition's plug-ins, in
              the layout EVNEW's CPlugIn::Save writes (`novaWriteRez`).
              utilities/plugin_check.mjs checks it against every `.rez` in
-             reference/game, rewritten byte for byte, and to
+             reference/game, rewritten byte for byte, and against
              evnova-workbench's tools/rez.py.
      .bin    a Mac plug-in, MacBinary II: a resource fork written by
              mac-resfork.js, and the Finder type `Npïf` that the Mac
@@ -99,7 +99,7 @@ function novaFieldParse(kind, text) {
 }
 
 /* A plug-in held in memory, from [{ type, id, name, data }] (`type` the
-   type's name, as 'sÿst'), answering as a fork from mac-resfork.js does as
+   type's name, as 'sÿst'), behaving as a fork from mac-resfork.js does as
    far as novaGame needs. */
 function novaPluginFork(resources) {
   const resourcesByType = {}, typeList = [];
@@ -133,8 +133,8 @@ function novaPluginOrder(resources) {
    type its four bytes, the offset of its list from the map and its count,
    and per resource its index, type, id and a 256-byte name.
    The resources go in the order given, a type's kept together. `first`,
-   1 unless given, is the first index: Ambrosia's files number theirs
-   on from the file before (Nova Titles 3's from 1,271), which is how the
+   1 unless given, is the first index: Ambrosia's files continue their
+   numbering from the file before (Nova Titles 3's from 1,271), which is how the
    check rewrites them byte for byte. */
 function novaWriteRez(resources, first = 1) {
   // a type's resources together, in the order given otherwise

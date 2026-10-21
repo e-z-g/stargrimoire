@@ -13,7 +13,7 @@
    js/nova-compare.js; page-map.js calls compareRefresh, compareRing,
    compareBlock and compareList. */
 
-/* The releases in archive.org's item, each byte for byte
+/* The releases in archive.org's item, each byte for byte the same as
    reference/game/'s copy (MD5 compared, 7 October 2026); 1.1.1 is its disk
    image (js/disk-image.js). */
 const ARCHIVE_DIR = 'https://archive.org/cors/Macintosh_Garden_Games_2019_E/';

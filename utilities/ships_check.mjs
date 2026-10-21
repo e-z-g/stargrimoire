@@ -1,7 +1,7 @@
 // js/nova-ships.js: the Bible's rules for ships, and every release's ships
 // read through them.
 //
-//   1. Every shïp has a shän, and every sprite a shän names is in the files.
+//   1. Every shïp has a shän, and every sprite a shän points to is in the files.
 //   2. The frame counts the page relies on: the base is BaseSetCount sets of
 //      FramesPer; the alternating image AltSetCount sets; the shield 1,
 //      FramesPer or BaseSetCount x FramesPer. The engine glow and running

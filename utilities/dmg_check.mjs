@@ -5,7 +5,7 @@
 // one hdiutil gave, and none of those may be missing. Then the negative
 // control: the image with a byte changed in every compressed chunk must not
 // read back the same. And 1.1 beta 2.10.7's image, whose game is inside an
-// installer package, held to macOS's xar, gzip and cpio.
+// installer package, checked against macOS's xar, gzip and cpio.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

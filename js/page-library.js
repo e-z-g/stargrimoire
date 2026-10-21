@@ -7,11 +7,11 @@
    column, each row a link to the record's panel. Text, pictures and sounds
    are listed by id and name; where the program shows what one is for (an
    outfit's description in the outfitter, its picture ...), that is given,
-   the base it adds to linked to the instruction it was read from
+   with the base it adds to linked to the instruction it was read from
    (novaFigure, codeNum), and the routines that load one by its
    number are named and linked (novaProgramUses). The filter finds those
    words too: "race" finds the bar's race, which the landing page doesn't
-   offer, and a routine's name what it loads.
+   offer, and a routine's name finds what it loads.
 
    PAGE SCRIPT. LOAD ORDER: after page-map.js, page-ships.js,
    page-battle.js, page-records.js and page-code.js. */
@@ -105,7 +105,7 @@ function libLoads(res, id) {
   return (uses.every(u => u.run) ? 'the first of a run the program loads in ' : 'loaded by ') + list.join(', ');
 }
 
-// Whether what a resource is for has the words filtered for.
+// Whether a resource's purpose contains the filter's words.
 const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLowerCase().includes(q);
 
 /* ---- in and out of the view -------------------------------------------- */

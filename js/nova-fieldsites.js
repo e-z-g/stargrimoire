@@ -23,9 +23,9 @@
 
    An array is named by the global it is reached through and how many
    loads deep: in 1.0.x the TOC's word for a global (an `lwz rN, k(r2)` the
-   reader names `data 0x…`) is a static array's address, and a word loaded
+   reader shows as `data 0x…`) is a static array's address, and a word loaded
    from there an allocated one's; in 1.1.1 the same from the address the
-   Mach-O names (`address of stellarData`), a load the reader names by
+   Mach-O gives (`address of stellarData`), a load the reader labels with
    its global, or a constant that contains a global's address (shipClass's
    is kept in __const as well as reached by name). The record itself is reached the same way, through the
    global its handle is kept in, which distinguishes it from a copy.

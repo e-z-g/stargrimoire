@@ -1,4 +1,4 @@
-// The record tables in js/nova-records.js, held to two sources that are not
+// The record tables in js/nova-records.js, checked against two sources that are not
 // this repository:
 //
 //   1. LAYOUT. Ambrosia's ResEdit templates, the `Templates` file in 1.0.10's
@@ -121,7 +121,7 @@ const TYPE_ALIAS = { oütf: { Require: 'Requires' }, përs: { ShipColor: 'Color'
   röid: { spinRate: 'SpinRate', yieldType: 'YieldType', yieldQty: 'YieldQty', partCount: 'PartCount', partColor: 'PartColor',
           fragType1: 'FragType1', fragType2: 'FragType2', fragCount: 'FragCount', ExplodeType: 'ExplodType' } };
 // Columns the dump's header names and its rows leave out: every ränk row
-// ends after flags with the end-of-record mark, so its names are held to
+// ends after flags with the end-of-record mark, so its names are checked against
 // the template's layout alone.
 const DUMP_OMITS = { ränk: ['ConvName', 'ShortName'] };
 // The dump writes a quotation mark as \q and CR and LF as \r and \n, and a

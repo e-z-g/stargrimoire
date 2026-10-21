@@ -14,13 +14,13 @@
 // with headings kept passes the tests of the map it is made
 // on, and every piece of every drawn link is within 45 degrees of the way
 // the link truly runs (a 22.5-degree piece within that and its quarter of a
-// degree) but for the links the layout counts in stats.astray, which are
+// degree) except for the links the layout counts in stats.astray, which are
 // printed and must be fewer than one in fifty; a place whose links cannot
 // all leave one point within it is a bar (subwayBars), its points in a row
 // one step apart round its point, a link from it leaves from one of them, and
 // no link runs over or cuts across one. With room for names too,
 // its names are put where the lines leave room: none on a line, a place or
-// another name, but for those the layout counts in stats.unnamed, fewer
+// another name, except for those the layout counts in stats.unnamed, fewer
 // than one in fifty. On the map with 22.5 degrees only where needed, the
 // links drawn with a piece between the 45-degree directions are the ones
 // the layout counts (stats.odd), and no more than those it let go for it
@@ -113,7 +113,7 @@ function problemsFine(m) {
     for (let i = 0; i + 1 < line.length; i++) {
       const dx = line[i + 1].x - line[i].x, dy = line[i + 1].y - line[i].y;
       if (S.fineAngErr(dx, dy, S.fineClass(dx, dy)) > F.eps + 1e-9) { out.push(`link ${e}, piece ${i}, is not within a quarter of a degree of a multiple of 22.5`); break; }
-      // over a place's points, but for the one the link ends on, or across a bar
+      // over a place's points, except the one the link ends on, or across a bar
       for (let w = 0; w < at.length; w++) if (pts[w].some(q => !(i === 0 && w === a && Math.hypot(q.x - line[0].x, q.y - line[0].y) < 1e-6) && !(i + 2 === line.length && w === b && Math.hypot(q.x - line[i + 1].x, q.y - line[i + 1].y) < 1e-6) && (w !== a && w !== b || pts[w].length > 1) && S.nearSegment(q, line[i], line[i + 1]) < F.clear - 1e-6) || acrossBar(step, w, line[i], line[i + 1])) { out.push(`link ${e} runs over place ${w}`); break; }
       for (const s2 of segs) if (S.runAlong(line[i], line[i + 1], s2.a, s2.b)) out.push(`links ${s2.e} and ${e} run along each other`);
     }
@@ -484,7 +484,7 @@ for (const v of Object.keys(RELEASES)) {
     const p = test(m).concat(nebulaProblems(u.nebulae, m.rect));
     if (p.length) fail(`${v}, ${name}: ${p.length} problems: ${p.slice(0, 6).join('; ')}`);
     const r = m.layout;
-    // the brightness under the places near each nebula, against its true, fitted to the picture or not
+    // the brightness under the places near each nebula, against what is truly under it, fitted to the picture or not
     const game = u.game, brights = u.nebulae.map(n => { const id = S.novaNebulaPict(u, n, 1e3), c = id !== null && S.decodePict(game.get('PICT', id).bytes).canvas; return c && c._pixels ? S.subwayBrightness(c._pixels, c._w, c._h) : null; });
     const mismatch = bs => u.nebulae.map((n, j) => {
       if (!brights[j]) return 0;

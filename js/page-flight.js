@@ -3,11 +3,11 @@
 
    Each system whose stellars are drawn has a world of nova-flight.js's,
    set up as its stellars start to show, as the game sets one up when the
-   player comes in, with a new seed each time, and dropped when they go, so
+   player comes in, with a new seed each time, and dropped when they disappear, so
    its ships fade in and out with them. The game runs only the player's
    system; here each open one runs as if the player were there. Their
    ships come, go to the stellars and leave by their AI, and only what
-   is within a system's circle is drawn, but for the system you are in,
+   is within a system's circle is drawn, except for the system you are in,
    whose ships just beyond it are drawn fading out with distance from its
    edge (OUTSIDE), off the other systems' circles, so a fight past the
    edge can be followed (the maintainer's request, 1 October 2026). They are stepped thirty times a
@@ -16,8 +16,8 @@
    the map hidden. Where the browser requests reduced motion they start
    paused. A hypergate a ship is coming out of opens (flightEngaged).
 
-   The asteroids are the player's in the game, kept on and just off the
-   player's screen; the map's view stands in for it (flightView), so they
+   In the game the asteroids belong to the player's view, kept on and just
+   off the player's screen; the map's view stands in for it (flightView), so they
    gather round what you are looking at and come in at its corners.
 
    Each ship is its base sprite at its heading's frame, as small as the
@@ -85,7 +85,7 @@ function flightListed() {
 }
 
 /* The player's screen, for the asteroids: the map's view in the system's
-   own units, its middle and half its width and height. */
+   units, its middle and half its width and height. */
 function flightView(id) {
   const sys = U.byId.get(id), p = placeOf(id), k = kOf(sys), z = CAM.s * k;
   return { x: (CAM.x - p.x) / k, y: (CAM.y - p.y) / k, hw: CW / 2 / z, hh: CH / 2 / z };

@@ -1,6 +1,6 @@
-// The field notes in js/nova-fields.js, each held to the program they were
-// read from: every field is one its type's table names, and every routine a
-// note cites is a function Mac 1.1.1's Intel code names, at that address
+// The field notes in js/nova-fields.js, each checked against the program they were
+// read from: every field is in its type's table, and every routine a note
+// cites is a function named in Mac 1.1.1's Intel code, at that address
 // (`nm`, over reference/'s copy of the program), and every routine the rest
 // of the code's comments cite has the place they give in it. A routine named
 // wrongly, or at another address, fails; that is first shown on a routine
@@ -43,8 +43,8 @@ console.log(`${notes} field notes, ${cites} routines cited, each a routine of Ma
 // The rest of the site's code cites routines in its comments as a name and an
 // address ("HandleShip 0x33581", "LoadObjectData (0x79285)", "DamageShip's
 // reactions (0x3b3f3", the address on the next line or not), the routine's
-// start or a place in it: each named so that is a routine of 1.1.1, the address inside
-// it, before the next routine's start. Flags 0x0008 and the like name no routine.
+// start or a place in it: each name must be a routine of 1.1.1, and the address inside
+// it, before the next routine's start. Flags 0x0008 and the like are not routines.
 const starts = [...new Set(syms.values())].sort((a, b) => a - b);
 const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
 if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot distinguish a place in a routine from one outside it');
@@ -80,7 +80,7 @@ for (const k of bitFields.keys()) { const [type, field] = k.split(' '); if (!S.n
 console.log(`${bitFields.size} fields of control bits, each as its note has it`);
 
 // Every reading (NOVA_FIELD_READS) run over every record of its type in every
-// release: each must give words, for a field its table names. What the shipped
+// release: each must give words, for a field in its table. What the shipped
 // records come to is counted where it is worth knowing: codes the program reads
 // as never offered or as where the mission is accepted, records named that are
 // not in the files, flag bits no use of was found for.

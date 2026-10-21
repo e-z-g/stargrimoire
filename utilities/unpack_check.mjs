@@ -1,18 +1,18 @@
 // Every Nova plug-in in archive.org's EscapeVelocityPluginCollection (EVN.zip's
 // Plugins and Cheats, as in Add plug-ins), opened as the page opens it,
-// and the StuffIt reader held to The Unarchiver's tools on them:
+// and the StuffIt reader checked against The Unarchiver's tools on them:
 //
 // 1. Opened: each file unwrapped and read as openGameFiles reads it
 //    (novaArchiveFiles or novaLooseFile, then each Nova file's fork); a file
 //    opens when any Nova file in it reads. OPENED is how many do: 905 on 13
 //    October 2026; 944 with the StuffIt 5 walk, its names, methods 2, 3 and 5
-//    and plug-ins found by their records; 949 with MacBinary copies named as
-//    they like and a split zip's pieces read by their local headers; 960 with
+//    and plug-ins found by their records; 949 with MacBinary copies of any
+//    name and a split zip's pieces read by their local headers; 960 with
 //    Compact Pro, RAR, ZipIt's self-extractor, StuffIt X's Deflate and four
 //    .rez files whose lists are misplaced (Mr.T's Paint, an installer unar
 //    cannot read either, no longer counted for its resource fork). What
 //    stays shut is printed by why: StuffIt X catalogs unar cannot read
-//    either, copies damaged where they are kept, and files that are no plug-in.
+//    either, copies damaged where they are kept, and files that are not plug-ins.
 // 1b. Joined: the three pieces of rEV_Windows, a zip split across files, opened
 //    together, as Add plug-ins opens what is ticked (novaJoinParts): JOINED of
 //    their Nova files read, "rEV Escort Sell" among them, its DLOG list
@@ -106,7 +106,7 @@ else {
     if (JSON.stringify(ours) === JSON.stringify(theirs)) same++; else differ.push(name.slice(4));
   }
   const unknown = differ.filter(n => !LSAR_DIFFERS.includes(n)), gone = LSAR_DIFFERS.filter(n => !differ.includes(n));
-  if (unknown.length) fail(`StuffIt archives listed otherwise than by lsar: ${unknown.slice(0, 8).join(', ')}`);
+  if (unknown.length) fail(`StuffIt archives listed differently from lsar: ${unknown.slice(0, 8).join(', ')}`);
   if (gone.length) console.log(`  (lsar now matches on ${gone.join(', ')}: LSAR_DIFFERS can lose it)`);
   console.log(`lsar: ${same} of ${stuffIts.length} StuffIt archives list the same files; ${differ.length} do not, lsar's misreadings`);
 }
@@ -185,7 +185,7 @@ else {
   bent[rar.length >> 1] ^= 0x5A;
   let refused = '';
   try { S.parseRarArchive(bent).entries.find(e => e.name === entry.name).read('data'); } catch (e) { refused = e.message; }
-  if (!refused) fail('a byte bent in a RAR stream was handed back');
+  if (!refused) fail('a byte bent in a RAR stream was accepted');
   console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? '; a bent RAR stream is rejected' : ''));
 }
 

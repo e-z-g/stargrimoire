@@ -130,13 +130,13 @@ function shipsFilesChanged() {
   if (!SHIPS.on) return;
   renderShipList();
   if (SHIPS.id === null) { renderShip(); return; }
-  // Drawn again whole only while its sprites were missing; otherwise the
-  // pictures, so a ship being turned is not reset.
+  // Drawn again whole only while its sprites were missing; otherwise only
+  // the pictures, so a ship being turned is not reset.
   const partial = SHIP_ANIM ? !SHIP_ANIM.layers.every(l => l.spr && l.spr.kind === 'rle') : GAME.has('shän', SHIPS.id);
   if (partial) renderShip(); else renderShipPictures();
 }
 
-/* A fresh game: the last one's ships cleared. */
+/* A fresh game: the last game's ships are cleared. */
 function shipsReset() {
   SHIP_SPRITES.clear();
   SHIP_FRAMES.clear();
@@ -318,7 +318,7 @@ function shipHtml(ship, shan) {
         : `<div class="nopict">${GAME.list('shän').length ? `No shän ${id} in these files, so no sprites.` : 'The sprites are in the ships files.'}</div>`}</div>
       <div id="shipPics" class="shipPics"></div>
     </div>
-    ${!fd ? `<p class="note">Its description is found through the game's program, which ${program() ? 'does not say where here' : 'the files open do not include'}.</p>`
+    ${!fd ? `<p class="note">Its description is found through the game's program, ${program() ? 'which does not show where for this one' : 'and the open files do not include it'}.</p>`
       : d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">dësc ${fd.value + n} (${codeNum(fd)} + ${n}), as the shipyard loads it.</p>` : `<p class="note">No description: the files have no dësc ${fd.value + n} (${codeNum(fd)} + ${n}).</p>`}
     ${pd ? `<h3>As an escort for hire</h3><div class="desc">${esc(novaDescText(pd.Description, STATE))}</div><p class="note">dësc ${fe.value + n} (${codeNum(fe)} + ${n}).</p>` : ''}
     <div class="shipCols">
@@ -374,7 +374,7 @@ function shanHtml(shan) {
   const rows = novaShanLayers(shan).map(l => {
     const s = shipSprite(l.image);
     const what = !s ? '' : s.kind === 'rle' ? `${s.type} ${l.image}: ${s.count} frames of ${s.width} × ${s.height}`
-      : s.kind === 'pict' ? `PICT ${l.image}, a sheet, not drawn here yet` : s.kind === 'bad' ? `${l.image}: ${s.error}` : `${l.image}, not in these files`;
+      : s.kind === 'pict' ? `PICT ${l.image}, a sheet this page cannot draw` : s.kind === 'bad' ? `${l.image}: ${s.error}` : `${l.image}, not in these files`;
     return kvRow(l.label, esc(what));
   }).join('');
   const modes = novaFlagWords(shan.Flags, NOVA_SHAN_FLAGS);
@@ -385,7 +385,7 @@ function shanHtml(shan) {
     ${kvRow('Modes', modes.map(esc).join('<br>'))}</table></details>`;
 }
 
-/* The ship's pictures: target, shipyard, and the one its description names. */
+/* The ship's pictures: target, shipyard, and the one its description points to. */
 function renderShipPictures() {
   const host = $('shipPics');
   if (!host || SHIPS.id === null) return;
@@ -541,9 +541,9 @@ function drawShip(A, c) {
    (ModifyShotStartPosition2 0x706e): the point's Y along the ship's
    heading and its X across it, then squashed by UpCompress where it lies
    toward the top of the screen and by DnCompress below (percent, 100 for
-   0 or less), and its Z taken off the height on screen. The heading is
+   0 or less), and its Z subtracted from the height on screen. The heading is
    the frame's, frame × 360 ÷ FramesPer, whole degrees. The four points of
-   a kind are taken in turn as it fires. */
+   a kind are used in turn as it fires. */
 const EXIT_KINDS = [['Gun', '#ffd23f'], ['Turret', '#4fd1ff'], ['Guided', '#ff6b6b'], ['Beam', '#9dff6b']];
 function shipExits(shan, per, h) {
   const deg = Math.trunc(h * (360 / per)), pc = v => Math.fround((v > 0 ? v : 100) / 100);

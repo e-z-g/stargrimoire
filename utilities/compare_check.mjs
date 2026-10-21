@@ -1,5 +1,5 @@
-// js/nova-compare.js: what changed between releases, held to a plain
-// comparison of the resources' bytes and to changes read by hand.
+// js/nova-compare.js: what changed between releases, checked against a plain
+// comparison of the resources' bytes and against changes read by hand.
 //
 // For each pair of releases in turn, every record new, gone or with other
 // bytes is found here straight from the data files; novaCompare must give

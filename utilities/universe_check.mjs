@@ -78,7 +78,7 @@ eq('gate open, the split between', frames(sp(0x1001, 1), 6, 10, true), [1, 2, 3,
 eq('gate closing', frames(sp(0x1000, 1), 6, 6, false, [], gate), [4, 5, 2, 1, 0, 0]);
 eq('landing picture',[S.novaLandingPict({ CustPicID: 11004, Type: 22 }), S.novaLandingPict({ CustPicID: -1, Type: 6 }), S.novaLandingPict({ CustPicID: 37, Type: 1 })], [11004, 10006, 10001]);
 
-// Wormholes in 1.0.10 (Mac 0x192a10), with every system shown but those named.
+// Wormholes in 1.0.10 (Mac 0x192a10), with every system shown except those named.
 if (haveRelease('1.0.10')) {
   const g = openRelease(S, '1.0.10'), u = S.novaUniverse(g), all = S.novaShownSystems(u, null);
   const at = (shown, id) => S.novaStellarSystem(u, id, shown);
@@ -87,13 +87,13 @@ if (haveRelease('1.0.10')) {
   // Sol's (465) has no HyperLink: the n-th of the others, in stellar order
   const trip = S.novaWormholeTrip(u, newGame, u.stellars.get(465), u.byId.get(130), n => { eq('Sol\'s wormhole picks among', n, randoms.length); return 3; });
   eq('Sol\'s wormhole at a new game', trip.to && [trip.to.spob.id, trip.to.sys.id], [randoms[3].id, at(newGame, randoms[3].id).id]);
-  // "Link" in S7evyn (514) names Obatta's (468), in Obatta (155)
+  // "Link" in S7evyn (514) points to Obatta's (468), in Obatta (155)
   const s7 = at(all, 514), link = S.novaWormholeTrip(u, all, u.stellars.get(514), s7, () => 0);
   eq('Link to Obatta', link.to && [link.to.spob.id, link.to.sys.id], [468, 155]);
   // wormhole 466 is Spica's, so from K-005, which lists it too, it is closed
   const k005 = [...u.byId.values()].find(s => s.name === 'K-005' && s.stellars.includes(466));
   eq('466 from K-005', k005 && !!S.novaWormholeTrip(u, all, u.stellars.get(466), k005, () => 0).refused, true);
-  // with no shown system listing a random wormhole but Sol's, nowhere to go
+  // with no shown system listing a random wormhole except Sol's, nowhere to go
   const others = new Set([...u.stellars.values()].filter(S.novaRandomWormhole).map(sp => sp.id).filter(id => id !== 465));
   const alone = new Set([...newGame].filter(id => !u.byId.get(id).stellars.some(t => others.has(t))));
   eq('Sol\'s wormhole alone', !!S.novaWormholeTrip(u, alone, u.stellars.get(465), u.byId.get(130), () => 0).refused, true);
@@ -154,7 +154,7 @@ for (const v of Object.keys(RELEASES)) {
     }
   }
   const odd = [...tags.keys()].filter(k => k !== 'b' && k !== 'G');
-  if (odd.length) problems.push(`stellar descriptions hold choices the page does not make: ${odd.slice(0, 4).join(' ')}`);
+  if (odd.length) problems.push(`stellar descriptions contain choices the page does not make: ${odd.slice(0, 4).join(' ')}`);
   for (const n of u.nebulae) if (!n.picts.some(p => game.has('PICT', p.id))) problems.push(`nëbu ${n.id} has no picture`);
   // the picture drawn into a rectangle (MapDialogUpdate): the last no wider and no taller, else the first
   for (const n of u.nebulae) {
@@ -167,7 +167,7 @@ for (const v of Object.keys(RELEASES)) {
     });
     if (S.novaNebulaPict(u, n, 1, 1) !== (game.has('PICT', n.picts[0].id) ? n.picts[0].id : null)) problems.push(`nëbu ${n.id}: into 1 × 1, not its first picture`);
   }
-  // Every gate is in a system, and every stellar a gate's HyperLink names is a gate in a system.
+  // Every gate is in a system, and every stellar a gate's HyperLink points to is a gate in a system.
   for (const sp of u.stellars.values()) {
     if (!S.novaGateKind(sp)) continue;
     if (!(u.inSystems.get(sp.id) || []).length) problems.push(`gate spöb ${sp.id} (${sp.name}) is in no system`);
@@ -184,14 +184,14 @@ for (const v of Object.keys(RELEASES)) {
     if (how !== 'test' || !text) continue;
     if (S.ncbAsWritten(text).same !== true) otherwise.push(`${type} ${rec.id} ${field}`);
     const tree = S.ncbGameTree(text), bits = [...new Set([...text.matchAll(/[Bb](\d+)/g)].map(m => +m[1]))];
-    if (!tree || bits.length > 14) { fail(`${v} ${type} ${rec.id} ${field}: no game tree to hold to the game's reading`); continue; }
+    if (!tree || bits.length > 14) { fail(`${v} ${type} ${rec.id} ${field}: no game tree to check against the game's reading`); continue; }
     for (let m = 0; m < 1 << bits.length; m++) {
       const state = st(bits.filter((b, i) => m >> i & 1));
       if (S.ncbEval(tree, state) !== S.ncbTest(text, state)) { fail(`${v} ${type} ${rec.id} ${field}: the game tree ${S.ncbTreeText(tree)} and the game's reading differ`); break; }
     }
   }
-  // every record with a separate panel followed to what names it: an outfit sold only at outfitters of its tech
-  // level, a weapon fired only by outfits of ModType 1 naming it, every system named one there is
+  // every record with a separate panel followed to what refers to it: an outfit sold only at outfitters of its tech
+  // level, a weapon fired only by outfits of ModType 1 naming it, every system it refers to one that exists
   const refs = S.novaRefs(game, u), refProblems = [];
   let soldSomewhere = 0;
   for (const [type] of S.NOVA_REC_TYPES) for (const rec of S.novaAll(game, type)) {
@@ -213,13 +213,13 @@ for (const v of Object.keys(RELEASES)) {
   console.log(`${v}: ${u.systems.length} systems at ${places.size} places, ${shown.size} shown at a new game with ${links.length} links` +
               ` (${links.filter(l => l.oneWay).length} one way); ${u.stellars.size} stellars, ${sprites} sprites decoded,` +
               ` ${pictures} of ${landable} landing pictures, ${descs} descriptions; ${u.nebulae.length} nebulae;` +
-              ` ${mixed} tests mix & and |; outfits sold somewhere ${soldSomewhere} of ${S.novaAll(game, 'oütf').length}; ${otherwise.length} tests the game reads otherwise than written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
+              ` ${mixed} tests mix & and |; outfits sold somewhere ${soldSomewhere} of ${S.novaAll(game, 'oütf').length}; ${otherwise.length} tests the game reads differently from how they are written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
               ` ${S.novaPlanetWeapons(game).length} planet-type weapons; at a new game ${gates.links.length} ways by gate` +
               ` (${gates.links.filter(l => l.oneWay).length} one way), ${gates.random.length} random wormholes, ${gates.dead.length} gates leading nowhere,` +
               ` with every version ${every.links.length} (${every.links.filter(l => l.oneWay).length}), ${every.random.length} and ${every.dead.length}`);
 }
 
-// A total conversion in a zip of MacBinary copies, named as it likes:
+// A total conversion in a zip of MacBinary copies, with any names:
 // Starfleet Adventures alpha 0.50 from the plug-in collection.
 const SFA = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/Extras/Starfleet Adventures/starfleetalpha050.zip');
 if (!fs.existsSync(SFA)) console.log('SKIP Starfleet Adventures: not in reference/');

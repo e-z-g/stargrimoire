@@ -1,4 +1,4 @@
-// js/nova-sprites.js held to ResForge's Sprite Editor, pixel for pixel, over
+// js/nova-sprites.js checked against ResForge's Sprite Editor, pixel for pixel, over
 // every rlëD and rlë8 in the releases' graphics files.
 //
 // The oracle is ResForge's decoder (reference/ResForge, andrews05/ResForge,
@@ -14,7 +14,7 @@
 // sprites there are and runs for minutes rather than seconds.
 //
 // The frame index (novaRleIndex), which lets the page draw one frame of a
-// large sprite alone, is held to where novaDecodeRle found each frame, and
+// large sprite alone, is checked against where novaDecodeRle found each frame, and
 // the last frame drawn from it to the last frame drawn in sequence.
 import fs from 'node:fs';
 import os from 'node:os';

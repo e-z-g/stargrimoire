@@ -1,7 +1,7 @@
 /* nova-collection.js -- the community's plug-ins, as on archive.org.
    =========================================================================
 
-   The bar's Plug-ins lists what three archive.org items keep, for a
+   The bar's Plug-ins shows the files in three archive.org items, for a
    visitor to open into the game from there: the page publishes none of
    them. EscapeVelocityPluginCollection is Ambrosia's add-on files whole:
    its EVN.zip has the Nova plug-ins and cheats, each beside a .txt of
@@ -13,7 +13,7 @@
    archive.org gives a zip's contents as a page of HTML (novaCollectionZip)
    and an item's files as JSON (novaCollectionItem), and hands out any one
    file, from an item or from inside its zip, at its /cors/ address, which
-   answers a page on another site. reference/archive-org has both
+   a page on another site can fetch. reference/archive-org has both
    listings as they were taken, and collection_check compares this reading of
    them with the copies in reference/game/collections.
 

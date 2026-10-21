@@ -11,8 +11,8 @@
    The bar's Plug-in shows them and saves them as a plug-in: a `.rez` for
    the Windows builds and the Community Edition, or a MacBinary `.bin`
    for the Mac (why a .bin is in nova-plugin.js). A field the program has
-   been read for has its note under it (nova-fields.js), the routines it was
-   read from on hovering; a few words stand for it until Notes in full is
+   been read for has its note under it (nova-fields.js), with the routines it
+   was read from shown on hovering; a few words stand for it until Notes in full is
    ticked. While comparing, it also
    saves what differs from the files compared with.
 
@@ -219,7 +219,7 @@ function pluginAsk() {
       <button data-a="rez"${list.length ? '' : ' disabled'}>Save as .rez</button>
       <button data-a="bin"${list.length ? '' : ' disabled'}>Save for the Mac</button>
     </div>
-    ${diff ? `<p class="note">Or every record that differs from ${esc(COMPARE.label)}, these changes among them: ${diff.length.toLocaleString()} records, a plug-in that makes ${esc(COMPARE.label)} into what is open now (a record taken away it cannot say).</p>
+    ${diff ? `<p class="note">Or every record that differs from ${esc(COMPARE.label)}, these changes among them: ${diff.length.toLocaleString()} records, a plug-in that makes ${esc(COMPARE.label)} into what is open now (though not a record that was removed).</p>
     <div class="actions"><button data-a="diff-rez"${diff.length ? '' : ' disabled'}>Save as .rez</button><button data-a="diff-bin"${diff.length ? '' : ' disabled'}>Save for the Mac</button></div>` : ''}
     <div class="actions">${list.length ? '<button data-a="clear">Undo every change</button>' : ''}<button data-a="close">Close</button></div>`;
   el.hidden = false;

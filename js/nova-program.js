@@ -123,7 +123,7 @@ function novaProgram(bytes, rsrc) {
   const dataView = new DataView(data.buffer, data.byteOffset, data.length);
   const floatAt = (off, double) => (off >= 0 && off + (double ? 8 : 4) <= data.length ? (double ? dataView.getFloat64(off) : dataView.getFloat32(off)) : null);
 
-  // a routine's instructions, with what each names
+  // a routine's instructions, with what each refers to
   const opsCache = new Map();
   function ops(r) {
     if (opsCache.has(r.start)) return opsCache.get(r.start);
@@ -277,7 +277,7 @@ function novaMachOProgram(file) {
   const globalAt = addr => dataName.get(addr) || null;
   const dataNote = v => { const s = sectOf(v), str = s && s.name === '__cstring' ? textAt(v) : null; return str !== null ? JSON.stringify(str) : globalAt(v) || (s ? `${/data|common|bss/.test(s.name) ? 'global' : s.name} ${hex(v)}` : null); };
 
-  // a routine's instructions, with what each names
+  // a routine's instructions, with what each refers to
   const opsCache = new Map();
   function ops(r) {
     if (opsCache.has(r.start)) return opsCache.get(r.start);
@@ -351,7 +351,7 @@ function novaCallersOfImport(prog, name) {
   return [...out].sort((a, b) => a.start - b.start);
 }
 
-/* Routines whose instructions name something matching a query: an import
+/* Routines whose instructions refer to something matching a query: an import
    called, a string loaded, a resource type made, a constant. [{ routine,
    addr, note }], the first hit in each routine. */
 function novaSearchProgram(prog, q, limit = 200) {
@@ -376,7 +376,7 @@ function novaSearchProgram(prog, q, limit = 200) {
 
    Each reader finds its figure by the shape of the code around it, from
    anchors the files give: a system call's name, a resource type the code
-   makes, a dialog whose item list the program's resource fork names. A
+   makes, a dialog whose item list is named in the program's resource fork. A
    reader that does not find its shape gives null, and the page leaves the
    figure out. A figure is { value, addr, routine }: the instruction that
    contains it and the routine it is in. */
@@ -397,13 +397,13 @@ function novaCallsIn(prog, r, target) {
   return prog.ops(r).map((o, i) => ({ o, i })).filter(x => x.o.target !== null && want.has(x.o.target));
 }
 
-/* Routines the readers recognise, named for what shows they are:
+/* Routines the readers recognise, named for what they are shown to do:
    [{ routine, name, why }]. */
 function novaNamedRoutines(prog, game) {
   if (prog.named) return prog.named;
   const out = [];
   const desc = novaFigure(prog, 'descLoader', game);
-  if (desc) out.push({ routine: prog.byStart.get(desc.routine), name: 'Loads a description', why: "makes the resource type 'dësc', and is called most of the routines that do" });
+  if (desc) out.push({ routine: prog.byStart.get(desc.routine), name: 'Loads a description', why: "builds the resource type 'dësc', and most of the routines that load a description call it" });
   for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `calls GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
   const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
   for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
@@ -565,8 +565,8 @@ const NOVA_FIGURES = {
     for (const [r, list] of asks) if (list.length >= 2 && list.every(o => o.op.imm === list[0].op.imm)) return { value: list[0].op.imm, addr: list[0].addr, routine: r.start };
     return null;
   },
-  // the sounds: of the routines that make the type 'snd ', the one called most loads a sound; the routine calling it
-  // most loads them at the start, runs from bases in turn: a beep's, then the shots', then the explosions'
+  // the sounds: of the routines that make the type 'snd ', the one called most loads a sound; the routine that calls it
+  // most loads them at the start, in runs from bases in turn: a beep's, then the shots', then the explosions'
   shotSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[1]; },
   explodSnd(prog) { const f = novaPefSounds(prog); return f && f.runs[2]; },
   // which nebula picture is drawn: a routine reading the map's nebula pictures that reads a picture's frame from
@@ -949,11 +949,11 @@ function novaProgramUses(prog, game) {
 
 /* ---- the rules the site's flying and battles use ---------------------------
 
-   NOVA_RULES (js/nova-rules.js) lists each number the flying and battle
-   code uses that the routine its comments cite contains too. Each is found
+   NOVA_RULES (js/nova-rules.js) lists each number in the flying and
+   battle code that is also in the routine its comments cite. Each is found
    there, in 1.1.1 by the routine's name and in 1.0.x where
    js/nova-routines.js found that routine: the first instruction of the
-   routine holding it (novaHeldValues). Found, not read: the number is the
+   routine containing it (novaHeldValues). Found, not read: the number is the
    site's, and where it is in the routine shows it is the program's.
    novaRuleSites(prog) -> [{ file, line, value, routine, addr }]. */
 function novaHeldValues(prog, name) {
@@ -1075,7 +1075,7 @@ function novaOpGloss(prog, ops, i) {
     case 'cmpwi': case 'cmplwi': return `compare ${r(op.ra)} with ${op.imm}`;
     case 'cmpw': case 'cmplw': return `compare ${r(op.ra)} with ${r(op.rb)}`;
     case 'b': return `go to ${target}`;
-    case 'bl': return '';                                        // the note names what is called
+    case 'bl': return '';                                        // the note gives what is called
     case 'blr': return 'return';
     case 'bctr': return 'go to the address in the count register';
     case 'bctrl': return 'call the address in the count register';

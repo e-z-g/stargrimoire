@@ -17,7 +17,7 @@
    browser only ever sees the data fork, and a classic `Nova Data 1` has
    none.
 
-   Plug-ins and the community's builds pass round as `.rez` files, the
+   Plug-ins and the community's builds are passed round as `.rez` files, the
    Windows format, whose layout is below; a zip of them is read with
    mac-zip.js.
 
@@ -50,27 +50,27 @@ function novaFileRole(name) {
   return m ? m[1].toLowerCase() : null;
 }
 // The part a file is by its Mac file type, as the shipped Nova Files have
-// them (non-ASCII letters read as ?), for a file whose name does not say.
+// them (non-ASCII letters read as ?), for a file whose name does not show it.
 const NOVA_TYPE_ROLE = { 'ND?t': 'data', 'NGr?': 'graphics', 'NT?t': 'titles', 'NSh?': 'ships', 'NS?d': 'sounds' };
 const NOVA_BASE_NAME = /^Nova (Data|Graphics|Titles|Ships|Sounds) ?\d*(\.(ndat|rez))?$/i;
 
 /* THE WINDOWS FORMAT, `.rez`, which is also how plug-ins are passed round
-   today. Read as EVNEW's CPlugIn::Load reads it, and held by
-   utilities/rez_check.mjs to evnova-workbench's tools/rez.py, a reader written from that
+   today. Read as EVNEW's CPlugIn::Load reads it, and checked by
+   utilities/rez_check.mjs against evnova-workbench's tools/rez.py, a reader written from that
    source separately, resource for resource: `BRGR`; five little-endian
    longs, the fourth the number of the first index entry and the fifth how
    many entries there are; that many entries of (offset, length, 0); the
    last entry is the map, big-endian: a long, the number of types, then per
    type its four bytes, the offset of its list from the map, and its count;
    and per resource the entry number, the type, the id and a 256-byte name.
-   The result answers as a resource fork from mac-resfork.js does, as far as
+   The result behaves as a resource fork from mac-resfork.js does, as far as
    novaGame needs.
    Four plug-ins on archive.org (rEV Escort Sell, Get Rich Quick!,
    PaintShop with HGA, Shiva's Bow) give the lists of the types after `DITL`
    (`DLOG`, `vers`, `TMPL`) as at the end of the map or past it, where no
    list can be. The lists lie end to end and each entry has its type, so
    a list past the map's end is read where the one before it ends, when the
-   entry there names that type. */
+   entry there is of that type. */
 function looksLikeRez(b) {
   return b && b.length >= 24 && b[0] === 0x42 && b[1] === 0x52 && b[2] === 0x47 && b[3] === 0x52;
 }
@@ -163,7 +163,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     const name = e.name.replace(/\r$/, '');
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
     // an archive in the archive, as EstarGuars' SAE_1of2.sit.bin is a MacBinary StuffIt in a
-    // StuffIt: decompressed now, so as to see in it, and its files in its place, in its folder
+    // StuffIt: decompressed now, so as to see inside it, and its files in its place, in its folder
     if (depth < 3 && /\.(sit|sitx|zip|cpt|rar|sea)(\.(bin|hqx))?$/i.test(name)) {
       let inner = null;
       try { inner = novaArchiveIn(own ? e.read('data') : zip ? zipFork(bytes, e, 'data') : sitx ? stuffItXFork(bytes, e, 'data') : stuffItFork(bytes, e, 'data')); } catch (err) { inner = null; }
@@ -181,7 +181,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     const inFiles = folders.some(f => /^Nova Files$/i.test(f));
     const inPlugins = folders.some(f => /^Nova Plug-?ins$/i.test(f));
     const besideGame = !inFiles && !inPlugins && gameDirs.has(folders.join('/'));
-    // a plug-in by what is in it: a file named as it likes, of any Finder type, its resource fork
+    // a plug-in by what is in it: a file with any name, of any Finder type, its resource fork
     // (or its data, as a .rez is) holding the game's records, as many of the plug-ins
     // on archive.org are (ResEdit's 'rsrc' files, a type the years garbled, a zip of bare forks)
     const dataLen = zip ? e.len : e.dataLen;
@@ -190,7 +190,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     if (!inFiles && !inPlugins && !besideGame && e.type !== 'Np?f' && !NOVA_BASE_NAME.test(name) && (hasRsrc || bareData)) {
       let fork = null;
       try { fork = forkOf(hasRsrc ? 'rsrc' : 'data'); byContent = novaHoldsRecords(fork); } catch (err) { byContent = false; }
-      // a MacBinary or BinHex copy named as it likes (podpeople.zip's "podpeople")
+      // a MacBinary or BinHex copy with any name (podpeople.zip's "podpeople")
       if (!byContent && bareData && fork) {
         try { const w = sniffMacContainer(fork); bareCopy = !!(w && w.rsrc && w.rsrc.length && novaHoldsRecords(w.rsrc)); } catch (err) { bareCopy = false; }
         byContent = bareCopy;
@@ -204,8 +204,8 @@ function novaArchiveFiles(bytes, depth = 0) {
     if (!inFiles && !plugin && !NOVA_BASE_NAME.test(name)) continue;
     // In Nova Files, a file whose name matches no part of the game counts only
     // as a .rez, an .ndat or a MacBinary or BinHex copy: the race movies
-    // have resource forks too. A total conversion's files, named
-    // as it likes, are the part their Mac type marks them as, else, as Starfleet
+    // have resource forks too. A total conversion's files, with
+    // any names, are the part their Mac type marks them as, else, as Starfleet
     // Adventures' SFA Galaxy 1.bin, data.
     const role = novaFileRole(name) || NOVA_TYPE_ROLE[e.type];
     if (!plugin && !role && !dataFile && !wrapped) continue;
@@ -355,7 +355,7 @@ function novaGame() {
 }
 
 /* The records that two files or more both have, as plug-ins opened together
-   can: [{ files, records: [{ type, ids }] }], one entry for each set of files
+   can do: [{ files, records: [{ type, ids }] }], one entry for each set of files
    sharing any, the files in the order novaGame reads them, so that the last
    one's copy is the one read. files: [{ name, plugin, fork }]. */
 function novaClashes(files) {

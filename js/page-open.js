@@ -20,7 +20,7 @@
 /* archive.org's copy: Macintosh Garden's EV_Nova_1.0.10.sit, which
    archive.org has in its item Macintosh_Garden_Games_2019_E, byte for byte
    the release (MD5 0fa71952..., compared 30 September 2026). Its /cors/
-   address answers a page on another site. The page publishes no game file;
+   address can be fetched by a page on another site. The page publishes no game file;
    this is where a visitor without a copy reads one. */
 const ARCHIVE_ORG = {
   item: 'https://archive.org/details/Macintosh_Garden_Games_2019_E',
@@ -30,7 +30,7 @@ const ARCHIVE_ORG = {
 /* Remembering what was opened between visits, as grimoire does: the files
    that started the game (archive.org's copy or the visitor's) and any
    plug-ins opened after, kept in IndexedDB and opened again on the next
-   visit with no download. ?src= and ?cache=skip pass it by; the bar's Forget clears
+   visit with no download. ?src= and ?cache=skip skip it; the bar's Forget clears
    it. IndexedDB is not allowed on some file:// pages, so every call gives up
    quietly and the page goes on without it. */
 const KEEP_DB = 'stargrimoire', KEEP_STORE = 'opened', KEEP_KEY = 'current';
@@ -135,8 +135,8 @@ async function openGameFiles(picked, opts = {}) {
     }
   }
   // Plug-ins that come as alternatives or extras -- in several folders, or
-  // beside a separate game outside a Nova Plug-ins folder -- are for
-  // the person to choose; the rest are what the archive is.
+  // beside a separate game outside a Nova Plug-ins folder -- are the
+  // visitor's choice; the rest make up what the archive is.
   const loose = found.filter(f => f.plugin && !/(^|\/)Nova Plug-?ins(\/|$)/i.test(f.folder));
   const folders = new Set(loose.map(f => f.folder));
   if (loose.length && (folders.size > 1 || found.some(f => !f.plugin))) {
@@ -168,7 +168,7 @@ async function openGameFiles(picked, opts = {}) {
   for (const { f, bytes } of read) game.add(f, bytes);
   if (!game.list('sÿst').length) {
     setStatus('No star systems in ' + (now.map(f => f.name).join(', ') || 'those files') +
-              ' -- the Nova Data files hold them' + (refused.length ? '; ' + refused.join('; ') : ''), true);
+              ' -- they are in the Nova Data files' + (refused.length ? '; ' + refused.join('; ') : ''), true);
     return;
   }
   if (fresh) { PENDING.length = 0; OPENED_NAMES = []; SHIP_FILES = []; }
@@ -284,7 +284,7 @@ async function readFile(f) {
   try { return await new Promise((yes, no) => { u.waiting.set(n, { yes, no }); u.worker.postMessage({ n, id: u.sent.get(archive), entry, which, zip, wrapped }); }); }
   catch (e) { return f.read(); }
 }
-// Nothing left to read: the thread and its copies of the archives go.
+// Nothing left to read: the thread and its copies of the archives are discarded.
 function unpackerDone() {
   if (UNPACKER && UNPACKER.worker && !UNPACKER.waiting.size) UNPACKER.worker.terminate();
   UNPACKER = null;

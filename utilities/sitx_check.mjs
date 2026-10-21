@@ -2,16 +2,16 @@
 // them: every .sitx among the Nova plug-ins of the archive.org collection
 // in reference/game/collections (EscapeVelocityPluginCollection's EVN.zip),
 // through novaArchiveFiles (and through the archive in a MacBinary copy,
-// as unwrapArchive in page-open.js reads it), every fork held to what
+// as unwrapArchive in page-open.js reads it), every fork checked against what
 // `unar` extracts, and every plug-in read as the page reads one, its
 // resources counted. And an archive in an archive: reference/game's
 // EstarGuars is a StuffIt whose files are MacBinary copies of StuffIt
 // archives, and its 14 plug-ins must come out of them.
 //
 // js/mac-stuffitx.js is grimoire's (copies_check checks it is), a port of
-// The Unarchiver's, and grimoire's sitx_check.mjs is where it is held to
-// the CRC-32s each archive stores and its controls are; `unar` is the same
-// code, so this shows the page's path faithful to it over the archives the
+// The Unarchiver's, and grimoire's sitx_check.mjs checks it against the
+// CRC-32s each archive stores, with its controls; `unar` is the same
+// code, so this shows the page's path is faithful to it over the archives the
 // site is for, the English preprocessing among them. Five of them `unar`
 // cannot read either, and they are listed, not failed. Without the
 // collection or `unar` it skips.

@@ -6,8 +6,8 @@
 // character, 0xdd2fc by operation), the choice R(...) makes, the token a
 // following B replaces, a ! with no B. The test needs (ncbTestNeeds) on cases
 // the game reads otherwise than written. Then every test and set expression
-// in every release is read; the set expressions the game reads otherwise than
-// a reading of them as written would are printed, as universe_check prints the
+// in every release is read; the set expressions the game reads differently from
+// how they are written are printed, as universe_check prints the
 // tests. Then the catalog: every bit named in the files is in it, and b147,
 // which Sol's visibility rests on, is named after the mission that sets it.
 import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
@@ -71,7 +71,7 @@ for (const v of Object.keys(RELEASES)) {
     } catch (err) { fail(`${v} ${e.where}: ${err.message}`); }
   }
   const sets = exprs.filter(e => e.kind === 'set').length;
-  console.log(`${v}: ${exprs.length - sets} tests and ${sets} set expressions read, ${choices} with a choice; ${otherwise.length} set expressions the game reads otherwise than written${otherwise.length ? ': ' + otherwise.slice(0, 6).join('; ') : ''}`);
+  console.log(`${v}: ${exprs.length - sets} tests and ${sets} set expressions read, ${choices} with a choice; ${otherwise.length} set expressions the game reads differently from how they are written${otherwise.length ? ': ' + otherwise.slice(0, 6).join('; ') : ''}`);
   // The catalog: every bit an expression names is in it, and b147 is named after Take Polaris Home.
   const cat = S.novaBitCatalog(game);
   const named = new Set();

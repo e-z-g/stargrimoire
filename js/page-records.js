@@ -99,7 +99,7 @@ function recPanel(key) {
     ${fieldsTable(type, r)}`;
 }
 
-/* The places a record's panel names, ringed on the map as a storyline's
+/* The places a record's panel lists, ringed on the map as a storyline's
    are (storyPlaces): an outfit's outfitters, where a person, fleet or düde
    is met, a government's systems, a commodity's stellars. */
 let REC_PLACES = { key: null, set: null };
@@ -144,7 +144,7 @@ const recPict = (id, caption) => (GAME.has('PICT', id) ? `<figure class="recPict
    was read; or a note that the program is needed. */
 function recFromProgram(id, pictFig, descFig, what) {
   const p = fig(pictFig), d = fig(descFig), n = id - 128;
-  if (!p && !d) return `<p class="note">Its ${what} picture and description are found through the game's program, which ${program() ? 'does not say where here' : 'the files open do not include'}.</p>`;
+  if (!p && !d) return `<p class="note">Its ${what} picture and description are found through the game's program, ${program() ? 'which does not show where for this one' : 'and the open files do not include it'}.</p>`;
   const pid = p ? p.value + n : null, did = d ? d.value + n : null;
   return (p ? recPict(pid, `${esc(what[0].toUpperCase() + what.slice(1))}, PICT ${pid} (${codeNum(p)} + ${n})`) : '') +
     (d ? `${recDesc(did, 'description')}<p class="note">dësc ${did} (${codeNum(d)} + ${n}), as the ${esc(what)} loads it.</p>` : '');
@@ -184,9 +184,9 @@ const REC_BODY = {
         ${kvRow('Offered when', testLine(r.Availability))}
       </table>
       <h3>Sold at <span class="note">${soldAt.length}</span></h3>
-      <p class="note">Outfitters whose tech level is the outfit's or more, or names it among their special techs; Offered when, its needs, and the day's draw (BuyRandom) then determine whether it is offered on a given day.</p>
+      <p class="note">Outfitters whose tech level is at least the outfit's, or that list it among their special techs; Offered when, its Needs and the day's draw (BuyRandom) then determine whether it is offered on a given day.</p>
       ${many(soldAt.map(stellarRef), 'outfitters')}
-      ${refs.needs.length ? `<h3>Needs</h3><p class="note">Every one of these contribute bits, from the ship, an outfit carried, a rank held or an event running.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
+      ${refs.needs.length ? `<h3>Needs</h3><p class="note">Every one of these contribute bits is needed, from the ship, an outfit carried, a rank held or a running event.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
       ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">Added to yours when you buy, capture or start in one (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}
       ${given.length ? `<h3>Given and taken</h3><table class="kv">${given.map(g => `<tr><td colspan="2">${g}</td></tr>`).join('')}</table>` : ''}
       ${refs.grantedBy.length ? `<h3>Found plundering</h3><p class="note">People whose GrantClass is this outfit's ItemClass, ${r.ItemClass}.</p><div class="list">${refs.grantedBy.map(p => recLink('përs', p)).join('')}</div>` : ''}
@@ -214,9 +214,9 @@ const REC_BODY = {
         ${kvRow('Offers', r.LinkMission >= 128 ? missionRef(r.LinkMission) : '')}
       </table>
       <h3>Met in</h3>
-      <p class="note">Where its LinkSyst allows, among a system's traffic or ships jumping in, and in the systems that name it.</p>
+      <p class="note">Where its LinkSyst allows, among a system's traffic or ships jumping in, and in the systems that list it.</p>
       <table class="kv">
-        ${kvRow('By LinkSyst', !refs.drawn ? 'never: the program draws only a person up to përs 1150 with an AIType above 0 and a ship class there is' : linked === null ? 'any system' : many(linked.map(s => sysLink(s)), 'systems', 'no system'))}
+        ${kvRow('By LinkSyst', !refs.drawn ? 'never: the program draws only a person up to përs 1150 with an AIType above 0 and a ship class that exists' : linked === null ? 'any system' : many(linked.map(s => sysLink(s)), 'systems', 'no system'))}
         ${kvRow('Named by', refs.systems.length ? many(refs.systems.map(s => `${sysLink(s.id)} <span class="note">${s.prob}%</span>`), 'systems') : '')}
       </table>`;
   },
@@ -227,7 +227,7 @@ const REC_BODY = {
         ${kvRow('Escorts', esc4.join('<br>'))}
         ${kvRow('Government', govtRef(r.Govt))}
         ${kvRow('Appears when', testLine(r.ActivateOn))}
-        ${kvRow('Met in', !refs.drawn ? 'never: the program draws only a fleet below flët 384 whose lead ship class there is' : refs.linked === null ? 'any system' : many(refs.linked.map(s => sysLink(s)), 'systems', 'no system'))}
+        ${kvRow('Met in', !refs.drawn ? 'never: the program draws only a fleet below flët 384 whose lead ship class exists' : refs.linked === null ? 'any system' : many(refs.linked.map(s => sysLink(s)), 'systems', 'no system'))}
         ${kvRow('Reinforces', refs.reinforces.length ? many(refs.reinforces.map(s => sysLink(s)), 'systems') : '')}
       </table>`;
   },
@@ -279,7 +279,7 @@ const REC_BODY = {
     return `<table class="kv">
         ${kvRow('Base price', String(r.BasePrice))}
       </table>
-      <p class="note">Traded at these stellars, on the trade screen's seventh row (BoughtAt) or eighth (SoldAt), bought and sold at the one price; where a stellar names several, the highest-numbered.</p>
+      <p class="note">Traded at these stellars, on the trade screen's seventh row (BoughtAt) or eighth (SoldAt), bought and sold at the one price; where several commodities list a stellar, the highest-numbered is traded there.</p>
       <table class="kv">
         ${kvRow('At base price × 1.25', listOr(refs.boughtAt.map(stellarRef), 'nowhere'))}
         ${kvRow('while', testLine(r.BuyOn))}

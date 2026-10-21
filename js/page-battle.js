@@ -18,9 +18,9 @@
    maintainer's request, 6 October 2026): each side flies as a government
    that is the other's enemy (battleGovts), and the world's noRetreat
    turns off every retreat and departure. Set up again goes back to the
-   arena as it was set. Ammunition never runs out, when ticked, tops each
-   ship's ammunition and fuel back up to what it started with after every
-   step (the maintainer's request, 6 October 2026).
+   arena as it was set. With Ammunition never runs out ticked, each ship's
+   ammunition and fuel are topped back up to what it started with after
+   every step (the maintainer's request, 6 October 2026).
 
    The view follows the ships, zoomed to keep them all on the screen,
    until it is zoomed or dragged by hand; Follow brings it back. The bar's
@@ -146,10 +146,10 @@ function battlePanel() {
 }
 
 /* The hangar: every class that can fly, heaviest first as a shipyard lists
-   them, each a row with its picture, that drags, or taps to be the ship
-   the arena's next tap puts down; its number links to it in the Ships
-   view. Classes that share a look are one row, as in the Ships view,
-   which drags the first of them and opens on a tap to list them all; a
+   them, each a row with its picture, which can be dragged, or tapped to
+   make it the ship the arena's next tap puts down; its number links to it in the Ships
+   view. Classes that share a look are one row, as in the Ships view:
+   dragging one picks up the first of them, and a tap opens it to list them all; a
    search opens every look with a match. */
 function battleHangar(D) {
   if (BATTLE.hangar !== D) {
@@ -299,7 +299,7 @@ function battleGovts(D) {
    Warship or Interceptor by its InherentAI, with a weapon that does
    damage or a fighter bay, able to move, not
    planet-type -- whoever flies it in the game. Twice as many are drawn,
-   and dealt strongest first to the side with the less Strength so far,
+   and dealt strongest first to the side with less Strength so far,
    so the two come out about even. They are scattered over the arena, the
    sides mixed, flying as the Flies as setting has it. */
 function battleRandom() {
@@ -463,7 +463,7 @@ function battleLoop(now) {
 }
 function battleRun() { if (BATTLE.on && !BATTLE.tick) { BATTLE.last = 0; BATTLE.tick = requestAnimationFrame(battleLoop); } }
 
-// Following: the middle of the ships (or the arena's, with fewer than two), zoomed to keep them on the screen, eased toward.
+// Following: the middle of the ships (or the arena's, with fewer than two), zoomed to keep them on the screen, the view easing towards it.
 function battleAim(at) {
   if (!BATTLE.follow || BATTLE.drag) return;
   const pts = BATTLE.w ? BATTLE.w.ships.filter(Boolean) : BATTLE.setup;
@@ -531,7 +531,7 @@ function battleDraw() {
     return;
   }
   const side = new Map(BATTLE.placed.map(p => [p.ship, p.side]));
-  // each ship of a side ringed in its colour, faintly when disabled; one that joined (a fighter, a capture) its lead's
+  // each ship of a side ringed in its colour, faintly when disabled; one that joined (a fighter, a capture) in its lead's colour
   const mark = (ctx2, s, x, y, size) => {
     let i = side.get(s);
     if (i === undefined) { const l = s.leader >= 0 ? w.ships[s.leader] : null; i = l ? side.get(l) : undefined; }
@@ -630,7 +630,7 @@ function wireBattle() {
     if (i) { e.preventDefault(); battleLeave(); shipsShow(+i.dataset.binfo); }
   });
 
-  // On the arena: before the fight a ship drags to move, off the arena to go; a tap puts down the chosen ship; else a drag pans and two fingers zoom.
+  // On the arena: before the fight, dragging a ship moves it, and dragging it off the arena removes it; a tap puts down the chosen ship; else a drag pans and two fingers zoom.
   let moving = null, tapAt = null;
   cv.addEventListener('wheel', e => { e.preventDefault(); hand(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
   cv.addEventListener('pointerdown', e => {

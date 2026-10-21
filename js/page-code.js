@@ -4,8 +4,9 @@
 
    The bar's Code (#code, #code=0x12ce10 for a routine, &at=0x12ce30 for
    one instruction, ringed): a search down the side over what routines
-   name (an import called, a string, a resource type, a constant), and the
-   routine listed, each call and each routine a TOC word points at a link.
+   refer to (an import called, a string, a resource type, a constant), and
+   the routine listed, with each call, and each routine a TOC word points
+   at, as a link.
    A figure a panel states from the program is printed with codeNum, a
    link to the instruction it was read from (novaFigure in
    nova-program.js), as grimoire's srcNum is. The program is the open
@@ -45,7 +46,7 @@ function fig(name) {
 function figText(name, own) { const f = fig(name); return f ? codeNum(f) : esc(String(own)); }
 /* Prose (already escaped) with each resource number in it that the open
    program gives -- a figure's base or a resource it loads by number --
-   made a link to where it does. */
+   made a link to where the program uses it. */
 function codeLinkProse(html) {
   const p = program();
   if (!p) return html;
@@ -100,7 +101,7 @@ function codeRules(p) {
   for (const s of sites) { if (!by.has(s.routine)) by.set(s.routine, []); by.get(s.routine).push(s); }
   const rows = [...by].map(([name, list]) => `<tr><td><a data-code="${hex(list[0].start)}">${esc(name)}</a></td><td>${list.map(s => `${codeNum({ routine: s.start, addr: s.addr, value: s.value })} <small>${srcLink(s.file, s.line)}</small>`).join(', ')}</td></tr>`);
   return `<h3>The rules the site flies by</h3>
-    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction it is in, a line the site's code that uses it.</p>
+    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction it is in, and a line opens the site's code that uses it.</p>
     <table class="kv codeRules">${rows.join('')}</table>`;
 }
 
@@ -178,7 +179,7 @@ function renderCode() {
   if (CODE.addr === null) {
     el.innerHTML = `<h2>The program</h2>
       <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ', its PowerPC half' : ''} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
-      <p class="note">Search for what a routine names: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>
+      <p class="note">Search for anything a routine uses: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>
       ${codeRules(p)}`;
     return;
   }

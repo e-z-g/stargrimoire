@@ -1,7 +1,7 @@
-// js/nova-deadends.js: where a storyline can be left with no way on, in
+// js/nova-deadends.js: where a storyline can be left with no way forward, in
 // every release.
 //
-// Held to what was found by reading the missions (findings.md, Dead ends):
+// Checked against what was found by reading the missions (findings.md, Dead ends):
 // mïsn 266 "Heraan Warrior Initiation" turns b511 on when accepted from
 // 1.0.8, and an escape pod during it leaves it on for good, closing the
 // main storylines' openings; 1.0.2 turned it on only on success, which is
@@ -50,7 +50,7 @@ for (const v of ['1.0.2', '1.0.8', '1.0.10', '1.1.1']) {
   let states = 0;
   for (const s of S.novaMissions(g).stories.values()) {
     const r = S.novaStoryDeadEnds(g, s, reach);
-    if (r.tooMany) { fail(`${v}: ${s.name} is past searching (${r.states} states)`); continue; }
+    if (r.tooMany) { fail(`${v}: ${s.name} is too large to search (${r.states} states)`); continue; }
     states += r.states;
     if (r.stuck) found.push(`${s.name} (${r.after.length})`);
   }
@@ -92,8 +92,8 @@ if (g10) {
     n++;
     if ((S.novaStoryDeadEnds(g10, s, reach).stuck > 0) !== (two.stuck > 0)) differ.push(s.name);
   }
-  if (differ.length) fail(`1.0.10: two missions at a time finds otherwise in ${differ.join(', ')}`);
-  console.log(`1.0.10: two missions at a time, ${n} storylines, dead ends in the same ones (past searching so: ${past.join(', ') || 'none'})`);
+  if (differ.length) fail(`1.0.10: two missions at a time finds something different in ${differ.join(', ')}`);
+  console.log(`1.0.10: two missions at a time, ${n} storylines, dead ends in the same ones (too large to search that way: ${past.join(', ') || 'none'})`);
 }
 
 console.log(`deadends: ${fails ? fails + ' failures' : 'ok'} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);

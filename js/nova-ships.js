@@ -25,7 +25,7 @@
    routine that loads any dësc (0x12ce10); where the shipyard draws it is
    not traced.
 
-   SPRITES. A shän names up to six sprites -- the base image and, drawn over
+   SPRITES. A shän points to up to six sprites -- the base image and, drawn over
    it, the alternating image, the engine glow, the running lights, the
    weapon glow and the shield -- each an rlëD or rlë8 of that id or a PICT
    sheet with a mask; in the four releases every one is an rlëD
@@ -37,7 +37,7 @@
    stock ships, the Argosies and Manticores, fly several sets of base over
    one set of glow, drawn at the heading's frame. The shield has 1,
    FramesPer or BaseSetCount x FramesPer.
-   What the extra sets are for is Flags' low four bits, one mode at a time.
+   Flags' low four bits set what the extra sets are for, one mode at a time.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-records.js and
    nova-sprites.js. */
@@ -145,7 +145,7 @@ function novaShipItems(ship) {
 /* The stellars where the ship may be on sale, by tech level alone: a
    shipyard (spöb Flags 0x08) whose TechLevel is the ship's or higher, or
    one of whose eight SpecialTech is exactly the ship's. Availability,
-   Require and BuyRandom then determine whether it is, on the day. `stellars` is an iterable
+   Require and BuyRandom then determine whether it is on sale on a given day. `stellars` is an iterable
    of spöb records. */
 function novaShipyards(stellars, ship) {
   const out = [];
@@ -157,7 +157,7 @@ function novaShipyards(stellars, ship) {
   return out;
 }
 
-/* The six sprites a shän names, as [{ layer, image, mask, w, h, sets }],
+/* The six sprites in a shän, as [{ layer, image, mask, w, h, sets }],
    those with an image id above 0 only. `sets` is how many sets of FramesPer
    the layer is read as: the base's BaseSetCount, the alternating image's
    AltSetCount, and for the rest as many as the base, the shield's settled

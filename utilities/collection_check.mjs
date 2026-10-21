@@ -1,6 +1,6 @@
 // The bar's Add plug-ins: archive.org's listings of the three plug-in
-// collections, read as the page reads them (js/nova-collection.js), held
-// to the items themselves as reference/game/collections has them, each
+// collections, read as the page reads them (js/nova-collection.js), checked
+// against the items themselves as reference/game/collections has them, each
 // file there checked against the item's md5 when it was taken. The
 // listings are reference/archive-org's, taken by its fetch.sh as the page
 // fetches them.
@@ -64,7 +64,7 @@ for (const c of S.NOVA_COLLECTIONS) {
   const files = c.zip ? S.novaCollectionZip(html) : S.novaCollectionItem(JSON.parse(fs.readFileSync(path.join(LIST, c.item + '.json'), 'utf8')));
   const entries = S.novaCollectionEntries(c, files);
   if (!entries.length) { fail(`${c.label}: nothing listed`); continue; }
-  if (!c.zip && !fs.existsSync(path.join(COLL, c.item))) { said.push(`${c.label}: ${entries.length}, no copy to hold them to`); continue; }
+  if (!c.zip && !fs.existsSync(path.join(COLL, c.item))) { said.push(`${c.label}: ${entries.length}, no copy to check them against`); continue; }
   for (const b of against(c, entries, files).slice(0, 5)) fail(`${c.label}: ${b}`);
   if (c.zip) nova = { c, entries, files };
   if (c.packages) {

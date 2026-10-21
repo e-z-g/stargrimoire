@@ -101,7 +101,7 @@ if (intel) {
 
 // ---- copies made elsewhere (a mission into the missions under way, a
 // shän into its ship's element): fieldtrace does not read them, so each
-// is held to the other release, compiled apart from the same source: the
+// is checked against the other release, compiled apart from the same source: the
 // same routine copying the same record must give the same places
 {
   const byName = prog => {

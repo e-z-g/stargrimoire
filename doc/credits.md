@@ -1,10 +1,10 @@
 # What StarGrimoire is built from
 
-Listed on 28 September 2026 so that a fuller credits section, which the
-maintainer planned, starts from it. Since 10 October 2026 the page has
-one: the name in the bar opens Credits, which has the game's crew as its
+Started on 28 September 2026 as the basis for a fuller credits section the
+maintainer planned. Since 10 October 2026 the page has
+one: the name in the bar opens Credits, which gives the game's crew as its
 documentation does (`EV Nova Documentation.pdf`, page 3, "The crew behind
-the scenes") and what follows here. `NOTICE` names Ambrosia and ATMOS,
+the scenes"), followed by what is below. `NOTICE` names Ambrosia and ATMOS,
 grimoire and ResForge. These are the sources
 of what is built. The sources used only to check it (the ConText dump in
 evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
@@ -27,14 +27,14 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
 - **The subway map's method**, from three papers, no code taken: stress
   majorization (Gansner, Koren and North, "Graph drawing by stress
   majorization", Graph Drawing 2004) to even out the distances; hill
-  climbing over weighed criteria (Stott, Rodgers, Martinez-Ovando and
+  climbing over weighted criteria (Stott, Rodgers, Martinez-Ovando and
   Walker, "Automatic metro map layout using multicriteria optimization",
   IEEE TVCG, 2011) to put the systems on a grid; and routing on an
   octilinear grid with its bend costs, link order and local search (Bast,
   Brosi and Storandt, "Metro maps on octilinear grid graphs", EuroVis
   2020).
 - **Names at every zoom**, from two papers, no code taken: the rules a
-  name must keep as the map is zoomed (Been, Daiches and Yap, "Dynamic map
+  name must follow as the map is zoomed (Been, Daiches and Yap, "Dynamic map
   labeling", IEEE TVCG, 2006), and each name's one range of zooms given
   in order of importance (Been, Nöllenburg, Poon and Wolff, "Optimizing
   active ranges for consistent dynamic map labeling", Computational
@@ -48,7 +48,7 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   hierarchical system structures", IEEE Transactions on Systems, Man, and
   Cybernetics, 1981).
 - **turbo** (Anton Mikhailov, Google, 2019), the colour scale for jumps,
-  in the polynomial fit `d3-scale-chromatic` gives it (ISC).
+  in the polynomial fit from `d3-scale-chromatic` (ISC).
 - **The maintainer**: the release files, from the Macintosh Garden, and
   1.1.1's files, copied off its disk image.
 
@@ -64,7 +64,7 @@ evnova-utils, ResForge's sprite decoder, headless Chrome) are in `CLAUDE.md`
   tool.
 - **pypdf**: the Bible's text, taken out of the PDF.
 - **evnova-decomp**, Lancelot de Ferrière (`wraitii/evnova-decomp`): the
-  Community Edition's function names, by which its program was read beside
+  Community Edition's function names, which helped read its program alongside
   Mac 1.1.1's (`tools/exenames.py` in the workbench). No code copied.
 - Everything else -- the `nova-*` readers, the sprite decoder (written from
   the bytes), the map and the ships view -- was written by Claude in the

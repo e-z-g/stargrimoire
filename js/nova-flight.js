@@ -13,7 +13,7 @@
    numbers in single precision, as in the program. The program
    moves everything by gSpeedMult, a running mean of the frame's length in
    30ths of a second (HandleTimeAdjustment 0x33332); here a step is always
-   one 30th, and its clock in 60ths (TickCount) two a step. It has 64 ship
+   one 30th, and its clock, in 60ths (TickCount), advances two a step. It has 64 ship
    slots, the first the player's; the map has no player, so that slot stays
    empty and nothing that needs a player is here (escorts, mission ships,
    bounty hunters, what a ship does because of what the player did).
@@ -38,7 +38,7 @@
    middle if nearer, and jumping straight out from the middle through where
    it is. A warship wanders from stellar to stellar and an interceptor
    between stellars and the ships it goes to look at; an escort follows its
-   lead and jumps when it jumps. A stellar that is a hypergate is gone into.
+   lead and jumps when it jumps. Ships fly into a stellar that is a hypergate.
    Nothing here fights: the targets, attacks and the rest are stage 4.
 
    HOW THEY MOVE (HandleShip 0x33581): position by velocity; turning toward
@@ -130,7 +130,7 @@ const novaLinedUp = (s, slack) => novaAngleApart(s.want, Math.trunc(s.heading)) 
 /* ---- the records, as the program stores them ------------------------- */
 
 /* What the ships need from the game, once: each shïp with its shän, scaled
-   as LoadObjectData (0x771b0) and LoadShipSprites (0x23e3e) keep them; the
+   as LoadObjectData (0x771b0) and LoadShipSprites (0x23e3e) store them; the
    düdes, flëts, përs, gövts and oütfs; and the warp sound's length. Ids are
    the resources'. */
 /* The boarding strength a class's default outfits add (AIPlunderShipContents
@@ -313,7 +313,7 @@ function novaGovtEnemies(D, a, b) {
 /* Whether a flët or përs may come to a system by its LinkSyst (SpawnFleet
    0x42704, SpawnPerson 0x408d5): -1 anywhere; the system; 10000 + n the
    systems of government 128 + n, 15000 + n those of its allies, 20000 + n
-   all but its, 25000 + n those of its enemies. The program stores
+   all but that government's, 25000 + n those of its enemies. The program stores
    governments as 0 to 255 and compares n with that. A përs's government
    window starts at 9999, a flët's at 10000, so 9999 sends a përs to the
    independent systems; and a LinkSyst below 128 equal to the system's id
@@ -337,13 +337,13 @@ function novaShipAccel(D, ship) {
   const g = D.govts.get(ship.govt);
   let a = f32(c.accel * ship.skill);
   if (g) a = f32(a * g.skill);
-  // doubled, but held by another ship's tractor beam a third
+  // doubled, but a third while held by another ship's tractor beam
   const held = ship.tractor !== undefined && ship.tractor !== -1 && ship.tractor !== ship.slot;
   return Math.max(0, novaIonSlowed(ship, held ? f32(a * 0.333) : f32(a + a), 0.7));
 }
 /* ShipIonizationFactor 0x3225: the ship's ionization over its class's
-   IonizeMax, 0 when that is 0. Ionized, a rate is less by it, at most
-   by `most` (0.7, or 0.8 in AIMaintainFormation). */
+   IonizeMax, 0 when that is 0. When ionized, a rate is reduced by it, by
+   at most `most` (0.7, or 0.8 in AIMaintainFormation). */
 function novaIonFactor(ship) { const m = ship.cls.ionMax; return m > 0 ? f32(ship.ion / m) : 0; }
 function novaIonSlowed(ship, v, most) {
   if (!(ship.ion > 0)) return v;
@@ -363,7 +363,7 @@ function novaShipMaxSpeed(D, ship) {
   return Math.max(0, s);
 }
 // ShipTurnRate 0x32f7: the class's turn, a third under another ship's
-// tractor beam, at least 1 when the class's is, and ionized less by at most 0.7.
+// tractor beam, at least 1 when the class's is, and reduced by ionization by at most 0.7.
 function novaShipTurn(ship) {
   let t = ship.cls.turn;
   // held by another ship's tractor beam, a third as quick
@@ -517,7 +517,7 @@ function novaSpawnBlank(w, reserve = 8) {
 }
 
 /* SpawnPerson 0x408d5: a përs, `forced` or one at random among those whose
-   LinkSyst sends them here and whose ActivateOn is true, but derelicts when
+   LinkSyst sends them here and whose ActivateOn is true, except derelicts when
    `noDerelicts`; never one whose name a person in the system already has.
    A derelict is disabled and still, facing anywhere. */
 function novaSpawnPerson(w, forced, noDerelicts) {
@@ -556,7 +556,7 @@ function novaPickSystemFleet(w) {
   return i < 0 ? null : w.D.fleets.get(list[i].id);
 }
 
-/* SelectRandomStellarDest 0x805de: a stellar for a ship to make for. Only
+/* SelectRandomStellarDest 0x805de: a stellar for a ship to head for. Only
    one that can be landed on and lies within 999 of the middle to the right
    and down counts, as the program tests. `plainOnly`, a stellar neither
    gate nor wormhole; else a wormhole for a government that prefers them,
@@ -614,8 +614,8 @@ function novaNearestStellar(w, s, except) {
 }
 
 /* AIMakeShipEmergeFromHyperGate 0x89518: in the gate for two seconds,
-   facing CustSndID if that is a heading (the Bible's spöb section) and
-   anywhere else, then out at 30 a step. */
+   facing CustSndID if that is a heading (the Bible's spöb section), and
+   any direction otherwise, then out at 30 a step. */
 function novaEmergeFrom(w, s, gate) {
   Object.assign(s, { state: 0x15, mode: 0, gate: gate.id, timer: 60, jump: -1, thrust: -3, desired: s.leader === 0 ? -15 : -30 });
   s.goal = s.cls.fuel > 0 ? gate.id : -2;
@@ -679,7 +679,7 @@ function novaHyperSpawnFleet(w, f) {
 /* AICalcFormationPositions 0x85040 and AICalcShipFormPos 0x84cb8: the
    places behind a fleet's lead its escorts keep, in rows a little wider
    than the widest of them (six tenths of its sprite, 24 to 60 units); on
-   coming in (`snap`) each escort is put there, but one in a hypergate. */
+   coming in (`snap`) each escort is put there, except one in a hypergate. */
 const NOVA_FORM = [[0, 0], [-1, -1], [-1, 1], [-2, -2], [-2, 2], [-3, -1], [-3, 1], [-2, 0],
   [-3, -3], [-3, 3], [-4, 0], [-4, -2], [-4, 2], [-4, -4], [-4, 4], [-5, -1], [-5, 1], [-5, -3], [-5, 3], [-5, -5], [-5, 5]];
 function novaFormation(w, lead, snap) {
@@ -803,7 +803,7 @@ function novaDefenceFlags(w) {
 
 /* EnterMoreShips 0x43459, without mission fleets, the player's escorts,
    the shareware nag and the pirates sent after a laden player: while the
-   ships here, but those escorting the player, are fewer than AvgShips,
+   ships here, except those escorting the player, are fewer than AvgShips,
    Rand(500) gives 1 for one of the system's fleets, if it has any and
    Rand(100) falls within their odds, and otherwise 0 or 1 for a düde's
    ship. Then, whatever came, the defence fleets (novaDefenceTopUp). */
@@ -889,7 +889,7 @@ function novaFlightStep(w) {
 /* HandleShipDisplay 0x2b58f, ionized: at a factor of 0.33 or more the
    ship is tinted its ionization's colour, 14 to 18 of 32 (a factor x 24
    x 0.01 held to 16 to 24, less 2, plus Rand(5)); not ionized, its colour
-   is forgotten. The tint is put over the murk's, which is not done here
+   is cleared. The tint is put over the murk's, which is not done here
    (it is 0), so the ionization's always shows. */
 function novaIonTint(w, s) {
   s.ionTint = 0;
@@ -952,10 +952,10 @@ function novaHandleCloaking(w, s) {
   const L = s.leader !== -1 ? w.ships[s.leader] : null;
   if (go || (s.ai > 4 && L && mv === 0xc && novaCloaked(L))) novaCloak(s); else novaUncloak(s);
 }
-/* HandleShipDisplay 0x2b58f, the cloak's fade: a level going nowhere and
-   between 0 and 32 falls by 1 a step; else it moves by 0.75 a step in its
-   way (1.5 for a class of Flags2 0x0001), stopping at 0 and 32. A dying
-   ship's cloak goes out (-2). Part faded, the ship's picture shakes by
+/* HandleShipDisplay 0x2b58f, the cloak's fade: a level that is neither rising
+   nor falling and is between 0 and 32 falls by 1 a step; else it moves by
+   0.75 a step in its direction (1.5 for a class of Flags2 0x0001), stopping at 0 and 32. A dying
+   ship's cloak goes out (-2). Partly faded, the ship's picture shakes by
    up to a tenth of the level each way (two Rand draws). */
 function novaCloakFade(w, s) {
   s.jx = s.jy = 0;
@@ -1034,7 +1034,7 @@ function novaLeave(w, s) {
   s.jumpStart = novaNow(w);
 }
 /* The traders' ladder (WimpyTraderAI 0x8b029; BraveTraderAI 0x8b493 the
-   same): idle, and not already at one of the system's stellars, make for
+   same): idle, and not already at one of the system's stellars, head for
    one; else leave, or park where it cannot jump. */
 function novaTravelOrLeave(w, s) {
   const at = !w.si.nav.some(n => n !== -1) || (s.goal !== -1 && w.si.nav.includes(s.goal));
@@ -1058,7 +1058,7 @@ function novaBraveTraderAI(w, s) {
 /* InterceptorAI 0x8c895 without its targets: idle, travelling or going
    into a gate, and not coasting, it picks a ship at random to go and look
    at (one not an interceptor, not just looked at, not coming out of a
-   gate); with none, idle, it makes for a stellar neither gate nor wormhole
+   gate); with none, idle, it heads for a stellar neither gate nor wormhole
    (its visits forgotten each time), or leaves, or parks. */
 function novaInterceptorAI(w, s) {
   if (s.disabled || s.state === 0x16 || s.state === 9 || s.state === 0xf) return;
@@ -1178,7 +1178,7 @@ function novaEscortAI(w, s) {
 
 /* HighLevelAIHandler 0x8d453: the states that need no enemy, in the
    program's order, a state changed by one arm handled by the arms after
-   it in the same pass. Coasting (the timer above 0) stops it but in
+   it in the same pass. Coasting (the timer above 0) stops it except in
    states 10 and 14. */
 function novaHighLevel(w, s) {
   const D = w.D;
@@ -1191,7 +1191,7 @@ function novaHighLevel(w, s) {
   if (s.state !== 0xb && s.state !== 2 && s.state !== 3) s.jump = 0;
   if (s.jump > 0) s.state = s.leader === 0 ? 0xb : s.primary !== -1 ? 3 : 2;
   if (novaHighTarget(w, s)) return;
-  // 1: to a stellar; a gate is gone into (0x14). Near it, braking at 0.98 a step, then stopped beside it and coasting 10 to 16 seconds.
+  // 1: to a stellar; a gate is entered (0x14). Near it, braking at 0.98 a step, then stopped beside it and coasting 10 to 16 seconds.
   if (s.state === 1 && s.sec !== -1) {
     const sp = D.u.stellars.get(s.sec);
     if (!sp || (sp.Flags2 & 0x3000)) s.state = 0x14;
@@ -1458,8 +1458,9 @@ function novaLowLevel(w, s) {
 
 /* ---- asteroids ------------------------------------------------------------ */
 
-/* The asteroids are the player's: the program has up to the system's
-   Asteroids of them, of the röid types its AstTypes names, in a pool of 16,
+/* The asteroids belong to the player's view: the program has up to the
+   system's Asteroids count of them, of the röid types set in its AstTypes,
+   in a pool of 16,
    on and just off the player's screen. Here the map's view stands in for
    that screen: w.view is its middle in the system's units and its half
    width and height (screenCenter), set by the page; a node check sets its
@@ -1483,7 +1484,7 @@ function novaCreateAsteroids(w) {
    are about than the system's Asteroids, one more in the first free
    place, off a corner of the screen -- 0.7 of the larger of (half + 128)
    out, and up to half that again, each way, drifting in at up to 2 a step
-   -- or, on coming into the system, anywhere in the middle; of a type the system names,
+   -- or, on coming into the system, anywhere in the middle; of a type the system allows,
    on a random frame, turning at 80 to 120% of its röid's SpinRate either
    way. */
 function novaSpawnAsteroid(w, edge) {
@@ -1511,7 +1512,7 @@ function novaSpawnAsteroid(w, edge) {
   if (w.rand(2) === 0) a.spin = -a.spin;
   a.strength = t.strength;
 }
-/* HandleAsteroids 0x361ac: with a miner about, the first asteroid kept in
+/* HandleAsteroids 0x361ac: with a miner present, the first asteroid kept in
    the first place, its target; each moved and turned, and gone once more
    than 32 pixels off the screen past its width -- the program puts it
    back on the far side first, but removes it all the same, and one
@@ -1528,7 +1529,7 @@ function novaHandleAsteroids(w) {
     a.x = f32(a.x + a.vx); a.y = f32(a.y + a.vy); a.frame = f32(a.frame + a.spin);
     if (a.frame < 0) a.frame = f32(a.frame + t.frames);
     if (a.frame >= t.frames) a.frame = f32(a.frame - t.frames);
-    if (!(a.frame >= 0 && a.frame < t.frames)) a.frame = 0;   // the sprite arrived after the asteroid did
+    if (!(a.frame >= 0 && a.frame < t.frames)) a.frame = 0;   // the sprite was read after the asteroid
     const left = Math.trunc(f32(a.x - v.x)) + Math.trunc(v.hw) - Math.trunc(t.w / 2);
     const top = Math.trunc(f32(a.y - v.y)) + Math.trunc(v.hh) - Math.trunc(t.h / 2);
     if (left > 2 * Math.trunc(v.hw) + 32 || left < -2 * t.w - 32 || top > 2 * Math.trunc(v.hh) + 32 || top < -2 * t.h - 32) a.active = false;
@@ -1559,7 +1560,7 @@ function novaHandleShip(w, s) {
     if (novaInertialess(s)) novaSteerInertialess(D, s);
     s.x = f32(s.x + s.vx); s.y = f32(s.y + s.vy);
   }
-  // ionized: the ionization down by the class's Deionize, and each axis of the velocity over the top speed less by the factor (at most 0.7) eased back by 0.025
+  // ionized: the ionization down by the class's Deionize, and each axis of the velocity over the top speed reduced by the factor (at most 0.7) eased back by 0.025
   if (!(s.ion > 0)) s.ion = 0;
   else {
     s.ion = f32(s.ion - c.deion);
@@ -1691,7 +1692,7 @@ function novaThrust(D, w, s) {
 /* The hypergates a ship is coming out of or bound for (HandleStellarSprites
    0x2e6f1, AIShipIsShipGoingToStellar 0x895d6), which open as for a ship
    near: one bound for it within twice its sprite's width on both axes, 1.1
-   times that once the gate is open (`isOpen`, the page's to say). */
+   times that once the gate is open (`isOpen`, set by the page). */
 function novaFlightEngaged(w, isOpen) {
   const out = new Set();
   for (const s of w.ships) if (s && !s.disabled) {

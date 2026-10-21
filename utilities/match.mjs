@@ -1,5 +1,5 @@
-// Where the routines Mac 1.1.1 names are in the programs of 1.0.2, 1.0.8 and
-// 1.0.10, which keep no names: what utilities/routines_build.mjs writes into
+// Where the routines named in Mac 1.1.1 are in the programs of 1.0.2, 1.0.8
+// and 1.0.10, which have no names: what utilities/routines_build.mjs writes into
 // js/nova-routines.js and program_check compares that file with.
 //
 // 1.1.1 was built by GCC and 1.0.x by CodeWarrior, so no instruction is the
@@ -130,7 +130,7 @@ export function matchRoutines(PA, PB, opts = {}) {
   const lenA = a => PA.prog.byStart.get(a).len, lenB = b => PB.prog.byStart.get(b).len;
   const sizeOk = (a, b) => { const x = lenA(a), y = lenB(b), q = Math.max(x, y) / Math.max(1, Math.min(x, y)); return q <= (Math.min(x, y) < 160 ? 2.5 : 1.8); };
   const mixSim = (a, b) => { const x = PA.mix.get(a), y = PB.mix.get(b); let d = 0, nx = 0, ny = 0; for (let i = 0; i < 8; i++) { d += x[i] * y[i]; nx += x[i] * x[i]; ny += y[i] * y[i]; } return nx && ny ? d / Math.sqrt(nx * ny) : 0; };
-  // calls, but those to a small routine that calls nothing, which one compiler may have put in place of the call
+  // calls, except those to a small routine that calls nothing, which one compiler may have put in place of the call
   const inlined = (P, t) => { const r = P.prog.byStart.get(t); return r && r.len <= 64 && !(P.callees.get(t) || []).length; };
   const nCalls = (P, x) => P.T.get(x).filter(t => t.k === 'I' || (t.k === 'C' && !inlined(P, t.v))).length;
   const shared = new Map();
@@ -258,7 +258,7 @@ export function routinesFile(releases) {
    =========================================================================
 
    Where each routine the field notes and the rules cite, by the name Mac
-   1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which keep
+   1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which have
    no names: NOVA_ROUTINES.releases is each release and the length of its
    program's code, by which the page identifies it; NOVA_ROUTINES.at[name] is the
    routine's address in each, in that order, 0 where it was not matched.

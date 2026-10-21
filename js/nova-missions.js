@@ -21,10 +21,11 @@
    "Silent Mission"s that others start with Sxxx and nothing offers.
 
    LEADS TO. One mission leads to another when it starts it (S in a set
-   expression), or turns on the bit the other's AvailBits needs on, as the
-   game reads it, that the fewest missions turn on: of the bits a mission
-   needs, the rarest is the step it waits for, where a bit many missions
-   turn on (a storyline "in progress") only shows it is under way. Turning
+   expression), or turns on a bit the other's AvailBits needs on (as the
+   game reads it), the bit that the fewest missions turn on: of the bits a
+   mission needs, the rarest marks the step it waits for, while a bit many
+   missions turn on (a storyline "in progress") only shows the storyline is
+   under way. Turning
    on counts on accepting, on success and with its ships dealt with; ties
    link every mission that turns on any of the tied bits.
 

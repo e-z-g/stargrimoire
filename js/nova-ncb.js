@@ -106,14 +106,14 @@ function ncbEval(tree, state) {
    The game tracks two values along a run of terms, the result so far and
    the last term's. At every & or | the result becomes the last term's, so
    in a run of bare terms only the last two count: `b1 & b2 & b3` is true
-   whenever b2 and b3 do, whatever b1 is. A bracketed term instead folds
+   whenever b2 and b3 are, whatever b1 is. A bracketed term instead folds
    into the last term's value, so `(b1 & b2) & b3` reads as written. A
    test that does not start with b, (, !, p, g, o or e (either case) is
    false; an empty one is true; a lone number, or a character outside the game's
    syntax, is passed over; a second ! before a term is the first again.
    Two forms the Bible leaves out: `[t t ...]` counts the terms that are true
-   (each closing bracket inside brackets ends the level, where the game
-   then reads on from), and a count followed by <, > or = and a number
+   (each closing bracket inside brackets ends the level, and the game
+   reads on from there), and a count followed by <, > or = and a number
    compares the two. */
 function ncbRead(text, A) {
   const src = String(text || '');
@@ -211,7 +211,7 @@ function ncbTest(text, state) {
 }
 
 /* The game's reading of a test as a tree for ncbEval, or null where it
-   counts or compares, which a tree cannot say. */
+   counts or compares, which a tree cannot express. */
 function ncbGameTree(text) {
   const T = { op: 'true' }, F = { op: 'false' };
   const join = (kind, unit, zero) => (a, b) => (a === zero || b === zero ? zero : a === unit ? b : b === unit ? a :
@@ -240,7 +240,7 @@ function ncbCompile(text) {
 
 /* Whether the game reads a test as it is written: { same, game, written },
    the trees, `written` null where the test does not parse, `game` null where
-   ncbGameTree cannot say. Same is decided by every state of the test's terms,
+   ncbGameTree cannot express it. Same is decided by every state of the test's terms,
    up to 14 of them. */
 function ncbAsWritten(text) {
   let written = null;
@@ -278,7 +278,7 @@ function ncbTreeText(t, inside) {
 
 /* What a test needs of each bit it names, as the game reads it: [{ n, on }],
    on false where the bit is under a negation. A test the game reads as
-   never needs nothing. A bit inside a count ([ ]) cannot be called
+   never true needs nothing. A bit inside a count ([ ]) cannot be called
    needed either way; it is listed as needed on (no shipped test counts). */
 function ncbTestNeeds(text) {
   const tree = ncbGameTree(text), out = [];
@@ -354,7 +354,7 @@ function ncbSetOutcomes(text) {
 
 /* What a set expression may do: its operations over every outcome, in the
    order first carried out, each { op, letter, n, random }, random where
-   some outcome does without it. */
+   some outcome leaves it out. */
 function ncbSetOps(text) {
   const outs = ncbSetOutcomes(text), seen = new Map();
   for (const o of outs) for (const x of o) {

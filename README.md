@@ -12,7 +12,7 @@ its landing picture and descriptions. It reads Ambrosia's Mac releases (the
 `.sit` archives of 1.0.2, 1.0.8 and 1.0.10, and 1.1.1's `.ndat` files), the
 `.rez` files of the community's builds and plug-ins, and zips of them, or the
 Internet Archive's copy of 1.0.10. It is at <https://e-z-g.github.io/stargrimoire/>,
-and works opened straight from the disk too; there is no build step and
+and also works opened straight from the disk; there is no build step and
 nothing to install.
 
 StarGrimoire is written with Claude, Anthropic's AI model; each commit ends

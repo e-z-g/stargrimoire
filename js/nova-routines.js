@@ -4,7 +4,7 @@
    =========================================================================
 
    Where each routine the field notes and the rules cite, by the name Mac
-   1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which keep
+   1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which have
    no names: NOVA_ROUTINES.releases is each release and the length of its
    program's code, by which the page identifies it; NOVA_ROUTINES.at[name] is the
    routine's address in each, in that order, 0 where it was not matched.

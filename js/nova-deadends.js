@@ -1,4 +1,4 @@
-/* nova-deadends.js -- where a storyline can be left with no way on.
+/* nova-deadends.js -- where a storyline can be left with no way forward.
    =========================================================================
 
    A storyline is stuck when it has begun, none of its missions is under
@@ -8,9 +8,9 @@
 
    WHAT CAN HAPPEN (novaReach). A fixed point over what each bit may be:
    every bit starts off; a mission whose AvailBits some allowed bits make
-   hold is offered, and then accepted, refused, completed, failed and
+   pass is offered, and then accepted, refused, completed, failed and
    aborted are all taken as possible (an escape pod aborts any mission);
-   an event (crön) whose EnableOn may hold starts and ends; an outfit or
+   an event (crön) whose EnableOn may pass starts and ends; an outfit or
    ship that may be sold is bought and sold, a ship captured and retired;
    a nebula explored; a stellar dominated, released, destroyed and
    regenerated; the pilot's chär begins. Whatever any of those may turn on
@@ -20,7 +20,7 @@
    A STORYLINE'S STATES (novaStoryDeadEnds). Every state from a new game
    over the bits its missions' AvailBits read, which of its missions are
    under way, and whether it has begun or reached an end: a mission of
-   it offered (its AvailBits holding) may be accepted or refused (not when
+   it offered (its AvailBits passing) may be accepted or refused (not when
    Flags 0x0004 forbids refusing); one under way completed (unless no
    landing finishes it), failed (where it can: a TimeLimit, ships to
    destroy, disable or board without Flags 0x0400, Flags2 0x0004, a scan
@@ -30,12 +30,12 @@
    0x68f0d); S starts a mission as accepted, A aborts it, F fails it. One
    of its missions is taken at a time (opts.maxActive; one started by an S
    comes as well), since every order in which several may be under way
-   together is past searching for the longest storylines; a mission that
-   touches nothing of the storyline is taken as one step. A bit
-   something outside the storyline changes may be either, at any time, so
+   together is too many to search for the longest storylines; a mission
+   that touches nothing in the storyline is taken as one step. A bit that
+   something outside the storyline changes is taken as either, at any time, so
    a lock made by another storyline is not seen here; the next pass finds
-   that kind. The ends are its missions nothing of it follows that can be
-   finished (with none, a mission of it that can still be taken). A state
+   that kind. Its ends are those of its missions that no other mission of it follows
+   and that can be finished (with none, a mission of it that can still be taken). A state
    from which no end can be reached, once the storyline has begun, is stuck; each is labelled by the last thing done in the
    storyline on the way there.
 
@@ -45,13 +45,13 @@
    off, every mission that needs it off is never offered again.
 
    A MISSION AN ESCAPE POD CAN LOSE (novaPodLosses). One never offered,
-   only started by an S, is not had again once lost; where its success
+   only started by an S, cannot be taken again once lost; where its success
    alone turns on a bit others need, alone starts another such mission, or
    is its storyline's end, that goes with it. The storyline search does not
    see it where the storyline has an end before it on another branch.
 
-   What is found is a reading of the files; whether it was meant (a
-   storyline closed on purpose by refusing) is not the files' to say.
+   What is found is a reading of the files; the files cannot show whether
+   it was meant (a storyline closed on purpose by refusing).
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after nova-ncb.js,
    nova-missions.js and nova-fields.js. */
@@ -82,7 +82,7 @@ function novaTestTerms(text) {
   }
   return [...out.values()];
 }
-// Whether some assignment, each bit within may(n, v), makes a test hold.
+// Whether some assignment, each bit within may(n, v), makes a test pass.
 function novaTestCan(text, may) {
   if (!text || !String(text).trim()) return true;
   const vars = novaTestTerms(text);
@@ -206,7 +206,7 @@ function* novaReachFactsSteps(game) {
   return F;
 }
 
-/* Every source of a set expression in the game that can happen, but the
+/* Every source of a set expression in the game that can happen, except the
    missions in skip: [{ test, label, text }]. */
 function novaSetSources(game, reach, skip) {
   if (!reach.sources) reach.sources = novaSetSourcesAll(game, reach);
@@ -227,8 +227,8 @@ function novaSetSourcesAll(game, reach) {
   return out;
 }
 
-// A storyline's ends: its missions nothing of it follows that can be finished (a branch's last as well
-// as the storyline's; Ambrosia's LAST notes mark a few, and some storylines' other endings not).
+// A storyline's ends: its missions that nothing in it follows and that can be finished (a branch's last as well
+// as the storyline's; Ambrosia's LAST notes mark a few, but not some storylines' other endings).
 function novaStoryEnds(game, story) {
   const inS = new Set(story.missions.map(m => m.id));
   return story.missions.filter(m => !m.next.some(x => inS.has(x)) && (novaMissionLands(game, m.rec) || (m.rec.Flags & 1))).map(m => m.id);
@@ -452,7 +452,7 @@ function novaHeldCandidates(game, reach) {
    what goes: a bit its success (or its ships dealt with) alone turns on
    that offered missions need on, a mission never offered that its success
    alone starts, or the end of its storyline (novaStoryEnds). Whether what
-   started it can be taken again is the starter's to say. opts.missions:
+   started it can be taken again is a question for the mission that starts it. opts.missions:
    only these looked at (what is read of the game is kept on reach). */
 function novaPodLosses(game, reach, M, opts = {}) {
   const out = [], sources = novaSetSources(game, reach, new Set());

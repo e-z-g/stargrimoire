@@ -5,7 +5,7 @@
    since the graphics, titles, ships and sounds files hold pictures and
    sounds, not records. A record of a type nova-records.js has a table for
    is compared field by field, its name with them; any other by its bytes.
-   Fields only padding covers are not compared.
+   Fields that are only padding are not compared.
 
    No DOM. LOAD ORDER: after js/nova-files.js and js/nova-records.js. */
 

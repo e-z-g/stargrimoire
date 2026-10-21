@@ -4,8 +4,8 @@
 //
 // Held to:
 //   - the PEF loader's list of imports: every transition vector the
-//     program imports has its glue found and named, and no glue names
-//     anything else;
+//     program imports has its glue found and named, and no glue points
+//     to anything else;
 //   - LLVM's PowerPC disassembler (llvm-mc --disassemble --triple=powerpc),
 //     separate from mac-ppc.js: the word at each figure's address,
 //     disassembled there, contains the figure's value;
@@ -17,7 +17,7 @@
 // Then a word changed on purpose: the figure read from it must change or
 // go. Needs llvm-mc (brew install llvm); without it that part skips.
 //
-// 1.1.1's Mach-O program, its PowerPC half, is held to llvm-nm (every
+// 1.1.1's Mach-O program, its PowerPC half, is checked against llvm-nm (every
 // routine its symbols name, by name and address) and llvm-objdump's
 // indirect symbols (every stub named), and each of its figures to LLVM's
 // reading of the word and to the value the site's code uses; every
@@ -28,7 +28,7 @@
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
 // js/nova-routines.js, where 1.1.1's routines are in 1.0.x, must be what
-// utilities/match.mjs gives, and is held to what the matcher does not
+// utilities/match.mjs gives, and is checked against what the matcher does not
 // compare: the figures' routines and the decimal rules, in each release.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -63,7 +63,7 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
   const tvs = new Set(prog.img.pef.loader.symbols.filter(s => s.classCode === 2).map(s => s.name));
   const glue = new Set(prog.routines.filter(r => r.glue).map(r => r.name));
   const missing = [...tvs].filter(n => !glue.has(n)), extra = [...glue].filter(n => !tvs.has(n));
-  if (extra.length) fail(`${v}: glue naming what is not an imported transition vector: ${extra.slice(0, 5).join(', ')}`);
+  if (extra.length) fail(`${v}: glue pointing to something that is not an imported transition vector: ${extra.slice(0, 5).join(', ')}`);
   const dialogs = S.novaDialogRoutines(prog);
   if (!dialogs.some(d => d.name === 'Outfit') || !dialogs.some(d => d.name === 'Shipyard')) fail(`${v}: the Outfit and Shipyard dialogs' routines not found`);
   const got = {};
@@ -166,11 +166,11 @@ else {
       }
       if (!LLVM) continue;
       const w = o.word, text = llvm([w])[0] || '';
-      // (a comparison may hold one less: `x >= 100` is `cmpwi x, 99` and a test of greater)
+      // (a comparison may contain one less: `x >= 100` is `cmpwi x, 99` and a test of greater)
       const n = Math.abs(s.value), hi = s.value / 65536, less = /^cmpl?wi$/.test(o.op.mn) ? `|${s.value - 1}` : '';
       if (!new RegExp(`(^|[ ,])-?(${n}|${hi}${less})($|[ ,(])`).test(text) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}) at ${S.hex(s.addr)}, where LLVM has "${text}"`);
     }
-    if (S.novaHeldValues(prog, 'HandleShip').has(Math.fround(1.1651))) fail('1.1.1: HandleShip found holding a number it does not');
+    if (S.novaHeldValues(prog, 'HandleShip').has(Math.fround(1.1651))) fail('1.1.1: HandleShip found to contain a number it does not');
     console.log(`1.1.1: ${sites.length} rules, each found in the routine the code cites (${new Set(sites.map(s => s.routine)).size} routines), whole numbers as LLVM reads them`);
     console.log(`1.1.1: ${cited.size} routines the field notes cite, all there; ` + Object.entries(got).filter(([n]) => n !== 'descLoader').map(([n, f]) => `${n} ${f.value} in ${prog.nameOf(prog.routineAt(f.addr))}`).join(', '));
     // a word changed on purpose: the figure must not survive it
@@ -189,7 +189,7 @@ else {
 // each address a routine's start; held out from the matching, every figure
 // whose 1.1.1 routine is in the table found in that routine in each release,
 // and every decimal rule in its routine (decimals are not among what the
-// matcher compares); and a table moved one routine on finding few.
+// matcher compares); and a table shifted by one routine finding few.
 function routinesCheck(mac) {
   const pefs = [['1.0.10', 'game/EV_Nova_1.0.10.sit'], ['1.0.8', 'game/EV_Nova_1.0.8.sit'], ['1.0.2', 'game/EV_Nova_1.0.2.sit']]
     .filter(([, rel]) => fs.existsSync(path.join(REF, rel)))
@@ -217,12 +217,12 @@ function routinesCheck(mac) {
     for (const [file, line, x, n] of missed.slice(0, 5)) fail(`${v}: the rule ${x} (${file} ${line}) not in ${n}, at ${S.hex(S.novaRoutineNamed(p, n).start)} by js/nova-routines.js`);
     said.push(`${v} ${releases.find(([w]) => w === v)[2].size} routines, ${figs} figures where read, ${decimals.length - missed.length} of ${decimals.length} decimal rules, ${S.novaRuleSites(p).length} rules found`);
     if (v === '1.0.10') {
-      // a table moved one routine on: the decimals must not survive it
+      // a table shifted by one routine: the decimals must not survive it
       const rs = p.routines.filter(r => !r.glue), next = new Map(rs.map((r, i) => [r.start, rs[i + 1] ? rs[i + 1].start : r.start]));
       const held = n => { const r = S.novaRoutineNamed(p, n); const m = new Set(); for (const o of p.ops(p.byStart.get(next.get(r.start)))) if (typeof o.value === 'number') m.add(Math.fround(o.value)).add(Math.fround(-o.value)); return m; };
       const kept = decimals.filter(([, , x, n]) => held(n).has(Math.fround(x))).length;
       // neighbours often share a constant, so some survive
-      if (kept > decimals.length / 4) fail(`1.0.10: a table moved one routine on still finds ${kept} of ${decimals.length} decimal rules`);
+      if (kept > decimals.length / 4) fail(`1.0.10: a table shifted by one routine still finds ${kept} of ${decimals.length} decimal rules`);
       said.push(`moved one routine on, ${kept}`);
     }
   }

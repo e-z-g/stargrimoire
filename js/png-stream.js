@@ -8,8 +8,8 @@
    bits a channel, each row unfiltered, the rows deflated as they come by
    the browser's CompressionStream, whose 'deflate' is the zlib stream a
    PNG's IDAT contains (PNG specification, 2nd edition, §§ 5, 9, 10). A band's
-   pixels are what getImageData gives, which is PNG's order and
-   alpha. Its chunks are grimoire's (mac-media.js's pngChunk).
+   pixels are what getImageData gives, which is in PNG's order
+   and alpha form. Its chunks are written by grimoire's pngChunk (mac-media.js).
    utilities/png_check.mjs checks the result against node's zlib.
 
    PURE: no DOM. LOAD ORDER: after js/mac-media.js; page-map.js uses it. */

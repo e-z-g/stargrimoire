@@ -35,8 +35,8 @@
 //     showing them gives it back;
 //   - a nebula chosen in the panel from a view zoomed in elsewhere is
 //     reached without the view swinging away; the links coloured by jumps
-//     from Sol reach most systems and the key shows it, and goes when the
-//     colouring does; every nebula moves with the subway map;
+//     from Sol reach most systems and the key shows it, and the key goes when
+//     the colouring does; every nebula moves with the subway map;
 //   - a route chosen in the panel from Sol to the system furthest from it
 //     is that many jumps, every step a shown link, and in the address;
 //     within 2 jumps of Sol lights only the places that near; the systems
@@ -45,8 +45,8 @@
 //     as a picture is a PNG; the hypergates and wormholes drawn, from Sol its
 //     wormhole's way to every other random one and from Kania none, Kania's
 //     panel naming its hypergate's three systems, and none with the switch off;
-//     with the gates the route from Sol no longer and each step a link or a
-//     gate's way; b147, followed from Sol's visibility, named after the
+//     with the gates on, the route from Sol is no longer than before, each step a
+//     link or a gate's way; b147, followed from Sol's visibility, named after the
 //     mission that sets it, the map shown with it set and then without;
 //     the storylines listed, Take Polaris Home opened from b147's panel as
 //     Rebel I's step 22 and its last, and Rebel I's missions and places,
@@ -189,7 +189,7 @@ try {
             for (let i = 0; i < 100 && (MOVING || VIEW.mode === 'planet'); i++) await new Promise(r => setTimeout(r, 50));
             return { mode: VIEW.mode, sys: VIEW.sys, sel: VIEW.sel, hash: location.hash, page: document.getElementById('planet').classList.contains('on') };
           })()`);
-          // Scrolling in on Earth lands on it, and the system is gone back to.
+          // Scrolling in on Earth lands on it, and then the view goes back to the system.
           out.zoomLand = await p.evaluate(`(async () => {
             const cv = document.getElementById('map'), frame = () => new Promise(r => requestAnimationFrame(r));
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
@@ -624,8 +624,8 @@ try {
             await new Promise(r => setTimeout(r, 300));
             return { frames: seen.size, onScreen, pocket, off: { seen: ANIM_SEEN.size, ticking: ANIM_TICK !== null, still: (STELLAR_ANIM.get(465) || {}).cur === before } };
           })()`);
-          // Going in on Sol's wormhole: through it, out of a random wormhole elsewhere, the system
-          // you are in that one's, with it chosen; and from the address, Sol's shown, not gone through.
+          // Going in on Sol's wormhole: through it, out of a random wormhole elsewhere, you are in
+          // that wormhole's system, with it chosen; and from the address, Sol's shown, not gone through.
           out.trip = await p.evaluate(`(async () => {
             const idle = async () => { for (let i = 0; i < 200 && MOVING; i++) await new Promise(r => setTimeout(r, 50)); };
             await show('system', { sys: 130 }); await idle();
@@ -651,7 +651,7 @@ try {
           })()`);
           // Stellars as you zoom in, off: Sol stays a dot however near, opens when gone to, and
           // closes again when zoomed out of; and the details hidden and shown.
-          // Map options kept for the next visit: one changed by hand is stored, and what is stored is taken up
+          // Map options kept for the next visit: one changed by hand is stored, and what is stored is used
           out.kept = await p.evaluate(`(() => {
             const c = $('optGates'), was = c.checked, dots = $('dotSel').value;
             c.checked = !was; c.dispatchEvent(new Event('change', { bubbles: true }));

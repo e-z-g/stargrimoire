@@ -145,7 +145,7 @@ function novaSpriteMask(spr, f) {
 /* What a class needs in a fight, read once (each class's defaults set by
    InitObjects 0x1c2e5): its weapons and their ammunition by wëap index
    from its eight slots (LoadObjectData 0x7aa25: a later slot of the same
-   weapon replaces an earlier), its recharge
+   weapon replaces an earlier one), its recharge
    rates (x 0.001 when above 0, 0x7a52c), and its shän's exit points and
    compression (LoadExtendedShipSprites 0x23988, a compression of 0 or
    less read as 1; without a shän 1 by 0.71 up and down). */
@@ -251,7 +251,7 @@ function novaSetDisabled(D, s) {
 const novaDying = s => s.death > 0 || s.armor <= 0;
 const novaActive = (w, i) => i >= 0 && i < 64 && !!w.ships[i];
 /* ShipVisibleToShip 0x9721: a ship coming out of a hypergate cannot be
-   seen, nor a cloaked one, but by its escorts with cloaks and a
+   seen, nor a cloaked one, except by its escorts with cloaks and by
    person 1023 (0x3ff). */
 const novaVisible = (a, b) => a.state !== 0x15 && !!b && (!novaCloaked(a) || (b.leader === a.slot && b.cls.cloak >= 0) || b.pers === 0x3ff);
 
@@ -583,8 +583,8 @@ function novaWarshipAI(w, s) {
 }
 
 /* InterceptorAI 0x8c895: idle or travelling, a target picked as a warship
-   picks it, else a ship at random to go and look at; the rest as before
-   (nova-flight.js), and retreat by the odds (government Flags 0x0100). */
+   picks it, else a ship at random to go and look at; the rest as in
+   nova-flight.js, and retreat by the odds (government Flags 0x0100). */
 function novaInterceptorFight(w, s) {
   const D = w.D, g = D.govts.get(s.govt);
   if (s.anger > 0 && s.primary !== -1 && ![3, 7, 9, 0xf].includes(s.state) && s.jump <= 0) s.state = 4;
@@ -737,7 +737,7 @@ function novaHopeless(w, s) {
    lining up, breaking away head-on (10) or boosting (17) where the program
    has it; 7 aiming as the guided weapons need; 14 braking while aiming; 16
    the break-away; 17 the boost. Returns nothing; nova-flight.js's modes
-   take the rest. */
+   handle the rest. */
 function novaLowAttack(w, s) {
   const D = w.D, ok = !s.disabled;
   if (ok && s.mode === 0xf && s.sec !== -1 && w.ships[s.sec]) novaDocking(w, s, w.ships[s.sec]);
@@ -1045,8 +1045,8 @@ function novaECM(w, s, k) {
    at GuidedTurn a step once 15 steps old -- jammed (turning not at all,
    or away, Seeker 0x0010) when the target's ECM beats the missile's roll,
    a target it cannot see given up, one passed by lost (Seeker 0x4000),
-   an asteroid it passes taking it (Seeker 0x0002); a missile confused by
-   the system's interference spiralling; its velocity its Speed along its
+   decoyed by an asteroid it passes (Seeker 0x0002); a missile confused by
+   the system's interference spiralling; its velocity being its Speed along its
    heading. A rocket eases its velocity onto its heading; a bomb turns to
    its velocity. */
 function novaShotGuidance(w, sh) {
@@ -1504,7 +1504,7 @@ function novaShipHit(w, sh, t, sub) {
 /* ---- damage ------------------------------------------------------------------ */
 
 /* IonizeShip 0x8409: a weapon's Ionization added to the ship's, for a blast
-   from `at` less by the square of the distance over the square of the
+   from `at` reduced by the square of the distance over the square of the
    BlastRadius, none beyond it; its IonizeColor or'ed into the ship's. */
 function novaIonize(s, W, at) {
   let v = W.ion;
@@ -1588,7 +1588,7 @@ function novaRetaliate(w, t, A, attacker, mass, energy, aimed) {
   const af = novaClassFight(D, A.cls), tf = novaClassFight(D, t.cls);
   if (af.escortType === 0 && tf.escortType !== 0 && t.primary !== -1 && t.state === 4) return;
   t.harass = 0;
-  // Flags2 0x4000: attacked by a ship it is not fighting, a ship that can cloaks, its bursts' weapons put to their burst reload (AIForceBurstReload 0x84c37)
+  // Flags2 0x4000: attacked by a ship it is not fighting, a ship that can cloak does so, its bursts' weapons put to their burst reload (AIForceBurstReload 0x84c37)
   if ((tf.flags2 & 0x4000) && novaCanCloak(t) && !(t.primary === attacker && t.state === 4)) {
     for (const r of t.weap) { const W = novaWeapOf(D, r.i); if (tf.count[r.i] > 0 && W && W.burstCount > 0 && W.burstReload > 0) { r.burst = 0; r.reload = f32(W.burstReload); } }
     novaCloak(t);
@@ -1974,7 +1974,7 @@ function novaHandleBeams(w) {
 /* ---- fighters --------------------------------------------------------------- */
 
 /* AIFightThreatToParent 0x81de6: a ship that threatens the escort's lead,
-   drawn at random among them, attacked; none, no target. */
+   drawn at random among them, attacked; with none, no target. */
 function novaFightThreatToParent(w, s) {
   const lead = w.ships[s.leader];
   const ok = i => i !== s.slot && i !== s.leader && w.ships[i] && !w.ships[i].disabled && lead && novaThreatens(w, w.ships[i], lead);
@@ -2016,7 +2016,7 @@ function novaLaunchFighters(w, s) {
   }
 }
 /* LaunchFighter 0x3d62d: a ship made as a spawner makes one, of the class
-   the bay's AmmoType names, at the carrier, moving with it and pushed out
+   given by the bay's AmmoType, at the carrier, moving with it and pushed out
    along its heading (give or take the bay's Inaccuracy) at the bay's
    Speed; AI type 5, of the carrier's government, its escort, coasting
    the bay's Count steps, with the carrier's target unless that is a
@@ -2045,9 +2045,9 @@ function novaLaunchFighter(w, s, i) {
 
 /* DoPlayGameWork 0x43e70, after the collisions: each escort whose lead is
    gone or disabled finds a new one (AICheckParentExists); a lead with
-   escorts is marked to give them orders, a swarm's lead as one, and each
-   ship the one whose formation it flies in -- its swarm's lead while it
-   attacks, else its lead. */
+   escorts, or a swarm's lead, is marked to give them orders; and each ship
+   is given the ship whose formation it flies in -- its swarm's lead while
+   it attacks, else its lead. */
 function novaFleetBookkeeping(w) {
   const prev = w.ships.map(s => s ? s.leader : -1);
   for (const s of w.ships) if (s) { s.hasEscorts = false; s.mateLead = false; s.formLead = false; }
@@ -2324,7 +2324,7 @@ function novaPlunder(w, s, t) {
 
 /* The test HighLevelAIHandler makes of a target in states 4 and 13: one of
    the ship's fleet -- its lead, a ship with the same lead, or a lead
-   above the target's one shared with its -- is let be (state 0). */
+   above the target's one shared with its -- is left alone (state 0). */
 function novaFleetMateTarget(w, s) {
   const L = s.leader;
   if (L === -1) return false;

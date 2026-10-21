@@ -105,8 +105,8 @@ const NOVA_RECORDS = {
     ['Unused', 'pad', 16],
   ],
   // The templates write a run of four words as one RECT; each is a field
-  // with a count of 4 here. They name two runs of four twice (ItemCount,
-  // and the weapons' second halves); the second has a 2 here.
+  // with a count of 4 here. They use one name for two runs of four
+  // (ItemCount, and the weapons' second halves); the second has a 2 added here.
   'shïp': [
     ['Holds', 'i16'], ['Shield', 'i16'], ['Accel', 'i16'], ['Speed', 'i16'], ['Maneuver', 'i16'],
     ['Fuel', 'i16'], ['FreeMass', 'i16'], ['Armor', 'i16'], ['ShieldRech', 'i16'],
@@ -155,7 +155,7 @@ const NOVA_RECORDS = {
     ['Unused', 'pad', 16],
   ],
   // The types below are read for their control-bit tests and sets
-  // (nova-bits.js); every field is here so that the offsets hold.
+  // (nova-bits.js); every field is here so that the offsets are right.
   'mïsn': [
     ['AvailStel', 'i16'], ['Unused', 'pad', 2], ['AvailLoc', 'i16'], ['AvailRecord', 'i16'],
     ['AvailRating', 'i16'], ['AvailRandom', 'i16'], ['TravelStel', 'i16'], ['ReturnStel', 'i16'],

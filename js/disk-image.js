@@ -5,7 +5,7 @@
    volume: EV Nova 1.1.1 ships as one. `udifFiles(bytes)` gives the files
    on the volume as `parseStuffItArchive` gives an archive's, and reads
    either fork of any of them, inflating only the parts of the image that
-   fork lies in: the 1.1.1 image is a 512 MB volume in 94 MB, most of it
+   hold that fork: the 1.1.1 image is a 512 MB volume in 94 MB, most of it
    empty.
 
    WHERE THE FORMAT CAME FROM
@@ -208,7 +208,7 @@ function udifFiles(bytes) {
    A flat package is a xar archive: 'xar!', the header's length
    (28), the table of contents' compressed and uncompressed lengths (big
    endian, 8 bytes each), and the table of contents, zlib-compressed XML,
-   followed by the heap that its <data> entries' offsets count from. Each
+   followed by the heap from which its <data> entries' offsets are counted. Each
    part's Payload is a gzip stream of a cpio archive in the portable form
    ('070707': fields in octal, a 76-byte header, then the name with its
    NUL, then the file). Read off this package on 10 October 2026 and

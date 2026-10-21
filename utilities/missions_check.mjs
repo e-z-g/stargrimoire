@@ -1,7 +1,7 @@
 // js/nova-missions.js: the storylines read from Ambrosia's notes, the
 // Bible's place codes, and which missions lead to which, over every release.
 //
-// The reading of a note is held to examples written out here. Every
+// The reading of a note is checked against examples written out here. Every
 // mission's place codes must be ones the Bible's mïsn section gives, and a
 // stellar or system one must point at a record. A LAST mission's storyline
 // must go no further by its links.
@@ -108,8 +108,8 @@ for (const v of ['1.0.10', '1.1.1']) {
   console.log(`${v}: ${charts} storyline charts, ${backs} lines going back up a loop`);
 }
 
-// The whole game (novaGameOverview): every join held by what it cites, read again from the records'
-// own fields -- a lead by one mission's set expressions or the other's test, a shut by the bit turned on
+// The whole game (novaGameOverview): every join checked against what it cites, read again from the
+// records' fields -- a lead by one mission's set expressions or the other's test, a shut by the bit turned on
 // and the opening's test needing it off, a person by its ActivateOn, an event by its OnStart or OnEnd --
 // and a storyline joining itself nowhere; Rebel I leads to Rebel II.
 for (const v of ['1.0.10', '1.1.1']) {
@@ -135,7 +135,7 @@ for (const v of ['1.0.10', '1.1.1']) {
   }
   const rebel = [...data.stories.values()], r1 = rebel.find(s => s.name === 'Rebel I'), r2 = rebel.find(s => s.name === 'Rebel II');
   if (!r1 || !r2 || !O.leads.some(j => j.from === r1.key && j.to === r2.key)) no('Rebel I does not lead to Rebel II');
-  console.log(`${v}: the whole game: ${data.stories.size} storylines, ${O.leads.length} leads and ${O.shuts.length} shuts between them, ${O.people.length} people and ${O.events.length} events joining them, each held by its records`);
+  console.log(`${v}: the whole game: ${data.stories.size} storylines, ${O.leads.length} leads and ${O.shuts.length} shuts between them, ${O.people.length} people and ${O.events.length} events joining them, each backed by its records`);
 }
 
 process.exit(fails ? 1 : 0);

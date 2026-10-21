@@ -39,9 +39,9 @@ const NOVA_BIT_SOURCES = [
      { n, name, refs: [{ effect, type, kind, id, name, field, event, random }] }
    effect 'on' or 'off' (a test needs it so), or 'set', 'clear', 'toggle';
    random where the change happens in only some of an R(...) choice's
-   outcomes. `name` is what turns it on: the first record to, in the
-   order of NOVA_BIT_SOURCES and then by number, and how many others do;
-   failing that what turns it over, then what clears it; null for a bit
+   outcomes. `name` is what turns it on: the first record that does, in
+   the order of NOVA_BIT_SOURCES and then by number, and how many others do;
+   failing that, what turns it over, then what clears it; null for a bit
    nothing changes. */
 function novaBitCatalog(game) {
   const bits = new Map();

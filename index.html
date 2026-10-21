@@ -133,7 +133,7 @@ code { font: 12.5px/1.3 ui-monospace, Menlo, monospace; color: var(--text); }
 #planet .desc.dim { color: var(--dim); }
 #planet h3 { font-size: 13px; font-weight: 600; color: var(--dim); margin: 18px 2px 4px; text-transform: none; }
 #planet .spritebox { display: flex; justify-content: center; padding: 30px 0; }
-/* The black a fall onto a stellar ends in, and a rise begins from. */
+/* The black screen at the end of a fall onto a stellar, and at the start of a rise from one. */
 #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 5; }
 
 /* ---- the panel ---- */
@@ -342,7 +342,7 @@ details.inline .list { margin-top: 4px; }
   #app.bare .grip { display: none; }
   #panel { width: auto; flex: 1 1 0; border-left: 0; padding: 2px 12px 30px; }
   #search { width: auto; flex: 1 1 100px; }
-  /* pinching zooms, and which systems are shown goes under Map options */
+  /* pinching zooms, and the choice of which systems are shown goes under Map options */
   #zoomIn, #zoomOut { display: none; }
   #tools, #corner { top: 6px; padding: 4px; }
   #tools { left: 6px; flex-wrap: nowrap; max-width: calc(100% - 104px); }
@@ -396,7 +396,7 @@ details.inline .list { margin-top: 4px; }
   <span id="fileMenu">
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
   <button id="compareBtn" title="Compare the open game with another release" hidden>Compare…</button>
-  <button id="collectionBtn" title="The community's plug-ins, kept on archive.org, opened into the game from there" hidden>Add plug-ins…</button>
+  <button id="collectionBtn" title="The community's plug-ins on archive.org, opened into the game from there" hidden>Add plug-ins…</button>
   <button id="pluginBtn" title="The records changed here, saved as a plug-in" hidden>Plug-in…</button>
   <button id="forgetBtn" title="Delete the copy saved in this browser, so the next visit starts empty" hidden>Forget</button>
   <button id="creditsItem">Credits</button>
@@ -420,7 +420,7 @@ details.inline .list { margin-top: 4px; }
   <ul>
     <li>The <strong>EV Nova Resource Bible</strong>, by <strong>Matt Burch</strong>, as reformatted by <strong>ReinierK</strong>, and Ambrosia's ResEdit templates: the records' fields, units and flags.</li>
     <li><strong>Grimoire</strong>: the readers for Mac archives, resource forks and pictures, whose StuffIt reader comes from <strong>Ben Letchford</strong>'s stuffit-rs, after <strong>Dag Ågren</strong>'s The Unarchiver.</li>
-    <li><strong>evnova-decomp</strong>, by <strong>Lancelot de Ferrière</strong>: the Community Edition's function names, by which its program was read beside the Mac one.</li>
+    <li><strong>evnova-decomp</strong>, by <strong>Lancelot de Ferrière</strong>: the Community Edition's function names, which helped read its program alongside the Mac one.</li>
     <li><strong>ResForge</strong>, by <strong>Andrew Simmonds</strong>: how a ship's sprite layers are blended.</li>
     <li>The subway map, after <strong>Gansner, Koren and North</strong>; <strong>Stott, Rodgers, Martinez-Ovando and Walker</strong>; and <strong>Bast, Brosi and Storandt</strong>. Its names, after <strong>Been, Daiches and Yap</strong>; <strong>Been, Nöllenburg, Poon and Wolff</strong>; and <strong>Christensen, Marks and Shieber</strong>. Its colours for jumps, <strong>Anton Mikhailov</strong>'s turbo.</li>
   </ul>
@@ -594,42 +594,42 @@ details.inline .list { margin-top: 4px; }
 <script src="js/mac-rar.js?v=433c1646"></script>
 <script src="js/mac-ppc.js?v=88ddd27d"></script>
 <script src="js/mac-pef.js?v=1c4e2412"></script>
-<script src="js/png-stream.js?v=1c2d470d"></script>
-<script src="js/disk-image.js?v=9ee83f2a"></script>
-<script src="js/nova-files.js?v=e54c3355"></script>
-<script src="js/nova-records.js?v=4d98eb81"></script>
-<script src="js/nova-ncb.js?v=2bac438f"></script>
+<script src="js/png-stream.js?v=13fbdfcd"></script>
+<script src="js/disk-image.js?v=b06ddc4c"></script>
+<script src="js/nova-files.js?v=616764ed"></script>
+<script src="js/nova-records.js?v=2f21a743"></script>
+<script src="js/nova-ncb.js?v=98e9d7e3"></script>
 <script src="js/nova-sprites.js?v=6c456e25"></script>
-<script src="js/nova-universe.js?v=ea0d49b3"></script>
-<script src="js/nova-bits.js?v=f37250c0"></script>
-<script src="js/nova-missions.js?v=ceb4eca0"></script>
-<script src="js/nova-subway.js?v=3a429278"></script>
+<script src="js/nova-universe.js?v=f3ca3b15"></script>
+<script src="js/nova-bits.js?v=3f88a982"></script>
+<script src="js/nova-missions.js?v=955ed6de"></script>
+<script src="js/nova-subway.js?v=9ce60805"></script>
 <script src="js/nova-labels.js?v=7d212c2c"></script>
-<script src="js/nova-ships.js?v=3337f253"></script>
-<script src="js/nova-flight.js?v=d6d6f09c"></script>
-<script src="js/nova-fight.js?v=326ff352"></script>
-<script src="js/nova-compare.js?v=30c2497c"></script>
-<script src="js/nova-fields.js?v=6b825c4c"></script>
-<script src="js/nova-deadends.js?v=c8561ad7"></script>
-<script src="js/nova-plugin.js?v=08815dc5"></script>
-<script src="js/nova-refs.js?v=8c28f690"></script>
-<script src="js/nova-rules.js?v=5bf9cb71"></script>
-<script src="js/nova-routines.js?v=629b3127"></script>
-<script src="js/nova-program.js?v=e72d9a3a"></script>
-<script src="js/nova-fieldsites.js?v=63a10c71"></script>
-<script src="js/nova-collection.js?v=d9d0199b"></script>
+<script src="js/nova-ships.js?v=ff515815"></script>
+<script src="js/nova-flight.js?v=4f1e9481"></script>
+<script src="js/nova-fight.js?v=84cc26fe"></script>
+<script src="js/nova-compare.js?v=4c219d4c"></script>
+<script src="js/nova-fields.js?v=87650a0f"></script>
+<script src="js/nova-deadends.js?v=8dd4859f"></script>
+<script src="js/nova-plugin.js?v=94c49eee"></script>
+<script src="js/nova-refs.js?v=a3fd0d83"></script>
+<script src="js/nova-rules.js?v=4de8467c"></script>
+<script src="js/nova-routines.js?v=990acf0d"></script>
+<script src="js/nova-program.js?v=11d42da8"></script>
+<script src="js/nova-fieldsites.js?v=2b93ada0"></script>
+<script src="js/nova-collection.js?v=c57bad58"></script>
 <script src="js/nova-sound.js?v=f16602d0"></script>
-<script src="js/page-open.js?v=e9d8f6d7"></script>
-<script src="js/page-compare.js?v=438980b0"></script>
-<script src="js/page-collection.js?v=c31348bd"></script>
-<script src="js/page-plugin.js?v=a0f1a356"></script>
+<script src="js/page-open.js?v=93b122ed"></script>
+<script src="js/page-compare.js?v=ae7ac2dd"></script>
+<script src="js/page-collection.js?v=125dc39d"></script>
+<script src="js/page-plugin.js?v=b1f2cb14"></script>
 <script src="js/page-svg.js?v=df85a9af"></script>
-<script src="js/page-map.js?v=2633c5bb"></script>
-<script src="js/page-ships.js?v=8c50c659"></script>
-<script src="js/page-flight.js?v=09b498ef"></script>
-<script src="js/page-battle.js?v=64c83b13"></script>
-<script src="js/page-records.js?v=09df0f23"></script>
-<script src="js/page-code.js?v=958850e3"></script>
-<script src="js/page-library.js?v=b64a568a"></script>
+<script src="js/page-map.js?v=6102a0a8"></script>
+<script src="js/page-ships.js?v=ad344c91"></script>
+<script src="js/page-flight.js?v=00ffce10"></script>
+<script src="js/page-battle.js?v=b6f3b239"></script>
+<script src="js/page-records.js?v=dc3bff85"></script>
+<script src="js/page-code.js?v=1328a3da"></script>
+<script src="js/page-library.js?v=6d782803"></script>
 </body>
 </html>

@@ -133,7 +133,7 @@ async function collectionOpen(list) {
     try { picked.push(await fetchBytes(f.url, ' from archive.org')); }
     catch (err) { setStatus(`Could not fetch ${f.name} from archive.org: ${err.message}`, true); return; }
   }
-  // kept ticked when the opening is called off, as over plug-ins with the same records
+  // kept ticked when the opening is cancelled, as with plug-ins that have the same records
   if (await openGameFiles(picked)) COLLECTION.ticked.clear();
 }
 

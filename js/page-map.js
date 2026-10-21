@@ -45,10 +45,10 @@ const SPRITE_CACHE = new Map();
 const MIN_STELLAR = 26;
 /* The numbers that set how the zoom feels, as grimoire's ATLAS_TUNE
    does there. A system's stellars begin to replace its dot when its disc
-   is fadeFrom pixels across and have replaced it at fadeTo; when their
-   names come in is namePlan's and stellarNamePlan's. animMs is grimoire's,
-   settled on a real screen: the fall onto a stellar and the rise from it,
-   and seven tenths of it a zoom into a system. The two sizes are still
+   is fadeFrom pixels across and have replaced it at fadeTo; namePlan and
+   stellarNamePlan set when their names appear. animMs is grimoire's value,
+   settled on a real screen: how long the fall onto a stellar and the rise
+   from it last, and seven tenths of it is a zoom into a system. The two sizes are still
    to be settled. They were 36 and 150 until the maintainer found the
    stellars came in too soon (28 September 2026). Zooming in on a stellar
    lands on it once its sprite is landAt of the screen's shorter side
@@ -105,8 +105,8 @@ const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'h
 function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading) && (k !== 'side' || (on.heading && on.names))) || (k === 'fine' && on.mixed)).join('-') || '45'; }
 function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(SUBWAY_WORDS).filter(k => f[k]).map(k => SUBWAY_WORDS[k]).join(','); }
 /* The subway map's look in the address (&look=names,stations,links,nebulae), its parts on, so
-   that a link shows what was seen; an address with a subway map and no look is one from before
-   there was one, and shows none. */
+   that a link shows what was seen; an address with a subway map and no look shows none of
+   these parts. */
 const LOOK_WORDS = [['names', 'optPlainNames'], ['stations', 'optMetroSys'], ['links', 'optFlatLinks'], ['nebulae', 'optPlainNeb']];
 /* Map options are kept in the browser's storage, as last set by hand, for the next visit; an
    address naming a view sets the subway map's options itself (applyHash). */
@@ -189,7 +189,7 @@ function stellarSprite(sp) {
    animations are stepped thirty times a second, as the game counts its
    time, while one is on the screen, and not at all where the browser requests
    reduced motion. The map shows no stellar as destroyed, as everywhere
-   else on it. A hypergate stays shut, as it does with no ship near, but
+   else on it. A hypergate stays shut, as it does with no ship near, except
    while it is being gone through (ENGAGED); a sprite in a PICT sheet (none
    shipped) stays on its first frame. */
 const FRAME_CACHE = new Map();    // spïn id -> { bytes, index, count, frames } or null
@@ -378,7 +378,7 @@ function buildPlaces() {
 // A nebula's rectangle where LAYOUT.mix puts it: on the subway map moved
 // and scaled so that the systems near it are over as bright a part of its
 // picture as they truly are (nova-subway.js), from its largest picture's
-// brightness, once that is read; kept until then only as it stands.
+// brightness, once that is read, and left unadjusted until then.
 const NEB_SUB = new Map(), NEB_BRIGHT = new Map();
 function nebulaBrights() {
   return U.nebulae.map(n => {
@@ -678,8 +678,8 @@ function settle() {
   renderCrumbs();
   renderPanel();
 }
-/* A system zoomed into, or zoomed out of, is a step back and forward walk,
-   as going to it by a tap is: the first change of a zoom is given a new entry
+/* A system zoomed into, or zoomed out of, is a step that Back and Forward
+   walk through, as going to it by a tap is: the first change of a zoom is given a new entry
    and those following within a second take it over, so zooming
    through a system on the way past it makes no step; and a zoom that ends
    where it began removes the entry it made. */
@@ -695,7 +695,7 @@ function settleHash() {
     if (location.hash === SETTLE_FROM) { SKIP_POP = true; history.back(); }
   }, 1000);
 }
-// Any other step ends a zoom's: its entry is not taken back.
+// Any other step ends a zoom's run: its entry stays.
 function settleEnd() { clearTimeout(SETTLE_TIMER); SETTLE_TIMER = null; }
 
 /* ---- drawing ------------------------------------------------------------- */
@@ -749,10 +749,11 @@ function nebulaTint(n, img) {
   }
   return t;
 }
-// The part of a nebula's picture that is the nebula: its coloured pixels, bright as its coloured
-// pixels go, so that the black of space and the nearly colourless name lettered on it are left out, each in its colour
-// brought up to full brightness (the maintainer found one colour for a nebula, its average, muddy),
-// its alpha how much so; on a 48 by 48 grid, softened, drawn stretched. And the box, in fractions
+// The part of a nebula's picture that is the nebula: its coloured pixels that are bright for that
+// picture, so that the black of space and the nearly colourless name lettered on it are left out.
+// Each is in its colour brought up to full brightness (the maintainer found one colour for a
+// nebula, its average, muddy), with its alpha showing how much it is cloud; on a 48 by 48 grid,
+// softened, drawn stretched. And the box, in fractions
 // of the picture, of what is clearly cloud.
 const NEB_MASK = new Map();
 function nebulaMask(n, img) {
@@ -765,7 +766,7 @@ function nebulaMask(n, img) {
   const d = g.getImageData(0, 0, k, k), px = d.data;
   // each pixel its colour brought up to full brightness, premultiplied by how much it is cloud
   const pm = new Float32Array(k * k * 4);
-  // brightness judged against the picture's coloured pixels' own, their 90th centile: the lettering
+  // brightness judged against that of the picture's coloured pixels, their 90th percentile: the lettering
   // is its brightest (up to 241 in the Rochak Dust Field, whose dust is 41 to 56), and is nearly
   // colourless (30 September 2026, measured over the four nebulae of the stock game)
   const sat = i => { const mx = Math.max(px[4 * i], px[4 * i + 1], px[4 * i + 2]), mn = Math.min(px[4 * i], px[4 * i + 1], px[4 * i + 2]); return mx ? (mx - mn) / mx : 0; };
@@ -775,7 +776,7 @@ function nebulaMask(n, img) {
   let x0 = k, y0 = k, x1 = -1, y1 = -1;
   for (let i = 0; i < k * k; i++) {
     const r = px[4 * i], gr = px[4 * i + 1], b = px[4 * i + 2], mx = Math.max(r, gr, b), mn = Math.min(r, gr, b);
-    // cloud: coloured, and bright as the picture's coloured pixels go
+    // cloud: coloured, and bright for the picture's coloured pixels
     const wgt = clampNum((mx - 0.25 * P) / (0.6 * P), 0, 1) * clampNum((sat(i) - 0.15) / 0.2, 0, 1), up = mx ? 255 / mx : 0;
     pm[4 * i] = r * up * wgt; pm[4 * i + 1] = gr * up * wgt; pm[4 * i + 2] = b * up * wgt; pm[4 * i + 3] = 255 * wgt;
     if (wgt > 0.25) { const x = i % k, y = (i / k) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
@@ -818,10 +819,10 @@ function nebulaShape(ctx, n, img, x, y, w, h, a) {
 /* The names of the nebulae drawn as plain shapes, after the systems' (the maintainer's request, 30
    September 2026: they ran into them): each at the first of its spots -- along the top of its
    cloud, in the middle, at the left, at the right, then along the bottom, then just outside it above
-   and below, along what of it is on the screen, then beside it -- that is on the screen, comes
-   within 5 pixels of no system's name, no system's mark and no nebula's name already put, and has
-   the most room round it of those, the earlier a little preferred, at
-   13 pixels or else 11; where none is clear it is left off, and is in the panel still. */
+   and below, along what of it is on the screen, then beside it -- that is on the screen and not
+   within 5 pixels of a system's name, a system's mark or a nebula's name already placed; of those,
+   the one with most room round it, the earlier slightly preferred, at 13 pixels or else 11. Where no
+   spot is clear, the name is left off the map, and is still in the panel. */
 function drawNebulaNames(ctx) {
   if (!NEB_NAMES.length) return;
   const r = systemRadius() + 2, marks = DRAWN.filter(d => d.t < 1).map(d => ({ x0: d.x - r, x1: d.x + r, y0: d.y - r, y1: d.y + r }));
@@ -972,7 +973,7 @@ function jumpMap() {
   return out;
 }
 function jumpsTo(id) { const m = jumpMap(); return !m ? null : m.has(id) ? m.get(id) : Infinity; }
-// The jump a link is on a shortest way out: one more than its nearer end, the way it can be flown.
+// Which jump a link is on the shortest way out: one more than its nearer end's, in the direction it can be flown.
 function linkJumps(l, m) {
   const a = m.get(l.from.id), b = m.get(l.to.id);
   let j = Infinity;
@@ -985,7 +986,7 @@ function linkJumps(l, m) {
    colour of the one with fewer systems shown; but where two parts of a government -- its systems
    joined by its links -- are joined through one other system and only that one, the two links
    through it are the government's, so that it does not look split in two. Governments with more
-   systems are seen to first. */
+   systems are handled first. */
 let GOVT_ONE = null;
 function govtOneColours() {
   if (GOVT_ONE && GOVT_ONE.links === LINKS) return GOVT_ONE.map;
@@ -1045,8 +1046,8 @@ function renderLegend() {
 }
 
 /* How the systems' dots are coloured (DOTS_BY): by government (the
-   panel's chips keep that whatever the map shows, as there they say which
-   government it is), all in one colour, or by a figure of the system's
+   panel's chips stay in government colours whatever the map shows, since
+   there they show which government it is), all in one colour, or by a figure of the system's
    record, on the turbo scale from 1 to the most any shown system has, and
    in a dark grey where it is 0 (the maintainer's request, 29 September
    2026). */
@@ -1247,7 +1248,7 @@ function arrowHalfway(ctx, pts) {
    off at first since 13 October 2026, at his request). A gate's way to another system is drawn straight and dashed
    over the hyperspace links, a hypergate's in teal and a wormhole's in
    violet, with an arrowhead where it runs one way. A random wormhole goes
-   to any other (novaShownGates), which drawn at once would be a web over
+   to any other (novaShownGates), which, all drawn at once, would be a web over
    the galaxy, so its ways are drawn only from the selected system, or the
    one you are in, finer and fainter. Beside each system's dot, a mark for
    each kind of gate it has, hollow for a gate that leads nowhere. */
@@ -1471,8 +1472,9 @@ function drawStellars(ctx, d, cur) {
    other names and three of other dots. So as you zoom in
    names come and stay, and none goes, moves or is drawn over another name
    or a dot; the maintainer wanted names not to come and go one by one (28
-   September 2026), and the published way to that is this. On the map with
-   room for names, every name from the zoom that makes its room 7 pixels.
+   September 2026), and this is the published way to do that. On the map
+   with room for names, every name shows from the zoom at which its room is
+   7 pixels high.
    Worked out again when the places change, and on a subway map once it has
    slid all the way in or out. */
 let NAME_PLAN = null;
@@ -1556,8 +1558,8 @@ function drawSystemLabels(ctx) {
       const nm = LAYOUT.sub.name(d.p.tx, d.p.ty);
       if (nm) {
         const [sx, sy] = toScreen(nm.x, nm.y), fit = nm.w * CAM.s;
-        // a name the lines left little room is smaller (nova-subway.js, subwayLabels), but for names
-        // in metro style, which are one size
+        // a name the lines left little room is smaller (nova-subway.js, subwayLabels), except for
+        // names in metro style, which are one size
         let size = room * (PLAIN_NAMES ? 1 : nm.size || 1);
         ctx.font = weight + size + 'px ' + font();
         const w = ctx.measureText(d.sys.name).width;
@@ -1812,8 +1814,8 @@ async function rise(quick) {
    the stellar it leads to, in that system. A wormhole picks where
    (novaWormholeTrip); a hypergate opens and offers its choices in the panel
    under the program's heading (novaHypergateChoices, GATE_PICK), and a
-   hypergate come out of opens too. Where the program would turn you away, its
-   message, over the map. */
+   hypergate you come out of opens too. Where the program would turn you away,
+   its message is shown over the map. */
 let GATE_PICK = null;   // { spob, sys, choices } while a hypergate's destination is being picked
 // Text from STR# 2002, the entries joined by a space as the program shows them.
 function gameText(...ns) { const l = novaStrings(GAME, 2002); return ns.every(n => l[n - 1]) ? ns.map(n => l[n - 1]).join(' ') : null; }
@@ -1964,8 +1966,8 @@ function subwayGet(kind) {
     return (LAYOUT.subs[kind] = subwayResult(input, layout));
   }));
 }
-// Working a layout out: in a background thread made from nova-subway.js's
-// own subwayModule, or here, a moment later, where there is none.
+// Working a layout out: in a background thread made from subwayModule in
+// nova-subway.js, or here, a moment later, where there is none.
 let SUBWAY_BUSY = 0;
 function subwayWork(input) {
   // a separate note over the map: the status line is the files'
@@ -1987,8 +1989,8 @@ function useSub(sub) {
   if (LAYOUT.sub === sub) return;
   LAYOUT.sub = sub; NEB_SUB.clear(); buildPlaces();
 }
-// The switches for a kind of map: the one requested, which may be on its way. None requested
-// while the arrangement's switch is on is the subway map left, as the address can.
+// The switches for a kind of map: the one requested, which may be on its way. With none
+// requested while the arrangement's switch is on, the subway map is switched off, as an address can do.
 function syncOpts(kind = LAYOUT.want) {
   if (kind) {
     const f = subwayFlags(kind);
@@ -2009,8 +2011,8 @@ function subwayLook() {
   NEBULAE = NEB_STYLE !== 'none';
   FLAT_LINKS = on && $('optFlatLinks').checked;
 }
-// The subway map the switches select, null for none; only where needed is a way of having 22.5
-// degrees, and goes with them.
+// The subway map the switches select, null for none; 'only where needed' is a way of having 22.5
+// degrees, and comes with them.
 function subwayChosen() {
   return $('optSubway').checked && $('optArrange').checked ? subwayKind({ names: $('optRoom').checked, fine: $('optFine').checked, mixed: $('optFine').checked && $('optMixed').checked, heading: $('optHeading').checked, dots: !$('optBars').checked, side: $('optSide').checked }) : null;
 }
@@ -2040,7 +2042,7 @@ function showOpts() {
   hide('optShips', !$('optStellars').checked);
   hide('dotSel', SYS_STYLE !== 'dots');
 }
-// At once, as when the address has a map, once it is ready; kind null
+// Immediately, as when the address gives a map, once it is ready; kind null
 // is the true positions.
 async function setLayoutNow(kind) {
   LAYOUT.want = kind;
@@ -2059,8 +2061,8 @@ async function setLayoutNow(kind) {
 // request, 30 September 2026: by way of the true positions, the map lost its
 // form between them). The system nearest the middle of
 // the screen stays where it is on the screen, and in a system its disc stays
-// the size it was. It waits for any move under way, and given another
-// meanwhile, it goes on to that.
+// the size it was. It waits for any move under way, and if given another
+// meanwhile, goes on to that.
 async function setLayout(kind) {
   LAYOUT.want = kind;
   syncOpts();
@@ -2095,7 +2097,7 @@ async function setLayout(kind) {
     }
   } finally {
     MOVING = false;
-    // the slide over, mix 1 is the map arrived at whatever it started from
+    // once the slide is over, mix 1 is the map arrived at, whatever it started from
     if (LAYOUT.base) { LAYOUT.base = null; NEB_BASE.clear(); buildPlaces(); }
   }
   writeHash(true);
@@ -2136,7 +2138,7 @@ function applyHash() {
   // a route, from one system, or from one to another (&route=130-131)
   const [rf, rt] = (p.get('route') || '').split('-').map(v => (v === '' || v === undefined ? NaN : +v));
   ROUTE = U.byId.has(rf) ? { from: rf, to: U.byId.has(rt) && rt !== rf ? rt : null } : { from: null, to: null };
-  // the subway map and its look as the address has them; none, before any view, is the options kept
+  // the subway map and its look as the address has them; with none, before any view, the kept options apply
   if (location.hash.length > 1) {
     const kind = p.has('subway') ? subwayFromAddress(p.get('subway')) : null, look = p.has('look') ? p.get('look').split(',') : null;
     $('optSubway').checked = !!(kind || look);
@@ -2226,7 +2228,7 @@ const GATE_WHY = {
   offline: () => 'nowhere: it cannot be landed on: "it is offline"',
   elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and from here you get "the radiation levels are too extreme"`,
   unlinked: () => 'nowhere: it links to nothing, and landing on it does nothing',
-  nowhere: () => 'nowhere: none of the stellars it names is in a system shown now',
+  nowhere: () => 'nowhere: none of its stellars is in a system shown now',
 };
 function gateTo(sp, sys) {
   if (!novaGateKind(sp)) return '';
@@ -2290,7 +2292,7 @@ function bitText(text) {
   return esc(text).replace(/(^|[^A-Za-z0-9])([Bb])(\d+)/g, (m, pre, b, n) =>
     +n < 10000 ? `${pre}<a data-bit="${+n}" title="${esc(bitTitle(+n))}">${b}${n}</a>` : m);
 }
-// A record a bit's list names, as a link where the page has somewhere to show it.
+// A record in a bit's list, as a link where the page has somewhere to show it.
 function bitRefLink(r) {
   if (r.type === 'mïsn') return missionLink(r.id);
   if (r.type === 'sÿst' && U.byId.has(r.id)) return sysLink(r.id);
@@ -2326,7 +2328,7 @@ function bitPanel(n) {
     <div class="sub">${esc(bitTitle(n))}</div>
     <div class="actions"><button data-bit-back>Back</button>
       <button data-bit-map="${n}">${set ? `Show the map without b${n}` : `Show the map with b${n} set`}</button></div>
-    <p class="note">A control bit means what the records that turn it on and test it make of it; this is every test and set expression in the files open that names b${n}, as the game reads them.</p>
+    <p class="note">A control bit means only what the records that turn it on and test it make of it. Here is every test and set expression in the open files that uses b${n}, as the game reads them.</p>
     ${sections || '<p class="note">No record in these files tests or sets it.</p>'}`;
 }
 
@@ -2356,7 +2358,7 @@ function payText(v) {
   const p = novaMissionPay(v);
   return esc(p.text).replace('{g}', p.govt !== undefined ? esc(govtName(p.govt < 128 ? -1 : p.govt)) : '');
 }
-// Whether a mission's AvailBits hold for the bits shown.
+// Whether a mission's AvailBits pass for the bits shown.
 function missionHolds(m) { try { return ncbTest(m.rec.AvailBits || '', STATE); } catch (e) { return false; } }
 
 function missionPanel(id) {
@@ -2386,7 +2388,7 @@ function missionPanel(id) {
       ${kvRow('Started by', m.startedBy.map(missionLink).join('<br>'))}
       ${kvRow('Follows', m.prev.map(missionLink).join('<br>'))}
     </table>
-    <p class="note">Leads to: the missions it starts, and those whose AvailBits, as the game reads them, need on a bit this one turns on that fewer missions turn on than any other bit they need.</p>
+    <p class="note">Leads to: the missions it starts, and those whose AvailBits (as the game reads them) need a bit on that this one turns on, where fewer missions turn that bit on than any other bit they need.</p>
     <div data-dead="mission" data-id="${id}"></div>
     ${text('The offer', 4000 + id - 128, `dësc ${4000 + id - 128} (${figText('missionOffer', 4000)} + ${id - 128}), as the mission computer loads it.`)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
     ${compareBlock('mïsn', id)}
@@ -2396,7 +2398,7 @@ function missionPanel(id) {
 /* A storyline's missions in step order, each with where it is offered; the
    places its missions are offered at, go to or return to are ringed on the
    map while it is open (storyPlaces). */
-/* ---- dead ends: where a storyline can be left with no way on (nova-deadends.js) -- */
+/* ---- dead ends: where a storyline can be left with no way forward (nova-deadends.js) -- */
 
 let DEADENDS = null;
 function deadEndData() { return DEADENDS && DEADENDS.m === missionData() && DEADENDS.reach ? DEADENDS : (DEADENDS = { m: missionData(), reach: novaReach(GAME), stories: new Map(), waiting: [] }); }
@@ -2465,7 +2467,7 @@ function deadStep(e) {
 }
 const deadWay = a => a.path.slice(-6).map(deadStep).join(', ');
 // A bit left on for good, in words, from the side of the mission that leaves it.
-const heldText = h => `an escape pod during it leaves ${bitText('b' + h.bit)} on, its OnAbort not turning it off, and nothing that can first come about while it is on turns it off: then ${h.never.length === 1 ? 'one mission that needs it off is' : h.never.length + ' missions that need it off are'} never offered: ${h.never.map(missionLink).join(', ')}.`;
+const heldText = h => `an escape pod during it leaves ${bitText('b' + h.bit)} on, its OnAbort not turning it off, and nothing that can first happen while it is on turns it off: then ${h.never.length === 1 ? 'one mission that needs it off is' : h.never.length + ' missions that need it off are'} never offered: ${h.never.map(missionLink).join(', ')}.`;
 // A mission an escape pod can lose, in words: what goes with it.
 const podText = o => `Never offered, started only by ${o.by.map(missionLink).join(' or ') || 'an S'}: an escape pod during it loses it, its OnAbort doing nothing, and with it ${[
   ...o.bits.map(b => `${bitText('b' + b.bit)}, which nothing else turns on and ${b.needed.map(missionLink).join(', ')} ${b.needed.length === 1 ? 'needs' : 'need'} on`),
@@ -2485,8 +2487,8 @@ function deadEndsFill(el) {
 }
 function storyDeadEndsHtml(key) {
   const s = missionData().stories.get(key), r = storyDeadEnds(key);
-  const head = `<h3>Dead ends</h3><p class="note">Where this storyline can be left with no way on: begun, none of its missions under way, none that can ever be taken again, and none of its ends ${r.ends.length ? `(the missions of it that nothing of it follows and that can be finished: ${r.ends.map(missionName).join(', ')})` : '(it has none: here, a mission of it that can still be taken)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. Whether a closing was meant, the files do not say.</p>`;
-  if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: past searching.</p>`;
+  const head = `<h3>Dead ends</h3><p class="note">Where this storyline can be left with no way forward: started, none of its missions under way, none that can ever be taken again, and none of its endings ${r.ends.length ? `(its missions that no other mission of it follows and that can be finished: ${r.ends.map(missionName).join(', ')})` : '(it has none; here, a mission of it that can still be taken)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. The files do not show whether a closing was meant.</p>`;
+  if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: too many to search.</p>`;
   const ids = s.missions.map(m => m.id);
   const held = heldBits(ids).filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
   const rows = r.after.map(a => `<li>After ${deadStep(a)}${a.count > 1 ? ` (${a.count} states)` : ''}: as by ${deadWay(a)}.</li>`).join('');
@@ -2494,7 +2496,7 @@ function storyDeadEndsHtml(key) {
   const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
   return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
-    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (its panel shows whether what started it can be taken again).</p><ul>${podRows}</ul>` : '');
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it that nothing offers, so one that is lost cannot be taken again where it was offered (its panel shows whether what started it can be taken again).</p><ul>${podRows}</ul>` : '');
 }
 function missionDeadEndsHtml(id) {
   const m = missionData().byId.get(id);
@@ -2503,7 +2505,7 @@ function missionDeadEndsHtml(id) {
   if (m.story) {
     const r = storyDeadEnds(m.story.key);
     if (!r.tooMany) for (const a of r.after) if (a.mission === id || (a.missions && a.missions.includes(id)))
-      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way on: none of its missions can be taken again and none of its ends reached; as by ${deadWay(a)}.`);
+      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way forward: none of its missions can be taken again and none of its endings reached; as by ${deadWay(a)}.`);
   }
   for (const h of heldBits([id])) {
     if (h.mission === id) out.push(heldText(h).replace(/^an/, 'An'));
@@ -2523,8 +2525,8 @@ function storyOpenings(s) { const M = missionData(); return s.missions.filter(m 
 
 /* The whole game as a chart, over the page (#storyMap): the storylines that
    lead to one another left to right, each in a column after every one that
-   leads to it (novaStoryLayout), the rest in a last column; what a storyline
-   picked shuts, and what shuts it, drawn over. A box opens its storyline. */
+   leads to it (novaStoryLayout), the rest in a last column; what the picked
+   storyline shuts, and what shuts it, drawn over. A box opens its storyline. */
 function storyMapRender() {
   const M = missionData(), O = overviewData(), st = k => M.stories.get(k), el = $('storyMap');
   const led = O.stories.filter(k => O.leads.some(j => j.from === k || j.to === k)), rest = O.stories.filter(k => !led.includes(k)).sort((a, b) => st(a).name.localeCompare(st(b).name));
@@ -2555,7 +2557,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline is placed after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2598,12 +2600,12 @@ function overviewPanel() {
   return `<h2>The whole game</h2>
     <div class="sub">${keys.length} storylines, from Ambrosia's notes in the missions' names, and how they join</div>
     <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
-    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions no other mission in it leads to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
+    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings needs off, which shuts that opening for good (an opening is a mission that no other mission of its storyline leads to). The chart draws them all, full screen.</p>
     <h3>What joins each</h3>
     <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. ${[...M.byId.values()].filter(m => !m.story).length} missions belong to no storyline and are left out.</p>
     ${order.map(joinsOf).join('')}
     ${people ? `<h3>People</h3><p class="note">A person whose ActivateOn needs on a bit a storyline's missions turn on appears with it, and one that needs it off is gone with it.</p><table class="kv">${people}</table>` : ''}
-    ${events ? `<h3>Events</h3><p class="note">An event that turns on, as it starts or ends, a bit a storyline's missions need on opens them, or off shuts them.</p><table class="kv">${events}</table>` : ''}`;
+    ${events ? `<h3>Events</h3><p class="note">An event that, as it starts or ends, turns on a bit a storyline's missions need on opens them; one that turns it off shuts them.</p><table class="kv">${events}</table>` : ''}`;
 }
 
 function storyPanel(key) {
@@ -2617,14 +2619,14 @@ function storyPanel(key) {
   return `<h2>${esc(s.name)}</h2>
     <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}, named in Ambrosia's notes</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● is whether a mission's AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. The places they are offered at and send you to are ringed on the map.</p>
+    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. The places they are offered at and send you to are ringed on the map.</p>
     ${storyChart(s)}
     <div data-dead="story" data-id="${esc(key)}"><h3>Dead ends</h3><p class="note">Looking…</p></div>
     <table class="kv">${rows}</table>`;
 }
 /* A storyline as a chart: each mission a box below those of the storyline
    that lead to it (nova-missions.js, novaStoryLayout), green or red as its
-   AvailBits hold, each box a link to it; a line that loops back dashed. */
+   AvailBits pass or fail, each box a link to it; a line that loops back dashed. */
 function storyChart(s) {
   if (s.missions.length < 2) return '';
   const L = novaStoryLayout(s.missions), W = 150, H = 38, GX = 16, GY = 34;
@@ -2643,7 +2645,7 @@ function storyChart(s) {
     return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
       `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
   }).join('');
-  return `<h3>Chart</h3><p class="note">Each mission below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits hold ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
+  return `<h3>Chart</h3><p class="note">Each mission is placed below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
     <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
 // The places the open storyline's missions are offered at, go to or return to.
@@ -2995,8 +2997,8 @@ function zoomAt(sx, sy, k) {
 }
 
 /* Zooming in on a stellar lands on it, as zooming out of the landing page
-   rises from it: once the stellar under the pointer is TUNE.landAt of the
-   screen across, or the zoom can go no closer. */
+   rises from it: once the stellar under the pointer fills TUNE.landAt of
+   the screen's width, or the zoom can go no closer. */
 function landOnZoom(sx, sy) {
   if (VIEW.mode !== 'system' || MOVING) return false;
   const d = DRAWN.find(d => d.sys.id === VIEW.sys);
@@ -3116,7 +3118,7 @@ function wireTools() {
   $('bitsIn').oninput = () => { applyShowMode(); if (VIEW.mode === 'planet') renderPlanet(); };
   // Map options: the switches under Subway map make one kind of subway map between them.
   const opts = $('opts'), btn = $('optsBtn');
-  // On a phone which systems are shown goes at the top of Map options, leaving the tools one row.
+  // On a phone, the choice of which systems are shown goes at the top of Map options, leaving the tools in one row.
   const phone = matchMedia('(max-width: 820px)');
   const showHome = () => {
     const sel = $('showSel'), bits = $('bitsIn');
@@ -3173,11 +3175,11 @@ function wireTools() {
   $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
   // the whole map, large: a PNG with every name (wholeMapSize), up to four times as sharp as the
-  // map's pixels within 32 million of them, and never less sharp. One larger than that, as a
+  // map's pixels while within 32 million pixels, and never less sharp. One larger than that, as a
   // big galaxy's is, is drawn a band at a time and written by png-stream.js, on a phone in
   // smaller bands, so that no canvas is ever larger than a band (the maintainer's request, 13
-  // October 2026). Only one wider than a browser draws, 32,000 pixels, leaves names out, and
-  // a prompt comes first. The SVG, a drawing, has every name anywhere.
+  // October 2026). Only a map wider than a browser can draw (32,000 pixels)
+  // leaves names out, and a prompt comes first. The SVG, a drawing, has every name anywhere.
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
   $('saveWhole').onclick = async () => {
     const all = wholeMapSize(), size = wholeMapSize(Infinity, 32000), [w, h] = size;

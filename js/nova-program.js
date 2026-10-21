@@ -404,7 +404,7 @@ function novaNamedRoutines(prog, game) {
   const out = [];
   const desc = novaFigure(prog, 'descLoader', game);
   if (desc) out.push({ routine: prog.byStart.get(desc.routine), name: 'Loads a description', why: "makes the resource type 'dësc', and is called most of the routines that do" });
-  for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `asks GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
+  for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `calls GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
   const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
   for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
   for (const r of prog.routines) if (r.as && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.as, why: `the routine Mac 1.1.1 names ${r.as}: matched to it by the system calls, strings, numbers and record fields both use, and by their callers and callees` });

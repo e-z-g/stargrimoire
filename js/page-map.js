@@ -2223,8 +2223,8 @@ let PANEL_KEY = null;
    shown now: its stellars and their systems, a random other wormhole, or
    nowhere and why. `sys` is the system whose panel it is. */
 const GATE_WHY = {
-  offline: () => 'nowhere: it cannot be landed on, and says "it is offline"',
-  elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and here says "the radiation levels are too extreme"`,
+  offline: () => 'nowhere: it cannot be landed on: "it is offline"',
+  elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and from here you get "the radiation levels are too extreme"`,
   unlinked: () => 'nowhere: it links to nothing, and landing on it does nothing',
   nowhere: () => 'nowhere: none of the stellars it names is in a system shown now',
 };
@@ -2262,7 +2262,7 @@ const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr>
 
 // How the game reads a test, where that is not as it is written (ncbAsWritten), kept by text.
 const AS_WRITTEN = new Map();
-const GAME_READS = 'Mac 1.1.1 reads tests its own way: at each & or | it keeps only the last term, so in a run of bare terms only the last two count; it passes over a lone number or a character it does not know; and a test that does not start with b, (, !, p, g, o or e is never true.';
+const GAME_READS = 'Mac 1.1.1 reads tests differently from the Bible: at each & or | only the last term is kept, so in a run of bare terms only the last two count; a lone number, or a character outside the test syntax, is passed over; and a test that does not start with b, (, !, p, g, o or e is never true.';
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
   const holds = ncbTest(text, STATE);
@@ -2270,7 +2270,7 @@ function testLine(text) {
   const r = AS_WRITTEN.get(text), g = r.game;
   const reads = r.same !== false ? '' : !g ? 'not as written' : g.op === 'true' ? 'as always true' : g.op === 'false' ? 'as never true' : `as <span class="test">${bitText(ncbTreeText(g))}</span>`;
   const where = SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game';
-  return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'holds' : 'does not hold'} ${where}</span>` +
+  return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'passes' : 'fails'} ${where}</span>` +
          (reads ? ` <span class="warn" title="${esc(GAME_READS)}">(the game reads it ${reads})</span>` : '');
 }
 
@@ -2494,7 +2494,7 @@ function storyDeadEndsHtml(key) {
   const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
   return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
-    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (whether what started it can be taken again, its own panel says).</p><ul>${podRows}</ul>` : '');
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it no one offers, so that one lost is not had again from where it was offered (its panel shows whether what started it can be taken again).</p><ul>${podRows}</ul>` : '');
 }
 function missionDeadEndsHtml(id) {
   const m = missionData().byId.get(id);
@@ -2510,7 +2510,7 @@ function missionDeadEndsHtml(id) {
     else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}: it needs ${bitText('b' + h.bit)} off, which that leaves on for good.`);
   }
   for (const o of podLosses([id])) out.push(podText(o));
-  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel says how); whether it was meant, the files do not say.</p>` : '';
+  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel shows how); the files do not show whether it was meant.</p>` : '';
 }
 
 /* ---- the whole game: the storylines and how they join (novaGameOverview) -- */
@@ -2555,7 +2555,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its own${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline after those that lead to it (one of its missions leads to one of the other's); those that lead to none and none leads to are the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2598,7 +2598,7 @@ function overviewPanel() {
   return `<h2>The whole game</h2>
     <div class="sub">${keys.length} storylines, from Ambrosia's notes in the missions' names, and how they join</div>
     <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
-    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions none of its own lead to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
+    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings, the missions no other mission in it leads to, needs off, which shuts that opening for good. The chart draws them all, full screen.</p>
     <h3>What joins each</h3>
     <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. ${[...M.byId.values()].filter(m => !m.story).length} missions belong to no storyline and are left out.</p>
     ${order.map(joinsOf).join('')}
@@ -2685,7 +2685,7 @@ function galaxyPanel() {
   const places = new Set(U.systems.map(s => s.x + ',' + s.y)).size;
   const neb = U.nebulae.map(n => `<a data-nebula="${n.id}">${esc(n.name)}</a>`).join('');
   const files = GAME.files.map(f => `<tr><td>${esc(f.name)}</td><td>${f.plugin ? 'plug-in' : esc(f.role || '')}</td></tr>`).join('');
-  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test holds with those bits set' : 'the systems whose visibility test holds at the start of a new game, when no control bit is set';
+  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : 'the systems whose visibility test passes at the start of a new game, when no control bit is set';
   return `<h2>The galaxy</h2>
     <div class="sub">${shown.length} of ${U.systems.length} systems shown, at ${places} places; ${LINKS.length} hyperspace links; ${GATES.links.length} ways by hypergate or wormhole, and ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
     <p class="note">Shown: ${mode}. Tap a system to see it; tap it again to go in.</p>

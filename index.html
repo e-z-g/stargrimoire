@@ -398,7 +398,7 @@ details.inline .list { margin-top: 4px; }
   <button id="compareBtn" title="Compare the open game with another release" hidden>Compare…</button>
   <button id="collectionBtn" title="The community's plug-ins, kept on archive.org, opened into the game from there" hidden>Add plug-ins…</button>
   <button id="pluginBtn" title="The records changed here, saved as a plug-in" hidden>Plug-in…</button>
-  <button id="forgetBtn" title="Forget the copy this page remembers, so the next visit starts empty" hidden>Forget</button>
+  <button id="forgetBtn" title="Delete the copy saved in this browser, so the next visit starts empty" hidden>Forget</button>
   <button id="creditsItem">Credits</button>
   </span>
 </header>
@@ -406,9 +406,9 @@ details.inline .list { margin-top: 4px; }
      documentation (EV Nova Documentation.pdf, page 3, "The crew behind the scenes"),
      then what this page is built from (doc/credits.md). -->
 <div id="creditsMenu" role="dialog" aria-label="Credits" hidden>
-  <p>StarGrimoire is maintained by <strong>EgadZoundsGadzooks</strong>, and reads everything it shows from EV Nova's own files.</p>
+  <p>StarGrimoire is maintained by <strong>EgadZoundsGadzooks</strong>, and reads everything it shows from EV Nova's data files.</p>
   <h4>The game</h4>
-  <p class="cNote">As its documentation names them, "the crew behind the scenes":</p>
+  <p class="cNote">In the game's documentation they are "the crew behind the scenes":</p>
   <ul>
     <li>Engine Programming: <strong>Matt Burch</strong></li>
     <li>Concepts, Plot, Dialogue, Scenario Implementation, Graphics, Sound Production, Boolean Illogic, and anything else that may have been forgotten: <strong>ATMOS Software Productions</strong>, who are Luke “Nuada” Smart, Stephen “-8-” Chick, Phillip “particlestan” Chick, Jason “Frandall” Cook, Scott “Eyeya” Vardy, Jarrod “wooly_mammoth” Rainsford, Paul “Dalsoth” Pentecost and Dafydd “pipeline” Williams</li>
@@ -431,7 +431,7 @@ details.inline .list { margin-top: 4px; }
 
 <main id="start">
   <div class="card">
-    <h1>EV Nova's universe, from the game's own files</h1>
+    <h1>EV Nova's universe, read from the game's files</h1>
     <p>Open a copy of <i>Escape Velocity Nova</i> for the Mac. Nothing leaves this page: the files are read here, in the browser.</p>
     <div id="drop">
       Drop the files here, or
@@ -445,8 +445,8 @@ details.inline .list { margin-top: 4px; }
       <li>a MacBinary or BinHex copy of each data file;</li>
       <li>plug-ins, as <code>.rez</code>, <code>.sit</code> or <code>.zip</code>, opened with a game or after it.</li>
     </ul>
-    <p>A file picked straight out of a classic Mac folder arrives without its resource fork, which is where the game keeps everything, so it cannot be read that way.</p>
-    <p>With no copy to hand, read the one archive.org keeps: 1.0.10 as Ambrosia shipped it, 96 MB, fetched when you ask.</p>
+    <p>A file picked straight out of a classic Mac folder comes without its resource fork, and that is where all of the game's data is, so it cannot be read that way.</p>
+    <p>With no copy to hand, read the one on archive.org: 1.0.10 as Ambrosia shipped it, 96 MB, fetched when you ask.</p>
     <button id="useRemote">Read archive.org's copy</button>
   </div>
 </main>
@@ -595,7 +595,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/mac-ppc.js?v=88ddd27d"></script>
 <script src="js/mac-pef.js?v=1c4e2412"></script>
 <script src="js/png-stream.js?v=1c2d470d"></script>
-<script src="js/disk-image.js?v=259fd22f"></script>
+<script src="js/disk-image.js?v=9ee83f2a"></script>
 <script src="js/nova-files.js?v=e54c3355"></script>
 <script src="js/nova-records.js?v=4d98eb81"></script>
 <script src="js/nova-ncb.js?v=2bac438f"></script>
@@ -605,31 +605,31 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-missions.js?v=ceb4eca0"></script>
 <script src="js/nova-subway.js?v=3a429278"></script>
 <script src="js/nova-labels.js?v=7d212c2c"></script>
-<script src="js/nova-ships.js?v=796844ef"></script>
+<script src="js/nova-ships.js?v=3337f253"></script>
 <script src="js/nova-flight.js?v=d6d6f09c"></script>
 <script src="js/nova-fight.js?v=326ff352"></script>
 <script src="js/nova-compare.js?v=30c2497c"></script>
-<script src="js/nova-fields.js?v=580a6bf4"></script>
+<script src="js/nova-fields.js?v=6b825c4c"></script>
 <script src="js/nova-deadends.js?v=c8561ad7"></script>
-<script src="js/nova-plugin.js?v=e57b6403"></script>
+<script src="js/nova-plugin.js?v=08815dc5"></script>
 <script src="js/nova-refs.js?v=8c28f690"></script>
 <script src="js/nova-rules.js?v=5bf9cb71"></script>
 <script src="js/nova-routines.js?v=629b3127"></script>
-<script src="js/nova-program.js?v=8008d020"></script>
+<script src="js/nova-program.js?v=e72d9a3a"></script>
 <script src="js/nova-fieldsites.js?v=63a10c71"></script>
-<script src="js/nova-collection.js?v=a7d93e8e"></script>
+<script src="js/nova-collection.js?v=d9d0199b"></script>
 <script src="js/nova-sound.js?v=f16602d0"></script>
-<script src="js/page-open.js?v=66f50a8d"></script>
+<script src="js/page-open.js?v=e9d8f6d7"></script>
 <script src="js/page-compare.js?v=438980b0"></script>
 <script src="js/page-collection.js?v=c31348bd"></script>
-<script src="js/page-plugin.js?v=c7cab7e8"></script>
+<script src="js/page-plugin.js?v=a0f1a356"></script>
 <script src="js/page-svg.js?v=df85a9af"></script>
-<script src="js/page-map.js?v=cbb9855a"></script>
-<script src="js/page-ships.js?v=e159adf7"></script>
+<script src="js/page-map.js?v=2633c5bb"></script>
+<script src="js/page-ships.js?v=8c50c659"></script>
 <script src="js/page-flight.js?v=09b498ef"></script>
 <script src="js/page-battle.js?v=64c83b13"></script>
-<script src="js/page-records.js?v=60ea4dd3"></script>
-<script src="js/page-code.js?v=615a8c25"></script>
+<script src="js/page-records.js?v=09df0f23"></script>
+<script src="js/page-code.js?v=958850e3"></script>
 <script src="js/page-library.js?v=b64a568a"></script>
 </body>
 </html>

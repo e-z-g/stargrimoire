@@ -453,7 +453,7 @@ function startShipAnim(ship, shan) {
   shipControls(A);
   wireShipCanvas(A, c);
   if (!base || !base.spr || base.spr.kind !== 'rle') {
-    $('shipAt').textContent = !base || !base.spr || base.spr.kind === 'missing' ? 'The base sprite is in the ships files.' : base.spr.kind === 'pict' ? 'This ship\'s sprites are a PICT sheet, not drawn here yet.' : base.spr.error;
+    $('shipAt').textContent = !base || !base.spr || base.spr.kind === 'missing' ? 'The base sprite is in the ships files.' : base.spr.kind === 'pict' ? 'This ship\'s sprites are a PICT sheet, which this page cannot draw.' : base.spr.error;
   }
   const loop = now => {
     if (SHIP_ANIM !== A) return;

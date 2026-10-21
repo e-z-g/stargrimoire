@@ -63,7 +63,7 @@ const NOVA_SHIP_FLAGS3 = [
   [0x0001, 'Destroys asteroids'], [0x0002, 'Scoops asteroid debris'], [0x0010, 'Ignores gravity'],
   [0x0020, 'Ignores deadly stellars'], [0x0040, 'Turret shots drawn above the ship'],
   [0x0100, 'Hidden in the shipyard when Availability fails'], [0x0200, 'Hidden in the shipyard when Require fails'],
-  [0x4000, 'Keeps higher-numbered ships of the same DispWeight out of the shipyard'],
+  [0x4000, 'Hides higher-numbered ships of the same DispWeight in the shipyard'],
 ];
 const NOVA_SHAN_FLAGS = [
   [0x0001, 'Extra sets bank: level, left, right'], [0x0002, 'Extra sets fold and unfold'],

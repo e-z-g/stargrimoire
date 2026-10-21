@@ -26,7 +26,7 @@ const NOVA_FIELD_NOTES = {
     YPos: { note: 'With XPos, the top left corner of its rectangle on the map.', code: [['MapDialogUpdate', 0xf5d1]] },
     XSize: { note: 'Its rectangle\'s width on the map. A system whose place lies inside it, 8 in from its edges, is in it.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f]] },
     YSize: { note: 'Its rectangle\'s height on the map; see XSize.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f]] },
-    ActiveOn: { note: 'A test of control bits: while it fails, the nebula is not drawn and arriving in it does nothing. Empty: no test.', code: [['PropagateMissionBitEffects', 0x99676], ['ExploreNebulaeFromSystem', 0x508f], ['MapDialogUpdate', 0xf5d1]] },
+    ActiveOn: { note: 'A test of control bits: while it fails, the nebula is not drawn and flying into it does nothing. Empty: no test.', code: [['PropagateMissionBitEffects', 0x99676], ['ExploreNebulaeFromSystem', 0x508f], ['MapDialogUpdate', 0xf5d1]] },
     OnExplore: { note: 'Control bits set the first time you arrive in a system inside it while it is active. Empty: none.', code: [['ExploreNebulaeFromSystem', 0x508f], ['EvalMissionBitSetString', 0x99dc5]] },
   },
   'spïn': {
@@ -132,11 +132,11 @@ const NOVA_FIELD_NOTES = {
   },
   'jünk': {
     BoughtAt: {
-      note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while BuyOn holds. Of the commodities a stellar so names, the highest-numbered is the one traded there. It takes the trade screen\'s seventh row, where you may buy it or sell it at that one price.',
+      note: 'Up to eight stellars where it is traded at BasePrice × 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while its BuyOn test passes. Of the commodities a stellar so names, the highest-numbered is the one traded there. It is the seventh row of the trade screen, where you may buy it or sell it at that one price.',
       code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
     },
     SoldAt: {
-      note: 'Up to eight stellars where it is traded at BasePrice ÷ 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while SellOn holds; the highest-numbered so named is the one. It takes the eighth row, where you may buy it or sell it at that one price.',
+      note: 'Up to eight stellars where it is traded at BasePrice ÷ 1.25, or 1.1 where your record is below 0 under a government, or 1.5 where you have dominated the stellar, while its SellOn test passes; the highest-numbered so named is the one. It is the eighth row, where you may buy it or sell it at that one price.',
       code: [['DoTradeDialog', 0x5dbe1], ['EvalMissionBitTestString', 0x9959e]],
     },
     BasePrice: {
@@ -160,7 +160,7 @@ const NOVA_FIELD_NOTES = {
       code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
     },
     LCName: {
-      note: 'Its name in the middle of a sentence: in your ship\'s information and when you are caught with it (ScanMask). The trade screen shows the resource\'s own name.',
+      note: 'Its name in the middle of a sentence: in your ship\'s information and when you are caught with it (ScanMask). The trade screen shows the resource\'s name instead.',
       code: [['LoadObjectData', 0x771b0], ['SetupPlayerInfoText', 0x53cb8], ['ScanPlayer', 0x7e46e], ['TradeDialogUpdate', 0x4ceea]],
     },
     Abbrev: {
@@ -178,7 +178,7 @@ const NOVA_FIELD_NOTES = {
       code: [['DoTradeDialog', 0x5dbe1]],
     },
     Freq: {
-      note: 'The chance in 100 each day that the disaster starts, while it is not under way and its ActivateOn holds.',
+      note: 'The chance in 100 each day that the disaster starts, while it is not under way and its ActivateOn test passes.',
       code: [['DisasterHandler', 0x41ab9], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
     },
     ActivateOn: {
@@ -216,7 +216,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
     },
     InfoTypes: {
-      note: 'What its ships say when you hail them; one of the kinds set is picked at random. 0x1000: that a stellar is a good place to buy or sell one of the six commodities, where its price is low or high. 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits; but the number that picks it is never drawn in this program, so it is the first string until you hail a stellar and almost never one after. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less), 6 to 10 for others; a plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4, or 10015 + …, is taken first. None of these: STR# 2002\'s string 175.',
+      note: 'What its ships say when you hail them; one of the kinds set is picked at random. 0x1000: that a stellar is a good place to buy or sell one of the six commodities, where its price is low or high. 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits; but the number that picks it is never drawn in this program, so it is the first string until you hail a stellar and almost never another one afterwards. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less), 6 to 10 for others; a plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4, or 10015 + …, is taken first. None of these: STR# 2002\'s string 175.',
       code: [['LoadAdvice', 0x9133c], ['CalcPortDemand', 0x56b1], ['DoPlanetCommDialog', 0x96949], ['LoadPluginString', 0x71a8e]],
     },
   },
@@ -260,7 +260,7 @@ const NOVA_FIELD_NOTES = {
   },
   'sÿst': {
     xPos: {
-      note: 'With yPos, where the system is on the galaxy map. Systems at the same place are versions of one another: the lowest-numbered of them whose Visibility holds is the one used.',
+      note: 'With yPos, where the system is on the galaxy map. Systems at the same place are versions of one another: the lowest-numbered of them whose Visibility test passes is the one used.',
       code: [['LoadObjectData', 0x771b0], ['FindFirstCoLocatedSystem', 0x4baa], ['FindActiveCoLocatedSystem', 0x4be0]],
     },
     yPos: {
@@ -316,7 +316,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
     },
     Person: {
-      note: 'Up to eight përs that may be here as well as those AvgShips brings: each, while not destroyed or captured and its ActivateOn holds, comes when you enter with a chance of its PersonProb in 100.',
+      note: 'Up to eight përs that may be here as well as those AvgShips brings: each, while not destroyed or captured and its ActivateOn test passes, comes when you enter with a chance of its PersonProb in 100.',
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['EvalMissionBitTestString', 0x9959e]],
     },
     PersonProb: {
@@ -328,7 +328,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayer', 0x68390], ['DisplayMessage', 0x5289], ['LoadPluginString', 0x71a8e]],
     },
     ReinfFleet: {
-      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system: when the odds against it are more than half the MaxOdds of the fleet\'s government, or, without that test, when a ship you hail comes to help you. While it is on its way, a warship of that side holds out to twice its MaxOdds before it runs, not once. Below 128: none.',
+      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system: when the odds against it are more than half the MaxOdds of the fleet\'s government, or, without that test, when a ship you hail comes to help you. While it is on its way, a warship of that side does not run until the odds reach twice its MaxOdds, instead of its MaxOdds. Below 128: none.',
       bible: 'the fleet is called once the odds against ships allied with its government exceed that government\'s MaxOdds, not half of it.',
       code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['WarshipAI', 0x8b729], ['DoCommDialog', 0x956d5], ['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
     },
@@ -419,7 +419,7 @@ const NOVA_FIELD_NOTES = {
       code: [['RandomShipSpawn', 0x3c0f3], ['AIDispatch', 0x8fb52], ['TotalFleetHolds', 0xc24d], ['HyperSpawnFleet', 0x41c8d], ['SetPlunderValues', 0x92219]],
     },
     InherentGovt: {
-      note: 'Two governments for every ship of the class: 128 to 383, that gövt as both; 1128 to 1383, less 1000, the attributes government only; 2128 to 2383, less 2000, the combat government only; anything else, neither. The combat government is what others take it for: a warship picks it as a target, and a stellar as a threat, when it is their enemy, and it counts among a ship\'s friends when it is an ally. The attributes government gives it that government\'s jamming and decides whether it calls for help, and is read where it hails, is captured or flies as an escort.',
+      note: 'Two governments for every ship of the class: 128 to 383, that gövt as both; 1128 to 1383, less 1000, the attributes government only; 2128 to 2383, less 2000, the combat government only; anything else, neither. The combat government is what others take it for: a warship picks it as a target, and a stellar as a threat, when it is their enemy, and it counts among a ship\'s friends when it is an ally. The attributes government gives it that government\'s jamming and determines whether it calls for help, and is read where it hails, is captured or flies as an escort.',
       code: [['LoadObjectData', 0x771b0], ['SelectWarshipTarget', 0x89d5e], ['IsThreatToStellar', 0x9ef7], ['AIShipFriendStrength', 0x825a8], ['ShipECM', 0x3aff], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCapture', 0x41120], ['IssueNewEscortCommand', 0x660d5]],
     },
     Crew: {
@@ -431,7 +431,7 @@ const NOVA_FIELD_NOTES = {
       code: [['AIShipFriendStrength', 0x825a8], ['AICalculateOddsAgainst', 0x84a2e], ['SetPlunderValues', 0x92219]],
     },
     WeapType: {
-      note: 'Four stock weapons, and four more in WeapType2: 128 to 383, that wëap; anything else, none. Every ship of the class carries them: yours when you buy, capture or start in one, and every ship spawned of it. A weapon named twice keeps the later count. At loading, the Mass of the first outfit of ModType 1 naming each weapon × its WeapCount, and of the first of ModType 3 naming its ammunition × its AmmoLoad, is added to FreeMass, so they take none of it.',
+      note: 'Four stock weapons, and four more in WeapType2: 128 to 383, that wëap; anything else, none. Every ship of the class carries them: yours when you buy, capture or start in one, and every ship spawned of it. If a weapon is named twice, the later count is used. At loading, the Mass of the first outfit of ModType 1 naming each weapon × its WeapCount, and of the first of ModType 3 naming its ammunition × its AmmoLoad, is added to FreeMass, so they take none of it.',
       code: [['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['RandomShipSpawn', 0x3c0f3], ['DoShipyardDialog', 0x5e679], ['DoShipCapture', 0x41120]],
     },
     WeapCount: {
@@ -471,7 +471,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipArmorRechargeRate', 0x2e0e], ['IsDisabled', 0x2ce6], ['HandleShip', 0x33581]],
     },
     SkillVar: {
-      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100; for a ship not yours it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar, before it is given its own class.',
+      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100; for a ship not yours it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar, before it is given its actual class.',
       code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['Rand', 0xa4c76]],
       bible: 'This affects acceleration and turn rate for each ship. Values from 1 to 50% are valid.',
     },
@@ -516,7 +516,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipyardFilter', 0x60449], ['StartLoopingMovie', 0x60266]],
     },
     Subtitle: {
-      note: 'Shown under its name in the target display, unless the ship is a përs\'s with a Subtitle of its own, and under your ship on the main screen.',
+      note: 'Shown under its name in the target display, unless the ship is a përs\'s that sets a Subtitle, and under your ship on the main screen.',
       code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1], ['MainScreenUpdate', 0x17c0d]],
     },
     KeyCarried: {
@@ -536,7 +536,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     Cost: {
-      note: 'What the shipyard asks is this less a trade-in, never below 0: a quarter of your own ship\'s Cost and half the Cost of each outfit you carry, some outfits aside. Each is multiplied by the PriceMod of every rank you hold with a government allied to the stellar\'s, the trade-in twice over; at a stellar of TechLevel 5 or less, a ship of lower TechLevel costs 3% less for each level between (from 100 credits), the trade-in again twice; and each is rounded down to 10 credits above 100, 100 above 10,000, 1,000 above 100,000.',
+      note: 'What the shipyard asks is this less a trade-in, never below 0: a quarter of your current ship\'s Cost and half the Cost of each outfit you carry, some outfits aside. Each is multiplied by the PriceMod of every rank you hold with a government allied to the stellar\'s, the trade-in twice over; at a stellar of TechLevel 5 or less, a ship of lower TechLevel costs 3% less for each level between (from 100 credits), the trade-in again twice; and each is rounded down to 10 credits above 100, 100 above 10,000, 1,000 above 100,000.',
       bible: 'the price is the new ship\'s Cost less 25% of the original cost of your current ship and upgrades; it says nothing of outfits at half, nor of the PriceMods and TechLevel.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerShipTradeInPrice', 0xb079], ['ApplyPriceAndTechnologyFlux', 0x4e6cd], ['DoPortDialog', 0x5f911]],
     },
@@ -587,11 +587,11 @@ const NOVA_FIELD_NOTES = {
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     FuelRegen: {
-      note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your own ship regains it only with Flags 0x0008.',
+      note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your ship regains it only with Flags 0x0008.',
       code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],
     },
     Flags3: {
-      note: '0x0001 and 0x0002: a ship not following another flies as a miner: with 0x0001 it parks where there are no asteroids; with 0x0002 it goes between the nearest stellars, and coasts 100 to 174 steps, not 300 to 499, when idle. 0x0020: a planet\'s Gravity does not pull it, and deadly stellars do not harm it. 0x0040: its turrets\' shots are drawn above the ships. 0x0100: not shown in the shipyard while its Availability fails; 0x0200, while its Require is not met. 0x4000: while it is on offer, every higher-numbered class of the same DispWeight is not. 0x0010 is not read.',
+      note: '0x0001 and 0x0002: a ship not following another flies as a miner: with 0x0001 it parks where there are no asteroids; with 0x0002 it goes between the nearest stellars, and coasts 100 to 174 steps, not 300 to 499, when idle. 0x0020: a planet\'s Gravity does not pull it, and deadly stellars do not harm it. 0x0040: its turrets\' shots are drawn above the ships. 0x0100: not shown in the shipyard while its Availability fails; 0x0200, while its Require is not met. 0x4000: while it is on offer, no higher-numbered class of the same DispWeight is offered. 0x0010 is not read.',
       code: [['AIDispatch', 0x8fb52], ['MinerAI', 0x8b202], ['HighLevelAIHandler', 0x8d453], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['SpawnShot', 0x3e550], ['SetupPortAvailableShipTypes', 0xbbe3]],
       bible: '0x0010, the ship ignores gravity; 0x0020, it ignores deadly stellars.',
     },
@@ -602,7 +602,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleVoiceSound', 0x31e20]],
     },
     Flags: {
-      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or a përs\'s own share; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020: other governments\' warships do not come to help its ships when they are attacked. 0x8000: its ships ask a bigger bribe, 10,000 + 1,000 × a number to your credits ÷ 10,000 (else 3,000 + 1,000 × one to your credits ÷ 2,000,000), and its stellars half as much again and always take one; a bribe is at most a third of your credits.',
+      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, by their aggression, or at the share a përs sets; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020: other governments\' warships do not come to help its ships when they are attacked. 0x8000: its ships ask a bigger bribe, 10,000 + 1,000 × a number to your credits ÷ 10,000 (else 3,000 + 1,000 × one to your credits ÷ 2,000,000), and its stellars half as much again and always take one; a bribe is at most a third of your credits.',
       code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
@@ -611,7 +611,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCommPayment', 0x920f3], ['SelectRandomStellarDest', 0x805de], ['HandlePlayerDockRequest', 0x66691]],
     },
     CrimeTol: {
-      note: 'Whether its warships go for you, by your record in the system you are in: in its own systems, below -CrimeTol; in an ally\'s, below -1.5 × CrimeTol; in an enemy\'s, above CrimeTol; elsewhere only with Flags 0x0002, below -2 × CrimeTol. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
+      note: 'Whether its warships go for you, by your record in the system you are in: in systems it governs, below -CrimeTol; in an ally\'s, below -1.5 × CrimeTol; in an enemy\'s, above CrimeTol; elsewhere only with Flags 0x0002, below -2 × CrimeTol. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
       code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
     },
     SmugPenalty: {
@@ -667,7 +667,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerDockRequest', 0x66691], ['PlayerMeetsRequirements', 0x776f]],
     },
     InhJam: {
-      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). A ship not yours adds the jamming outfits among its class\'s DefaultItems, and has it all halved when its own government has Flags 0x0080. Yours adds your jamming outfits. Below 0 counts as 0.',
+      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). A ship not yours adds the jamming outfits among its class\'s DefaultItems, and has it all halved when the ship\'s government has Flags 0x0080. Yours adds your jamming outfits. Below 0 counts as 0.',
       code: [['ShipECM', 0x3aff]],
     },
     MediumName: {
@@ -679,7 +679,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DrawMapInfluence', 0xe360]],
     },
     ShipColor: {
-      note: 'The colour its ships are painted, kept to 5 bits a channel; black, unpainted. A përs\'s ship takes the përs\'s colour instead, and yours none of this.',
+      note: 'The colour its ships are painted, kept to 5 bits a channel; black, unpainted. A përs\'s ship is drawn in the përs\'s colour instead, and yours none of this.',
       code: [['LoadObjectData', 0x771b0], ['GetShipPaintColor', 0x7d0c]],
     },
     Intf: {
@@ -710,7 +710,7 @@ const NOVA_FIELD_NOTES = {
       code: [['IsMissionAvailable', 0x9b152], ['PlayerMeetsRequirements', 0x776f]],
     },
     AvailStel: {
-      note: 'Where it is offered. -1: anywhere. 128 to 4999: at that spöb. 5000 + n: in a system with a link to sÿst 128 + n. At a stellar whose government is: 9999, none; 10000 + n, gövt 128 + n; 15000 + n, an ally of it; 20000 + n, any but it, or none; 25000 + n, an enemy of it; 30000 + n, it, or one with the same class in the same one of the four Classes; 31000 + n, neither (not none). Anything else: never. Not tested when a ship offers it. Unless it names one spöb, it is not offered while its TravelStel or ReturnStel is a stellar in the system you are in.',
+      note: 'Where it is offered. -1: anywhere. 128 to 4999: at that spöb. 5000 + n: in a system with a link to sÿst 128 + n. At a stellar whose government is: 9999, none; 10000 + n, gövt 128 + n; 15000 + n, an ally of it; 20000 + n, any but it, or none; 25000 + n, an enemy of it; 30000 + n, it, or one with the same class in the same one of the four Classes; 31000 + n, neither (not none). Anything else: never. Not tested when a ship offers it. Unless it is a single spöb, it is not offered while its TravelStel or ReturnStel is a stellar in the system you are in.',
       code: [['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48], ['LoadObjectData', 0x771b0]],
     },
     AvailLoc: {
@@ -730,7 +730,7 @@ const NOVA_FIELD_NOTES = {
       code: [['IsMissionAvailable', 0x9b152], ['InitObjects', 0x1c2e5], ['HandlePlayer', 0x68390], ['DoMissionAccept', 0xa1b11]],
     },
     AvailShipTyp: {
-      note: '128 to 896: you must be flying that ship class; 1128 to 1896: you must not be. 2128 to 2384: your ship class\'s InherentGovt must name that government (as 128 and up or 1128 and up); 3128 to 3384: it must not. Anything else: no test.',
+      note: '128 to 896: you must be flying that ship class; 1128 to 1896: you must not be. 2128 to 2384: your ship class\'s InherentGovt must name that government (as 128 and up or 1128 and up); 3128 to 3384: it must be some other government. Anything else: no test.',
       code: [['IsMissionAvailable', 0x9b152], ['LoadObjectData', 0x771b0]],
     },
     TravelStel: {
@@ -744,11 +744,11 @@ const NOVA_FIELD_NOTES = {
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['LoadCurrentMissionData', 0xa0a38], ['MissionLandCheck', 0xa19cc], ['StellarsAreIdentical', 0xab35]],
     },
     PickupMode: {
-      note: 'When the cargo comes aboard. 0: when you accept, which is refused while the cargo is more than your holds or your free room. 1: on landing at TravelStel\'s stellar; while it will not fit, that stellar does not count as reached. 2: on boarding one of the mission\'s ships. Anything else: never. LoadCargText, if not -1, is shown as it comes aboard by landing or accepting.',
+      note: 'When the cargo comes aboard. 0: when you accept, which is not allowed while the cargo is more than your holds or your free room. 1: on landing at TravelStel\'s stellar; while it will not fit, that stellar does not count as reached. 2: on boarding one of the mission\'s ships. Anything else: never. LoadCargText, if not -1, is shown as it comes aboard by landing or accepting.',
       code: [['DoMissionAccept', 0xa1b11], ['MissionLandCargoCheck', 0x9edc5], ['DoMissionCargoPickup', 0x98292], ['HandlePlayerBoardAttempt', 0x65000]],
     },
     DropoffMode: {
-      note: 'Where the cargo comes off, if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s, once its ShipGoal is met or is -1 (with ShipGoal 3, also while a count the mission keeps, not yet read, is 0). Anything else: never. DropCargText, if not -1, is shown then.',
+      note: 'Where the cargo comes off, if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s, once its ShipGoal is met or is -1 (with ShipGoal 3, also while a count kept with the mission, not yet read, is 0). Anything else: never. DropCargText, if not -1, is shown then.',
       code: [['MissionLandCargoCheck', 0x9edc5]],
     },
     PayVal: {
@@ -756,7 +756,7 @@ const NOVA_FIELD_NOTES = {
       code: [['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['DoMissionAccept', 0xa1b11], ['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtSharedClass', 0x6e48]],
     },
     ShipSyst: {
-      note: 'Where the mission\'s ships are, worked out when you accept. -1: the system you are in then. -2: a random system there now (its Visibility) other than yours. -3: TravelStel\'s stellar\'s system, or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to yours and there now, drawn until one is found. -6: whichever system you are in. 128 to 2175: that sÿst. 9999, 10000 + n and the other numbers AvailStel takes for governments: a random system there now, not yours, of those governments. Anything else: nowhere.',
+      note: 'Where the mission\'s ships are, worked out when you accept. -1: the system you are in then. -2: a random system there now (its Visibility) other than yours. -3: TravelStel\'s stellar\'s system, or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to yours and there now, drawn until one is found. -6: whichever system you are in. 128 to 2175: that sÿst. 9999, 10000 + n and the other numbers AvailStel accepts for governments: a random system there now, not yours, of those governments. Anything else: nowhere.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SelectMissionSystem', 0x9b993], ['SetupShipsInSystem', 0x42b61], ['MissionHandlePlayerEnteredNewSystem', 0x99f11]],
     },
     ShipGoal: {
@@ -764,7 +764,7 @@ const NOVA_FIELD_NOTES = {
       code: [['MissionObjectivesCheck', 0x9e79e], ['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['HandlePlayerBoardAttempt', 0x65000], ['LowLevelAIHandler', 0x851da], ['QuickMissionFailure', 0x99d1b], ['ShipVisibleToShip', 0x971c], ['SetupShipsInSystem', 0x42b61], ['IsDisabled', 0x2ce6]],
     },
     ShipBehav: {
-      note: 'How the mission\'s ships act. 0: each is set on you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments their own is an enemy of. Anything else: as their own AI has it.',
+      note: 'How the mission\'s ships act. 0: each is set on you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments that are enemies of theirs. Anything else: they fly by their AI.',
       code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6]],
     },
     ShipCount: {
@@ -793,7 +793,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['IncrementGameTime', 0xb516], ['MissionObjectivesCheck', 0x9e79e], ['QuickMissionFailure', 0x99d1b]],
     },
     CanAbort: {
-      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which fails it; when it fails, it is taken off your list at once. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
+      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which fails it; when it fails, it is taken off your list immediately. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['PlayerHasJettisonableCargo', 0x825a], ['JettisonCargo', 0x3dffd], ['QuickMissionFailure', 0x99d1b], ['MissionLandCheck', 0xa19cc]],
     },
     BriefText: {
@@ -850,7 +850,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     AuxShipSyst: {
-      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system; -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. 9999, 10000 + n and the other numbers AvailStel takes for governments: systems of those governments, counting as an enemy of a government with Flags 0x0001 any not its ally. Anything else: none.',
+      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system; -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. 9999, 10000 + n and the other numbers AvailStel accepts for governments: systems of those governments, counting as an enemy of a government with Flags 0x0001 any not its ally. Anything else: none.',
       code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
     },
     ScanMask: {
@@ -867,7 +867,7 @@ const NOVA_FIELD_NOTES = {
       code: [['IsMissionAvailable', 0x9b152], ['TotalMissionCargoSpace', 0xcffb], ['AutoAbortMission', 0x99bdc], ['ApplyMissionPay', 0x98326], ['DamageShip', 0x3a807]],
     },
     AvailBits: {
-      note: 'A test of control bits: the mission is offered only while it holds. Empty: no test.',
+      note: 'A test of control bits: the mission is offered only while it passes. Empty: no test.',
       code: [['InitMissions', 0x97b97], ['IsMissionAvailable', 0x9b152], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnAccept: {
@@ -918,11 +918,11 @@ const NOVA_FIELD_NOTES = {
   },
   'oütf': {
     ModType: {
-      note: 'What it does, ModVal saying how much; ModType2 to ModType4 the same. 1: the weapon wëap ModVal. 2: tons of hold; below 0 it takes hold space. 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge, ModVal ÷ 1,000 a frame. 6: armor points. 7: acceleration, ÷ 10,000. 8: top speed, ÷ 100. 9: turn, ÷ 100 degrees a frame. 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps; -1, every inhabited system; -1000 - n, the systems of governments of class n. 17: a cloak; ModVal 0x0002 shows on radar, 0x0004 drops the shields at once, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use and 0x0f00 ÷ 0x100 its shield use, 0x1000 cloaks the ships in formation with it. 18: a fuel scoop, as FuelRegen. 19: auto-refuelling. 20: auto-eject. 21: your record below 0 set to 0 in the systems of gövt ModVal, or in every one for -1. 22: days a jump. 23: the distance from the middle you jump from, 1,000 + ModVal. 24: anti-interference, -100 to 100 in all. 25: your capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these you carry. 28: murk. 29: armor recharge, ÷ 1,000 a frame. 30: a cloak scanner. 31: a mining scoop. 32: ModVal more jumps a jump, once for each kind carried, not each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization, ÷ 100. 40: ionization capacity. 41: gravity does not pull you. 42: deadly stellars do not harm you. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship carrying it repairs itself to just over the point of disabling. For a ship not yours, 32 and 49 count among its class\'s DefaultItems.',
+      note: 'What it does, with ModVal setting how much; ModType2 to ModType4 the same. 1: the weapon wëap ModVal. 2: tons of hold; below 0 it takes hold space. 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge, ModVal ÷ 1,000 a frame. 6: armor points. 7: acceleration, ÷ 10,000. 8: top speed, ÷ 100. 9: turn, ÷ 100 degrees a frame. 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps; -1, every inhabited system; -1000 - n, the systems of governments of class n. 17: a cloak; ModVal 0x0002 shows on radar, 0x0004 drops the shields at once, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use and 0x0f00 ÷ 0x100 its shield use, 0x1000 cloaks the ships in formation with it. 18: a fuel scoop, as FuelRegen. 19: auto-refuelling. 20: auto-eject. 21: your record below 0 set to 0 in the systems of gövt ModVal, or in every one for -1. 22: days a jump. 23: the distance from the middle you jump from, 1,000 + ModVal. 24: anti-interference, -100 to 100 in all. 25: your capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these you carry. 28: murk. 29: armor recharge, ÷ 1,000 a frame. 30: a cloak scanner. 31: a mining scoop. 32: ModVal more jumps a jump, once for each kind carried, not each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization, ÷ 100. 40: ionization capacity. 41: gravity does not pull you. 42: deadly stellars do not harm you. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship carrying it repairs itself to just over the point of disabling. For a ship not yours, 32 and 49 count among its class\'s DefaultItems.',
       code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581]],
     },
     ModVal: {
-      note: 'How much of what ModType says; see there. For ModType 1, 3 and 21, the id is kept less 128.',
+      note: 'How much, for the effect ModType sets; see there. For ModType 1, 3 and 21, the id is kept less 128.',
       code: [['LoadObjectData', 0x771b0]],
     },
     ModType2: { note: 'A second effect, read as ModType.', code: [['LoadObjectData', 0x771b0]] },
@@ -944,7 +944,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Flags: {
-      note: '0x0001: a fixed gun, and 0x0002 a turret, counted against your ship\'s MaxGun and MaxTur. 0x0004: it stays with you when you buy or capture another ship, and is left out of your ship\'s trade-in; with 0x0004 or 0x0020 it also stays when a mission changes your ship. 0x0008: it cannot be sold. 0x0010: what you carry of it is taken away when you leave the outfitter. 0x0100: not offered unless your bits meet its Requires, or you have one; 0x4000, unless its Availability holds, or you have one. 0x0200: its price is Cost × your ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of your ship class\'s. 0x0800: any outfitter lists it while you have one. 0x1000: while it is on offer, every higher-numbered item of the same DispWeight is not. 0x2000: shown among your ranks in the player info, not among the rest.',
+      note: '0x0001: a fixed gun, and 0x0002 a turret, counted against your ship\'s MaxGun and MaxTur. 0x0004: it stays with you when you buy or capture another ship, and is left out of your ship\'s trade-in; with 0x0004 or 0x0020 it also stays when a mission changes your ship. 0x0008: it cannot be sold. 0x0010: what you carry of it is taken away when you leave the outfitter. 0x0100: not offered unless your bits meet its Requires, or you have one; 0x4000, unless its Availability test passes, or you have one. 0x0200: its price is Cost × your ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of your ship class\'s. 0x0800: any outfitter lists it while you have one. 0x1000: while it is on offer, no higher-numbered item of the same DispWeight is offered. 0x2000: shown among your ranks in the player info, not among the rest.',
       code: [['HasMaxOfItem', 0x4512], ['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['PlayerShipTradeInPrice', 0xb079], ['EvalSetExp', 0x150fc], ['DoOutfitDialog', 0x5bacf], ['SetupPortAvailableItems', 0xbedb], ['AdjustedItemCost', 0x5869], ['AdjustedItemMass', 0x2889], ['SetupPlayerInfoText', 0x53cb8]],
     },
     Cost: {
@@ -952,7 +952,7 @@ const NOVA_FIELD_NOTES = {
       code: [['AdjustedItemCost', 0x5869], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Requires: {
-      note: 'It is sold to you only when the Contributes bits of your ship and outfits include every bit set here, wherever RequireGovt says they apply; with Flags 0x0100 it is not even listed until then, unless you have one.',
+      note: 'It is sold to you only when the Contributes bits of your ship and outfits include every bit set here, wherever RequireGovt applies them; with Flags 0x0100 it is not even listed until then, unless you have one.',
       code: [['CanBuyOutfitItem', 0x4e7c4], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableItems', 0xbedb]],
     },
     Availability: {
@@ -1267,7 +1267,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnPerson', 0x408d5]],
     },
     WeapType: {
-      note: 'Weapons added to those of the ship\'s class, each 128 and up a wëap, WeapCount of it and AmmoLoad of its ammunition; one listed twice takes the later of the two. Below 128: none.',
+      note: 'Weapons added to those of the ship\'s class, each 128 and up a wëap, WeapCount of it and AmmoLoad of its ammunition; if one is listed twice, the later is used. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     WeapCount: {
@@ -1334,7 +1334,7 @@ const NOVA_FIELD_NOTES = {
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     Flags: {
-      note: '0x0001: gaining it takes away every other rank you hold of its government, but those with 0x0008. 0x0010: gaining it takes away those of its government with less Weight, but those with 0x0008. 0x0008: never taken away so, nor for crimes. 0x0040: lost on any crime against a government allied with its own; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with its own do not count you a threat (IsThreatToShip) and are asked whether you are, in choosing targets and in coming to help. 0x0200: while held, the stellars of a government allied with its own are asked whether you are, when you hail and land, and in their colours on the map. 0x0400 and 0x0800 are read when you hail a ship of an allied government (DoCommDialog), not traced.',
+      note: '0x0001: gaining it removes every other rank you hold of its government, except those with 0x0008. 0x0010: gaining it removes those of its government with less Weight, except those with 0x0008. 0x0008: never taken away so, nor for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with the rank\'s government do not count you a threat (IsThreatToShip), and they check whether you are one when they choose targets and come to help. 0x0200: while held, the stellars of a government allied with the rank\'s government are checked the same way, when you hail and land, and for their colours on the map. 0x0400 and 0x0800 are read when you hail a ship of an allied government (DoCommDialog), not traced.',
       code: [['ActivateRank', 0x452f0], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['PlayerBlessedByGovt', 0x2732], ['IsThreatToShip', 0x81faf], ['SelectWarshipTarget', 0x89d5e], ['HandlePlayerDockRequest', 0x66691], ['DoPlanetCommDialog', 0x96949], ['ColorCodeStellar', 0xaa26], ['DoCommDialog', 0x956d5]],
     },
     ConvName: {
@@ -1378,7 +1378,7 @@ const NOVA_FIELD_NOTES = {
       bible: 'The first or last date on which the event can occur.',
     },
     Random: {
-      note: 'Each day it is not running, it starts if a number from 0 to 100 drawn for it is at most this, its dates hold (FirstYear), its Require is met and its EnableOn holds. 100 or more: always; below 0: never.',
+      note: 'Each day it is not running, it starts if a number from 0 to 100 drawn for it is at most this, it is within its dates (FirstYear), its Require is met and its EnableOn test passes. 100 or more: always; below 0: never.',
       code: [['CronEventHandler', 0x3874f], ['Rand', 0xa4c76]],
     },
     Duration: {
@@ -1386,7 +1386,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CronEventHandler', 0x3874f], ['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     PreHoldoff: {
-      note: 'Days between its being drawn and its starting: OnStart is set only then. 0 or less: at once.',
+      note: 'Days between its being drawn and its starting: OnStart is set only then. 0 or less: immediately.',
       code: [['CronEventHandler', 0x3874f]],
     },
     PostHoldoff: {
@@ -1402,7 +1402,7 @@ const NOVA_FIELD_NOTES = {
       code: [['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     EnableOn: {
-      note: 'A test of control bits: it starts only while this holds. Empty: no test.',
+      note: 'A test of control bits: it starts only while this passes. Empty: no test.',
       code: [['CronEventHandler', 0x3874f], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnStart: {
@@ -1472,7 +1472,7 @@ const NOVA_FIELD_NOTES = {
       code: [['DoPortDialog', 0x5f911], ['PlayerEnterHypergate', 0x637bf], ['PlayerEnterWormhole', 0x64005], ['AIMakeShipEmergeFromHyperGate', 0x89518]],
     },
     DefenseDude: {
-      note: 'The düde its defence ships are drawn from, of its own government, flying as warships tied to it. Below 128: none.',
+      note: 'The düde its defence ships are drawn from, of the stellar\'s government, flying as warships tied to it. Below 128: none.',
       code: [['SpawnStellarDefenseShip', 0x3d2c9], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     DefCount: {
@@ -1540,7 +1540,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['StellarIsDestroyed', 0x4e14]],
     },
     DeadType: {
-      note: 'Above 255, or below 0: its own Type.',
+      note: 'Above 255, or below 0: its Type.',
       code: [['LoadObjectData', 0x771b0]],
     },
     ExplodType: {
@@ -1807,7 +1807,7 @@ const NOVA_FIELD_READS = {
     ShipSyst: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : novaPlaceRead(g, 'ship', v),
     ShipDude: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : novaDudeRead(g, v),
     ShipGoal: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (({ 0: 'destroy them all', 1: 'disable them all', 2: 'board them all', 3: 'keep them', 4: 'see one of them', 5: 'board them all, disabled from the start', 6: 'be rid of them' })[v] || 'none'),
-    ShipBehav: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (({ 0: 'set on you', 1: 'fly with you as escorts', 2: 'go for stellars of their enemies' })[v] || 'as their own AI has it'),
+    ShipBehav: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (({ 0: 'set on you', 1: 'fly with you as escorts', 2: 'go for stellars of their enemies' })[v] || 'by their AI'),
     ShipStart: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v >= -16 && v <= -1 ? `on stellar ${-v} of their system's list` : v === 1 ? 'in from hyperspace after a while, each time' : v === 2 ? 'in from hyperspace the first time, cloaked after' : 'brought in as the system\'s other ships are'),
     ShipNameID: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v === -1 ? 'their usual names' : g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `their usual names (no STR# ${v})`),
     ShipSubtitle: (v, r, g) => r.ShipCount <= 0 ? 'no ships' : (v === -1 ? 'none' : g.get('STR#', v) ? novaRefText(g, 'STR#', v) : `none (no STR# ${v})`),
@@ -1990,7 +1990,7 @@ const NOVA_FIELD_READS = {
     Gravity: v => v > 0 ? 'pulls' : v < 0 ? 'pushes' : 'none',
     Weapon: (v, r, g) => v >= 128 ? novaRefText(g, 'wëap', v) : 'none',
     Strength: v => v > 0 ? `${v}` : 'never destroyed',
-    DeadType: (v, r) => v > 255 || v < 0 ? `its own Type, ${r.Type}` : `${v}`,
+    DeadType: (v, r) => v > 255 || v < 0 ? `its Type, ${r.Type}` : `${v}`,
     ExplodType: v => v < 0 ? 'none' : `${v}`,
   },
   'wëap': {

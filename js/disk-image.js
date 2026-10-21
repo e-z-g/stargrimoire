@@ -134,7 +134,7 @@ function hfspName(b, at) {
 function hfspVolume(read) {
   const vh = read(1024, 512);
   const sig = String.fromCharCode(vh[0], vh[1]);
-  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image holds an HFS volume, not HFS Plus' : 'the disk image holds no HFS Plus volume');
+  if (sig !== 'H+' && sig !== 'HX') throw new Error(sig === 'BD' ? 'the disk image is an HFS volume, not HFS Plus' : 'the disk image has no HFS Plus volume');
   const bs = u32be(vh, 40);
   const forkBytes = (fork, overflow) => {
     const ext = fork.extents.concat(overflow || []), out = new Uint8Array(fork.size);

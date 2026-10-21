@@ -184,7 +184,7 @@ const REC_BODY = {
         ${kvRow('Offered when', testLine(r.Availability))}
       </table>
       <h3>Sold at <span class="note">${soldAt.length}</span></h3>
-      <p class="note">Outfitters whose tech level is the outfit's or more, or names it among their special techs; Offered when, its needs, and the day's draw (BuyRandom) then decide.</p>
+      <p class="note">Outfitters whose tech level is the outfit's or more, or names it among their special techs; Offered when, its needs, and the day's draw (BuyRandom) then determine whether it is offered on a given day.</p>
       ${many(soldAt.map(stellarRef), 'outfitters')}
       ${refs.needs.length ? `<h3>Needs</h3><p class="note">Every one of these contribute bits, from the ship, an outfit carried, a rank held or an event running.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
       ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">Added to yours when you buy, capture or start in one (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}

@@ -69,7 +69,7 @@ function tagIndexed(canvas, W, H, indices, palette, maskBits){
    Drawn here as the shape it is, so a reader can see the falloff rather than
    read that one exists. The map's lighting layer still draws its
    gradients; joining these to it needs the rule that picks a table for a
-   light, which is not read yet. */
+   light, and that rule has not been found. */
 function decodeLite(data){
   if(!data||data.length<2) return null;
   const n=data[0];
@@ -1440,7 +1440,7 @@ function sfntWithGlyphs(data, added, codes, aliases){
   const loca=i=>longLoca?u32be(t.loca,i*4):u16be(t.loca,i*2)*2;
   const old=glyphs.length, total=old+added.length;
   if(!t.cmap) throw new Error('the font has no cmap');
-  // The old glyphs' bytes as they are, instructions and all; the new ones after.
+  // The old glyphs' bytes as they are, instructions and all, followed by the new ones.
   const bodies=[];
   for(let g=0;g<old;g++) bodies.push(t.glyf.subarray(loca(g),loca(g+1)));
   let bx0=s16(t.head,36), by0=s16(t.head,38), bx1=s16(t.head,40), by1=s16(t.head,42);

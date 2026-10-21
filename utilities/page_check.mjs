@@ -3,7 +3,7 @@
 // Without a browser: every <script src> is there, none is a module and no
 // js/ file imports or exports (the page must work from file://), and no
 // top-level name is declared in two scripts -- they share one global scope,
-// so the later would win and nothing would say so.
+// so the later would win, with no warning.
 //
 // In headless Chrome (utilities/browser.mjs), served over HTTP:
 //   - the page loads with no console error or exception and shows its start;

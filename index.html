@@ -184,7 +184,7 @@ details summary { cursor: pointer; color: var(--dim); }
 .editBar .warn { color: var(--warn); font-size: 12.5px; }
 table.fields .fieldNote { font-family: var(--font); font-size: 11.5px; color: var(--dim); margin: 1px 0 3px; word-break: normal; }
 table.fields .fieldRead { color: inherit; }
-/* a note's few words, or the note in full once asked for */
+/* a note's few words, or the whole note when Notes in full is ticked */
 html:not(.notesFull) table.fields .fieldFull, html.notesFull table.fields .fieldShort { display: none; }
 table.fields .fieldCode { display: block; }
 .editBar .notesFull { margin-left: auto; font-size: 12.5px; color: var(--dim); }
@@ -359,14 +359,14 @@ details.inline .list { margin-top: 4px; }
   #bitsIn { width: 110px; }
   #panelBtn svg { transform: rotate(90deg); }
   #brand { display: none; }
-  /* the views and four buttons are wider than a phone: the buttons go under More, and the bar keeps one row */
+  /* the views and four buttons are wider than a phone: the buttons go under More, and the bar stays one row high */
   #bar { flex-wrap: wrap; gap: 6px 8px; padding: 6px 10px; }
   #fileMenu > button, #fileMenu > .btn { padding: 6px 12px; }
-  /* the crumbs and the status shrink rather than wrap, so the first row holds whatever they say */
+  /* the crumbs and the status shrink rather than wrap, so whatever they show fits in the first row */
   #crumbs { flex: 1 1 0; }
-  /* while something is read, what and how far takes a row of its own, under the views */
+  /* while something is read, its name and progress go on a separate row, under the views */
   #status { order: 10; flex: 1 0 100%; max-width: none; margin-left: 0; }
-  /* the count of files open, all the status says once reading is done, gives the bar's room to the buttons */
+  /* once reading is done the status is only the count of files open, so the buttons have the bar's room */
   #status.idle { display: none; }
   #ships { flex-direction: column; }
   #code { flex-direction: column; }
@@ -402,8 +402,8 @@ details.inline .list { margin-top: 4px; }
   <button id="creditsItem">Credits</button>
   </span>
 </header>
-<!-- Credits, as grimoire's: the game's crew as its own documentation names
-     them (EV Nova Documentation.pdf, page 3, "The crew behind the scenes"),
+<!-- Credits, as grimoire's: the game's crew as listed in the game's
+     documentation (EV Nova Documentation.pdf, page 3, "The crew behind the scenes"),
      then what this page is built from (doc/credits.md). -->
 <div id="creditsMenu" role="dialog" aria-label="Credits" hidden>
   <p>StarGrimoire is maintained by <strong>EgadZoundsGadzooks</strong>, and reads everything it shows from EV Nova's own files.</p>
@@ -578,35 +578,35 @@ details.inline .list { margin-top: 4px; }
   <aside id="panel"></aside>
 </main>
 
-<script src="js/mac-bytes.js?v=c1025f7f"></script>
-<script src="js/mac-containers.js?v=e43fcc4b"></script>
+<script src="js/mac-bytes.js?v=3c702db5"></script>
+<script src="js/mac-containers.js?v=38bec84d"></script>
 <script src="js/mac-media.js?v=1a2d6ca6"></script>
 <script src="js/mac-resfork.js?v=8542554e"></script>
-<script src="js/mac-rsrc-types.js?v=ab305163"></script>
-<script src="js/mac-export.js?v=54c938d4"></script>
-<script src="js/mac-stuffit.js?v=6d0e8636"></script>
+<script src="js/mac-rsrc-types.js?v=77319570"></script>
+<script src="js/mac-export.js?v=dddd1944"></script>
+<script src="js/mac-stuffit.js?v=0099116f"></script>
 <script src="js/mac-stuffitx.js?v=f59395e1"></script>
 <!-- the English dictionary of StuffIt X, not run here: page-open.js loads it from this address for an archive that needs it -->
 <script type="text/plain" id="sitxEnglish" src="js/mac-stuffitx-english.js?v=150fde87"></script>
-<script src="js/mac-vise.js?v=fdacf101"></script>
+<script src="js/mac-vise.js?v=dda2d36e"></script>
 <script src="js/mac-zip.js?v=323198ab"></script>
 <script src="js/mac-compactpro.js?v=af6e2be7"></script>
-<script src="js/mac-rar.js?v=67cfc9d6"></script>
+<script src="js/mac-rar.js?v=433c1646"></script>
 <script src="js/mac-ppc.js?v=88ddd27d"></script>
-<script src="js/mac-pef.js?v=72a5ea32"></script>
+<script src="js/mac-pef.js?v=1c4e2412"></script>
 <script src="js/png-stream.js?v=1c2d470d"></script>
 <script src="js/disk-image.js?v=259fd22f"></script>
 <script src="js/nova-files.js?v=e54c3355"></script>
 <script src="js/nova-records.js?v=4d98eb81"></script>
-<script src="js/nova-ncb.js?v=8336d3fb"></script>
+<script src="js/nova-ncb.js?v=2bac438f"></script>
 <script src="js/nova-sprites.js?v=6c456e25"></script>
-<script src="js/nova-universe.js?v=9d898acc"></script>
+<script src="js/nova-universe.js?v=ea0d49b3"></script>
 <script src="js/nova-bits.js?v=f37250c0"></script>
-<script src="js/nova-missions.js?v=ab19cc04"></script>
-<script src="js/nova-subway.js?v=d454c4f2"></script>
+<script src="js/nova-missions.js?v=ceb4eca0"></script>
+<script src="js/nova-subway.js?v=3a429278"></script>
 <script src="js/nova-labels.js?v=7d212c2c"></script>
-<script src="js/nova-ships.js?v=c5ac0e26"></script>
-<script src="js/nova-flight.js?v=9d05f5e2"></script>
+<script src="js/nova-ships.js?v=796844ef"></script>
+<script src="js/nova-flight.js?v=d6d6f09c"></script>
 <script src="js/nova-fight.js?v=326ff352"></script>
 <script src="js/nova-compare.js?v=30c2497c"></script>
 <script src="js/nova-fields.js?v=580a6bf4"></script>
@@ -619,15 +619,15 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-fieldsites.js?v=63a10c71"></script>
 <script src="js/nova-collection.js?v=a7d93e8e"></script>
 <script src="js/nova-sound.js?v=f16602d0"></script>
-<script src="js/page-open.js?v=f114f29c"></script>
-<script src="js/page-compare.js?v=6c78b098"></script>
+<script src="js/page-open.js?v=66f50a8d"></script>
+<script src="js/page-compare.js?v=438980b0"></script>
 <script src="js/page-collection.js?v=c31348bd"></script>
 <script src="js/page-plugin.js?v=c7cab7e8"></script>
 <script src="js/page-svg.js?v=df85a9af"></script>
-<script src="js/page-map.js?v=28f8a6c3"></script>
+<script src="js/page-map.js?v=cbb9855a"></script>
 <script src="js/page-ships.js?v=e159adf7"></script>
 <script src="js/page-flight.js?v=09b498ef"></script>
-<script src="js/page-battle.js?v=c11a833d"></script>
+<script src="js/page-battle.js?v=64c83b13"></script>
 <script src="js/page-records.js?v=60ea4dd3"></script>
 <script src="js/page-code.js?v=615a8c25"></script>
 <script src="js/page-library.js?v=b64a568a"></script>

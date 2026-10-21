@@ -1164,7 +1164,7 @@ function subwayModule() {
      one bend where two lines from its ends meet, at free ports, in order, the
      cheapest by its bend, how far its ports stray and, above all, the links
      it would cross; one that would run over a system or along another link
-     is not drawn so. Where no such bend will do, two bends. */
+     is not drawn that way. Where no such bend will do, two bends. */
   const SUBWAY_FINE = { minLen: 1.5, anchor: 0.02, iters: 400, rounds: 12, eps: 0.004, clear: 0.4, minSep: 1.4, minLeg: 0.5, bendCost: 1, crossCost: 8 };
   const FINE_STEP = Math.PI / 8;
   // the sixteen directions worked out once, by the same sums (the layout spent seconds on them); read, never changed

@@ -15,7 +15,7 @@
 // 266's OnAccept emptied in 1.0.10, and comes with it set to b511 in
 // 1.0.2. Last, taking two of a storyline's missions at a time finds dead
 // ends in the same storylines as one at a time, for every storyline small
-// enough to search so.
+// enough to search that way.
 import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
 
 const S = site();

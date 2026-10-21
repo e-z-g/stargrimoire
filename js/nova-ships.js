@@ -3,7 +3,7 @@
    =========================================================================
 
    A ship class is a shïp record and the shän of the same id, the sprites
-   it flies as. Every rule below is the Bible's (Part II, the shïp, shän and
+   it is drawn with. Every rule below is the Bible's (Part II, the shïp, shän and
    dësc sections) unless it cites an address in the program, which is the
    Mac 1.0.10 build's PowerPC code as evnova-workbench's tools/pefreloc_nova.py lays it out
    (code at 0x100000).

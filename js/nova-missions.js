@@ -14,7 +14,7 @@
    The evnova.miraheze.org wiki has the same steps ("Done Rebel I.022"),
    and utilities/missions_check.mjs compares this reading with it.
 
-   WHERE. AvailStel, TravelStel, ReturnStel and ShipSyst are the Bible's
+   PLACES. AvailStel, TravelStel, ReturnStel and ShipSyst are the Bible's
    codes (its mïsn section): a stellar or system id, or a range that means
    a kind of place, a government's by index (id - 128) past an offset. One
    more is in the files: AvailStel 127, below every stellar id, on seven

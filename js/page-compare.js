@@ -157,7 +157,7 @@ function compareList() {
 }
 
 /* ?compare=1.0.2 (or 1.0.8, 1.0.10, 1.1.1, or any URL the page may fetch) compares
-   the game the page opens first with that, once. */
+   the game the page opens first with that, the first time only. */
 let COMPARE_ADDRESS = new URLSearchParams(location.search).get('compare');
 async function compareFromAddress() {
   const want = COMPARE_ADDRESS;

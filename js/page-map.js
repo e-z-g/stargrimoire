@@ -48,8 +48,8 @@ const MIN_STELLAR = 26;
    is fadeFrom pixels across and have replaced it at fadeTo; when their
    names come in is namePlan's and stellarNamePlan's. animMs is grimoire's,
    settled on a real screen: the fall onto a stellar and the rise from it,
-   and seven tenths of it a zoom into a system. The two sizes are not
-   settled yet. They were 36 and 150 until the maintainer found the
+   and seven tenths of it a zoom into a system. The two sizes are still
+   to be settled. They were 36 and 150 until the maintainer found the
    stellars came in too soon (28 September 2026). Zooming in on a stellar
    lands on it once its sprite is landAt of the screen's shorter side
    across. */
@@ -100,7 +100,7 @@ const SUBWAY_STORE = 'stargrimoire-subway';
    names it: the words below joined by ',' (&subway=names,22.5). 22.5
    degrees only where needed (mixed) brings 22.5 degrees with it; busy
    stations as points, not bars (dots), means something only with
-   headings kept, and is dropped without. */
+   headings kept, and is dropped without them. */
 const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'heading', dots: 'dots', side: 'side' };
 function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading) && (k !== 'side' || (on.heading && on.names))) || (k === 'fine' && on.mixed)).join('-') || '45'; }
 function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(SUBWAY_WORDS).filter(k => f[k]).map(k => SUBWAY_WORDS[k]).join(','); }
@@ -497,7 +497,7 @@ function boxView(x0, y0, x1, y1, pad) {
 }
 /* The whole map at once, drawn into ctx at w by h map pixels, for saving it large (the
    maintainer's request, 30 September 2026). The stellars are left closed, so that every system is
-   its mark however near; the screen's context, size and view are put back after. Framed by
+   its mark however near; the screen's context, size and view are put back afterwards. Framed by
    wholeMapFrame, a far place with no links brought in to the rest (wholeMapMoves), an arrow at
    its dot pointing the way it truly is. */
 let WHOLE_MOVED = null;   // while the whole map is drawn: place -> the way it truly is, an angle on the screen
@@ -1303,7 +1303,7 @@ function drawGates(ctx) {
 // The marks beside a system's dot for the gates in it, above it to the left.
 // A place's gates, each a small dot beside the system's in the gate's
 // direction within its system, as its pocket is (stellarPos): filled where
-// it leads somewhere, a ring where it does not. Dots less than 0.45
+// it leads somewhere, a ring where it leads nowhere. Dots less than 0.45
 // radians apart are spread.
 function drawGateMarks(ctx, d, r) {
   const seen = new Map();
@@ -3148,7 +3148,7 @@ function wireTools() {
   $('linkSel').onchange = () => { LINKS_BY = $('linkSel').value; JUMPS = { from: null }; renderLegend(); redraw(); };
   $('optNames').onchange = () => { NAMES = $('optNames').checked; redraw(); };
   // The corner: the details beside the map (below it on a phone) hidden or shown, and full screen
-  // where the browser allows it for a page, which an iPhone's does not.
+  // where the browser allows it for a page, which an iPhone's browser does not allow.
   const details = $('panelBtn');
   details.onclick = () => {
     const hide = !$('app').classList.contains('bare');

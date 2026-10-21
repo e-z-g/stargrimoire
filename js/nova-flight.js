@@ -6,7 +6,7 @@
    (an address below is in that half), with evnova-decomp's reconstruction
    of the Community Edition read beside it to find the way; where the two
    differ the program is kept, and ../evnova-workbench/doc/findings.md
-   § *Ships in flight* gives where.
+   § *Ships in flight* has the places where they differ.
 
    THE WORLD. A system's units, x to the right and y down, as its
    stellars' xPos and yPos are; headings in degrees, 0 up and clockwise;

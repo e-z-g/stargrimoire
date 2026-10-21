@@ -473,7 +473,7 @@ function describeApplicationDiff(a, b) {
        *
        * A routine that grew by eight bytes might have gained a test, or the
        * code generator might have inserted a redundant register copy. Telling
-       * those apart by eye cost a wrong conclusion once: five `TInterp`
+       * those apart by eye has already led to one wrong conclusion: five `TInterp`
        * overloads in Cythera 1.0.3 were read as an undocumented interpreter
        * change and are one `addi rX, rY, 0` each.
        *

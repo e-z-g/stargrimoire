@@ -105,7 +105,7 @@ function novaUniverse(game) {
 }
 
 /* Which systems are on the map for a control-bit state; null for every
-   system there is, every version at once. */
+   system there is, with all its versions. */
 function novaShownSystems(u, state) {
   if (state === null) return new Set(u.systems.map(s => s.id));
   const out = new Set();

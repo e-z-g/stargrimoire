@@ -13,8 +13,8 @@
    dragged to move them -- across the middle to change sides -- and off it
    to take them away. Fight puts them in empty space with no other ship
    coming in, to fight by the game's rules as nova-flight.js and
-   nova-fight.js have them; a ship dropped during the fight joins it at
-   once. The two sides are enemies and never retreat or leave (the
+   nova-fight.js have them; a ship dropped during the fight joins it
+   immediately. The two sides are enemies and never retreat or leave (the
    maintainer's request, 6 October 2026): each side flies as a government
    that is the other's enemy (battleGovts), and the world's noRetreat
    turns off every retreat and departure. Set up again goes back to the

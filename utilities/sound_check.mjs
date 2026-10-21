@@ -6,7 +6,7 @@
 // rate; afconvert, Apple's decoder, turns that into 16-bit samples, and
 // every sample must equal ours. Then a packet's byte changed on purpose
 // must change ours, so the comparison can fail. The plain sounds go
-// through grimoire's decodeSndToWav, as before. Needs afconvert (macOS);
+// through grimoire's decodeSndToWav. Needs afconvert (macOS);
 // without it that part skips.
 import fs from 'node:fs';
 import os from 'node:os';

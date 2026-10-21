@@ -178,7 +178,8 @@ const RAR_SHORT_BITS = [2,2,3,4,5,6,6,6];
 const RAR_FILTERS = { '1d:0e06077d': 'delta', 'd8:bc85e701': 'audio', '35:ad576887': 'e8', '39:3cd7e57e': 'e8e9' };
 
 /* The files of one solid run, decompressed one after another into one
-   array, each from its compressed data; the filters run over it after. */
+   array, each from its compressed data; the filters then run over the whole
+   array. */
 function rar30Decode(bytes, files) {
   const total = files.reduce((a, f) => a + f.size, 0);
   const win = new Uint8Array(total);

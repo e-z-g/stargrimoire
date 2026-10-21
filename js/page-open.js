@@ -239,7 +239,7 @@ function choosePlugins(list) {
    the page's mac-bytes, mac-containers, mac-vise, mac-stuffit and
    mac-zip, unchanged, which retains a copy of each archive until nothing is
    left to read. Where a thread cannot load them (a page opened from a
-   file:// address) the page reads as before. */
+   file:// address) the page reads them on the main thread. */
 let UNPACKER = null;   // { worker, ready: Promise<boolean>, sent: Map(archive -> id), waiting: Map(n -> callbacks), n }
 function unpacker() {
   if (UNPACKER) return UNPACKER;

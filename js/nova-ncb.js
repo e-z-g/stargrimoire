@@ -30,7 +30,7 @@
 
 /* Parse into a tree: { op: 'or'|'and', args } | { op: 'not', arg } |
    { op: 'term', letter, n } | { op: 'true' }. Throws on anything else,
-   with where. */
+   with the position of the fault. */
 function ncbParseTest(text) {
   const s = String(text || '');
   let p = 0, mixed = false;

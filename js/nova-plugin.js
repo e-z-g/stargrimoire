@@ -206,3 +206,20 @@ function novaPluginFromGames(was, now) {
   }
   return out;
 }
+
+/* A new ship class copied from another, as records to add to the changes:
+   its shïp, with the fields in `change` written over the class's, and its
+   shän unchanged, so that it looks the same. Its id is the first from 128
+   that no shïp has; the program reads classes 128 to 895 (a përs's
+   ShipType outside them is class 128), so with none free there it is null. */
+function novaShipCopy(game, from, name, change = {}) {
+  const used = new Set(game.list('shïp').map(e => e.id));
+  let id = 128;
+  while (used.has(id)) id++;
+  const e = game.get('shïp', from);
+  if (id > 895 || !e) return null;
+  const out = [{ type: 'shïp', id, name, data: novaRecordBytes('shïp', change, e.bytes) }];
+  const sh = game.get('shän', from);
+  if (sh) out.push({ type: 'shän', id, name: sh.name, data: Uint8Array.from(sh.bytes) });
+  return out;
+}

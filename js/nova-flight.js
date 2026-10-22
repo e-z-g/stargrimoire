@@ -1538,6 +1538,25 @@ function novaHandleAsteroids(w) {
 
 /* ---- how they move ------------------------------------------------------ */
 
+/* HandleShip 0x33fc3, a ship caught in a tractor beam: each axis of its
+   velocity eased toward the velocity of the ship that caught it, or toward
+   rest when it caught itself on an asteroid, by a quarter of an
+   acceleration, and set to it once within that. In the program that
+   acceleration is the player's ship's, whichever ship fired; with no player
+   here it is the firer's. While the firer's slot is empty the ship is left
+   as it is until the beam lets go. */
+function novaTractorHold(w, s) {
+  const h = s.tractor === s.slot ? s : w.ships[s.tractor];
+  if (!h) return;
+  const a = f32(novaShipAccel(w.D, h) * 0.25);
+  for (const k of ['vx', 'vy']) {
+    const t = h === s ? 0 : h[k];
+    if (s[k] > f32(t + a)) s[k] = f32(s[k] - a);
+    if (f32(t - a) > s[k]) s[k] = f32(s[k] + a);
+    if (a > Math.abs(f32(s[k] - t))) s[k] = t;
+  }
+}
+
 // HandleShip 0x33581, for a ship nothing has hit.
 function novaHandleShip(w, s) {
   const D = w.D, c = s.cls;
@@ -1548,6 +1567,7 @@ function novaHandleShip(w, s) {
       s.armor = f32(novaArmorCap(D, s) * ((c.flags & 0x10) ? 0.1 : 0.3333) + 1); novaSetDisabled(D, s);
     }
   }
+  if (s.tractor !== undefined && s.tractor !== -1) novaTractorHold(w, s);
   // cloaked: no longer able, uncloaking; the cloak's fuel and shields spent, a thirtieth of its rate a step
   if (novaCloaked(s)) {
     if (!novaCanCloak(s)) novaUncloak(s);

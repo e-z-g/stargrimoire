@@ -201,3 +201,55 @@ function novaPilotState(p, U) {
     missions: P.missions.map((m, i) => (P.objectives[i].active ? Object.assign({ id: id(m.mission), objectives: P.objectives[i] }, m) : null)).filter(Boolean),
   };
 }
+
+/* The save's ship as the fields of a copy of its class (novaShipCopy):
+   { from, name, change, left }. Its weapons and their ammunition are the
+   save's, in the class's eight weapon slots; its outfits are added in as
+   the program adds yours to your ship's figures (each field's note in
+   nova-fields.js: Holds ModType 2, Shield 4, Armor 6, Accel 7, Speed 8,
+   Maneuver 9, its ModVal ÷ 10 as Maneuver is kept in tenths, Fuel 12, 0
+   to 32,000, ShieldRech 5, ArmorRech 29, Deionize 39, IonizeMax 40); and
+   the eight stock outfit slots have the save's other outfits, first those
+   whose kinds a ship not yours has from its stock outfits (cloaking 17,
+   fuel 18, targeting 30, scooping 31, jamming 33 to 36, quicker jumps
+   37, self-repair 49, boarding 25). Everything else is the class's.
+   `left` lists the weapons, and the outfits of those kinds, that had no slot. */
+const NOVA_PILOT_SHIP_ADDS = [['Holds', 2, 1], ['Shield', 4, 1], ['Armor', 6, 1], ['Accel', 7, 1], ['Speed', 8, 1], ['Maneuver', 9, 0.1],
+  ['Fuel', 12, 1], ['ShieldRech', 5, 1], ['ArmorRech', 29, 1], ['Deionize', 39, 1], ['IonizeMax', 40, 1]];
+const NOVA_STOCK_OUTFIT_KINDS = new Set([17, 18, 25, 30, 31, 33, 34, 35, 36, 37, 49]);
+function novaPilotShip(game, save) {
+  const P = save.pilot, from = P.shipClass + 128, cls = novaGet(game, 'shïp', from);
+  if (!cls) return null;
+  const mods = o => [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]];
+  const change = {}, left = { weapons: [], outfits: [] };
+  // the outfits added in
+  const sums = new Map(), kept = [];
+  P.outfits.forEach((n, i) => {
+    const o = n > 0 && novaGet(game, 'oütf', 128 + i);
+    if (!o) return;
+    for (const [t, v] of mods(o)) sums.set(t, (sums.get(t) || 0) + n * v);
+    const kinds = mods(o).map(([t]) => t);
+    if (!kinds.includes(1) && !kinds.includes(3)) kept.push({ id: o.id, n, stock: kinds.some(t => NOVA_STOCK_OUTFIT_KINDS.has(t)) });
+  });
+  const s16 = v => Math.max(-32768, Math.min(32767, Math.round(v)));
+  for (const [f, t, k] of NOVA_PILOT_SHIP_ADDS) if (sums.has(t)) change[f] = s16(cls[f] + sums.get(t) * k);
+  if ('Fuel' in change) change.Fuel = Math.max(0, Math.min(32000, change.Fuel));
+  // the weapons, those you have before ammunition alone
+  const weap = [];
+  for (let i = 0; i < 256; i++) if ((P.weapons[i] > 0 || P.ammo[i] > 0) && novaGet(game, 'wëap', 128 + i)) weap.push({ id: 128 + i, n: Math.max(0, P.weapons[i]), ammo: Math.max(0, P.ammo[i]) });
+  weap.sort((a, b) => (b.n > 0) - (a.n > 0));
+  const slots = weap.slice(0, 8), none = { id: -1, n: 0, ammo: 0 };
+  while (slots.length < 8) slots.push(none);
+  change.WeapType = slots.slice(0, 4).map(w => w.id); change.WeapType2 = slots.slice(4).map(w => w.id);
+  change.WeapCount = slots.slice(0, 4).map(w => w.n); change.WeapCount2 = slots.slice(4).map(w => w.n);
+  change.AmmoLoad = slots.slice(0, 4).map(w => w.ammo); change.AmmoLoad2 = slots.slice(4).map(w => w.ammo);
+  left.weapons = weap.slice(8).filter(w => w.n > 0).map(w => w.id);
+  // the stock outfits
+  kept.sort((a, b) => b.stock - a.stock);
+  const items = kept.slice(0, 8), noItem = { id: -1, n: 0 };
+  while (items.length < 8) items.push(noItem);
+  change.DefaultItems = items.slice(0, 4).map(o => o.id); change.DefaultItms2 = items.slice(4).map(o => o.id);
+  change.ItemCount = items.slice(0, 4).map(o => o.n); change.ItemCount2 = items.slice(4).map(o => o.n);
+  left.outfits = kept.slice(8).filter(o => o.stock).map(o => o.id);
+  return { from, name: save.shipName || novaNameParts(cls.name).name, change, left };
+}

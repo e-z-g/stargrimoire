@@ -1009,7 +1009,7 @@ try {
   else {
     const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent('reference/' + RELEASES['1.0.10'].sit) + '&src=' + encodeURIComponent(SAVE + '/..namedfork/rsrc'),
       'typeof U !== "undefined" && U && !PUMPING && !!PILOT', 300000, { chrome, device: { name: 'desktop', width: 1280, height: 800, scale: 1 },
-      then: async p => p.evaluate(`(() => {
+      then: async p => { const first = await p.evaluate(`(() => {
         const out = { mode: document.getElementById('showSel').value };
         const s = pilotState(), panel = document.getElementById('panel');
         out.sys = s.system && U.byId.get(s.system).name;
@@ -1022,7 +1022,32 @@ try {
         document.getElementById('showSel').value = 'new'; applyShowMode(); renderPanel();
         out.after = rows()['In the save'] === undefined;
         return out;
-      })()`) });
+      })()`);
+        // The battle: Copy your saved ship puts the copy first in the hangar and chosen; Custom ship with
+        // nothing chosen says to choose, and with the Aurora Thunderforge chosen opens a copy's fields to change.
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        await p.evaluate('battleShow()');
+        for (let i = 0; i < 240 && !await p.evaluate("!!flightData() && !!BATTLE.hangar && !PUMPING"); i++) await wait(250);
+        const battle = await p.evaluate(`(() => {
+          const out = {}, row = () => document.querySelector('#battleRows .shipRow');
+          document.querySelector('[data-battle-do="yours"]').click();
+          const r = row();
+          out.yours = r && r.querySelector('.nm').textContent; out.armed = BATTLE.armed; out.made = EDITS.has('shïp ' + BATTLE.armed) && EDITS.has('shän ' + BATTLE.armed);
+          out.yoursNote = document.getElementById('battleResult').textContent;
+          const id = BATTLE.armed;
+          r.querySelector('[data-bdel]').click();
+          out.removed = !EDITS.has('shïp ' + id) && !BATTLE.classes.some(c => c.id === id);
+          BATTLE.armed = null;
+          document.querySelector('[data-battle-do="custom"]').click();
+          out.customNote = document.getElementById('battleResult').textContent;
+          BATTLE.armed = 380;
+          document.querySelector('[data-battle-do="custom"]').click();
+          out.custom = SHIPS.on && !BATTLE.on && SHIPS.id !== 380 && !!document.querySelector('.fieldsBox table.editing input[data-f="Accel"]');
+          out.customName = (document.querySelector('.fieldsBox table.editing input[data-f=""]') || {}).value;
+          EDITING = null; EDITS.clear(); pluginChanged();
+          return out;
+        })()`);
+        return Object.assign(first, { battle }); } });
     for (const e of pageErrors(r.console)) fail('the save file: ' + describe(e));
     const o = r.more || {};
     if (!r.met) fail('the save file: never opened');
@@ -1032,6 +1057,12 @@ try {
         fail(`the save file: the panel says ${JSON.stringify(o)}`);
       if (!/you are here/.test(o.here || '') || !o.after) fail(`the save file: Aurora's panel says ${JSON.stringify(o.here)}, and after a new game ${o.after}`);
       console.log(`the save file: Robert's, in ${o.sys}, ${o.ship}, ${o.date}, ${o.credits} credits; gone from the panel as at a new game`);
+      const b = o.battle || {};
+      if (b.yours !== 'Aurora Thunderforgemade here: change · remove' || !b.made || !(b.armed >= 128 && b.armed <= 895) || !/tap the arena/.test(b.yoursNote || '') || !b.removed)
+        fail(`the save file in the battle: ${JSON.stringify(b)}`);
+      else if (!/Tap a ship in the list first/.test(b.customNote || '') || !b.custom || b.customName !== 'Aurora Thunderforge (custom)')
+        fail(`Custom ship: ${JSON.stringify(b)}`);
+      else console.log(`the battle: Robert's ship copied as ship ${b.armed}, first in the hangar, and removed; a custom ship's fields open to change`);
     }
   }
 

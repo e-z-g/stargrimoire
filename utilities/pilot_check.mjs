@@ -12,7 +12,9 @@
 //     date, and a count of those with 1.0.10's ships and stellars;
 //   - a key changed by one bit, which must give another version, and a
 //     layout with one field moved, which the comparison with FlipNpil must
-//     find.
+//     find;
+//   - Robert's ship copied as a ship class, against figures worked by hand
+//     from his outfits, with a copy bent to fail.
 // Needs python3 and otool for flipnpil.py, and perl for simpleCrypt;
 // without them that part skips.
 import fs from 'node:fs';
@@ -126,6 +128,35 @@ else {
   const version = b => new DataView(S.novaPilotCrypt(b).buffer).getInt16(0);
   if (version(off) === version(raw)) fail('a key one bit off reads the same version');
   else console.log(`a key one bit off: version ${version(off)} in place of ${version(raw)}`);
+}
+
+// ---- Robert's ship copied (novaPilotShip, novaShipCopy), against sums worked by hand from his outfits in
+// 1.0.10: the Aurora Thunderforge (shïp 380) with Holds 75 - 15 - 4 x 12 (Mass Expansion, four Mass Retools) = 12;
+// Shield 700 + 100 (Sigma Electrical Rewiring) = 800; Armor 1100 + 4 x 100 (TripHammers) = 1500; Accel 395 + 75
+// (Port & Polish) - 2 (Storm Chaingun) + 60 (Sigma Engine Tune-up) + 4 x 20 = 608; Speed 340 - 6 - 2 - 8 + 25 - 2
+// - 4 + 30 = 373; Maneuver 20 + (-2 - 4 + 10 + 125 + 75 + 20) / 10 = 42.4, kept as 42; Fuel 500 + 100 + 100 = 700;
+// ShieldRech 50 + 50 = 100. His eight weapons in the slots, his ammunition for the IR and radar missiles, and
+// wëap 155, of which he has ammunition alone, left out. The record written reads back with those fields and
+// every other as the class's; its id is the first from 128 that no shïp has. A copy that adds Maneuver's
+// ModVal without the ÷ 10 must fail.
+const robert = found.find(f => f.path.endsWith(path.join('EVN', 'Plugins', 'Pilots', 'Pilots', 'Robert')));
+if (robert && haveRelease('1.0.10')) {
+  const g = openRelease(S, '1.0.10', null), save = S.novaReadPilot(robert.fork, 'Robert');
+  const want = { Holds: 12, Shield: 800, Armor: 1500, Accel: 608, Speed: 373, Maneuver: 42, Fuel: 700, ShieldRech: 100,
+    WeapType: [134, 135, 143, 144], WeapType2: [158, 161, 162, 232], WeapCount: [2, 2, 6, 1], WeapCount2: [4, 1, 4, 4], AmmoLoad: [200, 149, 0, 0], AmmoLoad2: [0, 0, 0, 0] };
+  const differs = got => Object.keys(want).filter(k => JSON.stringify(got[k]) !== JSON.stringify(want[k]));
+  const copy = S.novaPilotShip(g, save), res = S.novaShipCopy(g, copy.from, copy.name, copy.change);
+  const back = S.novaRecord('shïp', res[0].data), cls = S.novaGet(g, 'shïp', 380);
+  const bad = differs(back), others = Object.keys(back).filter(k => !(k in copy.change) && JSON.stringify(back[k]) !== JSON.stringify(cls[k]));
+  if (copy.from !== 380 || copy.name !== 'Aurora Thunderforge') fail(`Robert's ship: shïp ${copy.from}, "${copy.name}"`);
+  if (bad.length) fail(`Robert's ship copied: ${bad.map(k => `${k} ${JSON.stringify(back[k])}`).join('; ')}`);
+  if (others.length) fail(`Robert's ship copied: fields not the class's: ${others.join(', ')}`);
+  let free = 128; while (g.list('shïp').some(e => e.id === free)) free++;
+  if (res[0].id !== free || res[1].type !== 'shän' || res[1].id !== free) fail(`Robert's ship copied as ${res.map(r => r.type + ' ' + r.id).join(', ')}, not ${free}`);
+  const m = S.NOVA_PILOT_SHIP_ADDS.find(a => a[0] === 'Maneuver');
+  m[2] = 1; const bent = S.novaPilotShip(g, save); m[2] = 0.1;
+  if (!differs(bent.change).includes('Maneuver')) fail('a copy adding Maneuver\'s ModVal whole passed');
+  if (!bad.length && !others.length) console.log(`Robert's ship copied as shïp ${res[0].id}: ${Object.keys(want).length} fields as worked by hand, the rest the class's; Maneuver bent to ${bent.change.Maneuver} found`);
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

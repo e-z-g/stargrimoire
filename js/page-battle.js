@@ -22,6 +22,14 @@
    ammunition and fuel are topped back up to what it started with after
    every step (the maintainer's request, 6 October 2026).
 
+   Two buttons make a new ship class (the maintainer's request, 22 October
+   2026), a copy of another kept with the records changed here, so that it
+   is saved with the plug-in. Copy your saved ship, there while a save file
+   is open, copies its ship's class with its weapons and outfits
+   (novaPilotShip). Custom ship copies the class chosen in the list and
+   opens its fields to change in the Ships view. The hangar lists these
+   first, each with links to change or remove it.
+
    The view follows the ships, zoomed to keep them all on the screen,
    until it is zoomed or dragged by hand; Follow brings it back. The bar's
    Battle, and the address #battle, which records the setup (battleHash).
@@ -34,7 +42,7 @@ const BATTLE = {
   on: false, govt: [null, null], setup: [], w: null, placed: [],
   paused: false, speed: 1, due: 0, last: 0, tick: null,
   cam: { x: 0, y: 0, s: 0.6 }, follow: true, shown: '', cw: 0, ch: 0,
-  q: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0, side: 10, ammo: false,
+  q: '', note: '', many: 1, armed: null, hangar: null, pick: null, pickShown: 0, want: null, ai: 3, kills: 0, side: 10, ammo: false,
 };
 const BATTLE_COLOURS = ['#5fa8ff', '#ff7a5f'];
 const BATTLE_FACING = [90, 270];   // side 1 faces right, side 2 left
@@ -134,10 +142,11 @@ function battlePanel() {
     <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
     <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>
     <label class="battle-row"><input type="checkbox" data-battle="ammo"${BATTLE.ammo ? ' checked' : ''}> Ammunition never runs out</label>
+    <div class="actions">${PILOT ? '<button data-battle-do="yours">Copy your saved ship</button>' : ''}<button data-battle-do="custom">Custom ship</button></div>
     ${side(0)}${side(1)}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
-    <p class="note" id="battleResult"></p>
+    <p class="note" id="battleResult">${esc(BATTLE.note)}</p>
     ${w ? '<div id="battleInspect"></div>' : ''}`;
   battleStatus(true);
   battleInspect(true);
@@ -157,6 +166,7 @@ function battleHangar(D) {
     BATTLE.open = new Set();
     BATTLE.classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0)
       .sort((a, b) => (b.rec.DispWeight || 0) - (a.rec.DispWeight || 0) || a.id - b.id);
+    for (const c of BATTLE.classes) c.made = !GAME.get('shïp', c.id, { under: true });
   }
   battleFilter();
 }
@@ -164,11 +174,16 @@ function battleFilter() {
   const all = BATTLE.classes || [], q = BATTLE.q.trim().toLowerCase();
   const match = c => !q || String(c.id) === q || (c.name + ' ' + (c.rec.Subtitle || '')).toLowerCase().includes(q);
   const groups = new Map();
-  for (const c of all) { if (!groups.has(c.sprite)) groups.set(c.sprite, []); groups.get(c.sprite).push(c); }
+  for (const c of all) if (!c.made) { if (!groups.has(c.sprite)) groups.set(c.sprite, []); groups.get(c.sprite).push(c); }
   const row = (c, sub) => `<div class="shipRow battleShip${sub ? ' sub' : ''}" data-bcls="${c.id}">${sub ? '' : '<canvas class="thumb" width="44" height="44"></canvas>'}` +
     `<span class="nm">${esc(c.name)}${c.rec.Subtitle ? `<small>${esc(c.rec.Subtitle)}</small>` : ''}</span>` +
     `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
+  // a ship class made here (Custom ship, Copy your saved ship): its own row, first, to change or remove
+  const made = c => `<div class="shipRow battleShip" data-bcls="${c.id}"><canvas class="thumb" width="44" height="44"></canvas>` +
+    `<span class="nm">${esc(c.name)}<small>made here: <a href="#" data-bedit="${c.id}">change</a> · <a href="#" data-bdel="${c.id}">remove</a></small></span>` +
+    `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
   let html = '', n = 0;
+  for (const c of all) if (c.made && match(c)) { html += made(c); n++; }
   for (const [k, g] of groups) {
     const m = g.filter(match);
     if (!m.length) continue;
@@ -255,6 +270,9 @@ function battleChange(e) {
   else if (k === 'kills') { BATTLE.kills = +t.value; if (BATTLE.w) BATTLE.w.kills = BATTLE.kills; battleWriteHash(); }
 }
 function battleDo(what) {
+  BATTLE.note = '';
+  if (what === 'yours') return battleCopyYours();
+  if (what === 'custom') return battleCustom(BATTLE.armed);
   if (what === 'pause') { BATTLE.paused = !BATTLE.paused; battleRun(); }
   else if (what === 'follow') BATTLE.follow = !BATTLE.follow;
   else if (what.startsWith('speed:')) BATTLE.speed = +what.slice(6);
@@ -265,6 +283,57 @@ function battleDo(what) {
   else if (what === 'random') battleRandom();
   battlePanel();
   battleDraw();
+}
+
+/* ---- ship classes made here ----------------------------------------------- */
+
+/* Copy your saved ship and Custom ship add a ship class to the records
+   changed here (page-plugin.js), copied from another (novaShipCopy): so
+   it is in the hangar, its fields are changed as any record's are, and it
+   is saved with the plug-in. The arena's setup is kept through the
+   records being read again. */
+function battleAddMade(resources, note) {
+  battleKeepSetup(() => { for (const r of resources) EDITS.set(editKey(r.type, r.id), r); });
+  BATTLE.armed = resources[0].id;
+  BATTLE.note = note;
+  battlePanel(); battleDraw();
+}
+function battleKeepSetup(change) {
+  const keep = BATTLE.setup;
+  change();
+  pluginChanged();
+  const D = flightData();
+  BATTLE.setup = D ? keep.filter(e => D.classes.has(e.cls)) : [];
+}
+// Your ship as the save file has it, a copy of its class with the save's weapons and outfits (novaPilotShip).
+function battleCopyYours() {
+  const D = flightData(), got = PILOT && novaPilotShip(GAME, PILOT.save);
+  if (!D || !got) { BATTLE.note = 'The save file\'s ship class is not in the open files.'; battlePanel(); return; }
+  const res = novaShipCopy(GAME, got.from, got.name, got.change);
+  if (!res) { BATTLE.note = 'Every ship number the game reads, 128 to 895, is taken.'; battlePanel(); return; }
+  const name = id => { const r = novaGet(GAME, 'wëap', id) || novaGet(GAME, 'oütf', id); return r ? novaNameParts(r.name).name : String(id); };
+  const left = [...got.left.weapons.map(name), ...got.left.outfits.map(name)];
+  battleAddMade(res, `${got.name} is ship ${res[0].id}, first in the list and chosen: tap the arena to put it down.` +
+    (left.length ? ` A ship class has eight weapon slots and eight outfit slots, so it is without ${left.join(', ')}.` : ''));
+}
+// A copy of the class chosen in the list, its fields open to change in the Ships view.
+function battleCustom(from) {
+  const cls = from !== null && GAME && novaGet(GAME, 'shïp', from);
+  if (!cls) { BATTLE.note = 'Tap a ship in the list first: Custom ship starts from a copy of it.'; battlePanel(); return; }
+  const res = novaShipCopy(GAME, from, `${novaNameParts(cls.name).name} (custom)`);
+  if (!res) { BATTLE.note = 'Every ship number the game reads, 128 to 895, is taken.'; battlePanel(); return; }
+  battleKeepSetup(() => { for (const r of res) EDITS.set(editKey(r.type, r.id), r); });
+  battleEditMade(res[0].id);
+}
+function battleEditMade(id) {
+  EDITING = editKey('shïp', id); EDIT_OPEN = EDITING;
+  battleLeave();
+  shipsShow(id);
+}
+function battleRemoveMade(id) {
+  battleKeepSetup(() => { EDITS.delete(editKey('shïp', id)); EDITS.delete(editKey('shän', id)); });
+  if (BATTLE.armed === id) BATTLE.armed = null;
+  battlePanel(); battleDraw();
 }
 
 /* ---- the arena ------------------------------------------------------------ */
@@ -592,7 +661,7 @@ function wireBattle() {
   // From the hangar: a drag (any way with a mouse, sideways with a finger, so that the list still scrolls), or a tap to choose the ship for the arena's next tap.
   $('battleRows').addEventListener('pointerdown', e => {
     const row = e.target.closest('[data-bcls]');
-    if (!row || e.target.closest('[data-binfo]')) return;
+    if (!row || e.target.closest('[data-binfo],[data-bedit],[data-bdel]')) return;
     press = { id: e.pointerId, cls: +row.dataset.bcls, look: row.dataset.blook !== undefined ? +row.dataset.blook : undefined, x: e.clientX, y: e.clientY, dragging: false, mouse: e.pointerType === 'mouse' };
   });
   window.addEventListener('pointermove', e => {
@@ -626,8 +695,12 @@ function wireBattle() {
   window.addEventListener('pointerup', endPress);
   window.addEventListener('pointercancel', endPress);
   $('battleRows').addEventListener('click', e => {
-    const i = e.target.closest('[data-binfo]');
-    if (i) { e.preventDefault(); battleLeave(); shipsShow(+i.dataset.binfo); }
+    const i = e.target.closest('[data-binfo],[data-bedit],[data-bdel]');
+    if (!i) return;
+    e.preventDefault();
+    if (i.dataset.bdel) return battleRemoveMade(+i.dataset.bdel);
+    if (i.dataset.bedit) return battleEditMade(+i.dataset.bedit);
+    battleLeave(); shipsShow(+i.dataset.binfo);
   });
 
   // On the arena: before the fight, dragging a ship moves it, and dragging it off the arena removes it; a tap puts down the chosen ship; else a drag pans and two fingers zoom.

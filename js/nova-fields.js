@@ -351,8 +351,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipShieldCapacity', 0x2995]],
     },
     Accel: {
-      note: 'Accel ÷ 10,000 is its acceleration, each 30th of a second. Yours: plus each ModType 7 outfit\'s ModVal ÷ 10,000. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100, then × 2; a third while another ship\'s tractor beam holds it; reduced by its ionization, by at most 70% (IonizeMax); Flags 0x0400 makes it 0.',
-      code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b]],
+      note: 'Accel ÷ 10,000 is its acceleration, each 30th of a second. Yours: plus each ModType 7 outfit\'s ModVal ÷ 10,000. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100, then × 2; a third while another ship\'s tractor beam holds it; reduced by its ionization, by at most 70% (IonizeMax); Flags 0x0400 makes it 0. A ship caught in a tractor beam matches the speed of the ship that fired it by a quarter of your acceleration each 30th of a second, whoever fired.',
+      code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['HandleShip', 0x33581]],
     },
     Speed: {
       note: 'Speed ÷ 100 is its top speed, each 30th of a second. Yours: plus each ModType 8 outfit\'s ModVal ÷ 100; then, for you and the ships flying with you, × 1.5 unless the pilot was made for strict play. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100; a third while another ship\'s tractor beam holds it; Flags 0x0400 makes it 0.',

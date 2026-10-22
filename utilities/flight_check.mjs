@@ -7,7 +7,8 @@
 //   2. One ship stepped (HandleShip 0x33581): turning at its rate and
 //      snapping to the heading; thrusting to its top speed, a step over at
 //      most, and past it on a second axis; an inertialess ship steering its
-//      velocity; an arrival from 50 a step, stopping where the sum puts it.
+//      velocity; an arrival from 50 a step, stopping where the sum puts it;
+//      a ship caught in a tractor beam matching the firer's velocity.
 //   3. A fleet's escorts in formation behind the lead.
 //   4. Odds: a system's düdes and a düde's ship types drawn 200,000 times
 //      each, against Probs; a picker broken on purpose must fail the test.
@@ -89,6 +90,28 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   eq('inertialess, one step', [Math.round(q.vx * 1000) / 1000, Math.round(q.vy * 1000) / 1000], [0.4, 0.6]);
   for (let i = 0; i < 10; i++) S.novaHandleShip(w, q);
   eq('inertialess, steered', [Math.round(q.vx * 1000) / 1000, Math.round(q.vy * 1000) / 1000], [2, 0]);
+}
+{
+  // A tractor beam's catch (HandleShip 0x33fc3): the firer's Accel 1000, 0.2 a step, a quarter of it 0.05;
+  // the caught ship's 500, 0.1. Still, beside a firer moving 1.02 a step to the right, it is eased 0.05 a step
+  // to 1 on the 20th step, and set to 1.02 there, being within 0.05; up and down it stays at rest. Caught on
+  // an asteroid, it eases to rest by a quarter of its own: 0.06, 0.035, then 0. A hold eased by the caught
+  // ship's own acceleration takes 41 steps, and must fail the test.
+  const steps = hold => {
+    const w = world(), f = ship(cls({ accel: Math.fround(0.1) }), { slot: 1, vx: Math.fround(1.02) }), s = ship(cls(), { slot: 2, tractor: 1 });
+    w.ships[1] = f; w.ships[2] = s;
+    let n = 0;
+    while (s.vx !== f.vx && n < 100) { hold(w, s); n++; }
+    return [n, s.vx, s.vy];
+  };
+  eq('tractor beam: steps to match the firer', steps(S.novaTractorHold), [20, Math.fround(1.02), 0]);
+  const bent = (w, s) => { const keep = w.ships[1]; w.ships[1] = Object.assign({}, keep, { cls: s.cls }); S.novaTractorHold(w, s); w.ships[1] = keep; };
+  if (steps(bent)[0] === 20) fail('tractor beam: a hold eased by the caught ship\'s acceleration passed the test');
+  const w = world(), s = ship(cls(), { slot: 2, vx: Math.fround(0.06), tractor: 2 });
+  w.ships[2] = s;
+  const vs = [];
+  for (let i = 0; i < 3; i++) { S.novaTractorHold(w, s); vs.push(Math.round(s.vx * 1000) / 1000); }
+  eq('tractor beam on an asteroid: to rest', vs, [0.035, 0, 0]);
 }
 {
   // An arrival: desired speed -50, less 1.165 a step, the velocity |desired| along the heading, until it is

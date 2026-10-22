@@ -44,7 +44,7 @@
    32-bit instructions no compiler of the period emitted for an
    application (the byte-reversed loads, the string moves, fmadd, fsel, the
    segment-register ones) are among the unread; add one here and the check
-   will say whether it was spelt LLVM's way. */
+   will say whether it was spelled LLVM's way. */
 
 function ppcSext16(v) { return (v & 0x8000) ? v - 0x10000 : v; }
 function ppcRel(d) { return '.' + (d < 0 ? '-' + (-d) : '+' + d); }

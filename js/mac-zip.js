@@ -29,7 +29,7 @@
    looks (js/mac-stuffit.js). An `._` entry that does not contain AppleDouble is
    left in the list as an ordinary file.
 
-   NAMES. UTF-8 when the entry's flag is set, and also when the bytes are
+   NAMES. UTF-8 when the entry's flag is set, or when the bytes are
    valid UTF-8 without it, because the Finder writes UTF-8 names and does not
    set the flag. Otherwise Mac Roman: a zip made on a classic Mac is the case
    this page is for, and a name that is not valid UTF-8 is far likelier
@@ -239,9 +239,9 @@ function zipFork(bytes, entry, which) {
       (ZIP_METHOD_NAMES[entry.method] ? ' (' + ZIP_METHOD_NAMES[entry.method] + ')' : '') +
       ', which this page does not decompress');
   }
-  const got = crc32(out);
-  if (got !== entry.crc)
-    throw new Error(where + ' fails its CRC-32: ' + got.toString(16).padStart(8, '0') +
+  const actualCrc = crc32(out);
+  if (actualCrc !== entry.crc)
+    throw new Error(where + ' fails its CRC-32: ' + actualCrc.toString(16).padStart(8, '0') +
       ' where the archive has ' + entry.crc.toString(16).padStart(8, '0'));
   return out;
 }

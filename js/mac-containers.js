@@ -94,9 +94,9 @@ function binhexDecode(bytes) {
    * 0x90. A plain JS array here meant about seven million boxed Numbers for
    * Cythera Data, which is enough to kill a tab on a phone. */
   let cap = p + (p >> 1) + 64, out = new Uint8Array(cap), o = 0;
-  const ensure = need => {
-    if (o + need <= cap) return;
-    while (o + need > cap) cap *= 2;
+  const ensure = extra => {
+    if (o + extra <= cap) return;
+    while (o + extra > cap) cap *= 2;
     const grown = new Uint8Array(cap); grown.set(out.subarray(0, o)); out = grown;
   };
   for (let i = 0; i < p;) {
@@ -184,7 +184,7 @@ function appleSingleForks(b) {
  * ORDER MATTERS. BinHex is tested first because its 7-bit text can, by
  * coincidence, satisfy the looser MacBinary shape test. AppleSingle comes
  * before MacBinary for the same reason in reverse: AppleSingle has a real
- * magic number, MacBinary is recognised only by a few zeroed reserved bytes,
+ * magic number, MacBinary is recognized only by a few zeroed reserved bytes,
  * and an AppleSingle header happens to satisfy those.
  *
  * Returns null when the bytes are not wrapped in anything -- which is the

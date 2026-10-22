@@ -19,7 +19,7 @@
    and kept from block to block as differences. A block may instead be
    PPMd, variant H, which this file reads too. And a stretch of output may
    be put through a filter, sent as a program for RAR's virtual machine:
-   the ones WinRAR wrote are known by their programs' CRC-32, and are run
+   the ones WinRAR wrote are known by their programs' CRC-32 and are run
    here as native code, as XADMaster runs them: E8 and E8E9 (x86
    call addresses), delta and audio. Any other program throws.
 
@@ -394,7 +394,7 @@ function rarApplyFilters(win, filters) {
   let prevStart = -1, prevLength = -1;
   for (const f of filters) {
     if (typeof f.kind !== 'string' || f.kind.indexOf(':') >= 0)
-      throw new Error('RAR: a filter program this page does not recognise (' + f.kind + ')');
+      throw new Error('RAR: a filter program this page does not recognize (' + f.kind + ')');
     const chained = f.start === prevStart && f.length === prevLength;
     const length = f.registers[4];   // XADMaster uses the register, not the block length
     const blockLen = f.length;
@@ -930,10 +930,10 @@ function ppmhCreateSuccessors(m, skip, state) {
     else { list.push(state); if (!phSuffix(m, context)) done = true; }
   }
   if (!done) {
-    const want = phSym(m, m.FoundState);
+    const symbol = phSym(m, m.FoundState);
     do {
       context = phSuffix(m, context);
-      if (phLast(m, context) !== 0) { state = phStates(m, context); while (phSym(m, state) !== want) state += 6; }
+      if (phLast(m, context) !== 0) { state = phStates(m, context); while (phSym(m, state) !== symbol) state += 6; }
       else state = context + 2;
       if (phSucc(m, state) !== upbranch) { context = phSucc(m, state); break; }
       list.push(state);

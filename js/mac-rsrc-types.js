@@ -35,7 +35,7 @@
  *
  * CLASSIC SCRIPT -- no `type="module"`. See js/mac-bytes.js for why.
  * LOAD ORDER: after mac-bytes.js and mac-media.js, whose readers and WAV
- * writer this uses; mac-resfork.js opens the fork these decode the contents of.
+ * writer this uses; mac-resfork.js opens the fork whose contents these decode.
  */
 
 // ============================================================
@@ -46,7 +46,7 @@
 // crc32 and buildZip are in js/mac-export.js -- the data viewer grew the same
 // store-only ZIP writer, field for field.
 // Record the palette indices a canvas was drawn from, so it can be saved as
-// a real indexed PNG instead of being re-photographed as truecolour. A canvas
+// a real indexed PNG instead of being re-photographed as truecolor. A canvas
 // drawn through a 1-bit mask retains its alpha and is left alone: PNG's tRNS can
 // make one palette slot transparent, not an arbitrary shape.
 function tagIndexed(canvas, W, H, indices, palette, maskBits){
@@ -82,7 +82,7 @@ function decodeLite(data){
   let mx=0; for(let i=1;i<data.length;i++) if(data[i]>mx) mx=data[i];
   for(let y=0;y<n;y++) for(let x=0;x<n;x++){
     const v=data[1+y*n+x], p=(y*n+x)*4, t=mx?v/mx:0;
-    // A light, so warm rather than grey: the game's torchlight.
+    // A light, so warm rather than gray: the game's torchlight.
     img.data[p]=Math.round(255*Math.min(1,t*1.1));
     img.data[p+1]=Math.round(226*t);
     img.data[p+2]=Math.round(150*t*t);
@@ -111,7 +111,7 @@ function decodeLite(data){
    Its art is not the game's. Comparing all sixteen tiles against the 2,376
    distinct tiles in the archive's sheets, only the two solid black ones match:
    the other fourteen -- banded walls, a lattice frieze, pillars, a starfield,
-   grey stone, lava, foliage, panel frames and a pair of arrows -- appear
+   gray stone, lava, foliage, panel frames and a pair of arrows -- appear
    nowhere in Cythera. It is art the executable contains and the shipped
    scenario never draws. It uses the animated palette slots (0xE8, 0xEC, 0xEE
    in the water cycle, and 0xF1, 0xF8), so whoever drew it was working to the
@@ -140,9 +140,9 @@ function decodeTileSheetResource(data){
   ctx.putImageData(img,0,0);
   const used=new Set(strip); const anim=[...used].filter(v=>v>=0xE0&&v<=0xFB).sort((a,b)=>a-b);
   return { canvas:tagIndexed(c,g.W,g.H,g.image,PAL_RGB), indices:strip,
-    text:'A Delver tile sheet: sixteen 32×32 tiles stored as one 32×512 column, '+
-      'shown as the 4×4 grid.\n'+used.size+' colors from the game’s palette'+
-      (anim.length?'; '+anim.length+' in the animated range ('+
+    text:'A Delver tile sheet of sixteen 32×32 tiles, stored as one 32×512 column '+
+      'and shown as a 4×4 grid.\n'+used.size+' colors from the game’s palette'+
+      (anim.length?', '+anim.length+' of them in the animated range ('+
         anim.map(v=>'0x'+v.toString(16).toUpperCase()).join(', ')+')':'')+'.' };
 }
 
@@ -174,8 +174,8 @@ function decodeTxCl(data){
     ctx.fillStyle='rgb('+col[0]+','+col[1]+','+col[2]+')';
     ctx.fillRect(i*16,0,16,16);
   }
-  return { canvas:c, text:'Colors by palette index: '+
-    Array.from(data,v=>'0x'+v.toString(16).toUpperCase().padStart(2,'0')).join(', ') };
+  return { canvas:c, text:'Colors by palette index ('+
+    Array.from(data,v=>'0x'+v.toString(16).toUpperCase().padStart(2,'0')).join(', ')+')' };
 }
 
 /* `RMAP` declares that a resource of one type is to be read as another. The single
@@ -311,16 +311,16 @@ function decodeIdNameTable(data){
    One thing that would fit and is not established: DATA 258 and 265 are 8,192
    bytes each and DATA 268 is 4,096, which are exactly a 64 by 64 level's
    layers at two bytes and one byte a square. All three are entirely zero, so
-   there is nothing in them to confirm it with. */
+   nothing in them can confirm it. */
 function decodeLINF(data){
   if(data.length!==12) return null;
   const s=[]; for(let i=0;i<12;i+=2) s.push(u16be(data,i));
   const sg=v=>v>0x7fff?v-0x10000:v;
   return `Six shorts: ${s.map(sg).join(', ')}.\n`+
-         `The first two read as a size, ${s[0]} by ${s[1]}. Nobody has worked out what the record is for.`;
+         `The first two read as a size, ${s[0]} by ${s[1]}. Nobody has worked out what the record does.`;
 }
 
-/* The colour cycles, as the editor stores them.
+/* The color cycles, as the editor stores them.
 
    Five three-byte entries, (first index, length, flag), ending at a pair of
    zero bytes. The page animates five cycles itself and the two match
@@ -340,9 +340,9 @@ function decodeCycleTable(data){
     rows.push({start:data[p], count:data[p+1], flag:data[p+2]});
   }
   if(rows.length<2) return null;
-  return rows.length+' color cycles, as (first index, length, flag):\n'+
+  return rows.length+' color cycles, each listed as first index, length and flag.\n'+
     rows.map(r=>`  0x${r.start.toString(16).toUpperCase().padStart(2,'0')}  ${r.count} entries  flag ${r.flag}`).join('\n')+
-    '\n\nThe starting indices here are 16 lower than the ones the game animates; nobody has worked out why they differ by 16.';
+    '\n\nThe starting indices here are 16 lower than the ones the game animates. Nobody has worked out why.';
 }
 
 // A resource that is entirely zero is read, not unread, and stating which it is
@@ -672,10 +672,10 @@ function decodePAT(data){
 //   0 patType 2 | 2 patMap 4 | 6 patData 4 | 10 patXData 4 | 14 patXValid 2
 //  16 patXMap 4 | 20 pat1Data 8   -> 28 bytes, then PixMap, pixels, ColorTable
 // (the same field order as the CCrsr record decoded above it).
-// patType 1 is a colour pattern, 2 an RGB pattern, 0 a plain 1-bit one.
+// patType 1 is a color pattern, 2 an RGB pattern, 0 a plain 1-bit one.
 // The previous version scanned for a 0x0001 word, threw the result away, and
 // always drew data[0..8] -- which is the header, not pattern pixels, so every
-// colour ppat rendered as noise.
+// color ppat rendered as noise.
 function decodePpat(data){
   if(data.length===8) return decodePAT(data);        // a bare PAT stored as ppat
   if(data.length<28) throw new Error('ppat resource is shorter than a PixPat record');
@@ -701,7 +701,7 @@ function decodePpat(data){
   return c;
 }
 // cicn, crsr and ppat all finish with the same loop: indexed pixels through a
-// colour table, optionally cut out by a 1-bit mask.
+// color table, optionally cut out by a 1-bit mask.
 function renderIndexedPixels(data,pixOff,rowBytes,W,H,pixelSize,palette,maskBits,maskRowBytes){
   const ppb=8/pixelSize, pmask=(1<<pixelSize)-1;
   const c=document.createElement('canvas'); c.width=W; c.height=H;
@@ -727,12 +727,12 @@ function renderIndexedPixels(data,pixOff,rowBytes,W,H,pixelSize,palette,maskBits
 // negative origin into ~65000 and yields nonsense widths.
 function s16(b,i){const v=(b[i]<<8)|b[i+1];return v>32767?v-65536:v;}
 function readRect(data,p){return {top:s16(data,p),left:s16(data,p+2),bottom:s16(data,p+4),right:s16(data,p+6)};}
-// A colour table is ctSeed, ctFlags, ctSize-1, then (value, r, g, b) entries.
+// A color table is ctSeed, ctFlags, ctSize-1, then (value, r, g, b) entries.
 // With the high bit of ctFlags clear the `value` field is the pixel value the
-// entry stands for; with it set the table is a device colour table, every
+// entry stands for; with it set the table is a device color table, every
 // `value` is written 0, and the entry's POSITION is its pixel value. Four of
 // the nineteen PICTs in Cythera Data are that second kind -- 131, 512 and 513
-// (8-bit, in the game's palette) came out as one colour, since every
+// (8-bit, in the game's palette) came out as one color, since every
 // entry landed on palette[0] and the other 255 pixel values fell to the
 // magenta placeholder. Inside Macintosh: Imaging With QuickDraw, "Color
 // Tables" (ctFlags), is the reference, and both other implementations
@@ -753,9 +753,9 @@ function readPictPixmap(data,p,hasBaseAddr){
   p+=2; const packType=u16be(data,p);p+=2;p+=4;p+=4;p+=4; const pixelType=u16be(data,p);p+=2; const pixelSize=u16be(data,p);p+=2;const cmpCount=u16be(data,p);p+=2;const cmpSize=u16be(data,p);p+=2;p+=4;p+=4;p+=4;
   return {rowBytes,bounds,packType,pixelType,pixelSize,cmpCount,cmpSize,p};
 }
-function unpackBitsPict(data,p,packedLen,want){
-  const src=data.slice(p,p+packedLen),out=new Uint8Array(want);let si=0,oi=0;
-  while(si<src.length&&oi<want){let n=i8(src,si++);if(n>=0){let ct=n+1;while(ct--&&si<src.length&&oi<want)out[oi++]=src[si++];}else if(n!==-128){if(si>=src.length)break;let ct=1-n,v=src[si++];while(ct--&&oi<want)out[oi++]=v;}}
+function unpackBitsPict(data,p,packedLen,unpackedLen){
+  const src=data.slice(p,p+packedLen),out=new Uint8Array(unpackedLen);let si=0,oi=0;
+  while(si<src.length&&oi<unpackedLen){let n=i8(src,si++);if(n>=0){let ct=n+1;while(ct--&&si<src.length&&oi<unpackedLen)out[oi++]=src[si++];}else if(n!==-128){if(si>=src.length)break;let ct=1-n,v=src[si++];while(ct--&&oi<unpackedLen)out[oi++]=v;}}
   return out;
 }
 function renderPictIndexed(pm,palette,rows){
@@ -820,12 +820,12 @@ function decodeDirectBitsRows(data,p,pm){
   }
   return {rows,p};
 }
-function unpackBitsPictWords(data,p,packedLen,want){
-  const src=data.slice(p,p+packedLen),out=new Uint8Array(want);let si=0,oi=0;
-  while(si<src.length&&oi<want){
+function unpackBitsPictWords(data,p,packedLen,unpackedLen){
+  const src=data.slice(p,p+packedLen),out=new Uint8Array(unpackedLen);let si=0,oi=0;
+  while(si<src.length&&oi<unpackedLen){
     const n=i8(src,si++);
-    if(n>=0){ let ct=(n+1)*2; while(ct--&&si<src.length&&oi<want) out[oi++]=src[si++]; }
-    else if(n!==-128){ if(si+1>=src.length) break; const hi=src[si++],lo=src[si++]; let ct=1-n; while(ct--&&oi+1<want){ out[oi++]=hi; out[oi++]=lo; } }
+    if(n>=0){ let ct=(n+1)*2; while(ct--&&si<src.length&&oi<unpackedLen) out[oi++]=src[si++]; }
+    else if(n!==-128){ if(si+1>=src.length) break; const hi=src[si++],lo=src[si++]; let ct=1-n; while(ct--&&oi+1<unpackedLen){ out[oi++]=hi; out[oi++]=lo; } }
   }
   return out;
 }
@@ -914,7 +914,7 @@ function decodePictPackBits(data,pre){
     // BitsRect/BitsRgn: an old-style 1-bit BitMap whose rows are stored
     // UNPACKED, which is the only thing separating them from 0x98/0x99. The
     // header is identical -- rowBytes, bounds, srcRect, dstRect, mode -- and
-    // there is no colour table. These were walked past for alignment and
+    // there is no color table. These were walked past for alignment and
     // never drawn, so a picture built from several CopyBits came out partial
     // in the browser and complete everywhere else; systemless renders them in
     // src/trap/pict.rs (parse_bits_rect) and alchemy/port in pict.cpp, so the
@@ -936,7 +936,7 @@ function decodePictPackBits(data,pre){
   if(foundOp===0x0098||foundOp===0x0099){
     // PackBitsRect/Rgn may have either a PixMap (high bit of rowBytes set) or
     // an old-style 1-bit BitMap. The BitMap header is only rowBytes+bounds and
-    // has no colour table, so parsing it as a PixMap reads 36 bytes of garbage.
+    // has no color table, so parsing it as a PixMap reads 36 bytes of garbage.
     if(!(u16be(data,p)&0x8000)){
       const rowBytes=u16be(data,p)&0x3fff; p+=2;
       const bounds=readRect(data,p); p+=8;
@@ -1014,18 +1014,18 @@ function decodePict(data){
 /* pictReplacePixels(data, rgba, W, H) is the PICT with its image's pixels
    replaced by `rgba` (W*H*4 bytes, in the order of a canvas's ImageData) and
    every other byte as it was: the frame, the opcodes before the image, the
-   colour table, the source and destination rectangles, the transfer mode,
+   color table, the source and destination rectangles, the transfer mode,
    the mask region and whatever follows the image. The picture's form is
-   unchanged as well, so an 8-bit picture stays 8-bit in the same colour
+   unchanged as well, so an 8-bit picture stays 8-bit in the same color
    table and a 16-bit one stays 16-bit, and whatever drew the old pixels
    draws the new ones the same way. Written for a person who saves a picture
    as a PNG, edits it and puts it back.
 
-   An indexed picture can hold only the colours in its table. A pixel whose
-   colour is the one already there is given the index it had, so an
-   unchanged pixel comes back as the same byte even where one colour is in
-   the table at two indices; any other colour is given the first index with
-   that exact colour, and failing that the nearest by RGB distance. Alpha is
+   An indexed picture can hold only the colors in its table. A pixel whose
+   color is the one already there is given the index it had, so an
+   unchanged pixel comes back as the same byte even where one color is in
+   the table at two indices; any other color is given the first index with
+   that exact color, and failing that the nearest by RGB distance. Alpha is
    ignored: a PICT has no transparency apart from a mask region, and the
    mask region is not changed.
 
@@ -1034,9 +1034,9 @@ function decodePict(data){
    The rows are packed with PackBits as Apple's encoder packs them (a run of
    three or more repeats, anything shorter is a literal), so the bytes need
    not match the original's, only decode to the same pixels. */
-// The index a colour is given in a table of `count` entries: `old`, the
-// index the pixel had, when that index has the same colour; else the first
-// index with exactly that colour; else the nearest by RGB distance.
+// The index a color is given in a table of `count` entries: `old`, the
+// index the pixel had, when that index has the same color; else the first
+// index with exactly that color; else the nearest by RGB distance.
 function paletteIndexer(pal, count){
   const key=(r,g,b)=>(r<<16)|(g<<8)|b, exact=new Map(), near=new Map(), n=Math.min(pal.length,count);
   for(let i=0;i<n;i++) if(pal[i]&&!exact.has(key(...pal[i]))) exact.set(key(...pal[i]),i);
@@ -1065,8 +1065,8 @@ function packBitsUnits(src, unit){
   return out;
 }
 // Where a PICT's one image is and what form it has: the opcode, the pixel
-// map, the colour table for an indexed one, the offset its rows start at and
-// the offset they end at. The header is walked as decodePictPackBits walks
+// map, the color table for an indexed one, and the offsets where its rows
+// start and end. The header is walked as decodePictPackBits walks
 // it, field for field.
 function pictImageLayout(data){
   const found=findPictImageOpcode(data);
@@ -1170,17 +1170,17 @@ function pictReplacePixels(data, rgba, W, H){
 /* rsrcReplaceImage(type, data, rgba, W, H) is an image resource with its
    pixels replaced by `rgba`, for each type a page draws as one picture:
    PICT (pictReplacePixels), the black-and-white icons ICN# and ics#, the
-   colour icons icl4, icl8, ics4 and ics8, the cursors CURS and crsr, the
-   colour icon cicn and the pattern ppat. Every other byte is unchanged, and
+   color icons icl4, icl8, ics4 and ics8, the cursors CURS and crsr, the
+   color icon cicn and the pattern ppat. Every other byte is unchanged, and
    the size must be the resource's.
 
    A pixel that looks as the decoder draws the original is given the bits it
    had, so a PNG saved from the page and put back unchanged gives back the
-   same bytes. A pixel that changed is written from its colour and alpha:
+   same bytes. A pixel that changed is written from its color and alpha:
    alpha of half or more is inside the mask, where the resource has one
    (ICN#, ics#, CURS, crsr, cicn); a black-and-white plane is set where the
-   colour is dark; a colour plane is given the nearest colour of the
-   resource's table (paletteIndexer), the system's 16 or 256 colours for
+   color is dark; a color plane is given the nearest color of the
+   resource's table (paletteIndexer), the system's 16 or 256 colors for
    icl4 and icl8. A transparent pixel of a resource that has no mask is
    left as it was: an icl8 is drawn through its ICN#'s mask, so its
    outline is changed by replacing the ICN#. A pixel made transparent is
@@ -1189,7 +1189,7 @@ function pictReplacePixels(data, rgba, W, H){
 const RSRC_IMAGE_TYPES = new Set(['PICT','ICN#','ics#','icl4','icl8','ics4','ics8','CURS','crsr','cicn','ppat']);
 function rsrcImageWritable(type){ return RSRC_IMAGE_TYPES.has(type); }
 // Where each plane of a resource is: {off, rb} for a 1-bit plane, with
-// `bits` and `pal` for a colour one, and the size the decoder draws.
+// `bits` and `pal` for a color one, and the size the decoder draws.
 function rsrcImagePlanes(type, data){
   const icon=(n,bits,pal)=>({W:n,H:n,px:{off:0,rb:n*bits/8,bits,pal}});
   switch(type){
@@ -1235,8 +1235,8 @@ function rsrcReplaceImage(type, data, rgba, W, H){
   if(!rgba||rgba.length<W*H*4) throw new Error(`The image given has fewer than ${W}×${H} pixels.`);
   if(P.px&&(P.px.bits<1||P.px.bits>8||8%P.px.bits)) throw new Error(`A ${type} of ${P.px.bits} bits a pixel cannot be written.`);
   const out=new Uint8Array(data);
-  const need=pl=>pl.off+pl.rb*(pl.H||H);
-  for(const pl of [P.ink,P.mask,P.px]) if(pl&&need(pl)>out.length) throw new Error(`This ${type} is shorter than its planes.`);
+  const planeEnd=pl=>pl.off+pl.rb*(pl.H||H);
+  for(const pl of [P.ink,P.mask,P.px]) if(pl&&planeEnd(pl)>out.length) throw new Error(`This ${type} is shorter than its planes.`);
   const bitOf=(pl,x,y)=>(out[pl.off+y*pl.rb+(x>>3)]>>(7-(x&7)))&1;
   const setBit=(pl,x,y,v)=>{ const i=pl.off+y*pl.rb+(x>>3), m=1<<(7-(x&7)); out[i]=v?out[i]|m:out[i]&~m; };
   const ppb=P.px?8/P.px.bits:1, pmask=P.px?(1<<P.px.bits)-1:0;
@@ -1289,7 +1289,7 @@ function decodeCfrg(data){
   // memberSize at offset 42 locates the next one -- the name is a
   // Pascal string at 44 and the record is padded to an even length, so walking
   // by a fixed size does not work.
-  if(data.length<32) throw new Error(`cfrg needs 32 bytes of header, got ${data.length}`);
+  if(data.length<32) throw new Error(`cfrg is ${data.length} bytes, shorter than its 32-byte header`);
   const version=u16be(data,10), count=u16be(data,30);
   if(count>4096) throw new Error(`implausible fragment count (${count})`);
   const lines=[`${count} fragment${count===1?'':'s'}` + (version!==1?` (resource version ${version})`:'')];
@@ -1319,7 +1319,7 @@ function decodeCfrg(data){
     lines.push(`    extent       : offset ${offset===0?'0':'0x'+offset.toString(16)}, ` +
                (length===0?'to the end of the fork':`${length.toLocaleString()} bytes`));
     if(stackSize) lines.push(`    stack        : ${stackSize.toLocaleString()} bytes`);
-    if(memberSize<44||p+memberSize>data.length){ lines.push('    [member size is out of range; stopping]'); break; }
+    if(memberSize<44||p+memberSize>data.length){ lines.push('    [member size is out of range, so reading stops]'); break; }
     p+=memberSize;
   }
   return lines.join('\n');
@@ -1337,7 +1337,7 @@ function decodeCodeResource(type, id, data){
   const lines=[`${CODE_TYPES[type]||'68K code'} — ${data.length.toLocaleString()} bytes of Motorola 68000 machine code`];
   if(type==='CODE' && id===0){
     // The jump table header: above/below A5 sizes, then 8 bytes per entry.
-    if(data.length<16) throw new Error(`CODE 0 needs a 16-byte header, got ${data.length}`);
+    if(data.length<16) throw new Error(`CODE 0 is ${data.length} bytes, shorter than its 16-byte header`);
     const aboveA5=u32be(data,0), belowA5=u32be(data,4), tableSize=u32be(data,8), tableOffset=u32be(data,12);
     lines.length=0;
     lines.push('CODE 0 — the jump table, not code');
@@ -1545,8 +1545,8 @@ function trueTypeToSfnt(data){
     tables.push({tag, bytes:data.slice(off,off+len)});
   }
   const find=t=>tables.find(x=>x.tag===t);
-  for(const need of ['head','hhea','hmtx','maxp','glyf','loca','cmap'])
-    if(!find(need)) throw new Error('the font has no '+need+' table, so the Mac cannot draw with it'+(need==='glyf'?' (it is probably an .otf renamed)':''));
+  for(const tag of ['head','hhea','hmtx','maxp','glyf','loca','cmap'])
+    if(!find(tag)) throw new Error('the font has no '+tag+' table, so the Mac cannot draw with it'+(tag==='glyf'?' (it is probably an .otf renamed)':''));
   const c=find('cmap').bytes;
   const look=sfntUnicodeLookup(c);
   if(!look) throw new Error('the font’s character map is in a form this page cannot read');
@@ -1583,9 +1583,9 @@ function trueTypeToSfnt(data){
   const recs=[{pl:1,en:0,bytes:macSub}];
   if(uni) recs.push({pl:uni.pl,en:uni.en,bytes:uni.bytes});
   recs.sort((a,b)=>a.pl-b.pl||a.en-b.en);
-  let need=4+recs.length*8; const offs=[];
-  for(const r of recs){ offs.push(need); need+=r.bytes.length; }
-  const out=new Uint8Array(need); const odv=new DataView(out.buffer);
+  let totalLen=4+recs.length*8; const offs=[];
+  for(const r of recs){ offs.push(totalLen); totalLen+=r.bytes.length; }
+  const out=new Uint8Array(totalLen); const odv=new DataView(out.buffer);
   odv.setUint16(0,0); odv.setUint16(2,recs.length);
   recs.forEach((r,i)=>{ odv.setUint16(4+i*8,r.pl); odv.setUint16(6+i*8,r.en); odv.setUint32(8+i*8,offs[i]); out.set(r.bytes,offs[i]); });
   find('cmap').bytes=out;
@@ -1648,7 +1648,7 @@ function sfntTablesOf(data){
 }
 function sfntGlyphOutlines(data){
   const t=sfntTablesOf(data);
-  for(const need of ['head','hhea','hmtx','maxp','glyf','loca']) if(!t[need]) throw new Error('the font has no '+need+' table');
+  for(const tag of ['head','hhea','hmtx','maxp','glyf','loca']) if(!t[tag]) throw new Error('the font has no '+tag+' table');
   const s16=(b,o)=>(u16be(b,o)<<16)>>16;
   const upem=u16be(t.head,18), longLoca=s16(t.head,50)===1, n=u16be(t.maxp,4), nh=u16be(t.hhea,34);
   const loca=i=>longLoca?u32be(t.loca,i*4):u16be(t.loca,i*2)*2;
@@ -1765,15 +1765,15 @@ function decodeSfntInfo(data){
 // ============================================================
 //  Classic Mac system palettes + indexed icon families
 // ============================================================
-// Standard Mac OS 16-colour palette (icl4 / ics4).
+// Standard Mac OS 16-color palette (icl4 / ics4).
 const MAC_4BIT_PAL = [
   [255,255,255],[252,243,5],[255,100,3],[221,9,7],[242,8,132],[71,0,165],
   [0,0,211],[2,171,234],[31,183,20],[0,100,18],[86,44,5],[144,113,58],
   [192,192,192],[128,128,128],[64,64,64],[0,0,0]
 ];
-// Standard Mac OS 256-colour system palette (icl8 / ics8). Indices 0-214 are
-// the 6x6x6 colour cube with black removed, 215-254 are the pure red, green,
-// blue and grey ramps, and 255 is black.
+// Standard Mac OS 256-color system palette (icl8 / ics8). Indices 0-214 are
+// the 6x6x6 color cube with black removed, 215-254 are the pure red, green,
+// blue and gray ramps, and 255 is black.
 const MAC_8BIT_PAL = (function(){
   const p=[], lv=[255,204,153,102,51,0];
   for(const r of lv) for(const g of lv) for(const b of lv){
@@ -1791,12 +1791,12 @@ const MAC_8BIT_PAL = (function(){
 // Kept for the older call sites that used the "approximate" name.
 const MAC_8BIT_PAL_APPROX = MAC_8BIT_PAL;
 
-// icl4/icl8/ics4/ics8 are bare pixel arrays: no header, no mask, no colour
+// icl4/icl8/ics4/ics8 are bare pixel arrays: no header, no mask, no color
 // table. The mask lives in the matching ICN#/ics# resource, so if one is
 // present in the same fork we use it for transparency.
 function drawIndexedIcon(data, size, depth, palette, maskBits){
-  const need = size*size*depth/8;
-  if(data.length < need) throw new Error(`${size}\u00d7${size} ${depth}-bit icon needs ${need} bytes, got ${data.length}`);
+  const expectedLen = size*size*depth/8;
+  if(data.length < expectedLen) throw new Error(`${size}\u00d7${size} ${depth}-bit icon is ${data.length} bytes, not ${expectedLen}`);
   const ppb = 8/depth, mask=(1<<depth)-1, rowBytes=size*depth/8, mRow=size/8;
   const c=document.createElement('canvas'); c.width=size; c.height=size;
   const ctx=c.getContext('2d'), im=ctx.createImageData(size,size);
@@ -1828,7 +1828,7 @@ function iconMaskFor(fork, size){
 }
 
 // ============================================================
-//  cicn (colour icon)
+//  cicn (color icon)
 // ============================================================
 // PixMap(50) | mask BitMap(14) | icon BitMap(14) | iconData handle(4) |
 // mask bits | icon bits | ColorTable | pixel data
@@ -1846,7 +1846,7 @@ function decodeCicn(data){
   p+=4;                                     // iconData handle
   const mH=maskBounds.bottom-maskBounds.top, iH=iconBounds.bottom-iconBounds.top;
   const maskBits=data.slice(p, p+maskRowBytes*mH); p+=maskRowBytes*mH;
-  p+=iconRowBytes*iH;                       // 1-bit icon bits (unused when colour data exists)
+  p+=iconRowBytes*iH;                       // 1-bit icon bits (unused when color data exists)
   const ct=readColorTable(data,p); p=ct.p;
   const W=pmBounds.right-pmBounds.left, H=pmBounds.bottom-pmBounds.top;
   if(W<=0||H<=0||pixelSize>8) throw new Error(`Unsupported cicn (${W}\u00d7${H}, ${pixelSize}-bit)`);
@@ -1976,7 +1976,7 @@ function decodeStyl(data){
           font=u16be(data,p+8), face=data[p+10], size=u16be(data,p+12);
     const rgb=[u16be(data,p+14)>>8,u16be(data,p+16)>>8,u16be(data,p+18)>>8];
     const faces=FACE_BITS.filter(([b])=>face&b).map(([,n])=>n);
-    out.push(`[${i+1}] from character ${start}: font ${font}, ${size} pt${faces.length?', '+faces.join('+'):''}`);
+    out.push(`[${i+1}] at character ${start}, font ${font}, ${size} pt${faces.length?', '+faces.join('+'):''}`);
     out.push(`     height ${height}, ascent ${ascent}, color rgb(${rgb.join(',')})`);
   }
   return out.join('\n');
@@ -2014,7 +2014,7 @@ function swatchGrid(pal){
 
 // ICON is a bare 32x32 1-bit image (no mask); SICN is a run of 16x16 ones.
 function decodeICON(data){
-  if(data.length<128) throw new Error(`ICON needs 128 bytes, got ${data.length}`);
+  if(data.length<128) throw new Error(`ICON is ${data.length} bytes, not 128`);
   return decode1bitIcon(data,32);
 }
 function decodeSICN(data){
@@ -2181,7 +2181,7 @@ function writeNFNT(f){
 /* A pixel font's outlines as pixels: a glyph drawn in squares on a grid
    (FontStruct's fonts are, `unit` font units a square) comes back as the
    squares it was drawn with, [x, y] from the pen origin with y up, the row
-   above the baseline being 0. A square is lit when its centre is inside
+   above the baseline being 0. A square is lit when its center is inside
    the outline by non-zero winding, which is exact for outlines that run
    along the grid. The points are taken as a polygon; an off-curve point
    would be read as a corner, so a glyph with one is rejected rather than
@@ -2399,8 +2399,8 @@ function nfntToTrueType(f, opts){
   }
 
   // Glyph 0 is the missing symbol, which sits one past lastChar; then every
-  // code the strike answers for, in order, each with the code point its Mac
-  // Roman byte stands for.
+  // code the strike answers for, in order, each with the code point that its
+  // Mac Roman byte stands for in Unicode.
   const order=[{idx:f.nGlyphs-1, code:null}];
   for(let c=f.firstChar;c<=f.lastChar;c++){
     const i=c-f.firstChar;
@@ -2463,7 +2463,7 @@ function nfntToTrueType(f, opts){
   mx.setUint16(14,2);                              // maxZones
 
   // cmap: one format 4 subtable, offered as (0,3) and (3,1), and a format 6
-  // Mac Roman table beside it so the font also works where it came from.
+  // Mac Roman table beside it, so the font also works on a classic Mac.
   const mapped=order.filter(g=>g.code!==null).map((g,i)=>[g.code,i+1]).sort((a,b)=>a[0]-b[0]);
   const segs=mapped.map(([cp,gi])=>({start:cp,end:cp,delta:(gi-cp)&0xFFFF}))
                    .concat([{start:0xFFFF,end:0xFFFF,delta:1}]);
@@ -2558,7 +2558,7 @@ function decodeFOND(data){
   return {famID, first, last, entries,
     text:`Font family #${famID}\nCharacters ${first}–${last}\n`+
          `Ascent ${em(8)} em, descent ${em(10)} em, leading ${em(12)} em, widest ${em(14)} em\n\n`+
-         `${n} font${n===1?'':'s'} in this family:\n`+entries.map(e=>'  '+e.label).join('\n')};
+         `${n} font${n===1?'':'s'} in this family.\n`+entries.map(e=>'  '+e.label).join('\n')};
 }
 
 // ============================================================

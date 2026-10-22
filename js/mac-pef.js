@@ -20,7 +20,7 @@
    a map of where every routine starts and what it was called, and a
    walk over the section reads it back -- 1,877 of them in Cythera 1.0.4.
    The layout is the AIX traceback table as documented for the PowerPC
-   ABI; the field order matters and is spelt out at pefTracebacks. The
+   ABI; the field order matters and is spelled out at pefTracebacks. The
    walk is checked against a list of the same routines recovered
    independently (utilities/pef_check.mjs), address for address.
 
@@ -136,7 +136,7 @@ function parsePEFLoader(b, base, size) {
    far as reading needs: the sections' contents, the pattern-packed data
    expanded, and the relocations interpreted -- not to fill in addresses,
    since there is no memory to put them in, but to say of every relocated
-   word which section or which import it points into. A stored word plus
+   word which section or import it points to inside. A stored word plus
    "relocated by section 1" is an offset into section 1, which is all a
    reader needs.
 
@@ -148,7 +148,7 @@ function parsePEFLoader(b, base, size) {
    section or the import list it names -- and, with the workbench beside
    this repository, to that repository's separate loader simulator. */
 
-// The pattern-initialised data a kind-2 section contains, expanded. Each
+// The pattern-initialized data a kind-2 section contains, expanded. Each
 // opcode is a byte, the high three bits the operation and the low five a
 // count, 0 meaning the count follows as an argument; arguments are seven
 // bits a byte, high bit set to continue.
@@ -445,7 +445,7 @@ function pefDemangle(m) {
    THE RESOURCE FORK is compared by type and id, which is the identity the
    Resource Manager uses. A resource whose bytes differ is reported; a
    resource that moved in the map is not, because the map's order is not
-   something a reader should have to care about. */
+   something a reader should have to track. */
 function describeApplicationDiff(a, b) {
   const out = { routines: null, fork: null, aRoutines: 0, bRoutines: 0 };
   const sameBytes = (x, y) => x.length === y.length && x.every((v, i) => v === y[i]);

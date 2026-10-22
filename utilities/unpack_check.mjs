@@ -10,7 +10,8 @@
 //    name and a split zip's pieces read by their local headers; 960 with
 //    Compact Pro, RAR, ZipIt's self-extractor, StuffIt X's Deflate and four
 //    .rez files whose lists are misplaced (Mr.T's Paint, an installer unar
-//    cannot read either, no longer counted for its resource fork). What
+//    cannot read either, no longer counted for its resource fork); 970 with
+//    the 10 archives of save files alone, SAVES, listed (22 October 2026). What
 //    stays shut is printed by why: StuffIt X catalogs unar cannot read
 //    either, copies damaged where they are kept, and files that are not plug-ins.
 // 1b. Joined: the three pieces of rEV_Windows, a zip split across files, opened
@@ -37,7 +38,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { site, REF } from './load.mjs';
 
-const OPENED = 960;
+const OPENED = 970, SAVES = 10;   // since 22 October 2026 an archive with save files in it opens too
 const JOINED = 8;
 const LSAR_DIFFERS = ['Plugins/AAC-PSP-103.sit.hqx', 'Plugins/Khamikazi Viper.sea.bin', 'Plugins/Khamikazi.sea.bin'];
 // the files in Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate (part 4)
@@ -63,21 +64,25 @@ const unwrapped = b => {   // as unwrapArchive: a MacBinary or BinHex copy of an
 
 // ---- 1. opened -------------------------------------------------------------
 let opened = 0;
-const shut = {}, stuffIts = [];
+const shut = {}, stuffIts = [], saves = [];
 for (const name of names) {
   const b = unwrapped(new Uint8Array(execFileSync('unzip', ['-p', EVN, name], { maxBuffer: 1 << 28 })));
   if (S.looksLikeStuffIt(b)) stuffIts.push({ name, b });
-  let why = '', read = 0;
+  let why = '', read = 0, files_ = [];
   try {
     const files = isArchive(b) ? S.novaArchiveFiles(b) : [S.novaLooseFile(name.split('/').pop(), b)].filter(Boolean);
+    files_ = files;
     const errs = [];
     for (const f of files) { try { S.novaOpenFork(f.read()); read++; } catch (e) { errs.push(e.message); } }
     why = !files.length ? (isArchive(b) ? 'an archive with no Nova file the page sees' : 'no archive the page reads, and no resource fork') : errs[0];
   } catch (e) { why = e.message; }
+  if (read && files_.every(f => f.pilot)) saves.push(name.slice(4));
   if (read) opened++;
   else { const k = why.replace(/"[^"]*"/g, '"…"').replace(/\d{3,}/g, 'N').slice(0, 90); (shut[k] = shut[k] || []).push(name.slice(4)); }
 }
 if (opened !== OPENED) fail(`${opened} of the ${names.length} files open, where ${OPENED} did`);
+if (saves.length !== SAVES) fail(`${saves.length} archives of save files alone, where ${SAVES} were`);
+console.log(`save files alone: ${saves.length} archives, ${saves.join(', ')}`);
 console.log(`opened: ${opened} of ${names.length} files open as the page opens them; the rest, by why:`);
 for (const [k, list] of Object.entries(shut).sort((a, b) => b[1].length - a[1].length)) console.log(`  ${String(list.length).padStart(3)}  ${k}`);
 

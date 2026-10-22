@@ -108,6 +108,7 @@ const CHECKS = [
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
   ['fieldsites', 'where a field note\'s routine reads the field: the places checked against the workbench\'s fieldtrace.py, a store broken on purpose'],
+  ['pilot', 'save files decrypted and read: the layout against FlipNpil run by the workbench\'s flipnpil.py, the decryption against evnova-utils\' simpleCrypt'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and checked against unar'],
   ['collection', 'the plug-ins archive.org lists, read as Add plug-ins reads them and checked against the copies'],
@@ -121,7 +122,7 @@ const CHECKS = [
 ];
 const SLOW = ['subway', 'unpack', 'page'];
 // What a check reads that the tracing cannot see: a module Python imports.
-const ALSO = { rez: ['../evnova-workbench/tools/rez.py'], plugin: ['../evnova-workbench/tools/rez.py'], fieldsites: ['../evnova-workbench/tools/fieldtrace.py'] };
+const ALSO = { rez: ['../evnova-workbench/tools/rez.py'], plugin: ['../evnova-workbench/tools/rez.py'], fieldsites: ['../evnova-workbench/tools/fieldtrace.py'], pilot: ['../evnova-workbench/tools/flipnpil.py', '../evnova-workbench/tools/fieldtrace.py'] };
 const quick = process.argv.includes('--quick'), fresh = process.argv.includes('--fresh');
 const want = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const run = CHECKS.filter(([n]) => (!want.length || want.some(w => n.includes(w))) && !(quick && SLOW.includes(n)));

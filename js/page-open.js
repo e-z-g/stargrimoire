@@ -128,11 +128,29 @@ async function openGameFiles(picked, opts = {}) {
         if (list.length) found.push(...list); else refused.push(name + ' has no Nova files');
       } else {
         const one = novaLooseFile(name, bytes);
+        // a save file (nova-pilot.js), shown on the map rather than read as a plug-in
+        if (one) { try { one.pilot = novaHoldsPilot(novaOpenFork(one.read())); } catch (e) { one.pilot = false; } }
         if (one) found.push(one); else refused.push(name + ' has no resource fork');
       }
     } catch (e) {
       refused.push(name + ': ' + e.message);
     }
+  }
+  // save files, read now and shown once the game is open
+  const saves = [];
+  for (const f of found.filter(x => x.pilot)) {
+    found.splice(found.indexOf(f), 1);
+    try { saves.push(novaReadPilot(novaOpenFork(f.read()), f.name)); } catch (e) { refused.push(e.message); }
+  }
+  if (saves.length && !found.length) {
+    if (!GAME) { setStatus('A save file is shown on the game\'s map: open the game first, then the save file', true); return; }
+    if (!opts.remembered) {
+      KEPT = KEPT.concat(picked.map(({ name, bytes }) => ({ name, bytes })));
+      keptPut({ files: KEPT, savedAt: Date.now() }).then(() => showForget(true), () => {});
+    }
+    setStatus(refused.join('; '), !!refused.length);
+    pilotOpen(saves[saves.length - 1]);
+    return true;
   }
   // Plug-ins that come as alternatives or extras -- in several folders, or
   // beside a separate game outside a Nova Plug-ins folder -- are the
@@ -181,7 +199,9 @@ async function openGameFiles(picked, opts = {}) {
   OPENED_NAMES.push(...picked.map(p => p.name));
   PENDING.push(...later);
   SHIP_FILES.push(...ships);
+  if (fresh) pilotClose();
   mapStart(fresh);
+  if (saves.length) pilotOpen(saves[saves.length - 1]);
   if (refused.length) setStatus(refused.join('; '), true);
   pumpPending(refused);
   return true;

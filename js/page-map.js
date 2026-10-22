@@ -312,7 +312,9 @@ function mapFilesChanged() {
 function applyShowMode() {
   SHOW_MODE = $('showSel').value;
   $('bitsIn').hidden = SHOW_MODE !== 'bits';
-  STATE = { bits: SHOW_MODE === 'bits' ? ncbBitsFromText($('bitsIn').value) : new Set(), male: STATE.male, registered: true };
+  // a save file's bits and gender (page-pilot.js), the bits typed in, or none
+  const saved = SHOW_MODE === 'save' ? pilotState() : null;
+  STATE = saved ? { bits: saved.bits, male: saved.male, registered: true } : { bits: SHOW_MODE === 'bits' ? ncbBitsFromText($('bitsIn').value) : new Set(), male: STATE.male, registered: true };
   SHOWN = novaShownSystems(U, SHOW_MODE === 'all' ? null : STATE);
   LINKS = novaShownLinks(U, SHOWN);
   GATES = novaShownGates(U, SHOWN);
@@ -1407,6 +1409,7 @@ function drawDots(ctx) {
       ctx.strokeStyle = 'rgba(232,184,106,0.8)'; ctx.stroke();
     }
     compareRing(ctx, compareSystem(d.sys.id), x => markPath(ctx, d, r + x));
+    pilotRing(ctx, d.sys.id, x => markPath(ctx, d, r + x));
     if (GATE_LINES) drawGateMarks(ctx, d, r);
     const story = storyPlaces();
     if (story && story.has(d.p)) { ctx.globalAlpha = 1 - d.t; markPath(ctx, d, r + 5); ctx.strokeStyle = '#9fe870'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
@@ -2271,10 +2274,13 @@ function testLine(text) {
   if (!AS_WRITTEN.has(text)) AS_WRITTEN.set(text, ncbAsWritten(text));
   const r = AS_WRITTEN.get(text), g = r.game;
   const reads = r.same !== false ? '' : !g ? 'not as written' : g.op === 'true' ? 'as always true' : g.op === 'false' ? 'as never true' : `as <span class="test">${bitText(ncbTreeText(g))}</span>`;
-  const where = SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game';
+  const where = shownWhere();
   return `<span class="test">${bitText(text)}</span> — <span class="${holds ? 'yes' : 'no'}">${holds ? 'passes' : 'fails'} ${where}</span>` +
          (reads ? ` <span class="warn" title="${esc(GAME_READS)}">(the game reads it ${reads})</span>` : '');
 }
+
+// When the tests shown pass: with the bits typed in, as in the save file, or at a new game.
+const shownWhere = () => (SHOW_MODE === 'bits' ? 'with the bits set' : SHOW_MODE === 'save' ? 'as in the save file' : 'at a new game');
 
 /* ---- control bits: what each is for (nova-bits.js) --------------------- */
 
@@ -2305,7 +2311,7 @@ function bitRefLink(r) {
 /* The map with a bit set, or without it: the bits typed in, changed, and
    the map shown with them. */
 function bitOnMap(n) {
-  const bits = SHOW_MODE === 'bits' ? ncbBitsFromText($('bitsIn').value) : new Set();
+  const bits = SHOW_MODE === 'bits' ? ncbBitsFromText($('bitsIn').value) : SHOW_MODE === 'save' ? new Set(STATE.bits) : new Set();
   if (bits.has(n)) bits.delete(n); else bits.add(n);
   $('bitsIn').value = [...bits].sort((a, b) => a - b).map(x => 'b' + x).join(' ');
   $('showSel').value = 'bits';
@@ -2315,7 +2321,7 @@ function bitOnMap(n) {
    off, from every test and set expression in the files. */
 function bitPanel(n) {
   const b = bitCatalog().get(n), refs = b ? b.refs : [];
-  const set = SHOW_MODE === 'bits' && STATE.bits.has(n);
+  const set = (SHOW_MODE === 'bits' || SHOW_MODE === 'save') && STATE.bits.has(n);
   const groups = [['set', 'Turned on'], ['clear', 'Turned off'], ['toggle', 'Turned over'], ['on', 'Needed on'], ['off', 'Needed off']];
   const sections = groups.map(([effect, title]) => {
     const rows = refs.filter(r => r.effect === effect);
@@ -2557,7 +2563,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline is placed after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where one of its openings can be offered ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline is placed after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where one of its openings can be offered ${shownWhere()}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2619,7 +2625,7 @@ function storyPanel(key) {
   return `<h2>${esc(s.name)}</h2>
     <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}, named in Ambrosia's notes</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. The places they are offered at and send you to are ringed on the map.</p>
+    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${shownWhere()}. The places they are offered at and send you to are ringed on the map.</p>
     ${storyChart(s)}
     <div data-dead="story" data-id="${esc(key)}"><h3>Dead ends</h3><p class="note">Looking…</p></div>
     <table class="kv">${rows}</table>`;
@@ -2645,7 +2651,7 @@ function storyChart(s) {
     return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
       `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
   }).join('');
-  return `<h3>Chart</h3><p class="note">Each mission is placed below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${SHOW_MODE === 'bits' ? 'with the bits set' : 'at a new game'}. A dashed line goes back up a loop.</p>
+  return `<h3>Chart</h3><p class="note">Each mission is placed below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${shownWhere()}. A dashed line goes back up a loop.</p>
     <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
 // The places the open storyline's missions are offered at, go to or return to.
@@ -2687,11 +2693,12 @@ function galaxyPanel() {
   const places = new Set(U.systems.map(s => s.x + ',' + s.y)).size;
   const neb = U.nebulae.map(n => `<a data-nebula="${n.id}">${esc(n.name)}</a>`).join('');
   const files = GAME.files.map(f => `<tr><td>${esc(f.name)}</td><td>${f.plugin ? 'plug-in' : esc(f.role || '')}</td></tr>`).join('');
-  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : 'the systems whose visibility test passes at the start of a new game, when no control bit is set';
+  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : SHOW_MODE === 'save' ? 'the systems whose visibility test passes with the save file\'s bits on' : 'the systems whose visibility test passes at the start of a new game, when no control bit is set';
   return `<h2>The galaxy</h2>
     <div class="sub">${shown.length} of ${U.systems.length} systems shown, at ${places} places; ${LINKS.length} hyperspace links; ${GATES.links.length} ways by hypergate or wormhole, and ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
     <p class="note">Shown: ${mode}. Tap a system to see it; tap it again to go in.</p>
     ${SHOW_MODE === 'bits' && STATE.bits.size ? `<h3>Bits set</h3><table class="kv">${[...STATE.bits].sort((a, b) => a - b).map(n => kvRow('b' + n, `<a data-bit="${n}">${esc(bitTitle(n) || 'what it is for')}</a>`)).join('')}</table>` : ''}
+    ${pilotBlock()}
     ${routeBlock()}
     <h3>Governments</h3><div class="legend">${legend}</div>
     ${storyList()}
@@ -2745,6 +2752,7 @@ function systemPanel(sys) {
       ${ROUTE.from !== sys.id || ROUTE.to !== null ? `<button data-route-from="${sys.id}">Route from here</button>` : ''}
       ${SHOWN.has(sys.id) || SHOW_MODE === 'all' ? '' : '<span class="warn">Not on the map as it is shown now</span>'}</div>
     ${routeBlock()}
+    ${pilotShown() ? `<table class="kv">${pilotSystemRows(sys)}</table>` : ''}
     <h3>Stellars</h3><div class="list">${stellars || '<span class="note">none</span>'}</div>
     <h3>Hyperspace links</h3><div class="list">${links || '<span class="note">none</span>'}</div>
     ${gates ? `<h3>Hypergates and wormholes</h3><table class="kv gates">${gates}</table>` : ''}
@@ -2798,6 +2806,7 @@ function stellarPanel(sp) {
     </div>
     ${GATE_PICK && GATE_PICK.spob === sp.id ? `<h3>${esc(gameText(340) || 'Hypergate destination')}</h3><div class="actions">${GATE_PICK.choices.map((c, i) => `<button data-gate-to="${i}">${esc(c.sys.name)}</button>`).join('')}<button data-gate-cancel>Cancel</button></div>` : ''}
     <table class="kv">
+      ${pilotStellarRows(sp)}
       ${kvRow('Services', esc(services || 'none'))}
       ${kvRow('Tech level', sp.TechLevel + (techs.length ? `; also exactly ${techs.join(', ')}` : ''))}
       ${kvRow('Landing fee', sp.Fee ? sp.Fee.toLocaleString() + ' credits' : '')}

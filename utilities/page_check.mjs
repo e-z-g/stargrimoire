@@ -62,6 +62,10 @@
 //     its picture's and description's bases, read from the program, each
 //     opening the Code view at its instruction, ringed and noted;
 //   - on the phone, nothing is wider than the screen;
+//   - a save file (Robert's, from archive.org's collection) opened with
+//     1.0.10: the map as in it, its system ringed and named, the galaxy's
+//     panel its pilot, ship, date and credits, and the system's panel its
+//     rows, gone as at a new game;
 //   - the ships, opened at #ship=154 (the Aurora Cruiser): the list has a
 //     row and a drawn picture for every ship class, the ship turns and is
 //     drawn, turning the engines on adds light, its three pictures are
@@ -994,6 +998,40 @@ try {
       if (o.rezX !== 50 || o.macX !== 50 || o.macType !== 'Np?f') fail(`the plug-in editor: saved ${JSON.stringify(o.names)}, .rez xPos +${o.rezX}, Mac +${o.macX} ${o.macType}`);
       if (o.back !== 0 || o.left !== 0) fail(`the plug-in editor: undone, Sol is ${o.back} off and ${o.left} changes are left`);
       console.log(`the plug-in editor: Sol moved 50 from its panel and back; saved ${o.names.join(' and ')}, both read back`);
+    }
+  }
+
+  // A save file opened with 1.0.10 (page-pilot.js): the map as in it, the
+  // system it was saved in ringed and named in its panel, the panel's rows
+  // from the save; switched back to a new game, the save's rows go.
+  const SAVE = 'reference/unpacked/game/collections/EscapeVelocityPluginCollection/EVN/EVN/Plugins/Pilots/Pilots/Robert';
+  if (!haveRelease('1.0.10') || !fs.existsSync(path.join(ROOT, SAVE))) console.log('SKIP the save file: no 1.0.10 or no Robert in reference/');
+  else {
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent('reference/' + RELEASES['1.0.10'].sit) + '&src=' + encodeURIComponent(SAVE + '/..namedfork/rsrc'),
+      'typeof U !== "undefined" && U && !PUMPING && !!PILOT', 300000, { chrome, device: { name: 'desktop', width: 1280, height: 800, scale: 1 },
+      then: async p => p.evaluate(`(() => {
+        const out = { mode: document.getElementById('showSel').value };
+        const s = pilotState(), panel = document.getElementById('panel');
+        out.sys = s.system && U.byId.get(s.system).name;
+        const rows = () => Object.fromEntries([...panel.querySelectorAll('table.kv tr')].map(tr => [tr.cells[0].textContent, tr.cells[1] ? tr.cells[1].textContent : '']));
+        VIEW.sel = null; renderPanel();
+        const g = rows();
+        out.ship = g['Ship']; out.date = g['Date']; out.credits = g['Credits']; out.pilot = g['Pilot'];
+        VIEW.sel = { kind: 'system', id: s.system }; renderPanel();
+        out.here = rows()['In the save'];
+        document.getElementById('showSel').value = 'new'; applyShowMode(); renderPanel();
+        out.after = rows()['In the save'] === undefined;
+        return out;
+      })()`) });
+    for (const e of pageErrors(r.console)) fail('the save file: ' + describe(e));
+    const o = r.more || {};
+    if (!r.met) fail('the save file: never opened');
+    else {
+      if (o.mode !== 'save' || o.sys !== 'Aurora') fail(`the save file: shown as ${o.mode}, in ${o.sys}`);
+      if (!/Aurora Thunderforge/.test(o.ship || '') || o.date !== '10/18/1180 NC' || o.credits !== (156032).toLocaleString() || !/“Maverick”/.test(o.pilot || ''))
+        fail(`the save file: the panel says ${JSON.stringify(o)}`);
+      if (!/you are here/.test(o.here || '') || !o.after) fail(`the save file: Aurora's panel says ${JSON.stringify(o.here)}, and after a new game ${o.after}`);
+      console.log(`the save file: Robert's, in ${o.sys}, ${o.ship}, ${o.date}, ${o.credits} credits; gone from the panel as at a new game`);
     }
   }
 

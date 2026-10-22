@@ -186,10 +186,16 @@ function novaArchiveFiles(bytes, depth = 0) {
     // on archive.org are (ResEdit's 'rsrc' files, a type the years garbled, a zip of bare forks)
     const dataLen = zip ? e.len : e.dataLen;
     const bareData = !hasRsrc && dataLen > 0 && !/\.(rez|ndat|bin|hqx)$/i.test(name);
-    let byContent = false, bareCopy = false;
+    let byContent = false, bareCopy = false, pilot = false;
     if (!inFiles && !inPlugins && !besideGame && e.type !== 'Np?f' && !NOVA_BASE_NAME.test(name) && (hasRsrc || bareData)) {
       let fork = null;
       try { fork = forkOf(hasRsrc ? 'rsrc' : 'data'); byContent = novaHoldsRecords(fork); } catch (err) { byContent = false; }
+      // a save file (nova-pilot.js), Finder type NpïL or not
+      if (!byContent && fork && hasRsrc) { try { pilot = novaHoldsPilot(novaOpenFork(fork)); } catch (err) { pilot = false; } }
+      if (pilot) {
+        out.push({ name, path: e.path || e.name, folder: folders.join('/'), plugin: false, pilot: true, role: null, size: fork.length, read: () => fork, unpack: null });
+        continue;
+      }
       // a MacBinary or BinHex copy with any name (podpeople.zip's "podpeople")
       if (!byContent && bareData && fork) {
         try { const w = sniffMacContainer(fork); bareCopy = !!(w && w.rsrc && w.rsrc.length && novaHoldsRecords(w.rsrc)); } catch (err) { bareCopy = false; }

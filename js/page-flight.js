@@ -246,7 +246,15 @@ function drawFlightThings(ctx, w, at, z, alpha, mark, cw = CW, ch = CH) {
       ctx.imageSmoothingEnabled = wd < img.width;
       // cloaked, faded as the program darkens it by the cloak's level of 32, with a dashed ring to keep it in sight
       const fade = s.cloak > 0 ? Math.min(1, s.cloak / 32) : 0;
-      if (fade < 1) { ctx.globalAlpha = 1 - fade; ctx.drawImage(s.ionTint > 0 ? tintedFrame(img, s.ionColor, s.ionTint / 32) : img, x - wd / 2, y - ht / 2, wd, ht); ctx.globalAlpha = 1; }
+      // the alternating image over the base, at the base's scale (novaShipFrame)
+      const as = s.altFrame >= 0 ? shipSprite(s.cls.alt) : null, alt = as && as.kind === 'rle' ? shipFrame(as, s.altFrame % as.count) : null;
+      const layer = (im, w2, h2) => ctx.drawImage(s.ionTint > 0 ? tintedFrame(im, s.ionColor, s.ionTint / 32) : im, x - w2 / 2, y - h2 / 2, w2, h2);
+      if (fade < 1) {
+        ctx.globalAlpha = 1 - fade;
+        layer(img, wd, ht);
+        if (alt) layer(alt, alt.width * wd / img.width, alt.height * ht / img.height);
+        ctx.globalAlpha = 1;
+      }
       if (fade > 0) {
         const o = silhouetteOutline(img, wd, ht);
         ctx.globalAlpha = 0.3 + 0.6 * fade; ctx.drawImage(o, x - o.width / 2, y - o.height / 2); ctx.globalAlpha = 1;

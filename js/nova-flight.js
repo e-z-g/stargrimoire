@@ -197,6 +197,8 @@ function novaFlightData(u) {
       targetsAll: items.some((id, i) => { const o = outfits.get(id); return counts[i] > 0 && !!o && [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]].some(([t, v]) => t === 30 && (v & 4)); }),
       sprite: shan.BaseImageID, width: shan.BaseXSize || 0, framesPer: shan.FramesPer || 36,
       sets: Math.max(1, shan.BaseSetCount || 1), animDelay: shan.AnimDelay || 0, shanFlags: shan.Flags || 0,
+      // the alternating image, which LoadExtendedShipSprites (0x22aec) loads only with an AltImageID and AltSetCount above 0
+      alt: shan.AltImageID > 0 && shan.AltSetCount > 0 ? shan.AltImageID : 0, altSets: Math.max(1, shan.AltSetCount || 1),
     });
   }
   const dudes = new Map(novaAll(game, 'düde').map(d => [d.id, d]));
@@ -425,7 +427,7 @@ function novaFreshShip(w, slot) {
            hasEscorts: false, swarmLead: false, orders: -1, ordered: false, cargo: [0, 0, 0, 0, 0, 0], boarded: false, tractor: -1, tractorAt: 0,
            x: 0, y: 0, vx: 0, vy: 0, speed: 0, heading: old ? old.heading : 0, want: 0,
            thrust: 0, desired: 0, timer: 0, jump: 0, jumpStart: 0, skill: 1, state: 0, mode: 0, sec: -1, primary: -1,
-           goal: -2, cached: -1, disabled: false, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0, fold: 0, foldFrame: 0, lastFire: 0 };
+           goal: -2, cached: -1, disabled: false, glow: 32, bank: 0, bankDir: 0, set: 0, animAcc: 0, altSet: 0, altFrame: -1, fold: 0, foldFrame: 0, lastFire: 0 };
 }
 function novaFreeSlot(w, reserve) {
   for (let i = 1; i < 64 - reserve; i++) if (!w.ships[i]) return i;
@@ -1733,20 +1735,37 @@ function novaFlightEngaged(w, isOpen) {
    FramesPer steps, in the set its shän's Flags say -- banking (0x01), the
    second set turning left and the third right; cycling every AnimDelay
    (0x08) -- and the first set otherwise; a ship that folds (0x02) shows the
-   set its folding has reached (novaFoldStep). Called once a step. */
+   set its folding has reached (novaFoldStep). Called once a step.
+   The alternating image's frame goes in s.altFrame (0x2c97d), -1 for none:
+   the same heading, in a set of its own, the next when the base's cycling
+   moves on, or, with the base not cycling, every AnimDelay on the same
+   clock; hidden while disabled with Flags 0x20. Each clock stands still
+   while the ship is disabled with Flags 0x10. The alternating image moves
+   the clock on a second time each step, after the base has read it, so a
+   cycling ship with one cycles twice as fast. */
 function novaShipFrame(s) {
-  const c = s.cls;
-  let set = 0;
+  const c = s.cls, runs = !(c.shanFlags & 0x10) || !s.disabled;
+  let set = 0, cycling = false, moved = false;
   if (c.shanFlags & 0x01) set = s.bankDir > 0 ? 2 : s.bankDir < 0 ? 1 : 0;
   else if (c.shanFlags & 0x02) set = s.foldFrame;
   else if (c.shanFlags & 0x08) {
-    s.animAcc = f32(s.animAcc + 1);
+    cycling = true;
+    if (runs) s.animAcc = f32(s.animAcc + 1);
     if (s.animAcc > c.animDelay) {
       if (c.animDelay > 0) while (s.animAcc > c.animDelay) s.animAcc = f32(s.animAcc - c.animDelay); else s.animAcc = 0;
       s.set = s.set + 1 >= c.sets ? 0 : s.set + 1;
+      moved = true;
     }
     set = s.set;
   }
   if (set >= c.sets) set = 0;
-  return set * c.framesPer + Math.trunc(f32(s.heading * f32(c.framesPer / 360)));
+  const turn = Math.trunc(f32(s.heading * f32(c.framesPer / 360)));
+  s.altFrame = -1;
+  if (c.alt && !((c.shanFlags & 0x20) && s.disabled)) {
+    if (runs) s.animAcc = f32(s.animAcc + 1);
+    if (!cycling && s.animAcc > c.animDelay) { s.animAcc = 0; moved = true; }
+    if (moved) s.altSet = s.altSet + 1 >= c.altSets ? 0 : s.altSet + 1;
+    s.altFrame = s.altSet * c.framesPer + turn;
+  }
+  return set * c.framesPer + turn;
 }

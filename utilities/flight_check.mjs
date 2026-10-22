@@ -8,7 +8,8 @@
 //      snapping to the heading; thrusting to its top speed, a step over at
 //      most, and past it on a second axis; an inertialess ship steering its
 //      velocity; an arrival from 50 a step, stopping where the sum puts it;
-//      a ship caught in a tractor beam matching the firer's velocity.
+//      a ship caught in a tractor beam matching the firer's velocity; the
+//      alternating image's set.
 //   3. A fleet's escorts in formation behind the lead.
 //   4. Odds: a system's düdes and a düde's ship types drawn 200,000 times
 //      each, against Probs; a picker broken on purpose must fail the test.
@@ -90,6 +91,25 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   eq('inertialess, one step', [Math.round(q.vx * 1000) / 1000, Math.round(q.vy * 1000) / 1000], [0.4, 0.6]);
   for (let i = 0; i < 10; i++) S.novaHandleShip(w, q);
   eq('inertialess, steered', [Math.round(q.vx * 1000) / 1000, Math.round(q.vy * 1000) / 1000], [2, 0]);
+}
+{
+  // The alternating image (HandleShipDisplay 0x2c97d), as the Thunderforge has it: a base cycling (shän Flags 0x08) of one
+  // set, AnimDelay 5, and an alternating image of six sets. The clock goes on 1 for the base, then 1 again for the
+  // alternating image, so the base moves on when it passes 5 at steps 4, 6, 9, 11, 14, 16: the alternating image's set
+  // after each of 16 steps. Without cycling (Flags 0), the alternating image moves on its own every 6 steps, the clock
+  // then set to 0. Disabled with Flags 0x20, it is hidden; with 0x10, it stands still. A frame rule without the second
+  // tick moves at steps 6 and 12, and must fail.
+  const sets = (flags, n, frame = S.novaShipFrame, o = {}) => {
+    const s = ship(cls({ shanFlags: flags, animDelay: 5, sets: 1, framesPer: 64, alt: 1330, altSets: 6 }), Object.assign({ altSet: 0, altFrame: -1 }, o));
+    const out = [];
+    for (let i = 0; i < n; i++) { frame(s); out.push(s.altFrame < 0 ? -1 : Math.floor(s.altFrame / 64)); }
+    return out;
+  };
+  eq('alternating image, cycling', sets(0x08, 16), [0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 0]);
+  eq('alternating image, on its own', sets(0, 13), [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2]);
+  eq('alternating image, disabled', [sets(0x28, 3, undefined, { disabled: true })[2], sets(0x18, 8, undefined, { disabled: true })[7]], [-1, 0]);
+  const once = s => { S.novaShipFrame(s); if (s.altFrame >= 0) s.animAcc = Math.fround(s.animAcc - 1); };
+  if (JSON.stringify(sets(0x08, 16, once)) === JSON.stringify(sets(0x08, 16))) fail('alternating image: a clock ticked once a step passed');
 }
 {
   // A tractor beam's catch (HandleShip 0x33fc3): the firer's Accel 1000, 0.2 a step, a quarter of it 0.05;

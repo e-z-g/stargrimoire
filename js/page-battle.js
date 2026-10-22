@@ -60,7 +60,7 @@ function battleFromHash() {
   return true;
 }
 // Other files: the battle goes with the records it was made of.
-function battleReset() { BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
+function battleReset() { BATTLE_IMAGES.clear(); BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
 // More files read: the ships may have come.
 function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
@@ -225,10 +225,26 @@ function battleThumbs(D) {
   requestAnimationFrame(step);
 }
 // A class's base sprite at a heading (its first set).
+// With an alternating image, its first set is drawn over the base, as in flight.
+const BATTLE_IMAGES = new Map();
 function battleShipImage(cls, heading) {
   const spr = shipSprite(cls.sprite);
   if (!spr || spr.kind !== 'rle') return null;
-  return shipFrame(spr, Math.trunc(heading * cls.framesPer / 360) % spr.count);
+  const f = Math.trunc(heading * cls.framesPer / 360), base = shipFrame(spr, f % spr.count);
+  const as = cls.alt ? shipSprite(cls.alt) : null;
+  if (!base || !as || as.kind !== 'rle') return base;
+  const k = cls.alt + ':' + cls.sprite + ':' + f;
+  let c = BATTLE_IMAGES.get(k);
+  if (c) return c;
+  const alt = shipFrame(as, f % as.count);
+  if (!alt) return base;
+  c = document.createElement('canvas');
+  c.width = Math.max(base.width, alt.width); c.height = Math.max(base.height, alt.height);
+  const ctx = c.getContext('2d');
+  ctx.drawImage(base, (c.width - base.width) / 2, (c.height - base.height) / 2);
+  ctx.drawImage(alt, (c.width - alt.width) / 2, (c.height - alt.height) / 2);
+  BATTLE_IMAGES.set(k, c);
+  return c;
 }
 
 // How each side is doing: before the fight its ships; in it, those fighting, disabled, destroyed and gone, and who has won.

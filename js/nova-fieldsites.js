@@ -16,10 +16,14 @@
    (novaFieldPlaces). A routine then reads the field where an instruction
    loads or stores at that place off a register that contains the same
    array's address, plus whatever index, or hands that place to a call
-   (novaFieldSites). Copies of another shape (lists in a loop, a value
+   (novaFieldSites). A record not copied is read through its handle, from
+   the call that requested it or from a global the handle was kept in
+   (novaHandleGlobals). A routine every call to which hands it an
+   element's place in an argument register starts out knowing it
+   (novaHandedIn). Copies of another shape (lists in a loop, a value
    worked out first) give no place, and a routine that reaches the element
-   through a pointer passed in gives no site: the link then opens the
-   routine with nothing ringed.
+   through a pointer kept elsewhere (a ship's to its class) gives no site:
+   the link then opens the routine with nothing ringed.
 
    An array is named by the global it is reached through and how many
    loads deep: in 1.0.x the TOC's word for a global (an `lwz rN, k(r2)` the
@@ -35,6 +39,7 @@
 
 // The records LoadObjectData copies into an array.
 const NOVA_LOADED_TYPES = ['spöb', 'sÿst', 'shïp', 'oütf', 'gövt', 'wëap', 'përs', 'crön', 'ränk', 'flët', 'jünk', 'öops', 'düde', 'nëbu', 'röid', 'bööm'];
+const NOVA_GET_RESOURCE = /^Get1?(Named|Ind)?Resource$/;
 const NOVA_ACCESS_SIZE = { lwz: 4, stw: 4, lha: 2, lhz: 2, sth: 2, lbz: 1, stb: 1, lfs: 4, stfs: 4, lfd: 8, stfd: 8 };
 
 /* Follows, through a routine as it is laid out, which registers hold an
@@ -43,8 +48,8 @@ const NOVA_ACCESS_SIZE = { lwz: 4, stw: 4, lha: 2, lhz: 2, sth: 2, lbz: 1, stb: 
    element; and for a call, access { call: true, args: [r3, r4, r5, r6] },
    each { g, k } or undefined. A register is followed until it is written
    or a call may have changed it. */
-function novaArrayAccesses(prog, ops, each) {
-  const at = new Map();     // register -> { g: 'global:depth', k: place added }
+function novaArrayAccesses(prog, ops, each, seed) {
+  const at = new Map(seed || []);     // register -> { g: 'global:depth', k: place added }
   const plus = new Map();   // register not an array's -> a constant added to it
   const type = new Map();   // register -> a resource type it contains ('mïsn')
   const kept = new Map();   // a place in memory ('sp@56', or an array's) -> what was stored there
@@ -58,8 +63,8 @@ function novaArrayAccesses(prog, ops, each) {
     if (op.branch) {
       if (op.lk) {
         each(o, i, { call: true, args: [3, 4, 5, 6].map(r => at.get(r)) });
-        // a resource requested by type: what comes back is its handle, and a load through that its record
-        const t = /^Get1?Resource$/.test(o.note || '') ? type.get(3) : undefined;
+        // a resource requested by type, by number or by name: what comes back is its handle, and a load through that its record
+        const t = NOVA_GET_RESOURCE.test(o.note || '') ? type.get(3) : undefined;
         for (const r of volatile) forget(r);
         if (t) at.set(3, { g: `'${t}':0`, k: 0 });
       }
@@ -69,7 +74,7 @@ function novaArrayAccesses(prog, ops, each) {
     // a load or store at a constant place
     if (op.d !== undefined && op.rt !== undefined) {
       const load = op.mn[0] === 'l', fp = /^(l|st)f/.test(op.mn), size = NOVA_ACCESS_SIZE[op.mn.replace(/u$/, '')], b = at.get(op.ra);
-      if (size && b && op.ra !== 1) each(o, i, { g: b.g, off: b.k + op.d, size, load, fp, rt: op.rt });
+      if (size && b && op.ra !== 1) each(o, i, { g: b.g, off: b.k + op.d, size, load, fp, rt: op.rt, val: load ? undefined : at.get(op.rt) });
       // a handle or an array's address put away and fetched again
       const place = op.mn === 'stw' || op.mn === 'lwz' ? placeOf(op.ra, op.d) : null;
       if (!load) { if (place) { if (at.has(op.rt)) kept.set(place, at.get(op.rt)); else kept.delete(place); } return; }
@@ -214,7 +219,7 @@ function novaFieldCopies(prog) {
   for (const r of prog.routines) {
     if (r.glue || (loader && r.start === loader.start)) continue;
     const ops = prog.ops(r);
-    if (!ops.some(o => o.target !== null && /^Get1?Resource$/.test(o.note || ''))) continue;
+    if (!ops.some(o => o.target !== null && NOVA_GET_RESOURCE.test(o.note || ''))) continue;
     const types = new Set(ops.map(o => /^'(.{4})'$/.exec(o.note || '')).filter(m => m && NOVA_RECORDS[m[1]]).map(m => m[1]));
     if (!types.size) continue;
     const access = new Map();
@@ -230,6 +235,36 @@ function novaFieldCopies(prog) {
   return out;
 }
 
+/* The globals a record's handle is kept in: where a routine that requests
+   a resource by type stores the handle it gets back in a global's first
+   word (ActivateCharResource keeps the chär it takes by name). A routine
+   that loads the handle from there, and the record through it, reads the
+   record as surely as the one that requested it. Map type -> Set of the
+   globals' names, two loads deep ('0x330464:2'). Cached. */
+function novaHandleGlobals(prog) {
+  if (prog.handleGlobals) return prog.handleGlobals;
+  const out = new Map();
+  prog.handleGlobals = out;
+  for (const r of prog.routines) {
+    if (r.glue) continue;
+    const ops = prog.ops(r);
+    if (!ops.some(o => o.target !== null && NOVA_GET_RESOURCE.test(o.note || ''))) continue;
+    // a handle stored, and read back after: a zero stored on the path
+    // where the request found nothing is never read back as a handle
+    const stored = new Map();
+    for (const { a } of novaRoutineAccesses(prog, r)) {
+      if (a.call || a.off !== 0 || !/^0x[0-9a-f]+:0$/.test(a.g)) continue;
+      const m = a.val && /^'(.{4})':0$/.exec(a.val.g);
+      if (m) { stored.set(a.g, m[1]); continue; }
+      if (!a.load || !stored.has(a.g)) continue;
+      const t = stored.get(a.g);
+      if (!out.has(t)) out.set(t, new Set());
+      out.get(t).add(a.g.replace(/:0$/, ':2'));
+    }
+  }
+  return out;
+}
+
 /* The instructions in a routine that read or write a record's field, or
    hand its place to a call: [{ addr, load, call }], in order; empty where
    none is found. A field is read through the record's handle, at its
@@ -240,8 +275,8 @@ function novaFieldSites(prog, routine, type, field) {
   if (!recs.size) return [];
   const arrays = [novaFieldPlaces(prog).get(type), ...(novaFieldCopies(prog).get(type) || [])].filter(Boolean)
     .map(t => ({ g: t.g, offs: new Set([...recs].map(rec => t.places.get(rec)).filter(Boolean).map(p => p.off)) })).filter(t => t.offs.size);
-  const direct = `'${type}':1`;
-  const hit = (g, off) => (g === direct && recs.has(off)) || arrays.some(t => t.g === g && t.offs.has(off));
+  const direct = new Set([`'${type}':1`, ...(novaHandleGlobals(prog).get(type) || [])]);
+  const hit = (g, off) => (direct.has(g) && recs.has(off)) || arrays.some(t => t.g === g && t.offs.has(off));
   const out = [];
   for (const { addr, a } of novaRoutineAccesses(prog, routine)) {
     if (a.call) { if (a.args.some(x => x && hit(x.g, x.k))) out.push({ addr, call: true }); }
@@ -255,13 +290,54 @@ function novaFieldSites(prog, routine, type, field) {
   }
   return out;
 }
-// A routine's accesses, worked out once, since every field of a record's table needs them.
-function novaRoutineAccesses(prog, routine) {
-  if (!prog.accesses) prog.accesses = new Map();
-  if (!prog.accesses.has(routine.start)) {
+// A routine's accesses, worked out once, since every field of a record's
+// table needs them; with what its callers hand it (novaHandedIn), unless raw.
+function novaRoutineAccesses(prog, routine, raw) {
+  const key = raw ? 'rawAccesses' : 'accesses';
+  if (!prog[key]) prog[key] = new Map();
+  if (!prog[key].has(routine.start)) {
     const list = [];
-    novaArrayAccesses(prog, prog.ops(routine), (o, i, a) => list.push({ addr: o.addr, a }));
-    prog.accesses.set(routine.start, list);
+    novaArrayAccesses(prog, prog.ops(routine), (o, i, a) => list.push({ addr: o.addr, a }), raw ? null : novaHandedIn(prog, routine));
+    prog[key].set(routine.start, list);
   }
-  return prog.accesses.get(routine.start);
+  return prog[key].get(routine.start);
+}
+/* What a routine is handed in r3 to r6: a place in an array (or a record)
+   that every call to it hands in that register, at the same place, as its
+   callers' own accesses show them. Map register -> { g, k }. One level
+   only: the callers are read without what they are handed. */
+function novaHandedIn(prog, routine) {
+  const calls = prog.callers(routine.start);
+  if (!calls.length) return null;
+  const agreed = [3, 4, 5, 6].map(() => undefined);
+  for (const addr of calls) {
+    const r = prog.routineAt(addr), hit = r && novaRoutineAccesses(prog, r, true).find(x => x.addr === addr && x.a.call);
+    const args = hit ? hit.a.args : [];
+    agreed.forEach((v, j) => {
+      const a = args[j], same = v === undefined ? a : v && a && v.g === a.g && v.k === a.k ? v : null;
+      agreed[j] = same || null;
+    });
+  }
+  // only a register the routine reads before it writes it is an argument:
+  // another is a caller's own, left there
+  const used = novaArgsRead(prog, routine), out = new Map();
+  agreed.forEach((v, j) => { if (v && used.has(3 + j)) out.set(3 + j, v); });
+  return out.size ? out : null;
+}
+// Of r3 to r6, those a routine reads before it writes them, as it is laid
+// out up to its first branch or call.
+function novaArgsRead(prog, routine) {
+  const out = new Set(), written = new Set();
+  for (const o of prog.ops(routine)) {
+    const op = o.op;
+    if (!op || op.branch) break;
+    // in the forms with rS and no displacement (or, mr., ori) rA is the one written
+    const store = /^st/.test(op.mn), rsForm = op.rs !== undefined && op.ra !== undefined && op.d === undefined;
+    const reads = [rsForm ? undefined : op.ra, op.rb, op.rs, store ? op.rt : undefined].filter(r => r !== undefined && !(r === 0 && op.d !== undefined));
+    for (const r of reads) if (r >= 3 && r <= 6 && !written.has(r)) out.add(r);
+    const w = op.rd !== undefined ? op.rd : !store && op.rt !== undefined ? op.rt : rsForm ? op.ra : undefined;
+    if (w !== undefined) written.add(w);
+    if (op.mn === 'lmw') for (let r = op.rt; r < 32; r++) written.add(r);
+  }
+  return out;
 }

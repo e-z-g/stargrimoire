@@ -17,6 +17,12 @@
 //   - a copy made elsewhere than LoadObjectData (a mission into the
 //     missions under way), which fieldtrace does not read: the same routine
 //     in 1.0.10 and 1.1.1, compiled apart, copying to the same places;
+//   - a record read through the global its handle was kept in: every such
+//     global 1.1.1's symbols name, named as a handle (charFileHand), and
+//     as many for each type in 1.0.10;
+//   - what a routine is handed, a record's place every call to it hands in
+//     a register: a register the routine takes as an argument in the other
+//     release too, compiled apart;
 //   - a copy broken on purpose: one store's displacement changed in 1.0.10's
 //     code, the place read from it must change with it, and a check of the
 //     places would fail.
@@ -125,6 +131,23 @@ if (intel) {
   if (same < 30) fail(`copies elsewhere: only ${same} places compared`);
 }
 
+// ---- the globals a record's handle is kept in
+{
+  // 1.1.1 names its globals: each found must be a handle's (charFileHand),
+  // not a value stored where a request found nothing (playerKills)
+  const g111 = S.novaHandleGlobals(R111.prog), g1010 = S.novaHandleGlobals(R1010.prog);
+  let named = 0;
+  for (const [t, gs] of g111) for (const g of gs) {
+    const name = R111.prog.globalAt(parseInt(g));
+    if (name && /Hand(le)?$/.test(name)) named++;
+    else fail(`1.1.1: ${t}'s handle kept in ${g}, named ${name}`);
+  }
+  for (const [t, gs] of g111) if (g1010.has(t) && g1010.get(t).size !== gs.size) fail(`${t}: ${gs.size} handle globals in 1.1.1, ${g1010.get(t).size} in 1.0.10`);
+  if (!g111.has('chär') || !g1010.has('chär')) fail('chär: no handle global found');
+  console.log(`handles kept: ${named} globals in 1.1.1, each named as a handle, for ${g111.size} types; ${g1010.size} types in 1.0.10`);
+  if (named < 20) fail(`handles kept: only ${named} found`);
+}
+
 // ---- a store broken on purpose
 {
   const prog = R1010.prog, t = S.novaFieldPlaces(prog).get('spöb'), p = t && t.places.get(6);
@@ -178,6 +201,31 @@ for (const [v, prog] of [['1.0.10', R1010.prog], ['1.1.1', R111.prog]]) {
     if (S.novaFieldSites(prog, r, type, field).length) found++;
   }
   console.log(`${v}: ${found} of ${links} field note links ring the line that reads the field`);
+}
+
+// ---- what a routine is handed: the releases, compiled apart, agree on
+// which registers of which routines a record's place is handed in
+{
+  const handed = prog => {
+    const out = new Map();
+    for (const fields of Object.values(S.NOVA_FIELD_NOTES)) for (const note of Object.values(fields)) for (const [name] of note.code) {
+      const r = S.novaRoutineNamed(prog, name), h = r && S.novaHandedIn(prog, r);
+      if (h) out.set(name, [...h.keys()].join(','));
+    }
+    return out;
+  };
+  const a = handed(R1010.prog), b = handed(R111.prog);
+  let same = 0;
+  for (const [name, regs] of b) if (a.has(name) && a.get(name) === regs) same++;
+  // a register handed in, in either release, the routine takes as an argument in the other too
+  for (const [mine, other, v, w] of [[a, R111.prog, '1.0.10', '1.1.1'], [b, R1010.prog, '1.1.1', '1.0.10']]) for (const [name, regs] of mine) {
+    const r = S.novaRoutineNamed(other, name);
+    if (!r) continue;
+    const used = S.novaArgsRead(other, r);
+    for (const reg of regs.split(',')) if (!used.has(+reg)) fail(`${name}: handed a record's place in r${reg} in ${v}, which it does not take in ${w}`);
+  }
+  console.log(`handed in: ${same} cited routines handed a record's place in the same registers in 1.0.10 and 1.1.1 (${a.size} and ${b.size} in all), each register an argument in both`);
+  if (same < 10) fail(`handed in: only ${same} routines agree`);
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

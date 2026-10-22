@@ -208,7 +208,12 @@ function sniffMacContainer(bytes) {
  * "II", both as written-by and minimum-to-read) and the CRC-16/XMODEM of
  * bytes 0..123 at 124 -- the CRC is what lets a strict reader distinguish a real
  * MacBinary II file from 128 bytes of coincidence, so it is computed, not
- * zeroed. Dates at 91/95 are seconds since the Mac epoch, 1904-01-01. */
+ * zeroed. Dates at 91/95 are seconds since the Mac epoch, 1904-01-01.
+ * The Finder flags are `f.finderFlags`, the high byte at 73 and the low byte
+ * at 101 (MacBinary II). They were never written until 21 October 2026, so
+ * an application came out without hasBundle (0x2000), the Finder never read
+ * its BNDL, and the application and every document it owns had blank
+ * icons. */
 function crc16xmodem(bytes, start, end) {
   let crc = 0;
   for (let i = start; i < end; i++) {
@@ -237,6 +242,8 @@ function writeMacBinary(f) {
   const macNow = Math.floor(Date.now() / 1000) + 2082844800;   // 1904 epoch
   w32(macNow, 91);
   w32(macNow, 95);
+  const flags = f.finderFlags || 0;
+  out[73] = (flags >> 8) & 0xFF; out[101] = flags & 0xFF;
   out[122] = 129; out[123] = 129;                              // MacBinary II
   const crc = crc16xmodem(out, 0, 124);
   out[124] = crc >> 8; out[125] = crc & 0xFF;

@@ -414,7 +414,7 @@ function sitxCyanide(packed, length) {
   while (!g.full()) {
     const marker = sitxByte(r);
     if (marker === 0xff) break;
-    if (marker !== 0x77) throw new Error('StuffIt X: a Cyanide block begins wrongly');
+    if (marker !== 0x77) throw new Error('StuffIt X: a Cyanide block with the wrong start');
     const blocksize = sitxU32(r), firstindex = sitxU32(r), numsymbols = sitxByte(r);
     const sorted = new Uint8Array(blocksize), block = new Uint8Array(blocksize), table = new Uint32Array(blocksize);
     // the ternary-coded block
@@ -1032,7 +1032,7 @@ const SITX_ENGLISH_WORD_COUNT = 100366;
 let SITX_ENGLISH_TABLE = null;
 function sitxEnglishTable() {
   if (SITX_ENGLISH_TABLE) return SITX_ENGLISH_TABLE;
-  if (typeof STUFFITX_ENGLISH_WORDS !== 'string') { const e = new Error('StuffIt X: this archive needs the English dictionary, mac-stuffitx-english.js'); e.needs = 'mac-stuffitx-english.js'; throw e; }
+  if (typeof STUFFITX_ENGLISH_WORDS !== 'string') { const e = new Error('StuffIt X: this archive needs the English dictionary, mac-stuffitx-english.js'); e.requiredFile = 'mac-stuffitx-english.js'; throw e; }
   const words = STUFFITX_ENGLISH_WORDS.split('\n');
   if (words.length !== SITX_ENGLISH_WORD_COUNT + 1) throw new Error('StuffIt X: the English dictionary is not the one StuffIt uses');
   SITX_ENGLISH_TABLE = words.slice(0, SITX_ENGLISH_WORD_COUNT).map(w => Uint8Array.from(w, ch => ch.charCodeAt(0)));

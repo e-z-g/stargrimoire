@@ -106,7 +106,7 @@ function rarFile(bytes, part, path) {
     if (part.start + part.size > bytes.length) throw new Error(where + ' runs past the end of the archive');
     out = bytes.subarray(part.start, part.start + part.size);
   } else {
-    if (part.version !== 29) throw new Error(where + ' is compressed as RAR ' + (part.version / 10).toFixed(1) + ' compressed, which this page does not read');
+    if (part.version !== 29) throw new Error(where + ' is compressed as RAR ' + (part.version / 10).toFixed(1) + ', which this page does not read');
     const run = part.run;
     if (!run.decoded) run.decoded = rar30Decode(bytes, run.files);
     let at = 0;
@@ -254,7 +254,7 @@ function rar30Decode(bytes, files) {
     if (flags & 0x80) {
       num = rarVmNumber(fr) - 1;
       if (num === -1) { num = 0; filterCode.length = 0; filters.length = 0; }
-      if (num > filterCode.length || num < 0 || num > 1024) throw new Error('RAR: a filter numbered out of turn');
+      if (num > filterCode.length || num < 0 || num > 1024) throw new Error('RAR: a filter number out of order');
       if (num === filterCode.length) { isNew = true; oldFilterLength[num] = 0; usageCount[num] = -1; }
       lastFilterNum = num;
     } else num = lastFilterNum;
@@ -271,7 +271,7 @@ function rar30Decode(bytes, files) {
     }
     if (isNew) {
       const n = rarVmNumber(fr);
-      if (n <= 0 || n > 0x10000) throw new Error('RAR: a filter program of a length past reason');
+      if (n <= 0 || n > 0x10000) throw new Error('RAR: a filter program of an impossible length');
       const prog = new Uint8Array(n);
       for (let i = 0; i < n; i++) prog[i] = rarBits(fr, 8);
       const key = n.toString(16) + ':' + crc32(prog).toString(16).padStart(8, '0');

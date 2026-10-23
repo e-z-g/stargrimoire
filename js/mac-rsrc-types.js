@@ -91,7 +91,7 @@ function decodeLite(data){
   ctx.putImageData(img,0,0);
   const mid=n>>1;
   const row=[]; for(let x=0;x<n;x++) row.push(data[1+mid*n+x]);
-  return { canvas:c, side:n, max:mx, centre:data[1+mid*n+mid],
+  return { canvas:c, side:n, max:mx, center:data[1+mid*n+mid],
     text:'A light cone '+n+' squares across, brightness 0 to '+mx+'.\n'+
       'Middle row: '+row.join(' ')+'\n\n'+
       Array.from({length:n},(_,y)=>Array.from({length:n},(_,x)=>{
@@ -533,7 +533,7 @@ function decodeSndToWav(data){
     if(bits!==8 && bits!==16) throw new Error(`unsupported sample size (${bits}-bit)`);
     samples=data.slice(hp, hp+frames*channels*bits/8);
   } else if(encode===0xFE){
-    throw new Error('this sound is MACE/IMA compressed (encode 0xFE), which this tool cannot decompress');
+    throw new Error('this sound is MACE/IMA compressed (encode 0xFE), which this page cannot decompress');
   } else {
     throw new Error('unknown sound header encoding 0x'+encode.toString(16));
   }
@@ -697,7 +697,7 @@ function decodePpat(data){
   // screens. It is at offset 20, not 0.
   const c=decodePAT(data.slice(20,28));
   c.info = patType===0 ? '8×8 monochrome pattern (patType 0)'
-                       : `patType ${patType}: color pixels unreadable, showing the 1-bit equivalent`;
+                       : `patType ${patType}: the page cannot read the color pixels, so this is the 1-bit equivalent`;
   return c;
 }
 // cicn, crsr and ppat all finish with the same loop: indexed pixels through a
@@ -1071,7 +1071,7 @@ function packBitsUnits(src, unit){
 function pictImageLayout(data){
   const found=findPictImageOpcode(data);
   if(!found) throw new Error('This PICT has no image in it.');
-  if(found.quicktime) throw new Error('This PICT is a QuickTime image, which cannot be replaced.');
+  if(found.quicktime) throw new Error('This PICT is a QuickTime image, which the page cannot replace.');
   const op=found.op; let p=found.p; const L={op,v2:u16be(data,10)===0x0011};
   if(op===0x9A||op===0x9B){ L.pm=readPictPixmap(data,p,true); p=L.pm.p; L.kind='direct'; }
   else if((op===0x98||op===0x99)&&(u16be(data,p)&0x8000)){
@@ -1086,8 +1086,8 @@ function pictImageLayout(data){
   if(op&1) p+=u16be(data,p);               // the Rgn opcodes' mask region, its size first
   const pm=L.pm; L.W=pm.bounds.right-pm.bounds.left; L.H=pm.bounds.bottom-pm.bounds.top;
   if(L.W<=0||L.H<=0||pm.rowBytes<=0) throw new Error(`This PICT's image is ${L.W}×${L.H}.`);
-  if(L.kind==='indexed'&&pm.pixelSize>8) throw new Error(`An indexed image of ${pm.pixelSize} bits cannot be written.`);
-  if(L.kind==='direct'&&pm.pixelSize!==16&&pm.pixelSize!==32) throw new Error(`A direct image of ${pm.pixelSize} bits cannot be written.`);
+  if(L.kind==='indexed'&&pm.pixelSize>8) throw new Error(`The page cannot write an indexed image of ${pm.pixelSize} bits.`);
+  if(L.kind==='direct'&&pm.pixelSize!==16&&pm.pixelSize!==32) throw new Error(`The page cannot write a direct image of ${pm.pixelSize} bits.`);
   L.rowsAt=p; L.rows=[];
   const raw=pictRowsRaw(L);
   for(let y=0;y<L.H;y++){
@@ -1230,10 +1230,10 @@ function rsrcImagePlanes(type, data){
 function rsrcReplaceImage(type, data, rgba, W, H){
   if(type==='PICT') return pictReplacePixels(data, rgba, W, H);
   const P=RSRC_IMAGE_TYPES.has(type)&&rsrcImagePlanes(type, data);
-  if(!P) throw new Error('A '+type+' resource cannot be written from a picture.');
+  if(!P) throw new Error('The page cannot write a '+type+' resource from a picture.');
   if(W!==P.W||H!==P.H) throw new Error(`The ${type} is ${P.W}×${P.H} and the image given is ${W}×${H}.`);
   if(!rgba||rgba.length<W*H*4) throw new Error(`The image given has fewer than ${W}×${H} pixels.`);
-  if(P.px&&(P.px.bits<1||P.px.bits>8||8%P.px.bits)) throw new Error(`A ${type} of ${P.px.bits} bits a pixel cannot be written.`);
+  if(P.px&&(P.px.bits<1||P.px.bits>8||8%P.px.bits)) throw new Error(`The page cannot write a ${type} of ${P.px.bits} bits a pixel.`);
   const out=new Uint8Array(data);
   const planeEnd=pl=>pl.off+pl.rb*(pl.H||H);
   for(const pl of [P.ink,P.mask,P.px]) if(pl&&planeEnd(pl)>out.length) throw new Error(`This ${type} is shorter than its planes.`);
@@ -1334,13 +1334,13 @@ const CODE_TYPES={'CODE':'code segment','CDEF':'control definition','WDEF':'wind
   'MDEF':'menu definition','LDEF':'list definition','PACK':'package','INIT':'init',
   'DRVR':'driver','FKEY':'function key'};
 function decodeCodeResource(type, id, data){
-  const lines=[`${CODE_TYPES[type]||'68K code'} — ${data.length.toLocaleString()} bytes of Motorola 68000 machine code`];
+  const lines=[`${CODE_TYPES[type]||'68K code'}: ${data.length.toLocaleString()} bytes of Motorola 68000 machine code`];
   if(type==='CODE' && id===0){
     // The jump table header: above/below A5 sizes, then 8 bytes per entry.
     if(data.length<16) throw new Error(`CODE 0 is ${data.length} bytes, shorter than its 16-byte header`);
     const aboveA5=u32be(data,0), belowA5=u32be(data,4), tableSize=u32be(data,8), tableOffset=u32be(data,12);
     lines.length=0;
-    lines.push('CODE 0 — the jump table, not code');
+    lines.push('CODE 0, the jump table, not code');
     lines.push('');
     lines.push(`  above A5      : ${aboveA5.toLocaleString()} bytes (application globals and the jump table)`);
     lines.push(`  below A5      : ${belowA5.toLocaleString()} bytes (QuickDraw globals and parameters)`);

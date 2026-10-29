@@ -29,7 +29,7 @@ const COMPARE_COLOR = '#ff7ad9';
 function compareAsk() {
   const el = document.getElementById('choose'), box = el.querySelector('.box');
   box.innerHTML = `<h2>Compare with</h2>
-    <p class="note">What changed from the files chosen here to the ones open: their data files and plug-ins, record by record. Changed systems are ringed in pink on the map, new ones in a dashed ring.</p>
+    <p class="note">What changed from the files chosen here to the ones open: their data files and plug-ins, record by record. The map rings changed systems in pink, and new ones in a dashed ring.</p>
     <div class="actions">${COMPARE_RELEASES.map((r, i) => `<button data-r="${i}">${esc(r.label)} <small>${r.size} from archive.org</small></button>`).join('')}</div>
     <div class="actions"><label class="btn">Your files…<input type="file" multiple hidden></label></div>
     <div class="actions">${COMPARE ? '<button data-a="stop">Stop comparing</button>' : ''}<button data-a="cancel">Cancel</button></div>`;

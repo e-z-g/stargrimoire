@@ -56,7 +56,7 @@ const LIB_RACE_STATES = ['unclicked', 'clicked', 'the winner', 'not the winner']
 function libRace(res, id) {
   if (res === 'PICT' && id === 8529) return "the bar's race, behind its Gamble button: the background";
   if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the bar's race: colour ${id % 10 + 1}'s button, ${LIB_RACE_STATES[Math.floor(id / 10) - 853]}`;
-  if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time the bar is opened), and a winning bet pays four times what was bet";
+  if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time you open the bar), and a winning bet pays four times what was bet";
   if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} wins`;
   return '';
 }
@@ -224,7 +224,7 @@ document.addEventListener('pictready', () => { if (LIB.on && LIB.tab === 'pict')
 function libSounds(q) {
   const all = GAME.list('snd ').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || libRoleHas('snd ', e.id, q));
   const waiting = !all.length && (PENDING.length || PUMPING || SHIP_FILES.length);
-  return `<p class="note">${all.length ? `${all.length} sounds.` : waiting ? 'The sounds are in the sounds files, being read.' : 'No sounds in the files open.'}</p>
+  return `<p class="note">${all.length ? `${all.length} sounds.` : waiting ? 'The page is reading the sounds files.' : 'No sounds in the files open.'}</p>
     <table class="kv libSnds">${all.map(e => `<tr><td>snd ${e.id}</td><td>${esc(e.name || '')}${(r => (r ? `<br><span class="note">${r}</span>` : ''))(libRole('snd ', e.id))}</td><td><button data-lib-play="${e.id}">Play</button></td></tr>`).join('')}</table>`;
 }
 let LIB_AUDIO = null;

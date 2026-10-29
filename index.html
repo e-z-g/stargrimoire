@@ -406,33 +406,33 @@ details.inline .list { margin-top: 4px; }
      documentation (EV Nova Documentation.pdf, page 3, "The crew behind the scenes"),
      then what this page is built from (doc/credits.md). -->
 <div id="creditsMenu" role="dialog" aria-label="Credits" hidden>
-  <p>StarGrimoire is maintained by <strong>EgadZoundsGadzooks</strong>, and reads everything it shows from EV Nova's data files.</p>
+  <p><strong>EgadZoundsGadzooks</strong> maintains StarGrimoire, which reads everything it shows from EV Nova's data files.</p>
   <h4>The game</h4>
   <p class="cNote">In the game's documentation they are "the crew behind the scenes":</p>
   <ul>
     <li>Engine Programming: <strong>Matt Burch</strong></li>
-    <li>Concepts, Plot, Dialogue, Scenario Implementation, Graphics, Sound Production, Boolean Illogic, and anything else that may have been forgotten: <strong>ATMOS Software Productions</strong>, who are Luke “Nuada” Smart, Stephen “-8-” Chick, Phillip “particlestan” Chick, Jason “Frandall” Cook, Scott “Eyeya” Vardy, Jarrod “wooly_mammoth” Rainsford, Paul “Dalsoth” Pentecost and Dafydd “pipeline” Williams</li>
+    <li>Concepts, Plot, Dialogue, Scenario Implementation, Graphics, Sound Production, Boolean Illogic, and everything else: <strong>ATMOS Software Productions</strong>, who are Luke “Nuada” Smart, Stephen “-8-” Chick, Phillip “particlestan” Chick, Jason “Frandall” Cook, Scott “Eyeya” Vardy, Jarrod “wooly_mammoth” Rainsford, Paul “Dalsoth” Pentecost and Dafydd “pipeline” Williams</li>
     <li>Tools Programming: <strong>Ralph “Dr. Ralph” Sutherland</strong></li>
     <li>Published by <strong>Ambrosia Software, Inc.</strong>: Andrew Welch, Ed Ota, David Dunham, Bernard Cockhern, John Champlin, Matt Slot, Jen Tontarski</li>
     <li>Documentation: <strong>David Dunham</strong></li>
   </ul>
-  <h4>What the page is built from</h4>
+  <h4>What the page uses</h4>
   <ul>
     <li>The <strong>EV Nova Resource Bible</strong>, by <strong>Matt Burch</strong>, as reformatted by <strong>ReinierK</strong>, and Ambrosia's ResEdit templates: the records' fields, units and flags.</li>
     <li><strong>Grimoire</strong>: the readers for Mac archives, resource forks and pictures, whose StuffIt reader comes from <strong>Ben Letchford</strong>'s stuffit-rs, after <strong>Dag Ågren</strong>'s The Unarchiver.</li>
     <li><strong>evnova-decomp</strong>, by <strong>Lancelot de Ferrière</strong>: the Community Edition's function names, which helped read its program alongside the Mac one.</li>
-    <li><strong>ResForge</strong>, by <strong>Andrew Simmonds</strong>: how a ship's sprite layers are blended.</li>
+    <li><strong>ResForge</strong>, by <strong>Andrew Simmonds</strong>: how to blend a ship's sprite layers.</li>
     <li>The subway map, after <strong>Gansner, Koren and North</strong>; <strong>Stott, Rodgers, Martinez-Ovando and Walker</strong>; and <strong>Bast, Brosi and Storandt</strong>. Its names, after <strong>Been, Daiches and Yap</strong>; <strong>Been, Nöllenburg, Poon and Wolff</strong>; and <strong>Christensen, Marks and Shieber</strong>. Its colours for jumps, <strong>Anton Mikhailov</strong>'s turbo.</li>
   </ul>
-  <p>Everyone named here is credited for work StarGrimoire draws on. None of them was involved in making it or has endorsed it, and its mistakes are its maintainer's.</p>
-  <p>StarGrimoire was written with the assistance of Claude.</p>
+  <p>This list credits everyone whose work StarGrimoire draws on. None of them took part in making it or has endorsed it, and its mistakes are its maintainer's.</p>
+  <p>Claude helped write StarGrimoire.</p>
   <p class="cNote">EV Nova is ©2002 by Ambrosia Software, Inc. This is an unofficial fan-made tool, and publishes none of the game's files.</p>
 </div>
 
 <main id="start">
   <div class="card">
     <h1>EV Nova's universe, read from the game's files</h1>
-    <p>Open a copy of <i>Escape Velocity Nova</i> for the Mac. Nothing leaves this page: the files are read here, in the browser.</p>
+    <p>Open a copy of <i>Escape Velocity Nova</i> for the Mac. Nothing leaves this page: your browser reads the files here.</p>
     <div id="drop">
       Drop the files here, or
       <label class="btn">choose them…<input type="file" id="picker2" multiple hidden></label>
@@ -445,7 +445,7 @@ details.inline .list { margin-top: 4px; }
       <li>a MacBinary or BinHex copy of each data file;</li>
       <li>plug-ins, as <code>.rez</code>, <code>.sit</code> or <code>.zip</code>, opened with a game or after it.</li>
     </ul>
-    <p>A file picked straight out of a classic Mac folder comes without its resource fork, and that is where all of the game's data is, so it cannot be read that way.</p>
+    <p>A file picked straight out of a classic Mac folder comes without its resource fork, and that is where all of the game's data is, so the page cannot read a file picked that way.</p>
     <p>With no copy to hand, read the one on archive.org: 1.0.10 as Ambrosia shipped it, 96 MB, fetched when you ask.</p>
     <button id="useRemote">Read archive.org's copy</button>
   </div>
@@ -530,7 +530,7 @@ details.inline .list { margin-top: 4px; }
       <label class="under"><input type="checkbox" id="optShips" checked> Ships in the system you are in</label>
       <label><input type="checkbox" id="optNames" checked> Names</label>
       <label><input type="checkbox" id="optSystems" checked> Systems</label>
-      <label class="under">Coloured <select id="dotSel" title="How the systems' dots are coloured">
+      <label class="under">Coloured <select id="dotSel" title="How the map colors the systems' dots">
         <option value="govt">by government</option>
         <option value="one">in one colour</option>
         <option value="interference">by radar interference</option>
@@ -552,7 +552,7 @@ details.inline .list { margin-top: 4px; }
         <option value="interference">systems with radar interference</option>
       </select></label>
       <label>Only within <input type="number" id="optReach" min="1" max="99" step="1" placeholder="any" inputmode="numeric" title="Leave empty for everything"> jumps of the selected system</label>
-      <label>Links <select id="linkSel" title="How the links are coloured">
+      <label>Links <select id="linkSel" title="How the map colors the links">
         <option value="plain">in one colour</option>
         <option value="govt">in government colours</option>
         <option value="jumps">by jumps from the selected system</option>

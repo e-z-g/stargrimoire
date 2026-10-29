@@ -1845,13 +1845,13 @@ async function throughGate(sys, sp, to, quick) {
 async function wormholeTrip(sys, sp, quick) {
   await toGate(sys, sp, quick);
   const trip = novaWormholeTrip(U, SHOWN, sp, sys, n => Math.floor(Math.random() * n));
-  if (!trip.to) { mapNote(gameText(84, 86) || 'This wormhole cannot be entered.'); return; }
+  if (!trip.to) { mapNote(gameText(84, 86) || 'You cannot enter this wormhole.'); return; }
   await throughGate(sys, sp, trip.to, quick);
 }
 async function hypergateAsk(sys, sp, quick) {
   await toGate(sys, sp, quick);
   const r = novaHypergateChoices(U, SHOWN, sp, sys);
-  if (r.refused) { mapNote(gameText(84, 85) || 'This hypergate cannot be entered.'); return; }
+  if (r.refused) { mapNote(gameText(84, 85) || 'You cannot enter this hypergate.'); return; }
   if (r.none) return;
   GATE_PICK = { spob: sp.id, sys: sys.id, choices: r.choices };
   ENGAGED.add(sp.id);
@@ -1964,7 +1964,7 @@ function subwayGet(kind) {
   if (stored && stored.fingerprint === input.fingerprint) return Promise.resolve(LAYOUT.subs[kind] = subwayResult(input, stored));
   return (LAYOUT.pending[kind] = subwayWork(input).then(layout => {
     try { localStorage.setItem(key, JSON.stringify(layout)); } catch (e) { /* storage is off or full */ }
-    if (U !== u) throw new Error('other files were opened meanwhile');
+    if (U !== u) throw new Error('the open files changed meanwhile');
     delete LAYOUT.pending[kind];
     return (LAYOUT.subs[kind] = subwayResult(input, layout));
   }));
@@ -2228,7 +2228,7 @@ let PANEL_KEY = null;
    shown now: its stellars and their systems, a random other wormhole, or
    nowhere and why. `sys` is the system whose panel it is. */
 const GATE_WHY = {
-  offline: () => 'nowhere: it cannot be landed on: "it is offline"',
+  offline: () => 'nowhere: you cannot land on it: "it is offline"',
   elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and from here you get "the radiation levels are too extreme"`,
   unlinked: () => 'nowhere: it links to nothing, and landing on it does nothing',
   nowhere: () => 'nowhere: none of its stellars is in a system shown now',
@@ -2240,7 +2240,7 @@ function gateTo(sp, sys) {
   const r = GATES.random.find(x => x.spob === sp);
   if (r) {
     const n = GATES.random.filter(x => x.sys.id !== r.sys.id).length;
-    return `a random one of the ${n} other wormholes with no set destination in the systems shown now, drawn from this system when it is selected`;
+    return `a random one of the ${n} other wormholes with no set destination in the systems shown now, which the game draws each time you go through`;
   }
   const ways = GATES.ways.filter(w => w.gate === sp);
   if (!ways.length) return SHOWN.has(sys) || !sys ? '' : 'nowhere while its system is not shown';
@@ -2267,7 +2267,7 @@ const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr>
 
 // How the game reads a test, where that is not as it is written (ncbAsWritten), kept by text.
 const AS_WRITTEN = new Map();
-const GAME_READS = 'Mac 1.1.1 reads tests differently from the Bible: at each & or | only the last term is kept, so in a run of bare terms only the last two count; a lone number, or a character outside the test syntax, is passed over; and a test that does not start with b, (, !, p, g, o or e is never true.';
+const GAME_READS = 'Mac 1.1.1 reads tests differently from the Bible. At each & or | it keeps only the last term, so in a run of bare terms only the last two count. It passes over a lone number, or a character outside the test syntax. A test that does not start with b, (, !, p, g, o or e is never true.';
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
   const holds = ncbTest(text, STATE);
@@ -2493,7 +2493,7 @@ function deadEndsFill(el) {
 }
 function storyDeadEndsHtml(key) {
   const s = missionData().stories.get(key), r = storyDeadEnds(key);
-  const head = `<h3>Dead ends</h3><p class="note">Where this storyline can be left with no way forward: started, none of its missions under way, none that can ever be taken again, and none of its endings ${r.ends.length ? `(its missions that no other mission of it follows and that can be finished: ${r.ends.map(missionName).join(', ')})` : '(it has none; here, a mission of it that can still be taken)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. The files do not show whether a closing was meant.</p>`;
+  const head = `<h3>Dead ends</h3><p class="note">Where you can leave this storyline with no way forward: started, none of its missions under way, none you can ever take again, and none of its endings ${r.ends.length ? `(its missions that no other mission of it follows and that you can finish: ${r.ends.map(missionName).join(', ')})` : '(it has none; here, a mission of it you can still take)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. The files do not show whether a closing was meant.</p>`;
   if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: too many to search.</p>`;
   const ids = s.missions.map(m => m.id);
   const held = heldBits(ids).filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
@@ -2502,7 +2502,7 @@ function storyDeadEndsHtml(key) {
   const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
   return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
-    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it that nothing offers, so one that is lost cannot be taken again where it was offered (its panel shows whether what started it can be taken again).</p><ul>${podRows}</ul>` : '');
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it that nothing offers, so once you lose one you cannot take it again where you took it (its panel shows whether you can take again what started it).</p><ul>${podRows}</ul>` : '');
 }
 function missionDeadEndsHtml(id) {
   const m = missionData().byId.get(id);
@@ -2511,7 +2511,7 @@ function missionDeadEndsHtml(id) {
   if (m.story) {
     const r = storyDeadEnds(m.story.key);
     if (!r.tooMany) for (const a of r.after) if (a.mission === id || (a.missions && a.missions.includes(id)))
-      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way forward: none of its missions can be taken again and none of its endings reached; as by ${deadWay(a)}.`);
+      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way forward: you can take none of its missions again or reach any of its endings; as by ${deadWay(a)}.`);
   }
   for (const h of heldBits([id])) {
     if (h.mission === id) out.push(heldText(h).replace(/^an/, 'An'));
@@ -2563,7 +2563,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline is placed after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where one of its openings can be offered ${shownWhere()}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline comes after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where the game can offer one of its openings ${shownWhere()}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2608,7 +2608,7 @@ function overviewPanel() {
     <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
     <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings needs off, which shuts that opening for good (an opening is a mission that no other mission of its storyline leads to). The chart draws them all, full screen.</p>
     <h3>What joins each</h3>
-    <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. ${[...M.byId.values()].filter(m => !m.story).length} missions belong to no storyline and are left out.</p>
+    <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. The chart leaves out the ${[...M.byId.values()].filter(m => !m.story).length} missions that belong to no storyline.</p>
     ${order.map(joinsOf).join('')}
     ${people ? `<h3>People</h3><p class="note">A person whose ActivateOn needs on a bit a storyline's missions turn on appears with it, and one that needs it off is gone with it.</p><table class="kv">${people}</table>` : ''}
     ${events ? `<h3>Events</h3><p class="note">An event that, as it starts or ends, turns on a bit a storyline's missions need on opens them; one that turns it off shuts them.</p><table class="kv">${events}</table>` : ''}`;
@@ -2625,7 +2625,7 @@ function storyPanel(key) {
   return `<h2>${esc(s.name)}</h2>
     <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}, named in Ambrosia's notes</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${shownWhere()}. The places they are offered at and send you to are ringed on the map.</p>
+    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${shownWhere()}. The map rings the places that offer them and the places they send you to.</p>
     ${storyChart(s)}
     <div data-dead="story" data-id="${esc(key)}"><h3>Dead ends</h3><p class="note">Looking…</p></div>
     <table class="kv">${rows}</table>`;
@@ -2651,7 +2651,7 @@ function storyChart(s) {
     return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
       `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
   }).join('');
-  return `<h3>Chart</h3><p class="note">Each mission is placed below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${shownWhere()}. A dashed line goes back up a loop.</p>
+  return `<h3>Chart</h3><p class="note">Each mission sits below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${shownWhere()}. A dashed line goes back up a loop.</p>
     <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
 // The places the open storyline's missions are offered at, go to or return to.
@@ -2693,7 +2693,7 @@ function galaxyPanel() {
   const places = new Set(U.systems.map(s => s.x + ',' + s.y)).size;
   const neb = U.nebulae.map(n => `<a data-nebula="${n.id}">${esc(n.name)}</a>`).join('');
   const files = GAME.files.map(f => `<tr><td>${esc(f.name)}</td><td>${f.plugin ? 'plug-in' : esc(f.role || '')}</td></tr>`).join('');
-  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : SHOW_MODE === 'save' ? 'the systems whose visibility test passes with the save file\'s bits on' : 'the systems whose visibility test passes at the start of a new game, when no control bit is set';
+  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : SHOW_MODE === 'save' ? 'the systems whose visibility test passes with the save file\'s bits on' : 'the systems whose visibility test passes at the start of a new game, when every control bit is off';
   return `<h2>The galaxy</h2>
     <div class="sub">${shown.length} of ${U.systems.length} systems shown, at ${places} places; ${LINKS.length} hyperspace links; ${GATES.links.length} ways by hypergate or wormhole, and ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
     <p class="note">Shown: ${mode}. Tap a system to see it; tap it again to go in.</p>
@@ -2750,7 +2750,7 @@ function systemPanel(sys) {
     <div class="actions">${inGalaxy ? `<button data-open="${sys.id}">Go to ${esc(sys.name)}</button>` : '<button data-go="galaxy">Back to the galaxy</button>'}
       ${ROUTE.from !== null && ROUTE.from !== sys.id ? `<button data-route-to="${sys.id}">Route here from ${esc(U.byId.get(ROUTE.from).name)}</button>` : ''}
       ${ROUTE.from !== sys.id || ROUTE.to !== null ? `<button data-route-from="${sys.id}">Route from here</button>` : ''}
-      ${SHOWN.has(sys.id) || SHOW_MODE === 'all' ? '' : '<span class="warn">Not on the map as it is shown now</span>'}</div>
+      ${SHOWN.has(sys.id) || SHOW_MODE === 'all' ? '' : '<span class="warn">Not on the map shown now</span>'}</div>
     ${routeBlock()}
     ${pilotShown() ? `<table class="kv">${pilotSystemRows(sys)}</table>` : ''}
     <h3>Stellars</h3><div class="list">${stellars || '<span class="note">none</span>'}</div>
@@ -2792,7 +2792,7 @@ function stellarPanel(sp) {
   const dead = sp.DeadTime === 0 ? ', and regenerates at the end of the day' : sp.DeadTime < 0 ? ', and never regenerates' : `, and regenerates after DeadTime ${sp.DeadTime}`;
   const pw = planetWeapons();
   const destroyed = sp.Strength > 0 ? `${sp.Strength.toLocaleString()} damage from planet-type weapons${dead}. ` +
-    (pw.length ? `Those in these files: ${pw.map(w => esc(resName('wëap', w.id))).join(', ')}.` : 'These files have none.') : 'nothing: it cannot be destroyed';
+    (pw.length ? `Those in these files: ${pw.map(w => esc(resName('wëap', w.id))).join(', ')}.` : 'These files have none.') : 'nothing: it is indestructible';
   const minStatus = sp.MinStatus === -32767 ? 'always allowed' : sp.MinStatus === 32767 ? 'never allowed' : sp.MinStatus;
   const typeName = stellarTypeName(sp.Type);
   const sets = [['On dominating', sp.OnDominate], ['On release', sp.OnRelease], ['On destruction', sp.OnDestroy], ['On regenerating', sp.OnRegen]]

@@ -144,7 +144,7 @@ const recPict = (id, caption) => (GAME.has('PICT', id) ? `<figure class="recPict
    was read; or a note that the program is needed. */
 function recFromProgram(id, pictFig, descFig, what) {
   const p = fig(pictFig), d = fig(descFig), n = id - 128;
-  if (!p && !d) return `<p class="note">Its ${what} picture and description are found through the game's program, ${program() ? 'which does not show where for this one' : 'and the open files do not include it'}.</p>`;
+  if (!p && !d) return `<p class="note">The game's program finds its ${what} picture and description, ${program() ? 'but does not show where for this one' : 'and the open files do not include the program'}.</p>`;
   const pid = p ? p.value + n : null, did = d ? d.value + n : null;
   return (p ? recPict(pid, `${esc(what[0].toUpperCase() + what.slice(1))}, PICT ${pid} (${codeNum(p)} + ${n})`) : '') +
     (d ? `${recDesc(did, 'description')}<p class="note">dësc ${did} (${codeNum(d)} + ${n}), as the ${esc(what)} loads it.</p>` : '');
@@ -184,9 +184,9 @@ const REC_BODY = {
         ${kvRow('Offered when', testLine(r.Availability))}
       </table>
       <h3>Sold at <span class="note">${soldAt.length}</span></h3>
-      <p class="note">Outfitters whose tech level is at least the outfit's, or that list it among their special techs; Offered when, its Needs and the day's draw (BuyRandom) then determine whether it is offered on a given day.</p>
+      <p class="note">Outfitters whose tech level is at least the outfit's, or that list it among their special techs; Offered when, its Needs and the day's draw (BuyRandom) then decide whether the outfitter offers it on a given day.</p>
       ${many(soldAt.map(stellarRef), 'outfitters')}
-      ${refs.needs.length ? `<h3>Needs</h3><p class="note">Every one of these contribute bits is needed, from the ship, an outfit carried, a rank held or a running event.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
+      ${refs.needs.length ? `<h3>Needs</h3><p class="note">You need every one of these contribute bits, from the ship, an outfit carried, a rank held or a running event.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
       ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">Added to yours when you buy, capture or start in one (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}
       ${given.length ? `<h3>Given and taken</h3><table class="kv">${given.map(g => `<tr><td colspan="2">${g}</td></tr>`).join('')}</table>` : ''}
       ${refs.grantedBy.length ? `<h3>Found plundering</h3><p class="note">People whose GrantClass is this outfit's ItemClass, ${r.ItemClass}.</p><div class="list">${refs.grantedBy.map(p => recLink('përs', p)).join('')}</div>` : ''}
@@ -279,7 +279,7 @@ const REC_BODY = {
     return `<table class="kv">
         ${kvRow('Base price', String(r.BasePrice))}
       </table>
-      <p class="note">Traded at these stellars, on the trade screen's seventh row (BoughtAt) or eighth (SoldAt), bought and sold at the one price; where several commodities list a stellar, the highest-numbered is traded there.</p>
+      <p class="note">Traded at these stellars, on the trade screen's seventh row (BoughtAt) or eighth (SoldAt), bought and sold at the one price. Where several commodities list a stellar, the stellar trades the highest-numbered one.</p>
       <table class="kv">
         ${kvRow('At base price × 1.25', listOr(refs.boughtAt.map(stellarRef), 'nowhere'))}
         ${kvRow('while', testLine(r.BuyOn))}

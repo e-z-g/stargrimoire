@@ -179,7 +179,7 @@ function renderCode() {
   if (CODE.addr === null) {
     el.innerHTML = `<h2>The program</h2>
       <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ', its PowerPC half' : ''} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
-      <p class="note">Search for anything a routine uses: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it was read from.</p>
+      <p class="note">Search for anything a routine uses: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it comes from.</p>
       ${codeRules(p)}`;
     return;
   }

@@ -143,7 +143,7 @@ async function openGameFiles(picked, opts = {}) {
     try { saves.push(novaReadPilot(novaOpenFork(f.read()), f.name)); } catch (e) { refused.push(e.message); }
   }
   if (saves.length && !found.length) {
-    if (!GAME) { setStatus('A save file is shown on the game\'s map: open the game first, then the save file', true); return; }
+    if (!GAME) { setStatus('The page shows a save file on the game\'s map: open the game first, then the save file', true); return; }
     if (!opts.remembered) {
       KEPT = KEPT.concat(picked.map(({ name, bytes }) => ({ name, bytes })));
       keptPut({ files: KEPT, savedAt: Date.now() }).then(() => showForget(true), () => {});
@@ -389,7 +389,7 @@ function wireOpening() {
   document.getElementById('creditsItem').addEventListener('click', e => { e.stopPropagation(); moreShow(false); creditsShow(credits.hidden); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
-                     () => setStatus('Nothing was saved, so there is nothing to clear.'));
+                     () => setStatus('The page has nothing saved, so there is nothing to clear.'));
   });
   if (srcs.length) fetchAndOpen(srcs.map(s => s === 'archive.org' ? ARCHIVE_ORG.url : s));
   else if (params.get('cache') !== 'skip') keptGet().then(rec => {

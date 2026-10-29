@@ -212,14 +212,14 @@ function pluginAsk() {
   const diff = COMPARE && COMPARE.game ? novaPluginFromGames(COMPARE.game, GAME) : null;
   box.innerHTML = `<h2>Plug-in</h2>
     <p class="note">The records changed here, which the page reads after every file open. Change a record from its panel: open Every field, then Change.</p>
-    ${rows ? `<table class="kv plugin">${rows}</table>` : '<p class="note">Nothing is changed yet.</p>'}
+    ${rows ? `<table class="kv plugin">${rows}</table>` : '<p class="note">No changes yet.</p>'}
     <label>Name <input id="pluginName" value="${esc(PLUGIN_NAME)}" maxlength="31"></label>
     <p class="note">Saved as a <b>.rez</b>, it is a plug-in for the Windows builds and the Community Edition. Saved for the Mac, it is a MacBinary <b>.bin</b>: StuffIt Expander or The Unarchiver turns it into the plug-in itself, a file with a resource fork.</p>
     <div class="actions">
       <button data-a="rez"${list.length ? '' : ' disabled'}>Save as .rez</button>
       <button data-a="bin"${list.length ? '' : ' disabled'}>Save for the Mac</button>
     </div>
-    ${diff ? `<p class="note">Or every record that differs from ${esc(COMPARE.label)}, these changes among them: ${diff.length.toLocaleString()} records, a plug-in that makes ${esc(COMPARE.label)} into what is open now (though not a record that was removed).</p>
+    ${diff ? `<p class="note">Or every record that differs from ${esc(COMPARE.label)}, these changes among them: ${diff.length.toLocaleString()} records, a plug-in that makes ${esc(COMPARE.label)} into what is open now (though a plug-in cannot remove a record).</p>
     <div class="actions"><button data-a="diff-rez"${diff.length ? '' : ' disabled'}>Save as .rez</button><button data-a="diff-bin"${diff.length ? '' : ' disabled'}>Save for the Mac</button></div>` : ''}
     <div class="actions">${list.length ? '<button data-a="clear">Undo every change</button>' : ''}<button data-a="close">Close</button></div>`;
   el.hidden = false;

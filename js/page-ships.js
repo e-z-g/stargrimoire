@@ -318,7 +318,7 @@ function shipHtml(ship, shan) {
         : `<div class="nopict">${GAME.list('shän').length ? `No shän ${id} in these files, so no sprites.` : 'The sprites are in the ships files.'}</div>`}</div>
       <div id="shipPics" class="shipPics"></div>
     </div>
-    ${!fd ? `<p class="note">Its description is found through the game's program, ${program() ? 'which does not show where for this one' : 'and the open files do not include it'}.</p>`
+    ${!fd ? `<p class="note">The game's program finds its description, ${program() ? 'but does not show where for this one' : 'and the open files do not include the program'}.</p>`
       : d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">dësc ${fd.value + n} (${codeNum(fd)} + ${n}), as the shipyard loads it.</p>` : `<p class="note">No description: the files have no dësc ${fd.value + n} (${codeNum(fd)} + ${n}).</p>`}
     ${pd ? `<h3>As an escort for hire</h3><div class="desc">${esc(novaDescText(pd.Description, STATE))}</div><p class="note">dësc ${fe.value + n} (${codeNum(fe)} + ${n}).</p>` : ''}
     <div class="shipCols">
@@ -332,7 +332,7 @@ function shipHtml(ship, shan) {
         ${kvRow('Cargo', holds)}
         ${kvRow('Free space', `${fmtNum(ship.FreeMass)} tons`)}
         ${kvRow('Guns, turrets', `up to ${ship.MaxGun} and ${ship.MaxTur}`)}
-        ${kvRow('Crew', ship.Crew ? fmtNum(ship.Crew) : '0: cannot be boarded, and cannot capture')}
+        ${kvRow('Crew', ship.Crew ? fmtNum(ship.Crew) : '0: no one can board it, and it cannot capture')}
         ${kvRow('Mass', `${fmtNum(ship.Mass)} tons${days ? ` <span class="note">(${days} day${days === 1 ? '' : 's'} a jump)</span>` : ''}`)}
         ${kvRow('Length', ship.Length ? `${fmtNum(ship.Length)} m` : '')}
         ${kvRow('Strength', fmtNum(ship.Strength))}

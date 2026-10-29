@@ -326,7 +326,7 @@ function battleCopyYours() {
   const D = flightData(), got = PILOT && novaPilotShip(GAME, PILOT.save);
   if (!D || !got) { BATTLE.note = 'The save file\'s ship class is not in the open files.'; battlePanel(); return; }
   const res = novaShipCopy(GAME, got.from, got.name, got.change);
-  if (!res) { BATTLE.note = 'Every ship number the game reads, 128 to 895, is taken.'; battlePanel(); return; }
+  if (!res) { BATTLE.note = 'The files already use every ship number the game reads, 128 to 895.'; battlePanel(); return; }
   const name = id => { const r = novaGet(GAME, 'wëap', id) || novaGet(GAME, 'oütf', id); return r ? novaNameParts(r.name).name : String(id); };
   const left = [...got.left.weapons.map(name), ...got.left.outfits.map(name)];
   battleAddMade(res, `${got.name} is ship ${res[0].id}, first in the list and chosen: tap the arena to put it down.` +
@@ -337,7 +337,7 @@ function battleCustom(from) {
   const cls = from !== null && GAME && novaGet(GAME, 'shïp', from);
   if (!cls) { BATTLE.note = 'Tap a ship in the list first: Custom ship starts from a copy of it.'; battlePanel(); return; }
   const res = novaShipCopy(GAME, from, `${novaNameParts(cls.name).name} (custom)`);
-  if (!res) { BATTLE.note = 'Every ship number the game reads, 128 to 895, is taken.'; battlePanel(); return; }
+  if (!res) { BATTLE.note = 'The files already use every ship number the game reads, 128 to 895.'; battlePanel(); return; }
   battleKeepSetup(() => { for (const r of res) EDITS.set(editKey(r.type, r.id), r); });
   battleEditMade(res[0].id);
 }

@@ -292,7 +292,7 @@ function shipHtml(ship, shan) {
   const govtLine = govts.combat === -1 && govts.attrs === -1 ? '' : govts.combat === govts.attrs ? esc(govtName(govts.combat))
     : govts.combat === -1 ? `${esc(govtName(govts.attrs))}'s attributes, of no government in combat` : `${esc(govtName(govts.combat))} in combat, with no government's attributes`;
   const sub = [`shïp ${id}`, ship.Subtitle, govtLine, ship.file].filter(Boolean).map(s => s === govtLine ? s : esc(s)).join(' · ');
-  // its descriptions' ids, a base read from the program plus its number less 128
+  // its descriptions' ids, a base read from the program plus its number minus 128
   const fd = fig('shipDesc'), fe = fig('escortDesc'), n = id - 128;
   const d = fd ? descText(fd.value + n) : null, pd = fe ? descText(fe.value + n) : null;
   const perSec = v => fmtNum(Math.round(v * 30 / 10) / 100);

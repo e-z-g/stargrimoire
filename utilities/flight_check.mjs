@@ -134,7 +134,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   eq('tractor beam on an asteroid: to rest', vs, [0.035, 0, 0]);
 }
 {
-  // An arrival: desired speed -50, less 1.165 a step, the velocity |desired| along the heading, until it is
+  // An arrival: desired speed -50, lowered by 1.165 a step, the velocity |desired| along the heading, until it is
   // the top speed (3): 41 steps, the last moving it 50 - 40 x 1.165 = 3.4; the ship then coasts at that.
   const w = world(), s = ship(cls(), { heading: 180, state: 8, jump: -1000 });
   w.ships[1] = s;
@@ -303,7 +303,7 @@ if (haveRelease('1.0.10')) {
     }
     eq('an Aurora Cruiser\'s pods: five, the first with 62 steps of its throes left, the rest on the frame counter\'s tens, all gone in time',
       [launched.length, launched[0] && launched[0].death, launched.slice(1).every(l => l.frame % 10 === 0), n], [5, 62, true, 0]);
-    if (lives.some(l => l < 149 || l > 249)) fail(`escape pods' lives ${lives}, not 150 to 249 less a step`);
+    if (lives.some(l => l < 149 || l > 249)) fail(`escape pods' lives ${lives}, not 150 to 249 minus a step`);
     const personPods = noPodGovt => {
       const w5 = empty(8), vp = S.novaPlaceShip(w5, VIPER, 157, 0, 0, 3), gv = D.govts.get(157), was = gv.flags;
       vp.pers = 128;

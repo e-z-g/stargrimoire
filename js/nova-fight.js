@@ -978,14 +978,14 @@ function novaPointDefense(w, s) {
    (PointDefenseCollisionHandler 0x37776, and HandleBeams): one of no
    Durability left is gone, and an explosion left where the point defence
    shot was or the homing shot is, of the type numbered as the firer's
-   place among the ships (as written); else its Durability less the
+   place among the ships (as written); else its Durability minus the
    point defence's MassDmg and half its EnergyDmg. */
 function novaPointDefenseHit(w, W, sh, x, y, owner) {
   if (sh.dur < 1) { sh.life = 0; sh.hit = true; novaSpawnExplod(w, x, y, owner, 0); }
   else sh.dur = ((sh.dur - (W.mass + Math.trunc(W.energy / 2))) << 16) >> 16;
 }
 /* AIFireMissile 0x8115d: the first homing missile suited to the target
-   (SuitableMissileType) whose reach is more than the distance (less a
+   (SuitableMissileType) whose reach is more than the distance (minus a
    twentieth), unless enough missiles are already on their way to it
    (SufficentTargetedDamage 0x3fd22: their damage over 1.05 times its shields
    and armour). */
@@ -1364,7 +1364,7 @@ function novaShotCanHit(w, sh, t) {
 function novaSpriteHit(D, t, sh, W) {
   const ts = novaFightSprite(D, t.cls.sprite), ss = novaFightSprite(D, novaSpinSprite(D, W.spin));
   const tw = ts ? ts.w : 32, th = ts ? ts.h : 32, sw = ss ? ss.w : 8, shh = ss ? ss.h : 8;
-  // placed as the program places sprites: the middle less half the width (the height for a ship's top, the width again for a shot's)
+  // placed as the program places sprites: the middle minus half the width (the height for a ship's top, the width again for a shot's)
   const tl = Math.trunc(t.x) - Math.trunc(tw / 2), tt = Math.trunc(t.y) - Math.trunc(th / 2);
   const sl = Math.trunc(sh.x) - Math.trunc(sw / 2), st = Math.trunc(sh.y) - Math.trunc(sw / 2);
   if (sl >= tl + tw || tl >= sl + sw || st >= tt + th || tt >= st + shh) return false;
@@ -2285,7 +2285,7 @@ function novaFindShipToPlunder(w, s) {
 /* AIPlunderShipContents 0x83fab: as much of the boarded ship's cargo as the
    pirate has room for, a random kind of the six at a time; then the
    capture: with a chance of (pirate Strength x 100 / (2 x the ship's
-   Strength), and the crew outfits, less 0 to 20, plus 10, held to 10 to
+   Strength), and the crew outfits, minus 0 to 20, plus 10, held to 10 to
    100) over 40, that chance over 2 in 100 the ship becomes the pirate's
    escort, of its government, armour at two thirds. */
 function novaPlunder(w, s, t) {
@@ -2501,7 +2501,7 @@ function novaRoidShotHit(D, a, sh, W) {
                      ss, novaShotFrame(W, sh, ss), Math.trunc(sh.x) - Math.trunc(ss.w / 2), Math.trunc(sh.y) - Math.trunc(ss.w / 2));
 }
 /* HandleAsteroidHit 0x36637: the shot's explosion and hit particles; its
-   blast only if the player fired it; the asteroid's strength less the
+   blast only if the player fired it; the asteroid's strength minus the
    shot's EnergyDmg (ten times that with Flags2 0x8000), destroyed below 0,
    else pushed by the Impact over the asteroid's Mass, to at most 2. */
 function novaAsteroidHit(w, sh, a) {

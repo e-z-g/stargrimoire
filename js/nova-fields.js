@@ -368,7 +368,7 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipFuelCapacity', 0x2f21], ['HandlePlayer', 0x68390], ['AIShipHasFuelForJump', 0x7f48f]],
     },
     FreeMass: {
-      note: 'Tons for outfits. Yours: less each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. Its stock weapons and their ammunition take none of it, since loading adds their outfits\' Mass to it (WeapType). The outfitter sells you an outfit only while its Mass fits (or is 0 or less).',
+      note: 'Tons for outfits. Yours: this minus each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. Its stock weapons and their ammunition take none of it, since loading adds their outfits\' Mass to it (WeapType). The outfitter sells you an outfit only while its Mass fits (or is 0 or less).',
       code: [['ShipFreeMass', 0xb462], ['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Armor: {
@@ -842,7 +842,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['DoShipCloak', 0xde73], ['GenericRandomShipSpawn', 0x3c89f]],
     },
     AuxShipCount: {
-      note: 'How many ships of AuxShipDude the mission sends after you, in the systems AuxShipSyst allows: 70 to 139 steps after you enter such a system (or take off), as many as remain come in from hyperspace, less those already there. Each one that comes reduces what remains, unless the mission\'s Flags has 0x0010, when the full number comes again in each system. 0 or less: none.',
+      note: 'How many ships of AuxShipDude the mission sends after you, in the systems AuxShipSyst allows: 70 to 139 steps after you enter such a system (or take off), as many as remain come in from hyperspace, minus those already there. Each one that comes reduces what remains, unless the mission\'s Flags has 0x0010, when the full number comes again in each system. 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     AuxShipDude: {
@@ -922,7 +922,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581]],
     },
     ModVal: {
-      note: 'How much, for the effect ModType sets; see there. For ModType 1, 3 and 21, the game keeps the id less 128.',
+      note: 'How much, for the effect ModType sets; see there. For ModType 1, 3 and 21, the game keeps the id minus 128.',
       code: [['LoadObjectData', 0x771b0]],
     },
     ModType2: { note: 'A second effect, with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
@@ -1334,7 +1334,7 @@ const NOVA_FIELD_NOTES = {
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     Flags: {
-      note: '0x0001: gaining it removes every other rank you hold of its government, except those with 0x0008. 0x0010: gaining it removes those of its government with less Weight, except those with 0x0008. 0x0008: never taken away that way, nor for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with the rank\'s government do not count you a threat (IsThreatToShip), and they check whether you are one when they choose targets and come to help. 0x0200: while held, the stellars of a government allied with the rank\'s government check you the same way, when you hail and land, and for their colors on the map. The game reads 0x0400 and 0x0800 when you hail a ship of an allied government (DoCommDialog), not traced.',
+      note: '0x0001: gaining it removes every other rank you hold of its government, except those with 0x0008. 0x0010: gaining it removes those of its government with a lower Weight, except those with 0x0008. 0x0008: never taken away that way, nor for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with the rank\'s government do not count you a threat (IsThreatToShip), and they check whether you are one when they choose targets and come to help. 0x0200: while held, the stellars of a government allied with the rank\'s government check you the same way, when you hail and land, and for their colors on the map. The game reads 0x0400 and 0x0800 when you hail a ship of an allied government (DoCommDialog), not traced.',
       code: [['ActivateRank', 0x452f0], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['PlayerBlessedByGovt', 0x2732], ['IsThreatToShip', 0x81faf], ['SelectWarshipTarget', 0x89d5e], ['HandlePlayerDockRequest', 0x66691], ['DoPlanetCommDialog', 0x96949], ['ColorCodeStellar', 0xaa26], ['DoCommDialog', 0x956d5]],
     },
     ConvName: {
@@ -1464,7 +1464,7 @@ const NOVA_FIELD_NOTES = {
       code: [['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9]],
     },
     CustPicID: {
-      note: 'The picture when you land: 128 and up, that PICT; below, PICT 10000 + Type. For a hypergate, where its frames split: the frames below this number are the opening frames, when it is from 1 to the frame count less 2.',
+      note: 'The picture when you land: 128 and up, that PICT; below, PICT 10000 + Type. For a hypergate, where its frames split: the frames below this number are the opening frames, when it is from 1 to the frame count minus 2.',
       code: [['PreloadPortDialog', 0x4e5c7], ['HandleStellarSprites', 0x2e6f1]],
     },
     CustSndID: {

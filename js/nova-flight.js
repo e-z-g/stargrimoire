@@ -319,7 +319,7 @@ function novaGovtEnemies(D, a, b) {
    governments as 0 to 255 and compares n with that. A përs's government
    window starts at 9999, a flët's at 10000, so 9999 sends a përs to the
    independent systems; and a LinkSyst below 128 equal to the system's id
-   less 128 sends either there. */
+   minus 128 sends either there. */
 function novaLinkSystOk(D, link, sys, isPerson) {
   const g = novaGovtOk(sys.govt) ? sys.govt - 128 : -1;
   if (link === -1 || link === sys.id - 128 || link === sys.id) return true;
@@ -890,7 +890,7 @@ function novaFlightStep(w) {
 }
 /* HandleShipDisplay 0x2b58f, ionized: at a factor of 0.33 or more the
    ship is tinted its ionization's colour, 14 to 18 of 32 (a factor x 24
-   x 0.01 held to 16 to 24, less 2, plus Rand(5)); not ionized, its colour
+   x 0.01 held to 16 to 24, minus 2, plus Rand(5)); not ionized, its colour
    is cleared. The tint is put over the murk's, which is not done here
    (it is 0), so the ionization's always shows. */
 function novaIonTint(w, s) {

@@ -197,7 +197,7 @@ function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID :
    0x0002 one at random that is not the one now shown. With 0x0001 the first
    frame comes between every two others, and the random pick is never it.
      A hypergate (Flags2 0x1000) has two parts, split at CustPicID when that
-   is from 1 to the frame count less 2, and in half otherwise
+   is from 1 to the frame count minus 2, and in half otherwise
    (novaGateTransition). It opens through the first part while a ship is near
    it or bound for it (`engaged`) and then loops the second as above, the
    frame at the split standing for the first frame; with no ship near it
@@ -253,7 +253,7 @@ function novaStellarAnimStep(spob, a, count, ticks, engaged, rand) {
 }
 
 /* Descriptions: the spaceport loads dësc 128 + the stellar's index (its id
-   less 128), the bar dësc 10000 + it (1.1.1's DoPortDialog and DoBarDialog;
+   minus 128), the bar dësc 10000 + it (1.1.1's DoPortDialog and DoBarDialog;
    novaFigure's stellarDesc and barDesc, which program_check compares these with). */
 function novaStellarDescId(spob) { return 128 + spob.id - 128; }
 function novaStellarBarDescId(spob) { return 10000 + spob.id - 128; }

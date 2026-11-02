@@ -51,7 +51,7 @@ function novaCollectionEntries(c, files) {
                url: c.zip ? novaCollectionUrl(c.item, c.zip, path) : novaCollectionUrl(c.item, path), about: null });
   }
   if (c.zip) {
-    // the description beside a plug-in: its name, less one extension at a time, and .txt
+    // the description beside a plug-in: its name with .txt added, then with its last extension taken off and .txt added, and so on
     const txt = new Set(files.map(f => f.path).filter(p => /\.txt$/i.test(p)));
     for (const e of out) {
       for (let s = e.path; ; ) {

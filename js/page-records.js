@@ -140,7 +140,7 @@ function recDesc(id, what) {
 // A place for a PICT, filled in by recPictures once the panel is drawn.
 const recPict = (id, caption) => (GAME.has('PICT', id) ? `<figure class="recPict" data-pict="${id}"><div class="nopict wait">Reading PICT ${id}…</div><figcaption>${caption}</figcaption></figure>` : '');
 /* A picture and a description whose ids are a base read from the program
-   (fig) plus the record's number less 128, each base a link to where it
+   (fig) plus the record's number minus 128, each base a link to where it
    was read; or a note that the program is needed. */
 function recFromProgram(id, pictFig, descFig, what) {
   const p = fig(pictFig), d = fig(descFig), n = id - 128;

@@ -384,7 +384,7 @@ function battleGovts(D) {
    Warship or Interceptor by its InherentAI, with a weapon that does
    damage or a fighter bay, able to move, not
    planet-type -- whoever flies it in the game. Twice as many are drawn,
-   and dealt strongest first to the side with less Strength so far,
+   and dealt strongest first to the side with the lower Strength so far,
    so the two come out about even. They are scattered over the arena, the
    sides mixed, flying as the Flies as setting has it. */
 function battleRandom() {

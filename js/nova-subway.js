@@ -925,7 +925,7 @@ function subwayModule() {
           relax(nk * 8 + d, c, st, hcost(nk));
         }
       };
-      // from each port it may take, the point the port is on marked in the step's prev as -2 less it
+      // from each port it may take, the point the port is on marked in the step's prev as -2 minus it
       for (let q = 0; q < okU.length; q++) if (okU[q]) { const k = portCell(u, q); expand(k, -1, 0, -2 - k, false, portsOf[u][q][1]); }
       let found = -1;
       while (hn) {
@@ -1126,7 +1126,7 @@ function subwayModule() {
     retry();
     // on the map with headings kept, each link still off it routed again first, with the
     // other links at its ends, and any in its way, taken up and routed after it; kept where the
-    // drawing costs less
+    // drawing costs less than before
     if (heading) for (let round = 0; round < C.improve; round++) {
       let mended = 0;
       for (let e = 0; e < links.length; e++) {

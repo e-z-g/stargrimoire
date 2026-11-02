@@ -414,6 +414,7 @@ function exportArtifacts(fork, type, entry, data){
   else if(type==='CURS') cvs(decodeCURS(data).canvas);
   else if(type==='crsr') cvs(decodeCrsr(data).canvas);
   else if(type==='pltt') cvs(decodePltt(data).canvas);
+  else if(type==='mctb'){ const m=decodeMctb(data); cvs(m.canvas); txt(m.text); }
   else if(COLOR_TABLE_TYPES[type]) cvs(decodeClut(data).canvas);
   else if(type==='NFNT'||type==='FONT'){
     const f=decodeNFNT(data);
@@ -442,7 +443,7 @@ const TYPE_BADGES={
   'CURS':'cursor','crsr':'color cursor','acur':'animated cursor control',
   'ICN#':'image','ics#':'image','icl4':'image','icl8':'image','ics4':'image','ics8':'image',
   'ICON':'image','SICN':'small icons','cicn':'color image','PICT':'image',
-  'ppat':'pattern','PAT ':'pattern','PAT#':'patterns','pltt':'palette',
+  'ppat':'pattern','PAT ':'pattern','PAT#':'patterns','pltt':'palette','mctb':'menu colors',
   'sfnt':'font','NFNT':'bitmap font','FONT':'bitmap font','FOND':'font family',
   'cfrg':'code fragments','CODE':'68K code','CDEF':'68K code','WDEF':'68K code',
   'MDEF':'68K code','LDEF':'68K code','PACK':'68K code','INIT':'68K code',
@@ -1765,10 +1766,13 @@ function decodeSfntInfo(data){
 // ============================================================
 //  Classic Mac system palettes + indexed icon families
 // ============================================================
-// Standard Mac OS 16-color palette (icl4 / ics4).
+// Standard Mac OS 16-color palette (icl4 / ics4): the clut with seed 4 in
+// the Mac II to Power Macintosh G3 ROMs, each 16-bit channel cut to its high
+// byte, the same as in readColorTable for every other table. Until 25 October
+// 2026 fourteen entries were rounded and two cut, so five were one step off.
 const MAC_4BIT_PAL = [
-  [255,255,255],[252,243,5],[255,100,3],[221,9,7],[242,8,132],[71,0,165],
-  [0,0,211],[2,171,234],[31,183,20],[0,100,18],[86,44,5],[144,113,58],
+  [255,255,255],[252,243,5],[255,100,2],[221,8,6],[242,8,132],[70,0,165],
+  [0,0,212],[2,171,234],[31,183,20],[0,100,17],[86,44,5],[144,113,58],
   [192,192,192],[128,128,128],[64,64,64],[0,0,0]
 ];
 // Standard Mac OS 256-color system palette (icl8 / ics8). Indices 0-214 are
@@ -1998,6 +2002,49 @@ function decodePltt(data){
   }
   const kinds=[...new Set(usage.map(u=>PLTT_USAGE[u&7]||'0x'+u.toString(16)))];
   return {canvas:swatchGrid(pal), count:n, usage:kinds.join(', ')};
+}
+// ---- mctb (menu color information table) ----
+// Inside Macintosh: Macintosh Toolbox Essentials, pages 3-156 and 3-157
+// (figures 3-40 and 3-41) and Table 3-7 on page 3-100: a count, then menu
+// color entries of a menu id, an item number and four RGB colors, each
+// color's meaning set by the kind of entry. A menu id of 0 is the menu bar's
+// entry, an item of 0 a menu title's, and a menu id of -99 ends the list.
+// The figure gives an entry 28 bytes; on disk it is 30, the MCEntry record's
+// mctReserved word following the colors, which is what Cythera's mctb 129
+// has and what systemless reads (compiled_menu_color_entries). Cythera's
+// count is 14 with the end marker as the 14th entry, and the 844 bytes after
+// the 14 entries are not read, so the reading stops at -99 or at the count,
+// whichever comes first.
+const MCTB_ENTRY=30;
+const MCTB_ROLES={
+  bar:  ['titles', 'menus', 'items', 'bar'],
+  title:['title', 'bar', 'items', 'background'],
+  item: ['mark', 'text', 'shortcut', 'background'],
+};
+function decodeMctb(data){
+  if(data.length<2) throw new Error('mctb too short');
+  const declared=s16(data,0), entries=[];
+  for(let i=0;i<declared && 2+(i+1)*MCTB_ENTRY<=data.length;i++){
+    const p=2+i*MCTB_ENTRY, id=s16(data,p), item=s16(data,p+2);
+    if(id===-99) break;
+    const rgb=[0,1,2,3].map(k=>[0,2,4].map(c=>u16be(data,p+4+k*6+c)>>8));
+    entries.push({id, item, rgb});
+  }
+  const hex=c=>c.map(v=>v.toString(16).toUpperCase().padStart(2,'0')).join('');
+  const lines=entries.map(e=>{
+    const kind=e.id===0?'bar':e.item===0?'title':'item';
+    const who=kind==='bar'?'Menu bar':kind==='title'?`Menu ${e.id} title`:`Menu ${e.id}, item ${e.item}`;
+    return who+': '+MCTB_ROLES[kind].map((r,k)=>r+' '+hex(e.rgb[k])).join(', ');
+  });
+  const cell=20, canvas=document.createElement('canvas');
+  canvas.width=4*cell; canvas.height=Math.max(1,entries.length)*cell;
+  const ctx=canvas.getContext('2d');
+  entries.forEach((e,row)=>e.rgb.forEach((col,k)=>{
+    ctx.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;
+    ctx.fillRect(k*cell,row*cell,cell,cell);
+  }));
+  return {entries, canvas,
+          text:`${entries.length} menu color entr${entries.length===1?'y':'ies'}, one row each.\n`+lines.join('\n')};
 }
 function swatchGrid(pal){
   const perRow=16, cell=20;
@@ -2242,7 +2289,7 @@ function sfntMacRomanGlyphs(data){
    none. Every width is the caller's, so a strike can draw one font's
    letters at another's widths. Written as nfntSpec reads one: a glyph's
    image is its columns from its leftmost pixel to its rightmost, its
-   offset that leftmost column less kernMax, kernMax the furthest left any
+   offset that leftmost column minus kernMax, kernMax the furthest left any
    glyph starts (never right of the pen), fRectWidth the widest reach from
    kernMax, nDescent the negated ascent as Apple's strikes have it,
    and widMax the widest advance. A pixel outside the frame throws. */
@@ -2591,10 +2638,14 @@ function rsrcHexDump(bytes, limit){
   return out.join('\n');
 }
 
-// dctb/actb/mctb/cctb/wctb/fctb are all plain ColorTables on disk, the same
-// layout clut uses, so one decoder covers the family.
+// dctb/actb/cctb/wctb/fctb are all plain ColorTables on disk, the same
+// layout clut uses, so one decoder covers the family. mctb is not one of
+// them, though its name looks it: it is a list of menu color entries, and
+// decodeMctb reads it. It was listed here until 25 October 2026, and read
+// as a color table Cythera's mctb 129 has a count of 1 (the bytes after the
+// entry count and the first menu id) and one entry, black.
 const COLOR_TABLE_TYPES={'clut':'color table','dctb':'dialog color table','actb':'alert color table',
-  'mctb':'menu color table','cctb':'control color table','wctb':'window color table',
+  'cctb':'control color table','wctb':'window color table',
   'fctb':'finder icon color table'};
 
 // ============================================================

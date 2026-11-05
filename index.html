@@ -396,9 +396,9 @@ details.inline .list { margin-top: 4px; }
   <span id="fileMenu">
   <label class="btn" id="openBtn">Open…<input type="file" id="picker" multiple hidden></label>
   <button id="compareBtn" title="Compare the open game with another release" hidden>Compare…</button>
-  <button id="collectionBtn" title="The community's plug-ins on archive.org, opened into the game from there" hidden>Add plug-ins…</button>
-  <button id="pluginBtn" title="The records changed here, saved as a plug-in" hidden>Plug-in…</button>
-  <button id="forgetBtn" title="Delete the copy saved in this browser, so the next visit starts empty" hidden>Forget</button>
+  <button id="collectionBtn" title="Open the community's plug-ins from archive.org into the game" hidden>Add plug-ins…</button>
+  <button id="pluginBtn" title="Save the records changed here as a plug-in" hidden>Plug-in…</button>
+  <button id="forgetBtn" title="Delete the copy saved in this browser. The next visit starts empty." hidden>Forget</button>
   <button id="creditsItem">Credits</button>
   </span>
 </header>
@@ -406,9 +406,9 @@ details.inline .list { margin-top: 4px; }
      documentation (EV Nova Documentation.pdf, page 3, "The crew behind the scenes"),
      then what this page is built from (doc/credits.md). -->
 <div id="creditsMenu" role="dialog" aria-label="Credits" hidden>
-  <p><strong>EgadZoundsGadzooks</strong> maintains StarGrimoire, which reads everything it shows from EV Nova's data files.</p>
+  <p><strong>EgadZoundsGadzooks</strong> maintains StarGrimoire. Everything StarGrimoire shows comes from EV Nova's data files.</p>
   <h4>The game</h4>
-  <p class="cNote">In the game's documentation they are "the crew behind the scenes":</p>
+  <p class="cNote">The game's documentation calls them "the crew behind the scenes".</p>
   <ul>
     <li>Engine Programming: <strong>Matt Burch</strong></li>
     <li>Concepts, Plot, Dialogue, Scenario Implementation, Graphics, Sound Production, Boolean Illogic, and everything else: <strong>ATMOS Software Productions</strong>, who are Luke “Nuada” Smart, Stephen “-8-” Chick, Phillip “particlestan” Chick, Jason “Frandall” Cook, Scott “Eyeya” Vardy, Jarrod “wooly_mammoth” Rainsford, Paul “Dalsoth” Pentecost and Dafydd “pipeline” Williams</li>
@@ -418,35 +418,49 @@ details.inline .list { margin-top: 4px; }
   </ul>
   <h4>What the page uses</h4>
   <ul>
-    <li>The <strong>EV Nova Resource Bible</strong>, by <strong>Matt Burch</strong>, as reformatted by <strong>ReinierK</strong>, and Ambrosia's ResEdit templates: the records' fields, units and flags.</li>
-    <li><strong>Grimoire</strong>: the readers for Mac archives, resource forks and pictures, whose StuffIt reader comes from <strong>Ben Letchford</strong>'s stuffit-rs, after <strong>Dag Ågren</strong>'s The Unarchiver.</li>
-    <li><strong>evnova-decomp</strong>, by <strong>Lancelot de Ferrière</strong>: the Community Edition's function names, which helped read its program alongside the Mac one.</li>
-    <li><strong>ResForge</strong>, by <strong>Andrew Simmonds</strong>: how to blend a ship's sprite layers.</li>
-    <li>The subway map, after <strong>Gansner, Koren and North</strong>; <strong>Stott, Rodgers, Martinez-Ovando and Walker</strong>; and <strong>Bast, Brosi and Storandt</strong>. Its names, after <strong>Been, Daiches and Yap</strong>; <strong>Been, Nöllenburg, Poon and Wolff</strong>; and <strong>Christensen, Marks and Shieber</strong>. Its colours for jumps, <strong>Anton Mikhailov</strong>'s turbo.</li>
+    <li>The records' fields, units, and flags come from the <strong>EV Nova Resource Bible</strong> by <strong>Matt Burch</strong> (as reformatted by <strong>ReinierK</strong>) and Ambrosia's ResEdit templates.</li>
+    <li>The readers for Mac archives, resource forks, and pictures come from <strong>Grimoire</strong>. Its StuffIt reader comes from <strong>Ben Letchford</strong>'s stuffit-rs. That reader follows <strong>Dag Ågren</strong>'s The Unarchiver.</li>
+    <li>The Community Edition's function names come from <strong>evnova-decomp</strong> by <strong>Lancelot de Ferrière</strong>. They helped read its program alongside the Mac one.</li>
+    <li>How to blend a ship's sprite layers comes from <strong>ResForge</strong> by <strong>Andrew Simmonds</strong>.</li>
+    <li>Subway map layout:
+      <ul>
+        <li><strong>Gansner, Koren, and North</strong></li>
+        <li><strong>Stott, Rodgers, Martinez-Ovando, and Walker</strong></li>
+        <li><strong>Bast, Brosi, and Storandt</strong></li>
+      </ul>
+    </li>
+    <li>Subway map names:
+      <ul>
+        <li><strong>Been, Daiches, and Yap</strong></li>
+        <li><strong>Been, Nöllenburg, Poon, and Wolff</strong></li>
+        <li><strong>Christensen, Marks, and Shieber</strong></li>
+      </ul>
+    </li>
+    <li>Colors for jumps: <strong>Anton Mikhailov</strong>'s turbo</li>
   </ul>
-  <p>This list credits everyone whose work StarGrimoire draws on. None of them took part in making it or has endorsed it, and its mistakes are its maintainer's.</p>
+  <p>This list credits everyone whose work StarGrimoire draws on. None of them took part in making it or endorsed it. Its mistakes are the maintainer's.</p>
   <p>Claude helped write StarGrimoire.</p>
-  <p class="cNote">EV Nova is ©2002 by Ambrosia Software, Inc. This is an unofficial fan-made tool, and publishes none of the game's files.</p>
+  <p class="cNote">EV Nova is ©2002 by Ambrosia Software, Inc. This is an unofficial fan-made tool. It publishes none of the game's files.</p>
 </div>
 
 <main id="start">
   <div class="card">
-    <h1>EV Nova's universe, read from the game's files</h1>
+    <h1>EV Nova's universe from the game's files</h1>
     <p>Open a copy of <i>Escape Velocity Nova</i> for the Mac.</p>
     <div id="drop">
-      Drop the files here, or
+      Drop the files here or
       <label class="btn">choose them…<input type="file" id="picker2" multiple hidden></label>
     </div>
     <p>What it reads:</p>
     <ul>
-      <li>a release as Ambrosia shipped it: <code>EV_Nova_1.0.10.sit</code>, <code>1.0.8</code> or <code>1.0.2</code>;</li>
-      <li>1.1.1's disk image, <code>EV_Nova_1.1.1_for_Mac_OS_X.dmg</code>, or the <code>.ndat</code> files from its <code>Nova Files</code> folder, all selected at once;</li>
-      <li>the community's builds and their <code>.rez</code> files, or the zip they come in;</li>
-      <li>a MacBinary or BinHex copy of each data file;</li>
-      <li>plug-ins, as <code>.rez</code>, <code>.sit</code> or <code>.zip</code>, opened with a game or after it.</li>
+      <li>a release as Ambrosia shipped it (<code>EV_Nova_1.0.10.sit</code>, <code>1.0.8</code>, or <code>1.0.2</code>)</li>
+      <li>1.1.1's disk image (<code>EV_Nova_1.1.1_for_Mac_OS_X.dmg</code>) or all the <code>.ndat</code> files from its <code>Nova Files</code> folder selected together</li>
+      <li>the community's builds as <code>.rez</code> files or in the zip they come in</li>
+      <li>a MacBinary or BinHex copy of each data file</li>
+      <li>plug-ins (<code>.rez</code>, <code>.sit</code>, or <code>.zip</code>) with a game or after one</li>
     </ul>
-    <p>A file picked straight out of a classic Mac folder comes without its resource fork, and that is where all of the game's data is, so the page cannot read a file picked that way.</p>
-    <p>With no copy to hand, read the one on archive.org: 1.0.10 as Ambrosia shipped it, 96 MB, fetched when you ask.</p>
+    <p>A file picked straight out of a classic Mac folder comes without its resource fork. All of the game's data is in the resource fork. The page cannot read a file picked that way.</p>
+    <p>archive.org has release 1.0.10 as Ambrosia shipped it. The download is 96 MB.</p>
     <button id="useRemote">Read archive.org's copy</button>
   </div>
 </main>
@@ -522,28 +536,28 @@ details.inline .list { margin-top: 4px; }
       <label class="under2"><input type="checkbox" id="optHeading" checked> Lines within 45° of their true direction</label>
       <label class="under3"><input type="checkbox" id="optBars" checked> Busy stations as bars</label>
       <label class="under3"><input type="checkbox" id="optSide" checked> Names never across a line from their system (with room for names)</label>
-      <label class="under"><input type="checkbox" id="optPlainNames" checked> Names in metro style: one size, bolder, outlined</label>
+      <label class="under"><input type="checkbox" id="optPlainNames" checked> Names in metro style (one size, bolder, and outlined)</label>
       <label class="under"><input type="checkbox" id="optMetroSys" checked> Systems as metro stations</label>
-      <label class="under"><input type="checkbox" id="optFlatLinks" checked> Links each in one colour, not shading from one government's to another's</label>
+      <label class="under"><input type="checkbox" id="optFlatLinks" checked> Each link in one color with no shading between governments</label>
       <label class="under"><input type="checkbox" id="optPlainNeb" checked> Nebulae as plain shapes</label>
-      <label><input type="checkbox" id="optStellars" checked> Stellars as you zoom in</label>
-      <label class="under"><input type="checkbox" id="optShips" checked> Ships in the system you are in</label>
+      <label><input type="checkbox" id="optStellars" checked> Stellars when zoomed in</label>
+      <label class="under"><input type="checkbox" id="optShips" checked> Ships in the current system</label>
       <label><input type="checkbox" id="optNames" checked> Names</label>
       <label><input type="checkbox" id="optSystems" checked> Systems</label>
-      <label class="under">Coloured <select id="dotSel" title="How the map colors the systems' dots">
+      <label class="under">Colored <select id="dotSel" title="How the map colors the systems' dots">
         <option value="govt">by government</option>
-        <option value="one">in one colour</option>
+        <option value="one">in one color</option>
         <option value="interference">by radar interference</option>
         <option value="asteroids">by asteroids</option>
         <option value="traffic">by traffic</option>
       </select></label>
       <label><input type="checkbox" id="optNebulae" checked> Nebulae</label>
       <label><input type="checkbox" id="optGates"> Hypergates and wormholes</label>
-      <label>Light up <select id="litSel" title="Which systems are lit; the rest are faint">
+      <label>Light up <select id="litSel" title="Which systems are lit. The rest are faint.">
         <option value="all">every system</option>
         <option value="inhabited">inhabited systems</option>
         <option value="uninhabited">uninhabited systems</option>
-        <option value="land">systems you can land in</option>
+        <option value="land">systems with a place to land</option>
         <option value="shipyard">systems with a shipyard</option>
         <option value="outfit">systems with an outfitter</option>
         <option value="commodity">systems with a commodity exchange</option>
@@ -553,13 +567,13 @@ details.inline .list { margin-top: 4px; }
       </select></label>
       <label>Only within <input type="number" id="optReach" min="1" max="99" step="1" placeholder="any" inputmode="numeric" title="Leave empty for everything"> jumps of the selected system</label>
       <label>Links <select id="linkSel" title="How the map colors the links">
-        <option value="plain">in one colour</option>
-        <option value="govt">in government colours</option>
+        <option value="plain">in one color</option>
+        <option value="govt">in government colors</option>
         <option value="jumps">by jumps from the selected system</option>
-        <option value="govtOne">each in one government's colour</option>
+        <option value="govtOne">each in one government's color</option>
       </select></label>
       <button id="saveImg" type="button">Save the map as a picture</button>
-      <button id="saveWhole" type="button">Save the whole map, large</button>
+      <button id="saveWhole" type="button">Save the whole map as a large picture</button>
       <button id="saveSvg" type="button">Save the whole map as a drawing (SVG)</button>
     </div>
     <div id="corner">

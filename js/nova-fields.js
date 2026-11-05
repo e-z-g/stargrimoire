@@ -1304,89 +1304,89 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
     },
     ActivateOn: {
-      note: 'A test of control bits: while it fails, this person is not met, whether by LinkSyst or as a system\'s Person. Empty: no test.',
+      note: 'A test of control bits. While it fails the player does not meet this person by LinkSyst or as a system\'s Person. Empty: no test.',
       code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e]],
     },
   },
   'ränk': {
     Weight: {
-      note: 'Of the ranks you hold that have a ConvName, the heaviest gives <PRK> in the game\'s texts, and of those with a ShortName, <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
+      note: 'Of the ranks the player holds that have a ConvName the heaviest gives <PRK> in the game\'s texts. Of those with a ShortName the heaviest gives <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
       code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0]],
     },
     Govt: {
-      note: 'Its government: 128 and up, that gövt; below 128, none. Its PriceMod applies, and Flags 0x0004, 0x0040, 0x0100 and 0x0200 act, at the stellars and ships of every government allied with it (GovtAllies, so this one too); Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
+      note: 'Its government. 128 and up: that gövt. Below 128: none. Its PriceMod and Flags 0x0004, 0x0040, 0x0100, and 0x0200 apply at the stellars and ships of every government allied with it (GovtAllies and this one too). Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['GovtAllies', 0x4e3d]],
     },
     PriceMod: {
-      note: 'A percentage: at a stellar whose government is an ally of this rank\'s, it multiplies prices while you hold it; with several such ranks, each one\'s applies in turn. 0 or less: 100.',
+      note: 'A percentage. At a stellar whose government is an ally of this rank\'s it multiplies prices while the player holds it. With several such ranks each one\'s applies in turn. 0 or less: 100.',
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['ApplyPriceAndTechnologyFlux', 0x4e6cd]],
     },
     Salary: {
-      note: 'Credits added each day while you hold it, when your credits are below SalaryCap or SalaryCap is 0 or less; below 0, you lose that much, but never leaving you below 0 credits.',
+      note: 'Credits added each day while the player holds it and the player\'s credits are below SalaryCap or SalaryCap is 0 or less. Below 0: the player loses that much but never drops below 0 credits.',
       code: [['IncrementGameTime', 0xb516]],
     },
     SalaryCap: {
-      note: 'You get Salary only while your credits are below this; 0 or less, always.',
+      note: 'The player receives Salary only while the player\'s credits are below this. 0 or less: always.',
       code: [['IncrementGameTime', 0xb516]],
     },
     Contrib: {
-      note: 'Contribute bits added while you hold it, together with those of your ship, your outfits and running events, for any Require.',
+      note: 'Contribute bits added for any Require while the player holds it. They join those of the player\'s ship, outfits, and running events.',
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     Flags: {
-      note: '0x0001: gaining it removes every other rank you hold of its government, except those with 0x0008. 0x0010: gaining it removes those of its government with a lower Weight, except those with 0x0008. 0x0008: never taken away that way, nor for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government; 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while held, the ships of a government allied with the rank\'s government do not count you a threat (IsThreatToShip), and they check whether you are one when they choose targets and come to help. 0x0200: while held, the stellars of a government allied with the rank\'s government check you the same way, when you hail and land, and for their colors on the map. The game reads 0x0400 and 0x0800 when you hail a ship of an allied government (DoCommDialog), not traced.',
+      note: '0x0001: gaining it removes every other rank the player holds of its government except those with 0x0008. 0x0010: gaining it removes those of its government with a lower Weight except those with 0x0008. 0x0008: never lost that way or for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government. 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while the player holds it the ships of a government allied with the rank\'s government do not count the player a threat (IsThreatToShip). They check whether the player is one when they choose targets and come to help. 0x0200: while the player holds it the stellars of a government allied with the rank\'s government check the player the same way when the player hails and lands and for their colors on the map. The game reads 0x0400 and 0x0800 when the player hails a ship of an allied government (DoCommDialog). This page has not traced them.',
       code: [['ActivateRank', 0x452f0], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['PlayerBlessedByGovt', 0x2732], ['IsThreatToShip', 0x81faf], ['SelectWarshipTarget', 0x89d5e], ['HandlePlayerDockRequest', 0x66691], ['DoPlanetCommDialog', 0x96949], ['ColorCodeStellar', 0xaa26], ['DoCommDialog', 0x956d5]],
     },
     ConvName: {
-      note: 'What replaces <PRK> in the game\'s texts while this is the heaviest rank you hold with one (Weight); with none, STR# 2002\'s 341st string.',
+      note: 'What replaces <PRK> in the game\'s texts while this is the heaviest rank the player holds with one (Weight). With none: STR# 2002\'s 341st string.',
       code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
     },
     ShortName: {
-      note: 'What replaces <SRK> in the game\'s texts while this is the heaviest rank you hold with one (Weight).',
+      note: 'What replaces <SRK> in the game\'s texts while this is the heaviest rank the player holds with one (Weight).',
       code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
     },
   },
   'crön': {
     FirstDay: {
-      note: 'The day of the month from which it may start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The day of the month from which it may start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     FirstMonth: {
-      note: 'The month from which it may start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The month from which it may start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     FirstYear: {
-      note: 'The year from which it may start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The year from which it may start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     LastDay: {
-      note: 'The day of the month after which it may not start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The day of the month after which it may not start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     LastMonth: {
-      note: 'The month after which it may not start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The month after which it may not start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     LastYear: {
-      note: 'The year after which it may not start. The program does not compare the dates as whole dates: the year must be from FirstYear to LastYear, and the day of the year from FirstMonth and FirstDay to LastMonth and LastDay, in every year; so a span across the new year never opens. 0 or less leaves that part open.',
+      note: 'The year after which it may not start. The program does not compare the dates as whole dates. The year must be from FirstYear to LastYear. The day of the year must be from FirstMonth and FirstDay to LastMonth and LastDay in every year. A span across the new year therefore never opens. 0 or less leaves that part open.',
       code: [['CronDateInRange', 0x74d3], ['CronEventHandler', 0x3874f]],
       bible: 'The first or last date on which the event can occur.',
     },
     Random: {
-      note: 'Each day it is not running, it starts if a number from 0 to 100 drawn for it is at most this, it is within its dates (FirstYear), its Require passes and its EnableOn test passes. 100 or more: always; below 0: never.',
+      note: 'Each day it is not running it starts if a number from 0 to 100 drawn for it is at most this. It must also be within its dates (FirstYear) and its Require and EnableOn test must pass. 100 or more: always. Below 0: never.',
       code: [['CronEventHandler', 0x3874f], ['Rand', 0xa4c76]],
     },
     Duration: {
-      note: 'Days it runs once started (after PreHoldoff): it sets OnStart as it starts, OnEnd as it ends. 0: both on the same day. Below 0: it never starts.',
+      note: 'Days it runs once started (after PreHoldoff). It sets OnStart as it starts and OnEnd as it ends. 0: both on the same day. Below 0: it never starts.',
       code: [['CronEventHandler', 0x3874f], ['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     PreHoldoff: {
-      note: 'Days between the draw that picks it and its start: it sets OnStart only then. 0 or less: immediately.',
+      note: 'Days between the draw that picks it and its start. It sets OnStart only then. 0 or less: immediately.',
       code: [['CronEventHandler', 0x3874f]],
     },
     PostHoldoff: {
@@ -1394,31 +1394,31 @@ const NOVA_FIELD_NOTES = {
       code: [['CronEventHandler', 0x3874f]],
     },
     IndNewsStr: {
-      note: 'While it runs, an STR# of news shown at any stellar where none of its NewsGovt applies; the game picks one of its strings at random, and picks the event itself at random among those with news there. Government news (GovtNewsStr) from any running event comes first. 0 or less: none.',
+      note: 'While it runs an STR# of news shown at any stellar where none of its NewsGovt applies. The game picks one of its strings at random and picks the event itself at random among those with news there. Government news (GovtNewsStr) from any running event comes first. 0 or less: none.',
       code: [['RandomizeNewsDialog', 0x48238], ['GetRandomIndString', 0x72ef7]],
     },
     Flags: {
-      note: '0x0001: as it starts, it sets OnStart over and over while its Require and EnableOn still pass. 0x0002: as it ends, OnEnd likewise. The program reads no other bit.',
+      note: '0x0001: as it starts it sets OnStart over and over while its Require and EnableOn still pass. 0x0002: as it ends it sets OnEnd the same way. The program reads no other bit.',
       code: [['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     EnableOn: {
-      note: 'A test of control bits: it starts only while this passes. Empty: no test.',
+      note: 'A test of control bits. It starts only while this passes. Empty: no test.',
       code: [['CronEventHandler', 0x3874f], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnStart: {
-      note: 'Control bits set when it starts (after PreHoldoff); see Flags 0x0001. Empty: none.',
+      note: 'Control bits set when it starts (after PreHoldoff). See Flags 0x0001. Empty: none.',
       code: [['ActivateCron', 0x385db], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnEnd: {
-      note: 'Control bits set when it ends; see Flags 0x0002. Empty: none.',
+      note: 'Control bits set when it ends. See Flags 0x0002. Empty: none.',
       code: [['TerminateCron', 0x38467], ['EvalMissionBitSetString', 0x99dc5]],
     },
     Require: {
-      note: 'It starts only when the Contributes bits of your ship and outfits include every bit set here.',
+      note: 'It starts only when the Contributes bits of the player\'s ship and outfits include every bit set here.',
       code: [['CronEventHandler', 0x3874f], ['PlayerMeetsRequirements', 0x776f]],
     },
     NewsGovt: {
-      note: 'Up to four governments: while it runs, at a stellar of a government allied with one of them (or that one), the GovtNewsStr beside it is the event\'s news there, the last one that applies. Below 128: none.',
+      note: 'Up to four governments. While it runs the GovtNewsStr beside one becomes the event\'s news at a stellar of a government allied with it (or of that government). The last one that applies counts. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['RandomizeNewsDialog', 0x48238], ['GovtAllies', 0x4e3d]],
     },
     GovtNewsStr: {

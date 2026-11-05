@@ -182,11 +182,11 @@ const NOVA_FIELD_NOTES = {
       code: [['DisasterHandler', 0x41ab9], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
     },
     ActivateOn: {
-      note: 'A test of control bits: while it fails, the disaster does not start. Empty: no test.',
+      note: 'A test of control bits. While it fails the disaster does not start. Empty: no test.',
       code: [['DisasterHandler', 0x41ab9], ['EvalMissionBitTestString', 0x9959e]],
     },
     Stellar: {
-      note: 'Where the disaster strikes: 128 and up, that spöb; anything else, a stellar drawn at random when it starts, one that is there now and has Flags 0x20 clear.',
+      note: 'Where the disaster strikes. 128 and up: that spöb. Anything else: a stellar drawn at random when it starts. The stellar must be there now and have Flags 0x20 clear.',
       code: [['DisasterHandler', 0x41ab9], ['Rand', 0xa4c76]],
     },
     Duration: {
@@ -196,49 +196,49 @@ const NOVA_FIELD_NOTES = {
   },
   'düde': {
     AIType: {
-      note: 'How its ships fly: above 0, that AI (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI, above 4 EscortAI); 0 or less, the InherentAI of the ship class drawn.',
+      note: 'How its ships fly. Above 0: that AI (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI, and above 4 EscortAI). 0 or less: the InherentAI of the ship class drawn.',
       code: [['RandomShipSpawn', 0x3c0f3], ['AIDispatch', 0x8fb52]],
     },
     Govt: {
-      note: 'The government of its ships: 128 to 383, that gövt; anything else, none.',
+      note: 'The government of its ships. 128 to 383: that gövt. Anything else: none.',
       code: [['LoadObjectData', 0x771b0], ['RandomShipSpawn', 0x3c0f3]],
     },
     ShipTypes: {
-      note: 'Up to sixteen ship classes the game draws its ships from: 128 to 895, each with the Probs beside it as its weight. The game passes over a class whose AppearOn fails, though a mission\'s ships take one anyway when none remains. Anything else: none.',
+      note: 'Up to sixteen ship classes. The game draws its ships from these. 128 to 895: that class with the Probs beside it as its weight. The game passes over a class whose AppearOn fails. A mission\'s ships still use one when none remains. Anything else: none.',
       code: [['LoadObjectData', 0x771b0], ['SelectShipFieldFromDude', 0x65c2], ['MissionDudeSpawn', 0x3cd3b]],
     },
     Probs: {
-      note: 'The weight of the ShipTypes beside it: each class\'s chance is its Probs divided by the total of those the game may draw.',
+      note: 'The weight of the ShipTypes beside it. Each class\'s chance is its Probs divided by the total of those the game may draw.',
       code: [['SelectShipFieldFromDude', 0x65c2], ['Rand', 0xa4c76]],
     },
     Booty: {
-      note: 'What you find when you board one of its ships. 0x0001 to 0x0020: the six commodities, in order; the game picks one of those set at random, and you find between half its Holds and all of its Holds in tons of it. 0x0040: credits, 2.5% of its class\'s Cost, or up to just under 5% for a class costing 81,000 or more, at least 1,000; without it, only a përs\'s ship has credits, half to all of the përs\'s Credits. A bit above 0x0040 set with none of 0x0001 to 0x0020 hangs the game when you board: the program draws a commodity forever.',
+      note: 'What the player finds when boarding one of its ships. 0x0001 to 0x0020: the six commodities in order. The game picks one of those set at random. The player finds between half its Holds and all of its Holds in tons of it. 0x0040: credits. That is 2.5% of its class\'s Cost (or up to just under 5% for a class costing 81,000 or more) and at least 1,000. Without it only a përs\'s ship has credits (half to all of the përs\'s Credits). A bit above 0x0040 set with none of 0x0001 to 0x0020 hangs the game when the player boards. The program draws a commodity forever.',
       code: [['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
     },
     InfoTypes: {
-      note: 'What its ships say when you hail them; one of the kinds set is picked at random. 0x1000: that a stellar is a good place to buy or sell one of the six commodities, where its price is low or high. 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits; but the number that picks it is never drawn in this program, so it is the first string until you hail a stellar and almost never another one afterwards. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less), 6 to 10 for others; a plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4, or 10015 + …, is taken first. None of these: STR# 2002\'s string 175.',
+      note: 'What its ships reply when the player hails them. The game picks one of the kinds set at random. 0x1000: a stellar where one of the six commodities has a low or high price (a good place to trade it). 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits. The program never draws the number that picks it. So the reply is the first string until the player hails a stellar and almost never another one afterwards. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less) and 6 to 10 for others. A plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4 (or 10015 + …) comes first. None of these: STR# 2002\'s string 175.',
       code: [['LoadAdvice', 0x9133c], ['CalcPortDemand', 0x56b1], ['DoPlanetCommDialog', 0x96949], ['LoadPluginString', 0x71a8e]],
     },
   },
   'flët': {
     LinkSyst: {
-      note: 'Where you may meet this fleet, as the game places a system\'s AvgShips ships (1 time in 7 each, after the përs chance) or as ships jump in later: -1, anywhere; 128 to 9999, that sÿst (0 to 127 count as 128 to 255); 10000 + n, systems of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Each time, the game draws one of the 256 fleet places at random, and the fleet comes only if the place drawn includes this system, so you meet fleets more often where more of them may appear.',
+      note: 'Where the player may meet this fleet. The game uses it as it places a system\'s AvgShips ships (1 time in 7 for each ship after the përs chance) and as ships jump in later. -1: anywhere. 128 to 9999: that sÿst (0 to 127 count as 128 to 255). 10000 + n: systems of gövt 128 + n. 15000 + n: systems of its allies. 20000 + n: systems of another government. 25000 + n: systems of its enemies. Each time the game draws one of the 256 fleet places at random. The fleet comes only if the place drawn includes this system. So the player meets fleets more often where more of them may appear.',
       code: [['SpawnFleet', 0x42704], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['Rand', 0xa4c76]],
     },
     ActivateOn: {
-      note: 'A test of control bits: while it fails, this fleet is not met. Empty: no test.',
+      note: 'A test of control bits. While it fails the player does not meet this fleet. Empty: no test.',
       code: [['PropagateMissionBitEffects', 0x99676], ['SpawnFleet', 0x42704], ['HyperSpawnFleet', 0x41c8d]],
     },
     LeadShipType: {
-      note: 'The class of the fleet\'s lead ship: 128 to 895. Below 128: shïp 128.',
+      note: 'The class of the fleet\'s lead ship (128 to 895). Below 128: shïp 128.',
       code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
     },
     EscortType: {
-      note: 'Up to four classes of escort: 128 to 895, each coming Min to Max strong. Below 128: none.',
+      note: 'Up to four classes of escort (128 to 895). Each comes Min to Max strong. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
     },
     Min: {
-      note: 'The fewest of the EscortType beside it: Min plus a number from 0 to Max - Min drawn at random.',
+      note: 'The fewest of the EscortType beside it. The count is Min plus a number from 0 to Max - Min drawn at random.',
       code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76]],
     },
     Max: {
@@ -246,73 +246,73 @@ const NOVA_FIELD_NOTES = {
       code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76]],
     },
     Govt: {
-      note: 'The government of every ship in the fleet: 128 and up, that gövt; below, none.',
+      note: 'The government of every ship in the fleet. 128 and up: that gövt. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
     },
     Quote: {
-      note: 'Above 0: when the fleet jumps in while you are there, the game shows a string picked at random from the STR# of this number, each # in it a random digit. 0 or less: none.',
+      note: 'Above 0: when the fleet jumps in while the player is there the game shows a string picked at random from the STR# of this number. Each # in it becomes a random digit. 0 or less: none.',
       code: [['HyperSpawnFleet', 0x41c8d], ['GetRandomIndString', 0x72ef7], ['DisplayComm', 0x90201]],
     },
     Flags: {
-      note: '0x0001: each ship of the fleet whose class has an InherentAI of 2 or less starts with cargo, 1 to Holds tons of one of the six commodities picked at random. The program reads no other bit.',
+      note: '0x0001: each ship of the fleet whose class has an InherentAI of 2 or less starts with cargo. The cargo is 1 to Holds tons of one of the six commodities picked at random. The program reads no other bit.',
       code: [['HyperSpawnFleet', 0x41c8d], ['Rand', 0xa4c76], ['DrawStatusCargo', 0x4c313]],
     },
   },
   'sÿst': {
     xPos: {
-      note: 'With yPos, where the system is on the galaxy map. Systems at the same place are versions of one another: the lowest-numbered of them whose Visibility test passes is the one used.',
+      note: 'With yPos it gives where the system is on the galaxy map. Systems at the same place are versions of one another. The game uses the lowest-numbered of them whose Visibility test passes.',
       code: [['LoadObjectData', 0x771b0], ['FindFirstCoLocatedSystem', 0x4baa], ['FindActiveCoLocatedSystem', 0x4be0]],
     },
     yPos: {
-      note: 'With xPos, where the system is on the galaxy map; see xPos for systems at the same place.',
+      note: 'With xPos it gives where the system is on the galaxy map. See xPos for systems at the same place.',
       code: [['LoadObjectData', 0x771b0], ['FindActiveCoLocatedSystem', 0x4be0], ['DrawMap', 0xe568]],
     },
     Con: {
-      note: 'Up to sixteen systems this one links to: 128 to 2175, that sÿst; anything else, none.',
+      note: 'Up to sixteen systems linked to this one. 128 to 2175: that sÿst. Anything else: none.',
       code: [['LoadObjectData', 0x771b0], ['StellarsAreDistant', 0x9cb9]],
     },
     Nav: {
-      note: 'Up to sixteen stellars in the system: 128 to 2175, that spöb; anything else, none.',
+      note: 'Up to sixteen stellars in the system. 128 to 2175: that spöb. Anything else: none.',
       code: [['LoadObjectData', 0x771b0], ['HandleStellarSystemVisibility', 0x32aa5]],
     },
     Govt: {
-      note: 'The government of the system: 128 to 383, that gövt; anything else, none. Your record here starts at its InitialRec, and the government ranges of LinkSyst, ShipSyst, AuxShipSyst, PayVal and CompReward count the system as that government\'s.',
+      note: 'The government of the system. 128 to 383: that gövt. Anything else: none. The player\'s record here starts at the government\'s InitialRec. The government ranges of LinkSyst, ShipSyst, AuxShipSyst, PayVal, and CompReward count the system as that government\'s.',
       code: [['LoadObjectData', 0x771b0], ['ResetPlayer', 0x1d40d], ['SpawnPerson', 0x408d5], ['SelectMissionSystem', 0x9b993], ['ValidAuxShipSystem', 0x992b5], ['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc]],
     },
     BkgndColor: {
-      note: 'The color of space while you are in the system.',
+      note: 'The color of space while the player is in the system.',
       code: [['LoadObjectData', 0x771b0], ['SetSystemBackgroundColor', 0x6af4]],
     },
     Visibility: {
-      note: 'A test of control bits: while it fails, the system is not there, nor its stellars, and the game uses another version of it at the same place instead. Empty: always there.',
+      note: 'A test of control bits. While it fails the system and its stellars are absent. The game uses another version of it at the same place instead. Empty: always there.',
       code: [['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e], ['FindActiveCoLocatedSystem', 0x4be0], ['HandleStellarSystemVisibility', 0x32aa5]],
     },
     Interference: {
-      note: 'The chance in 100 each step that jamming blanks your status display, less your ship\'s anti-interference and kept between 0 and 100. Also the chance in 100 that a guided shot with Seeker 0x0008 fired here gets confused.',
+      note: 'The chance in 100 each step that jamming blanks the player\'s status display. The ship\'s anti-interference comes off it and the result stays between 0 and 100. It is also the chance in 100 that a guided shot with Seeker 0x0008 fired here becomes confused.',
       code: [['HandleStatus', 0x494d7], ['ShipAntiInterference', 0x5f2c], ['SpawnShot', 0x3e550]],
     },
     Murk: {
-      note: 'How murky the system is: below 0 as 0, plus the ModVal of every outfit you carry with ModType 28, as many times as you have it, kept between 0 and 100; it shades ships.',
+      note: 'How murky the system is. A value below 0 counts as 0. Each ModType 28 outfit the player carries adds its ModVal once for every copy. The total stays between 0 and 100. Murk shades the ships in the system.',
       code: [['PlayerEffectiveMurk', 0x6f8f], ['HandleShipDisplay', 0x2b514], ['HandleSpriteMurkiness', 0x2b42f]],
     },
     Asteroids: {
-      note: 'How many asteroids the game keeps around you: it places them when you arrive, and another appears at the edge of the screen whenever there are fewer, up to 16. 0 or less: none.',
+      note: 'How many asteroids are around the player (up to 16). The game places them when the player arrives and adds one at the edge of the screen whenever there are fewer. 0 or less: none.',
       code: [['CreateAsteroids', 0x3fa05], ['SpawnAsteroid', 0x3a233]],
     },
     AstTypes: {
-      note: 'Which röid types the asteroids are, drawn at random among those set: bit 0x0001 is röid 128, 0x0002 röid 129, and so on to 0x8000, röid 143. 0: no asteroids.',
+      note: 'Which röid types the asteroids are. The game draws them at random among those set. Bit 0x0001 is röid 128, 0x0002 is röid 129, and so on to 0x8000 (röid 143). 0: no asteroids.',
       code: [['SpawnAsteroid', 0x3a233]],
     },
     DudeTypes: {
-      note: 'The düdes the game draws the system\'s ships from: 128 to 639, each with the Probs beside it as its weight. Anything else: none.',
+      note: 'The düdes for the system\'s ships. 128 to 639: that düde with the Probs beside it as its weight. Anything else: none.',
       code: [['SelectDudeFieldFromSystem', 0x674d], ['RandomShipSpawn', 0x3c0f3]],
     },
     Probs: {
-      note: 'The weight of the DudeTypes beside it: the game draws a düde with the chance of its Probs over the total of them all, which need not be 100.',
+      note: 'The weight of the DudeTypes beside it. The game draws a düde with the chance of its Probs over the total of them all. The total need not be 100.',
       code: [['SelectDudeFieldFromSystem', 0x674d], ['Rand', 0xa4c76]],
     },
     AvgShips: {
-      note: 'How many ships the game places when you enter the system: each is a përs 1 time in 7 (one picked from those you may meet here), else a flët 1 time in 7, else a ship from DudeTypes.',
+      note: 'How many ships the game places when the player enters the system. Each is a përs 1 time in 7 (one picked from those the player may meet here). Otherwise it is a flët 1 time in 7 and otherwise a ship from DudeTypes.',
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
     },
     Person: {

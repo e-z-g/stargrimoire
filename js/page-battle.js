@@ -24,7 +24,7 @@
 
    Two buttons make a new ship class (the maintainer's request, 22 October
    2026), a copy of another kept with the records changed here, so that it
-   is saved with the plug-in. Copy your saved ship, there while a save file
+   is saved with the plug-in. Copy the saved ship, there while a save file
    is open, copies its ship's class with its weapons and outfits
    (novaPilotShip). Custom ship copies the class chosen in the list and
    opens its fields to change in the Ships view. The hangar lists these
@@ -59,7 +59,7 @@ function battleFromHash() {
   battleShow({ fromHash: true });
   return true;
 }
-// Other files: the battle goes with the records it was made of.
+// Other files: the battle goes with the records that made it.
 function battleReset() { BATTLE_IMAGES.clear(); BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
 // More files read: the ships may have come.
 function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
@@ -128,7 +128,7 @@ function battlePanel() {
   }
   if (BATTLE.want) battleTakeHash(D);
   BATTLE.govt = battleGovts(D);
-  if (!BATTLE.govt || !battleEmptySystem()) { top.innerHTML = '<p class="note">The files have no two governments that are enemies, so no ships to fight.</p>'; $('battleRows').innerHTML = ''; BATTLE.hangar = null; return; }
+  if (!BATTLE.govt || !battleEmptySystem()) { top.innerHTML = '<p class="note">The files have no two governments that are enemies. There are no ships to fight.</p>'; $('battleRows').innerHTML = ''; BATTLE.hangar = null; return; }
   const w = BATTLE.w;
   const side = i => `<div class="battle-side" style="--side:${BATTLE_COLOURS[i]}">
       <div class="battle-row"><b>${i ? 'Right' : 'Left'}</b></div>
@@ -140,9 +140,9 @@ function battlePanel() {
     return `<option value="${k}"${k === BATTLE.kills ? ' selected' : ''}>${esc(names[lv] || `rating ${lv}`)} (${k.toLocaleString('en')} kills)</option>`; }).join('');
   top.innerHTML = `
     <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
-    <div class="battle-row"><span class="note">Your combat rating</span> <select data-battle="kills" aria-label="Your combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>
+    <div class="battle-row"><span class="note">Combat rating</span> <select data-battle="kills" aria-label="Combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>
     <label class="battle-row"><input type="checkbox" data-battle="ammo"${BATTLE.ammo ? ' checked' : ''}> Ammunition never runs out</label>
-    <div class="actions">${PILOT ? '<button data-battle-do="yours">Copy your saved ship</button>' : ''}<button data-battle-do="custom">Custom ship</button></div>
+    <div class="actions">${PILOT ? '<button data-battle-do="saved">Copy the saved ship</button>' : ''}<button data-battle-do="custom">Custom ship</button></div>
     ${side(0)}${side(1)}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
@@ -178,7 +178,7 @@ function battleFilter() {
   const row = (c, sub) => `<div class="shipRow battleShip${sub ? ' sub' : ''}" data-bcls="${c.id}">${sub ? '' : '<canvas class="thumb" width="44" height="44"></canvas>'}` +
     `<span class="nm">${esc(c.name)}${c.rec.Subtitle ? `<small>${esc(c.rec.Subtitle)}</small>` : ''}</span>` +
     `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
-  // a ship class made here (Custom ship, Copy your saved ship): its own row, first, to change or remove
+  // a ship class made here (Custom ship, Copy the saved ship): a separate row, first, to change or remove
   const made = c => `<div class="shipRow battleShip" data-bcls="${c.id}"><canvas class="thumb" width="44" height="44"></canvas>` +
     `<span class="nm">${esc(c.name)}<small>made here: <a href="#" data-bedit="${c.id}">change</a> · <a href="#" data-bdel="${c.id}">remove</a></small></span>` +
     `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
@@ -287,7 +287,7 @@ function battleChange(e) {
 }
 function battleDo(what) {
   BATTLE.note = '';
-  if (what === 'yours') return battleCopyYours();
+  if (what === 'saved') return battleCopyYours();
   if (what === 'custom') return battleCustom(BATTLE.armed);
   if (what === 'pause') { BATTLE.paused = !BATTLE.paused; battleRun(); }
   else if (what === 'follow') BATTLE.follow = !BATTLE.follow;
@@ -303,7 +303,7 @@ function battleDo(what) {
 
 /* ---- ship classes made here ----------------------------------------------- */
 
-/* Copy your saved ship and Custom ship add a ship class to the records
+/* Copy the saved ship and Custom ship add a ship class to the records
    changed here (page-plugin.js), copied from another (novaShipCopy): so
    it is in the hangar, its fields are changed as any record's are, and it
    is saved with the plug-in. The arena's setup is kept through the
@@ -326,18 +326,18 @@ function battleCopyYours() {
   const D = flightData(), got = PILOT && novaPilotShip(GAME, PILOT.save);
   if (!D || !got) { BATTLE.note = 'The save file\'s ship class is not in the open files.'; battlePanel(); return; }
   const res = novaShipCopy(GAME, got.from, got.name, got.change);
-  if (!res) { BATTLE.note = 'The files already use every ship number the game reads, 128 to 895.'; battlePanel(); return; }
+  if (!res) { BATTLE.note = 'The files already use every ship number the game reads (128 to 895).'; battlePanel(); return; }
   const name = id => { const r = novaGet(GAME, 'wëap', id) || novaGet(GAME, 'oütf', id); return r ? novaNameParts(r.name).name : String(id); };
   const left = [...got.left.weapons.map(name), ...got.left.outfits.map(name)];
-  battleAddMade(res, `${got.name} is ship ${res[0].id}, first in the list and chosen: tap the arena to put it down.` +
-    (left.length ? ` A ship class has eight weapon slots and eight outfit slots, so it is without ${left.join(', ')}.` : ''));
+  battleAddMade(res, `${got.name} is ship ${res[0].id}. It is first in the list and chosen. Tap the arena to put it down.` +
+    (left.length ? ` A ship class has eight weapon slots and eight outfit slots. The copy is without ${new Intl.ListFormat('en-US').format(left)}.` : ''));
 }
 // A copy of the class chosen in the list, its fields open to change in the Ships view.
 function battleCustom(from) {
   const cls = from !== null && GAME && novaGet(GAME, 'shïp', from);
-  if (!cls) { BATTLE.note = 'Tap a ship in the list first: Custom ship starts from a copy of it.'; battlePanel(); return; }
+  if (!cls) { BATTLE.note = 'Tap a ship in the list first. Custom ship starts from a copy of it.'; battlePanel(); return; }
   const res = novaShipCopy(GAME, from, `${novaNameParts(cls.name).name} (custom)`);
-  if (!res) { BATTLE.note = 'The files already use every ship number the game reads, 128 to 895.'; battlePanel(); return; }
+  if (!res) { BATTLE.note = 'The files already use every ship number the game reads (128 to 895).'; battlePanel(); return; }
   battleKeepSetup(() => { for (const r of res) EDITS.set(editKey(r.type, r.id), r); });
   battleEditMade(res[0].id);
 }
@@ -523,7 +523,7 @@ function battleInspect(force) {
 
 /* ---- running and drawing ------------------------------------------------ */
 
-// The battle's screen in system units, for the asteroids, which gather round it.
+// The battle's screen in system units, for the asteroids, which gather around it.
 function battleView() {
   const c = BATTLE.cam;
   return { x: c.x, y: c.y, hw: (BATTLE.cw || 640) / 2 / c.s, hh: (BATTLE.ch || 480) / 2 / c.s };
@@ -548,7 +548,7 @@ function battleLoop(now) {
 }
 function battleRun() { if (BATTLE.on && !BATTLE.tick) { BATTLE.last = 0; BATTLE.tick = requestAnimationFrame(battleLoop); } }
 
-// Following: the middle of the ships (or the arena's, with fewer than two), zoomed to keep them on the screen, the view easing towards it.
+// Following: the middle of the ships (or the arena's, with fewer than two), zoomed to keep them on the screen, the view easing toward it.
 function battleAim(at) {
   if (!BATTLE.follow || BATTLE.drag) return;
   const pts = BATTLE.w ? BATTLE.w.ships.filter(Boolean) : BATTLE.setup;
@@ -579,7 +579,7 @@ function battleDraw() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   const [mx] = battleToScreen(0, 0), w = BATTLE.w;
-  // before the fight, each side's half faintly in its colour, and the middle
+  // before the fight, each side's half faintly in its color, and the middle
   if (!w) {
     ctx.globalAlpha = 0.07;
     ctx.fillStyle = BATTLE_COLOURS[0]; ctx.fillRect(0, 0, Math.max(0, Math.min(W, mx)), H);
@@ -611,12 +611,12 @@ function battleDraw() {
     }
     if (!BATTLE.setup.length) {
       ctx.fillStyle = '#5b6a82'; ctx.font = '14px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('Drag ships here from the hangar: the left side, the right side.', W / 2, H / 2);
+      ctx.fillText('Drag ships from the hangar to the left side or the right side.', W / 2, H / 2);
     }
     return;
   }
   const side = new Map(BATTLE.placed.map(p => [p.ship, p.side]));
-  // each ship of a side ringed in its colour, faintly when disabled; one that joined (a fighter, a capture) in its lead's colour
+  // each ship of a side ringed in its color, faintly when disabled; one that joined (a fighter, a capture) in its lead's color
   const mark = (ctx2, s, x, y, size) => {
     let i = side.get(s);
     if (i === undefined) { const l = s.leader >= 0 ? w.ships[s.leader] : null; i = l ? side.get(l) : undefined; }

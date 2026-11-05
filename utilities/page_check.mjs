@@ -1023,14 +1023,14 @@ try {
         out.after = rows()['In the save'] === undefined;
         return out;
       })()`);
-        // The battle: Copy your saved ship puts the copy first in the hangar and chosen; Custom ship with
+        // The battle: Copy the saved ship puts the copy first in the hangar and chosen; Custom ship with
         // nothing chosen says to choose, and with the Aurora Thunderforge chosen opens a copy's fields to change.
         const wait = ms => new Promise(r => setTimeout(r, ms));
         await p.evaluate('battleShow()');
         for (let i = 0; i < 240 && !await p.evaluate("!!flightData() && !!BATTLE.hangar && !PUMPING"); i++) await wait(250);
         const battle = await p.evaluate(`(() => {
           const out = {}, row = () => document.querySelector('#battleRows .shipRow');
-          document.querySelector('[data-battle-do="yours"]').click();
+          document.querySelector('[data-battle-do="saved"]').click();
           const r = row();
           out.yours = r && r.querySelector('.nm').textContent; out.armed = BATTLE.armed; out.made = EDITS.has('shïp ' + BATTLE.armed) && EDITS.has('shän ' + BATTLE.armed);
           out.yoursNote = document.getElementById('battleResult').textContent;

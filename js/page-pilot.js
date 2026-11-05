@@ -7,7 +7,7 @@
    ringed. The galaxy's panel has the pilot, the ship and what is in it, the
    missions under way and the rest of the save; a system's has whether you
    have explored it and your legal standing there; a stellar's, whether you
-   have dominated or destroyed it, and its defence ships left. The file is
+   have dominated or destroyed it, and its defense ships left. The file is
    remembered with the others (KEPT), so it opens again on the next visit. */
 
 let PILOT = null;   // { save, U, state }: the save as read, and what the map needs of it for U
@@ -73,7 +73,7 @@ function pilotBlock() {
       ${kvRow('Fuel', `${(P.fuel / 100).toLocaleString()} jumps`)}
       ${kvRow('Combat rating', P.kills.toLocaleString())}
       ${kvRow('Legal standing here', here !== null ? String(here) : '')}
-      ${kvRow('Explored', `${explored.length} system${explored.length === 1 ? '' : 's'}, landed in ${landed}`)}
+      ${kvRow('Explored', `${explored.length} system${explored.length === 1 ? '' : 's'} (landed in ${landed})`)}
       ${kvRow('Cargo', listOr(cargo, 'none'))}
       ${kvRow('Outfits', many([...s.outfits].map(([id, n]) => counted(n, recLink('oütf', id))), 'outfits'))}
       ${kvRow('Escorts', listOr(escorts, 'none'))}
@@ -82,23 +82,23 @@ function pilotBlock() {
       ${kvRow('Dominated', listOr([...s.dominated].map(stellarRef), 'none'))}
       ${kvRow('Destroyed', listOr([...s.destroyed.keys()].map(stellarRef), 'none'))}
       ${kvRow('People no longer met', many(people(G.alive.map(v => !v)), 'people'))}
-      ${kvRow('With a grudge against you', listOr(people(G.grudge), 'none'))}
+      ${kvRow('With a grudge against the player', listOr(people(G.grudge), 'none'))}
       ${kvRow('Bits on', many([...s.bits].sort((a, b) => a - b).map(n => `<a data-bit="${n}">b${n}</a>`), 'bits'))}
     </table>
-    <p class="note">From its NpïL 128 and 129, as ${codeRoutine('LoadPilotData')} reads them.</p>`;
+    <p class="note">These come from the save's NpïL 128 and 129 as the program reads them (${codeRoutine('LoadPilotData')}).</p>`;
 }
 
 // A system's rows.
 function pilotSystemRows(sys) {
   if (!pilotShown()) return '';
   const s = pilotState(), e = s.explored.get(sys.id) || 0;
-  return kvRow('In the save', `${e >= 2 ? 'explored and landed in' : e >= 1 ? 'explored' : 'not explored'}${s.system === sys.id ? '; you are here' : ''}`) +
+  return kvRow('In the save', `${e >= 2 ? 'explored and landed in' : e >= 1 ? 'explored' : 'not explored'}${s.system === sys.id ? '. The player is here.' : ''}`) +
     kvRow('Legal standing', String(s.legal.get(sys.id) || 0));
 }
 // A stellar's rows.
 function pilotStellarRows(sp) {
   if (!pilotShown()) return '';
   const s = pilotState(), G = PILOT.save.game, days = s.destroyed.get(sp.id);
-  return kvRow('In the save', [s.dominated.has(sp.id) && 'dominated', days && `destroyed, rebuilt in ${days} day${days === 1 ? '' : 's'}`, s.stellar === sp.id && 'where you are'].filter(Boolean).join('; ')) +
-    (novaDefense(sp) ? kvRow('Defence ships left', String(G.defense[sp.id - 128])) : '');
+  return kvRow('In the save', [s.dominated.has(sp.id) && 'Dominated.', days && `Destroyed and rebuilt in ${days} day${days === 1 ? '' : 's'}.`, s.stellar === sp.id && 'The player is here.'].filter(Boolean).join(' ')) +
+    (novaDefense(sp) ? kvRow('Defense ships left', String(G.defense[sp.id - 128])) : '');
 }

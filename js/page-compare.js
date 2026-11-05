@@ -29,7 +29,7 @@ const COMPARE_COLOR = '#ff7ad9';
 function compareAsk() {
   const el = document.getElementById('choose'), box = el.querySelector('.box');
   box.innerHTML = `<h2>Compare with</h2>
-    <p class="note">What changed from the files chosen here to the ones open: their data files and plug-ins, record by record. The map rings changed systems in pink, and new ones in a dashed ring.</p>
+    <p class="note">This compares the data files and plug-ins chosen here with the open ones record by record. The map rings changed systems in pink and new ones in a dashed ring.</p>
     <div class="actions">${COMPARE_RELEASES.map((r, i) => `<button data-r="${i}">${esc(r.label)} <small>${r.size} from archive.org</small></button>`).join('')}</div>
     <div class="actions"><label class="btn">Your files…<input type="file" multiple hidden></label></div>
     <div class="actions">${COMPARE ? '<button data-a="stop">Stop comparing</button>' : ''}<button data-a="cancel">Cancel</button></div>`;
@@ -48,7 +48,7 @@ function compareAsk() {
     if (b.dataset.r === undefined) return;
     const r = COMPARE_RELEASES[+b.dataset.r];
     try { compareWith([await fetchBytes(ARCHIVE_DIR + r.file, ' from archive.org')], r.label); }
-    catch (err) { setStatus(`Could not fetch ${r.file} from archive.org: ${err.message}`, true); }
+    catch (err) { setStatus(`Could not fetch ${r.file} from archive.org (${err.message})`, true); }
   };
 }
 
@@ -66,7 +66,7 @@ async function compareWith(picked, label) {
     } catch (e) { refused.push(name + ': ' + e.message); }
   }
   if (!game.list('sÿst').length) {
-    setStatus('Nothing to compare with: no data files in ' + label + (refused.length ? '; ' + refused.join('; ') : ''), true);
+    setStatus('The page has nothing to compare against. There are no data files in ' + label + '.' + (refused.length ? ' ' + refused.map(r => r.replace(/\.?$/, '.')).join(' ') : ''), true);
     return;
   }
   COMPARE = { label, game };
@@ -90,7 +90,7 @@ function compareRefresh() {
   COMPARE.systems = novaCompareSystems(COMPARE.cmp, U);
 }
 
-/* The ring round a system's mark or a stellar, if it changed: `path` lays
+/* The ring around a system's mark or a stellar, if it changed: `path` lays
    the shape, at the given extra size. */
 function compareRing(ctx, kind, path) {
   if (!kind) return;
@@ -121,7 +121,7 @@ function compareBlock(type, id) {
   if (!COMPARE || !COMPARE.cmp) return '';
   const e = COMPARE.cmp.change(type, id);
   if (!e) return `<p class="note">The same in ${esc(COMPARE.label)}.</p>`;
-  if (e.kind === 'added') return `<h3>Compared with ${esc(COMPARE.label)}</h3><p class="note">Not in ${esc(COMPARE.label)}: new.</p>`;
+  if (e.kind === 'added') return `<h3>Compared with ${esc(COMPARE.label)}</h3><p class="note">Not in ${esc(COMPARE.label)}. This record is new.</p>`;
   return `<h3>Changed since ${esc(COMPARE.label)}</h3>${compareFields(type, e)}`;
 }
 
@@ -145,14 +145,14 @@ function compareList() {
     if (t.removed.length) parts.push(`${t.removed.length} gone`);
     const rows = [
       ...t.changed.map(e => `<details><summary>${compareName(t.type, e, true)} <span class="note">${e.id}</span></summary>${compareFields(t.type, e)}</details>`),
-      ...t.added.map(e => `<div>${compareName(t.type, e, true)} <span class="note">${e.id}, new</span></div>`),
-      ...t.removed.map(e => `<div>${compareName(t.type, e, false)} <span class="note">${e.id}, not in the open files</span></div>`),
+      ...t.added.map(e => `<div>${compareName(t.type, e, true)} <span class="note">${e.id} (new)</span></div>`),
+      ...t.removed.map(e => `<div>${compareName(t.type, e, false)} <span class="note">${e.id} (not in the open files)</span></div>`),
     ];
     return `<details><summary>${esc(t.type)} <span class="note">${parts.join(', ')}</span></summary><div class="compareList">${rows.join('')}</div></details>`;
   }).join('');
   const sys = [...COMPARE.systems.values()];
   return `<h3>Compared with ${esc(COMPARE.label)}</h3>
-    <p class="note">${c.count.toLocaleString()} records differ. On the map, ${sys.filter(k => k === 'changed').length} systems ringed in pink changed or have a stellar that did; ${sys.filter(k => k === 'added').length} in a dashed ring are new.</p>
+    <p class="note">${c.count.toLocaleString()} records differ. On the map ${sys.filter(k => k === 'changed').length} systems ringed in pink changed or have a stellar that changed. ${sys.filter(k => k === 'added').length} systems in a dashed ring are new.</p>
     ${types || '<p class="note">Nothing differs.</p>'}`;
 }
 
@@ -166,7 +166,7 @@ async function compareFromAddress() {
   const r = COMPARE_RELEASES.find(x => x.label === want);
   const url = r ? ARCHIVE_DIR + r.file : want;
   try { compareWith([await fetchBytes(url, r ? ' from archive.org' : '')], r ? r.label : decodeURIComponent(url.split('/').pop())); }
-  catch (err) { setStatus(`Could not fetch ${url} to compare: ${err.message}`, true); }
+  catch (err) { setStatus(`Could not fetch ${url} to compare (${err.message})`, true); }
 }
 
 function wireCompare() {

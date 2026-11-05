@@ -186,7 +186,7 @@ async function openGameFiles(picked, opts = {}) {
   for (const { f, bytes } of read) game.add(f, bytes);
   if (!game.list('sÿst').length) {
     setStatus('No star systems in ' + (now.map(f => f.name).join(', ') || 'those files') +
-              '. They are in the Nova Data files.' + (refused.length ? ' ' + refused.join(' ') : ''), true);
+              '. They are in the Nova Data files.' + (refused.length ? ' ' + refused.map(r => r.replace(/\.?$/, '.')).join(' ') : ''), true);
     return;
   }
   if (fresh) { PENDING.length = 0; OPENED_NAMES = []; SHIP_FILES = []; }

@@ -423,84 +423,84 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SelectWarshipTarget', 0x89d5e], ['IsThreatToStellar', 0x9ef7], ['AIShipFriendStrength', 0x825a8], ['ShipECM', 0x3aff], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCapture', 0x41120], ['IssueNewEscortCommand', 0x660d5]],
     },
     Crew: {
-      note: 'Your odds of capturing a ship you board, in percent: 10 × your crew ÷ its Crew, your crew being your class\'s Crew, plus each ModType 25 outfit\'s ModVal, plus a tenth of the Crew of each escort flying with you under AI 6 whose class has an InherentAI above 2. Then + 10 if your Strength, so counted, is more than 5 × its Strength; + each negative ModType 25 outfit\'s ModVal made positive; ± 5 at random; 1 to 75. 0 against a ship of a government with Flags 0x0800, in an unregistered copy, or when you cannot take on another escort.',
+      note: 'The player\'s odds in percent of capturing a boarded ship. They are 10 × the player\'s crew ÷ its Crew + each ModType 25 outfit\'s ModVal + a tenth of the Crew of each escort flying with the player under AI 6 whose class has an InherentAI above 2. The player\'s crew here is the class\'s Crew. The game then adds 10 if the player\'s Strength (counted the same way) is more than 5 × its Strength. It adds each negative ModType 25 outfit\'s ModVal made positive and ± 5 at random. The result stays between 1 and 75. The odds are 0 against a ship of a government with Flags 0x0800, in an unregistered copy, or when the player cannot take on another escort.',
       code: [['SetPlunderValues', 0x92219], ['CanHireEscorts', 0x5795], ['Rand', 0xa4c76]],
     },
     Strength: {
-      note: 'Its weight in the odds a ship works out before fighting or running: its Strength × the share of its shields left (¼ to 1), added to its friends\', against the Strength of those opposing it (a warship runs when they pass its government\'s MaxOdds). Yours: multiplied by your kills ÷ (6,400 × shïp 128\'s Strength), kept between 1 and 2. In boarding, see Crew.',
+      note: 'Its weight in the odds a ship works out before fighting or running. A ship adds its Strength × the share of its shields left (¼ to 1) to its friends\' and sets that against the Strength of those opposing it. A warship runs when the odds pass its government\'s MaxOdds. The player\'s ship multiplies it by the player\'s kills ÷ (6,400 × shïp 128\'s Strength) kept between 1 and 2. For boarding see Crew.',
       code: [['AIShipFriendStrength', 0x825a8], ['AICalculateOddsAgainst', 0x84a2e], ['SetPlunderValues', 0x92219]],
     },
     WeapType: {
-      note: 'Four stock weapons, and four more in WeapType2: 128 to 383, that wëap; anything else, none. Every ship of the class carries them: yours when you buy, capture or start in one, and every ship spawned of it. If a weapon is named twice, the later count is used. At loading, the Mass of the first outfit of ModType 1 naming each weapon × its WeapCount, and of the first of ModType 3 naming its ammunition × its AmmoLoad, is added to FreeMass, so they take none of it.',
+      note: 'Four stock weapons and four more in WeapType2. 128 to 383: that wëap. Anything else: none. Every ship of the class has them. That includes every ship spawned of it and the player\'s ship when the player buys, captures, or starts in one. If a weapon appears twice the later count applies. At loading the game adds to FreeMass the Mass of the first ModType 1 outfit for each weapon × its WeapCount and of the first ModType 3 outfit for its ammunition × its AmmoLoad. So they use none of it.',
       code: [['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['RandomShipSpawn', 0x3c0f3], ['DoShipyardDialog', 0x5e679], ['DoShipCapture', 0x41120]],
     },
     WeapCount: {
-      note: 'How many of the WeapType beside it. 0 or less: none, though its AmmoLoad still counts.',
+      note: 'How many of the WeapType beside it. 0 or less: none. Its AmmoLoad still counts.',
       code: [['LoadObjectData', 0x771b0]],
     },
     AmmoLoad: {
-      note: 'Ammunition for the WeapType beside it, for a weapon that uses it. 0 or less: none.',
+      note: 'Ammunition for the WeapType beside it if the weapon uses any. 0 or less: none.',
       code: [['LoadObjectData', 0x771b0]],
     },
     WeapType2: {
-      note: 'Four more stock weapons, after WeapType\'s, read the same way.',
+      note: 'Four more stock weapons after WeapType\'s. The game reads them the same way.',
       code: [['LoadObjectData', 0x771b0]],
     },
     WeapCount2: {
-      note: 'How many of the WeapType2 beside it, as WeapCount.',
+      note: 'How many of the WeapType2 beside it (as WeapCount).',
       code: [['LoadObjectData', 0x771b0]],
     },
     AmmoLoad2: {
-      note: 'Ammunition for the WeapType2 beside it, as AmmoLoad.',
+      note: 'Ammunition for the WeapType2 beside it (as AmmoLoad).',
       code: [['LoadObjectData', 0x771b0]],
     },
     MaxGun: {
-      note: 'How many fixed guns, outfits with Flags 0x0001, you can carry. Yours: plus each ModType 45 outfit\'s ModVal. 0 or less: none.',
+      note: 'How many fixed guns (outfits with Flags 0x0001) the ship can mount. The player\'s ship adds each ModType 45 outfit\'s ModVal. 0 or less: none.',
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     MaxTur: {
-      note: 'How many turrets, outfits with Flags 0x0002, you can carry. Yours: plus each ModType 46 outfit\'s ModVal. 0 or less: none.',
+      note: 'How many turrets (outfits with Flags 0x0002) the ship can mount. The player\'s ship adds each ModType 46 outfit\'s ModVal. 0 or less: none.',
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     ShieldRech: {
-      note: 'ShieldRech ÷ 1,000 shield points come back each 30th of a second, so ShieldRech × 0.03 a second; 0 or less, none. Yours: plus each ModType 5 outfit\'s ModVal ÷ 1,000. A ship under AI 5: × 1.333.',
+      note: 'ShieldRech ÷ 1,000 shield points come back each 30th of a second. That is ShieldRech × 0.03 a second. 0 or less: none. The player\'s ship adds each ModType 5 outfit\'s ModVal ÷ 1,000. A ship under AI 5 has it multiplied by 1.333.',
       code: [['LoadObjectData', 0x771b0], ['ShipShieldRechargeRate', 0x2abb], ['HandleShip', 0x33581]],
     },
     ArmorRech: {
-      note: 'ArmorRech ÷ 1,000 armor points come back each 30th of a second, so ArmorRech × 0.03 a second; 0 or less, none, and none while disabled. Yours: plus each ModType 29 outfit\'s ModVal ÷ 1,000, and × 50 while the cheats are on. A ship under AI 5: × 1.333.',
+      note: 'ArmorRech ÷ 1,000 armor points come back each 30th of a second. That is ArmorRech × 0.03 a second. 0 or less: none. A disabled ship recovers none. The player\'s ship adds each ModType 29 outfit\'s ModVal ÷ 1,000 and multiplies the total by 50 while the cheats are on. A ship under AI 5 has it multiplied by 1.333.',
       code: [['LoadObjectData', 0x771b0], ['ShipArmorRechargeRate', 0x2e0e], ['IsDisabled', 0x2ce6], ['HandleShip', 0x33581]],
     },
     SkillVar: {
-      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100; for a ship not yours it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar, before the game gives it its actual class.',
+      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100. For a ship other than the player\'s it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar before the game gives it its actual class.',
       code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['Rand', 0xa4c76]],
       bible: 'This affects acceleration and turn rate for each ship. Values from 1 to 50% are valid.',
     },
     Deionize: {
-      note: 'Deionize ÷ 100 of its ionization wears off each 30th of a second; 0 or less, 1. Yours: plus each ModType 39 outfit\'s ModVal ÷ 100.',
+      note: 'Deionize ÷ 100 of its ionization wears off each 30th of a second. 0 or less: 1. The player\'s ship adds each ModType 39 outfit\'s ModVal ÷ 100.',
       code: [['LoadObjectData', 0x771b0], ['ShipDeionizationRate', 0x6ec3], ['HandleShip', 0x33581]],
     },
     IonizeMax: {
-      note: 'Its ionization divided by IonizeMax is the fraction by which ionization slows its acceleration, top speed and turning, at most 70%. Yours: plus each ModType 40 outfit\'s ModVal. 0 or less: never slowed.',
+      note: 'Its ionization divided by IonizeMax is the fraction by which ionization slows its acceleration, top speed, and turning (at most 70%). The player\'s ship adds each ModType 40 outfit\'s ModVal. 0 or less: never slowed.',
       code: [['LoadObjectData', 0x771b0], ['ShipIonizationFactor', 0x3225]],
     },
     Availability: {
-      note: 'A test of control bits: while it fails, you cannot buy the class, and with Flags3 0x0100 the shipyard does not show it. Empty: no test.',
+      note: 'A test of control bits. While it fails the player cannot buy the class. With Flags3 0x0100 the shipyard also hides it. Empty: no test.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['SetupPortAvailableShipTypes', 0xbbe3], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnPurchase: {
-      note: 'Control bits set when you buy a ship of this class, and when it is the ship you are given after escaping in a pod. Empty: none.',
+      note: 'Control bits set when the player buys a ship of this class. The game also sets them when it is the ship the player receives after escaping in a pod. Empty: none.',
       code: [['DoShipyardDialog', 0x5e679], ['HandlePlayer', 0x68390], ['ResetPlayer', 0x1d40d], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnCapture: {
-      note: 'Control bits set when you capture a ship of this class. Empty: none.',
+      note: 'Control bits set when the player captures a ship of this class. Empty: none.',
       code: [['DoShipCapture', 0x41120], ['DoPlunderDialog', 0x9302b], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnRetire: {
-      note: 'Control bits set when you leave a ship of this class: trading it in at a shipyard, taking a ship you capture in its place, or escaping from it in a pod. Empty: none.',
+      note: 'Control bits set when the player leaves a ship of this class. The player leaves it by trading it in at a shipyard, by taking a captured ship in its place, or by escaping from it in a pod. Empty: none.',
       code: [['DoShipyardDialog', 0x5e679], ['DoShipCapture', 0x41120], ['HandlePlayer', 0x68390], ['HasEscapePod', 0xb83d], ['EvalMissionBitSetString', 0x99dc5]],
     },
     ShortName: {
-      note: 'Its name in the shipyard\'s list; "\\n" in it splits it over two lines, and the shipyard draws a line starting with a letter or digit in white.',
+      note: 'Its name in the shipyard\'s list. "\\n" in it splits it over two lines. The shipyard draws a line starting with a letter or digit in white.',
       code: [['LoadObjectData', 0x771b0], ['ShipyardDialogUpdate', 0x58a10], ['SplitTwoLineString', 0x7dc1]],
     },
     CommName: {
@@ -508,27 +508,27 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoCommDialog', 0x956d5], ['DoEscortDialog', 0x951ee]],
     },
     LongName: {
-      note: 'Its full name: in the shipyard and the ship\'s description, in the message a new pilot starts with, and in messages about your ship in flight.',
+      note: 'Its full name. It appears in the shipyard and the ship\'s description, in the message a new pilot starts with, and in messages about the player\'s ship in flight.',
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['ShipDescDialogUpdate', 0x4f915], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
     },
     MovieFile: {
-      note: 'A movie played on a loop in the shipyard while you have the class selected.',
+      note: 'A movie played on a loop in the shipyard while the player has the class selected.',
       code: [['LoadObjectData', 0x771b0], ['ShipyardFilter', 0x60449], ['StartLoopingMovie', 0x60266]],
     },
     Subtitle: {
-      note: 'Shown under its name in the target display, unless the ship is a përs\'s that sets a Subtitle, and under your ship on the main screen.',
+      note: 'Shown under its name in the target display unless the ship is a përs\'s that sets a Subtitle. It also shows under the player\'s ship on the main screen.',
       code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1], ['MainScreenUpdate', 0x17c0d]],
     },
     KeyCarried: {
-      note: 'A class (128 to 895) it carries as fighters, which also serves as its key: the key is aboard while one of its fighter bays holds one or more. Its shän with Flags 0x0004 shows its second set of frames, and its weapons with wëap Flags2 0x0080 fire, only then. Below 128: none.',
+      note: 'A class (128 to 895) of fighters aboard it. The class also serves as its key. The key is aboard while one of its fighter bays has one or more. Only then does its shän with Flags 0x0004 show its second set of frames and its weapons with wëap Flags2 0x0080 fire. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['KeyCarriedShipTypeOnboard', 0x399c], ['HandleShipDisplay', 0x2b514], ['WeaponHasAmmo', 0xb95a]],
     },
     EscortType: {
-      note: 'Its group among your escorts: 0 fighter, 1 medium, 2 warship, 3 freighter. For anything else, loading works it out: 3 for an InherentAI of 2 or less, else 0 below Mass 50, 1 below 200, 2 from 200. The group also gives the class 80 (fighter), 90 (medium) or 100: a turret\'s shot rolls from 1 to its firer\'s number, and misses a ship that is not disabled when the roll is over the target\'s number.',
+      note: 'Its group among the player\'s escorts. 0: fighter. 1: medium. 2: warship. 3: freighter. For anything else loading picks 3 for an InherentAI of 2 or less and otherwise 0 below Mass 50, 1 below 200, or 2 from 200. The group also gives the class 80 (fighter), 90 (medium), or 100. A turret\'s shot rolls from 1 to its firer\'s number. It misses a ship that is not disabled when the roll is over the target\'s number.',
       code: [['LoadObjectData', 0x771b0], ['DrawEscortMenuInFrame', 0x56268], ['ShotCanHitShip', 0x4477e]],
     },
     AppearOn: {
-      note: 'A test of control bits: while it fails, the game draws no ships of this class from a düde (a mission\'s ships aside, when no other class remains). Empty: no test.',
+      note: 'A test of control bits. While it fails the game draws no ships of this class from a düde. A mission\'s ships may still use it when no other class remains. Empty: no test.',
       code: [['PropagateMissionBitEffects', 0x99676], ['SelectShipFieldFromDude', 0x65c2]],
     },
     TechLevel: {

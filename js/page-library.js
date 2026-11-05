@@ -48,16 +48,16 @@ function libLink(type, id, label) {
 }
 
 /* The bar's race, behind its Gamble button, as Mac 1.1.1's DoRaceDialog
-   and DrawRaceButtons use its pictures and texts: four colours, each with
+   and DrawRaceButtons use its pictures and texts: four colors, each with
    a button unclicked, clicked, won and lost. The rules are DoRaceDialog's
    (../evnova-workbench/doc/viper-race.md). These numbers are typed in, not
    yet read from the open program. */
 const LIB_RACE_STATES = ['unclicked', 'clicked', 'the winner', 'not the winner'];
 function libRace(res, id) {
-  if (res === 'PICT' && id === 8529) return "the bar's race, behind its Gamble button: the background";
-  if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the bar's race: colour ${id % 10 + 1}'s button, ${LIB_RACE_STATES[Math.floor(id / 10) - 853]}`;
-  if (res === 'dësc' && id === 32764) return "the help for the bar's race, behind its Gamble button. The game draws one of four colours at random, never the last race's winner (forgotten each time you open the bar), and a winning bet pays four times what was bet";
-  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when colour ${id - 32759} wins`;
+  if (res === 'PICT' && id === 8529) return "the background of the bar's race (behind its Gamble button)";
+  if (res === 'PICT' && id >= 8530 && id < 8570 && id % 10 < 4) return `the button of color ${id % 10 + 1} in the bar's race (${LIB_RACE_STATES[Math.floor(id / 10) - 853]})`;
+  if (res === 'dësc' && id === 32764) return "the help for the bar's race (behind its Gamble button). The game draws one of four colors at random. It never draws the last race's winner. That record clears each time the player opens the bar. A winning bet pays 4 × the bet";
+  if (res === 'dësc' && id >= 32760 && id < 32764) return `the bar's race: the report when color ${id - 32759} wins`;
   return '';
 }
 
@@ -84,8 +84,8 @@ function libRole(res, id) {
   if (res === 'PICT') {
     const nb = fig('nebulaPict'), per = fig('nebulaPicts'), land = fig('landingPict');
     const k = nb && per && id >= nb.value ? Math.floor((id - nb.value) / per.value) : -1, neb = k >= 0 && GAME.get('nëbu', 128 + k);
-    if (neb) parts.push(`the nebula ${esc(neb.name)}'s picture ${(id - nb.value) % per.value + 1} of ${codeNum(per)}: PICT ${codeNum(nb)} + ${codeNum(per)} × ${k} + ${(id - nb.value) % per.value}`);
-    if (land && id >= land.value && id < land.value + 1000) parts.push(`the landing picture of a stellar of Type ${id - land.value} with no CustPicID: PICT ${codeNum(land)} + ${id - land.value}`);
+    if (neb) parts.push(`the nebula ${esc(neb.name)}'s picture ${(id - nb.value) % per.value + 1} of ${codeNum(per)} (PICT ${codeNum(nb)} + ${codeNum(per)} × ${k} + ${(id - nb.value) % per.value})`);
+    if (land && id >= land.value && id < land.value + 1000) parts.push(`the landing picture of a stellar of Type ${id - land.value} with no CustPicID (PICT ${codeNum(land)} + ${id - land.value})`);
   }
   const loads = libLoads(res, id);
   if (loads) parts.push(loads);
@@ -178,7 +178,7 @@ function libTable(q) {
   const head = [['id', 'id'], ['name', 'Name'], ...cols.map(c => [c, c])]
     .map(([k, l]) => `<th data-lib-sort="${k}" class="${key === k ? (LIB.desc ? 'down' : 'up') : ''}">${esc(l)}</th>`).join('');
   const cell = (r, c) => { if (derived[c]) return `<td>${esc(derived[c](r))}</td>`; const v = r[c]; return `<td>${esc(Array.isArray(v) ? v.join(', ') : novaFieldText(S_KIND(type, c), v))}</td>`; };
-  return `<p class="note">${rows.length} ${esc(type)} records, their fields as the files have them; a field's meaning is its note in the record's Every field. Tap a column to sort by it.</p>
+  return `<p class="note">${rows.length} ${esc(type)} records with their fields as the files have them. Each field's meaning is in its note under the record's Every field. Tap a column to sort by it.</p>
     <div class="libScroll"><table class="libTable"><thead><tr>${head}</tr></thead><tbody>${rows.map(({ r, name }) =>
       `<tr><td>${r.id}</td><td>${libLink(type, r.id, name)}</td>${cols.map(c => cell(r, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
@@ -191,7 +191,7 @@ function libText(q) {
   const strs = GAME.list('STR#').map(e => ({ e, list: novaStrings(GAME, e.id) }))
     .filter(({ e, list }) => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || list.some(s => s.toLowerCase().includes(q)) || libRoleHas('STR#', e.id, q));
   const shown = hits.slice(0, 300);
-  return `<p class="note">${hits.length} descriptions${hits.length > shown.length ? `, the first ${shown.length} shown; filter to find more` : ''}, and ${strs.length} string lists. Each as the files have it.</p>
+  return `<p class="note">${hits.length} descriptions and ${strs.length} string lists as the files have them.${hits.length > shown.length ? ` The page shows the first ${shown.length} descriptions. Filter to find more.` : ''}</p>
     <h3>Descriptions</h3>
     ${shown.map(({ e, d }) => { const role = libRole('dësc', e.id); return `<details class="libItem"><summary>dësc ${e.id}${e.name ? ' · ' + esc(e.name) : ''}<small>${esc((d.Description || '').slice(0, 90))}</small></summary>
       ${role ? `<p class="note">${role}</p>` : ''}<div class="desc">${esc(d.Description || '')}</div></details>`; }).join('')}
@@ -203,7 +203,7 @@ function libText(q) {
 function libPictures(q) {
   const all = GAME.list('PICT').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || libRoleHas('PICT', e.id, q));
   const shown = all.slice(0, 400);
-  return `<p class="note">${all.length} pictures${all.length > shown.length ? `, the first ${shown.length} shown; filter by id, name or what it is for to find more` : ''}.</p>
+  return `<p class="note">${all.length} pictures.${all.length > shown.length ? ` The page shows the first ${shown.length}. Filter by id, name, or purpose to find more.` : ''}</p>
     <div class="libPicts">${shown.map(e => { const role = libRole('PICT', e.id); return `<figure data-pict="${e.id}"><div class="nopict wait">PICT ${e.id}</div><figcaption>PICT ${e.id}${e.name ? ' · ' + esc(e.name) : ''}${role ? `<br>${role}` : ''}</figcaption></figure>`; }).join('')}</div>`;
 }
 // Pictures drawn as they come near the screen, a few at a time.

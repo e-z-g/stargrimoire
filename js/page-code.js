@@ -14,7 +14,7 @@
    none.
 
    PAGE SCRIPT. LOAD ORDER: after page-map.js, page-ships.js and
-   page-battle.js, whose views it alternates with. */
+   page-battle.js. The page alternates between their views and this one. */
 
 const CODE = { on: false, addr: null, at: null, field: null, q: '' };   // field: 'spöb.Flags', the field a note's link came for
 let PROGRAM_SRC = null;      // { name, read } from the archive opened, or null
@@ -85,7 +85,7 @@ function codeRoutine(name, type, field) {
   const p = program(), r = p ? novaRoutineNamed(p, name) : null;
   if (!r) return esc(name);
   const f = type ? ` data-field="${esc(type + '.' + field)}"` : '';
-  return `<a class="codeNum" data-code="${hex(r.start)}"${f} title="${esc(type ? `Where ${name} reads ${type} ${field}` : `${name} in the program, at ${hex(r.start)}`)}">${esc(name)}</a>`;
+  return `<a class="codeNum" data-code="${hex(r.start)}"${f} title="${esc(type ? `Where ${name} reads ${type} ${field}` : `${name} in the program at ${hex(r.start)}`)}">${esc(name)}</a>`;
 }
 
 // The site's code on GitHub, for a line that uses a number the program contains.
@@ -101,7 +101,7 @@ function codeRules(p) {
   for (const s of sites) { if (!by.has(s.routine)) by.set(s.routine, []); by.get(s.routine).push(s); }
   const rows = [...by].map(([name, list]) => `<tr><td><a data-code="${hex(list[0].start)}">${esc(name)}</a></td><td>${list.map(s => `${codeNum({ routine: s.start, addr: s.addr, value: s.value })} <small>${srcLink(s.file, s.line)}</small>`).join(', ')}</td></tr>`);
   return `<h3>The rules the site flies by</h3>
-    <p class="note">${sites.length} numbers the site's flying and battles use (js/nova-flight.js, js/nova-fight.js), each found in the routine its code cites${p.kind === 'pef' ? ' (in this release, the routine matched to 1.1.1\'s of that name by what both do)' : ''}: a number opens the instruction it is in, and a line opens the site's code that uses it.</p>
+    <p class="note">The site's flying and battles use ${sites.length} numbers (js/nova-flight.js and js/nova-fight.js). Each comes from the routine its code cites${p.kind === 'pef' ? '. In this release that is the routine matched to 1.1.1\'s of the same name by what both do' : ''}. A number opens the instruction it is in. A line opens the site's code that uses it.</p>
     <table class="kv codeRules">${rows.join('')}</table>`;
 }
 
@@ -173,24 +173,24 @@ function renderCodeList() {
 function renderCode() {
   const el = $('codeView'), p = program();
   if (!p) {
-    el.innerHTML = `<h2>The program</h2><p class="note">${PROGRAM_SRC ? `${esc(PROGRAM_SRC.name)} is not a program this page reads yet: it reads the PowerPC program of 1.0.2 to 1.1.1.` : 'The files open do not include the game\'s program. Open a release\'s archive or disk image (1.0.2 to 1.1.1) to read it.'}</p>`;
+    el.innerHTML = `<h2>The program</h2><p class="note">${PROGRAM_SRC ? `${esc(PROGRAM_SRC.name)} is not a program this page can read. It reads the PowerPC program of 1.0.2 to 1.1.1.` : 'The files open do not include the game\'s program. Open a release\'s archive or disk image (1.0.2 to 1.1.1) to read it.'}</p>`;
     return;
   }
   if (CODE.addr === null) {
     el.innerHTML = `<h2>The program</h2>
-      <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ', its PowerPC half' : ''} · ${p.routines.filter(r => !r.glue).length} routines, ${p.routines.filter(r => r.glue).length} calls into the system</div>
-      <p class="note">Search for anything a routine uses: a system call (GetPicture), a resource type (dësc), a string, or a number. A figure the other views read from the program links here, to the instruction it comes from.</p>
+      <div class="sub">${esc(PROGRAM_SRC.name)}${p.kind === 'macho' ? ' (its PowerPC half)' : ''} · ${p.routines.filter(r => !r.glue).length} routines and ${p.routines.filter(r => r.glue).length} calls into the system</div>
+      <p class="note">Search for anything a routine uses. That can be a system call (GetPicture), a resource type (dësc), a string, or a number. A number the other views read from the program links here to the instruction it comes from.</p>
       ${codeRules(p)}`;
     return;
   }
   const r = p.routineAt(CODE.addr), ops = p.ops(r);
   const named = novaNamedRoutines(p, GAME).find(n => n.routine === r);
   const callers = [...new Set(p.callers(r.start).map(a => p.routineAt(a)).filter(Boolean))];
-  // what each line is labelled with, and the text in it to pick out
+  // what each line is labeled with, and the text in it to pick out
   const labels = new Map(), marks = new Map();
   const label = (addr, html, mark) => { if (!labels.has(addr)) labels.set(addr, []); labels.get(addr).push(html); if (mark !== undefined && !marks.has(addr)) marks.set(addr, mark); };
   for (const [addr, what] of novaFiguresByAddr(p, GAME)) if (addr >= r.start && addr < r.end) label(addr, `the site reads ${esc(what)}`, 'imm');
-  for (const s of novaRuleSites(p)) if (s.start === r.start) label(s.addr, `the site uses ${s.value}: ${srcLink(s.file, s.line)}`, 'imm');
+  for (const s of novaRuleSites(p)) if (s.start === r.start) label(s.addr, `the site uses ${s.value} (${srcLink(s.file, s.line)})`, 'imm');
   for (const [key, uses] of novaProgramUses(p, GAME).fixed) for (const u of uses) if (u.routine === r.start) label(u.addr, `loads ${esc(key.trim())}${u.index !== undefined ? `, entry ${u.index}` : ''}`, 'imm');
   const [ftype, fname] = CODE.field ? CODE.field.split('.') : [];
   const sites = CODE.field ? novaFieldSites(p, r, ftype, fname) : [];
@@ -212,15 +212,15 @@ function renderCode() {
   // why the view is here: the ringed line put in words, and for a field the other lines that read it
   let why = '';
   const atI = CODE.at !== null ? ops.findIndex(o => o.addr === CODE.at) : -1;
-  if (CODE.field && !sites.length) why = `<p>According to the field note, this routine reads ${esc(ftype)} ${esc(fname)}; the line that reads it was not found here.</p>`;
+  if (CODE.field && !sites.length) why = `<p>This routine reads ${esc(ftype)} ${esc(fname)} according to the field note. The page did not find the line that reads it.</p>`;
   else if (atI >= 0) {
     const ls = labels.get(CODE.at), g = glossHtml(atI);
-    why = `<p><b>Ringed, line ${CODE.at.toString(16)}:</b> ${ls ? ls.join('; ') : 'the line you asked for'}.</p>
+    why = `<p><b>Ringed line ${CODE.at.toString(16)}:</b> ${ls ? new Intl.ListFormat('en-US').format(ls) : 'the line in the address'}.</p>
       <p><code>${pick(atI, CODE.at)}</code>${g ? ` — ${g}` : ''}</p>`;
-    if (sites.length > 1) why += `<p>${sites.length} lines here touch it: ${sites.map(s => `<a data-code="${hex(r.start)}" data-at="${hex(s.addr)}" data-field="${esc(CODE.field)}">${s.addr.toString(16)}</a>`).join(', ')}.</p>`;
+    if (sites.length > 1) why += `<p>${sites.length} lines here touch it (${sites.map(s => `<a data-code="${hex(r.start)}" data-at="${hex(s.addr)}" data-field="${esc(CODE.field)}">${s.addr.toString(16)}</a>`).join(', ')}).</p>`;
   }
   el.innerHTML = `<h2>${esc(named ? named.name : p.nameOf(r))}</h2>
-    <div class="sub">${hex(r.start)} to ${hex(r.end)}, ${r.len / 4} instructions${named ? ' · ' + esc(named.why) : ''}</div>
+    <div class="sub">${hex(r.start)} to ${hex(r.end)} (${r.len / 4} instructions)${named ? ' · ' + esc(named.why) : ''}</div>
     <div class="actions"><button data-code-list>All routines</button></div>
     ${callers.length ? `<p class="note">Called from ${callers.map(c => `<a data-code="${hex(c.start)}">${esc(p.nameOf(c))}</a>`).join(', ')}.</p>` : ''}
     ${why ? `<div class="codeWhy">${why}</div>` : ''}
@@ -244,7 +244,7 @@ function wireCode() {
     if (!a) return;
     e.preventDefault();
     if (a.dataset.codeList !== undefined) codeShow(null, null);
-    // a line in the same routine stays with the field its lines are labelled for
+    // a line in the same routine stays with the field its lines are labeled for
     else codeShow(Number(a.dataset.code), a.dataset.at ? Number(a.dataset.at) : null, { field: a.dataset.field || (Number(a.dataset.code) === CODE.addr ? CODE.field : null) });
   });
   // a figure's link anywhere else opens the view at its instruction

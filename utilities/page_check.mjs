@@ -885,7 +885,7 @@ try {
     const want = ['4000', '10000', '9500', '7', '1000'];
     const nums = (o.nums || []).filter(n => /^\d+$/.test(n));
     if (o.kind !== 'macho' || !want.every(n => nums.includes(n)) || !(o.noteLinks > 5) || !o.code || !o.code.on || o.code.title !== o.clicked || !/^#code=0x[0-9a-f]+/.test(o.code.hash) ||
-        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)) || !(o.rules > 50) || !/the site uses 1\.165: nova-flight\.js \d+/.test(o.ruleAt || ''))
+        !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)) || !(o.rules > 50) || !/the site uses 1\.165 \(nova-flight\.js \d+\)/.test(o.ruleAt || ''))
       fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles, ratings: o.ratings, prose: o.prose, rules: o.rules, ruleAt: o.ruleAt }));
     else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text; ${o.rules} routines in the rules, and HyperSpawnFleet's line ${o.ruleAt}`);
   }
@@ -925,7 +925,7 @@ try {
     if (o.ring !== 'changed') fail(`the comparison: Kipa is ${o.ring}, not ringed as changed`);
     if (!(o.kipa || []).some(t => /^Govt\s*137\s*170$/.test(t))) fail('the comparison: Kipa\'s panel does not give Govt 137 then 170: ' + JSON.stringify(o.kipa));
     const c = o.code || {};
-    if (c.kind !== 'pef' || !(c.noteLinks > 5) || !c.clicked || c.title !== c.clicked || !/^#code=0x[0-9a-f]+/.test(c.hash || '') || !(c.rules > 50) || !/the site uses 1\.165: nova-flight\.js \d+/.test(c.ruleAt || ''))
+    if (c.kind !== 'pef' || !(c.noteLinks > 5) || !c.clicked || c.title !== c.clicked || !/^#code=0x[0-9a-f]+/.test(c.hash || '') || !(c.rules > 50) || !/the site uses 1\.165 \(nova-flight\.js \d+\)/.test(c.ruleAt || ''))
       fail('1.0.10\'s program, by 1.1.1\'s names: ' + JSON.stringify(c));
     else console.log(`1.0.10's program, by 1.1.1's names: a stellar's field notes cite ${c.noteLinks} routines, and ${c.clicked} opens at ${c.hash}; ${c.rules} routines in the rules, and HyperSpawnFleet's line ${c.ruleAt}`);
     console.log(`compared with 1.0.2: ${o.count} records differ; Kipa ${o.ring}, ${JSON.stringify(o.kipa)}`);
@@ -993,7 +993,7 @@ try {
       if (o.boxes !== o.want) fail(`the plug-in editor: ${o.boxes} boxes for Sol's ${o.want} fields and name`);
       if (!/xPos/.test(o.refused || '') || o.editsAfterRefused !== 0) fail(`the plug-in editor: 'abc' for xPos was not rejected (${JSON.stringify(o.refused)})`);
       if (o.moved !== 50 || o.movedAfterLoad !== 50) fail(`the plug-in editor: Sol moved ${o.moved}, after loading ${o.movedAfterLoad}, not 50`);
-      if (!/from Changed here/.test(o.from || '') || !o.open) fail(`the plug-in editor: Sol's fields say ${JSON.stringify(o.from)}, open ${o.open}`);
+      if (!/in Changed here/.test(o.from || '') || !o.open) fail(`the plug-in editor: Sol's fields say ${JSON.stringify(o.from)}, open ${o.open}`);
       if (o.stored !== 1 || o.rows !== 1 || !/\(1\)/.test(o.button || '')) fail(`the plug-in editor: stored ${o.stored}, listed ${o.rows}, button ${o.button}`);
       if (o.rezX !== 50 || o.macX !== 50 || o.macType !== 'Np?f') fail(`the plug-in editor: saved ${JSON.stringify(o.names)}, .rez xPos +${o.rezX}, Mac +${o.macX} ${o.macType}`);
       if (o.back !== 0 || o.left !== 0) fail(`the plug-in editor: undone, Sol is ${o.back} off and ${o.left} changes are left`);
@@ -1055,10 +1055,10 @@ try {
       if (o.mode !== 'save' || o.sys !== 'Aurora') fail(`the save file: shown as ${o.mode}, in ${o.sys}`);
       if (!/Aurora Thunderforge/.test(o.ship || '') || o.date !== '10/18/1180 NC' || o.credits !== (156032).toLocaleString() || !/“Maverick”/.test(o.pilot || ''))
         fail(`the save file: the panel says ${JSON.stringify(o)}`);
-      if (!/you are here/.test(o.here || '') || !o.after) fail(`the save file: Aurora's panel says ${JSON.stringify(o.here)}, and after a new game ${o.after}`);
+      if (!/The player is here/.test(o.here || '') || !o.after) fail(`the save file: Aurora's panel says ${JSON.stringify(o.here)}, and after a new game ${o.after}`);
       console.log(`the save file: Robert's, in ${o.sys}, ${o.ship}, ${o.date}, ${o.credits} credits; gone from the panel as at a new game`);
       const b = o.battle || {};
-      if (b.yours !== 'Aurora Thunderforgemade here: change · remove' || !b.made || !(b.armed >= 128 && b.armed <= 895) || !/tap the arena/.test(b.yoursNote || '') || !b.removed)
+      if (b.yours !== 'Aurora Thunderforgemade here: change · remove' || !b.made || !(b.armed >= 128 && b.armed <= 895) || !/Tap the arena/.test(b.yoursNote || '') || !b.removed)
         fail(`the save file in the battle: ${JSON.stringify(b)}`);
       else if (!/Tap a ship in the list first/.test(b.customNote || '') || !b.custom || b.customName !== 'Aurora Thunderforge (custom)')
         fail(`Custom ship: ${JSON.stringify(b)}`);

@@ -279,7 +279,7 @@ const REC_BODY = {
     return `<table class="kv">
         ${kvRow('Base price', String(r.BasePrice))}
       </table>
-      <p class="note">These stellars trade it on the seventh row of the trade screen (BoughtAt) or the eighth row (SoldAt). The price is the same for buying and selling. When several commodities list a stellar the stellar trades the highest-numbered one.</p>
+      <p class="note">These stellars trade it on the seventh row of the trade screen (BoughtAt) or the eighth row (SoldAt). Both directions of trade use the one price. When several commodities list a stellar the stellar trades the highest-numbered one.</p>
       <table class="kv">
         ${kvRow('At base price × 1.25', listOr(refs.boughtAt.map(stellarRef), 'nowhere'))}
         ${kvRow('while', testLine(r.BuyOn))}

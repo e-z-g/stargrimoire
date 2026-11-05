@@ -1072,23 +1072,23 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {
-      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) rather than following their heading; 0x0004: from the first frame. 0x0008: a homing one is chosen only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire at once, reloading together. 0x0080: point defence ignores its shots. 0x0100: its blast does not hurt you. 0x1000, 0x2000, 0x4000: a turret blind ahead, abeam, astern. 0x8000: a shot goes off, blast and all, when its life ends. 0x0010: its Sound loops. 0x0200, 0x0400: small or big smoke (SmokeSet), 0x0800 lasting longer. 0x0002: yours, fired by the second trigger; a ship not yours, once it chooses one, keeps firing it step after step, where it chooses a primary weapon afresh each time.',
+      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) instead of following their heading. 0x0004: they start from the first frame. 0x0008: the game picks a homing one only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire together and reload together. 0x0080: point defense ignores its shots. 0x0100: its blast does not hurt the player. 0x1000 to 0x4000: a turret blind ahead (0x1000), abeam (0x2000), or astern (0x4000). 0x8000: a shot goes off with its blast when its life ends. 0x0010: its Sound loops. 0x0200 and 0x0400: small or big smoke (SmokeSet). 0x0800: the smoke lasts longer. 0x0002: the player fires it with the second trigger. Another ship that picks one continues firing it step after step. For primary weapons that ship picks again each time.',
       code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['HandleShip', 0x33581], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
     },
     Seeker: {
-      note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship is fully ionized. For a homing shot: 0x0002 decoyed onto an asteroid ahead; 0x0008 lost, spiralling, to the system\'s interference when fired; 0x0010 jammed, it turns away; 0x4000 its target lost once more than 45° off its nose within 250; 0x8000 jammed or lost, now and then it turns on its own ship.',
+      note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship is fully ionized. The rest apply to a homing shot. 0x0002: an asteroid ahead decoys it. 0x0008: the system\'s interference can make it lose its target when fired and spiral. 0x0010: jamming turns it away. 0x4000: it loses its target once that is more than 45° off its nose within 250. 0x8000: when jammed or lost it now and then turns on its firing ship.',
       code: [['HandleShotGuidance', 0x320dc], ['SpawnShot', 0x3e550], ['HandleBeams', 0x30295], ['HandleShip', 0x33581]],
     },
     Decay: {
-      note: 'Every Decay steps a shot flies takes one off its MassDmg and EnergyDmg; a beam fades over its Falloff. 0 or less: none.',
+      note: 'Every Decay steps that a shot flies remove one from its MassDmg and EnergyDmg. A beam fades over its Falloff. 0 or less: none.',
       code: [['HandleShot', 0x35586], ['HandleShipHit', 0x36a45], ['HandleBeams', 0x30295]],
     },
     Particles: {
-      note: 'Trail particles given off each step from the shot\'s tail, with PartVel, PartLifeMin to PartLifeMax and PartColor. 0: none.',
+      note: 'Trail particles given off each step from the shot\'s tail with PartVel, PartLifeMin to PartLifeMax, and PartColor. 0: none.',
       code: [['HandleShot', 0x35586], ['SpawnParticles', 0x44b70]],
     },
     PartVel: {
-      note: 'The trail particles\' speed, × 0.6 to 1.4, one of eight drawn at loading.',
+      note: 'The trail particles\' speed × 0.6 to 1.4 (one of eight drawn at loading).',
       code: [['LoadObjectData', 0x771b0], ['SpawnParticles', 0x44b70]],
     },
     PartLifeMin: {
@@ -1100,40 +1100,40 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnParticles', 0x44b70]],
     },
     PartColor: {
-      note: 'The trail particles\' color, scaled 0.6 to 1.4 with their speed.',
+      note: 'The trail particles\' color scaled 0.6 to 1.4 with their speed.',
       code: [['LoadObjectData', 0x771b0], ['SpawnParticles', 0x44b70]],
     },
     BeamLength: {
-      note: 'A beam\'s reach: it strikes the nearest ship whose middle is within this plus a third of its sprite and within a few degrees of the line, every step it lasts; a turreted beam fires at one within this plus 32.',
+      note: 'A beam\'s reach. Every step it lasts it strikes the nearest ship whose middle is within this plus a third of its sprite and within a few degrees of the line. A turreted beam fires at a ship within this plus 32.',
       code: [['HandleBeams', 0x30295], ['FireAIShipWeapon', 0x8873d]],
     },
     BeamWidth: {
-      note: 'A beam\'s width as drawn; for shots whose frames advance in turn (Flags 0x0001), the steps per frame.',
+      note: 'A beam\'s width as drawn. For shots whose frames advance in turn (Flags 0x0001) it gives the steps per frame.',
       code: [['HandleShot', 0x35586], ['HandleBeams', 0x30295]],
     },
     Falloff: {
-      note: 'How fast a decaying beam fades (Decay); 0 or less, with a BeamLength, 16.',
+      note: 'How fast a decaying beam fades (Decay). A beam with a BeamLength and 0 or less here fades over 16.',
       code: [['LoadObjectData', 0x771b0], ['HandleBeams', 0x30295]],
     },
     SubType: {
-      note: 'The weapon its submunitions are (SubCount): 128 to 383. Anything else: none. Its reach adds to this one\'s.',
+      note: 'The weapon of its submunitions (SubCount). 128 to 383: that wëap. Anything else: none. Its reach adds to this one\'s.',
       code: [['SpawnShotSubmunitions', 0x3f1d5], ['LoadObjectData', 0x771b0]],
     },
     ProxSafety: {
-      note: 'Steps from firing before a shot arms: before then it hits nothing and its fuse is off.',
+      note: 'Steps from firing before a shot arms. Before then it hits nothing and its fuse is off.',
       code: [['CheckShotProximities', 0x371bc], ['HandleShot', 0x35586]],
     },
     Flags2: {
-      note: '0x0001: the first frame while not yet armed; 0x0002: the last frame held. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions aim at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: ships not yours never fire it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type: it hits only planet-type ships (shïp Flags 0x0400), and nothing else hits them. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defence reads it). 0x8000: ten times the damage to asteroids. 0x0040: the status display does not show its ammunition. 0x0800: not offered as your secondary weapon while out of ammunition. 0x2000: a beam drawn beneath the ships. Nothing reads 0x0004: an asteroid sets off its proximity fuse all the same.',
+      note: '0x0001: the first frame while not yet armed. 0x0002: the last frame held. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions aim at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: only the player\'s ship fires it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type. It hits only planet-type ships (shïp Flags 0x0400) and nothing else hits them. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defense reads it). 0x8000: × 10 damage to asteroids. 0x0040: the status display does not show its ammunition. 0x0800: not offered as the player\'s secondary weapon while out of ammunition. 0x2000: a beam drawn beneath the ships. Nothing reads 0x0004. An asteroid sets off its proximity fuse all the same.',
       code: [['HandleShot', 0x35586], ['ShotCanHitShip', 0x4477e], ['SpawnShotSubmunitions', 0x3f1d5], ['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['DamageShip', 0x3a807], ['HandleShipPointDefense', 0x392c4], ['HandleAsteroidHit', 0x36637], ['DrawStatusWeap', 0x4c00a], ['BeamDrawCallback', 0x37952], ['CheckShotProximities', 0x371bc], ['HandlePlayer', 0x68390]],
       bible: '0x0004: proximity detonator ignores asteroids.',
     },
     HitParticles: {
-      note: 'Particles where a shot or beam hits a ship or asteroid, lasting HitPartLife to 1.25 × that, at HitPartVel, in HitPartColor. 0: none.',
+      note: 'Particles where a shot or beam hits a ship or asteroid. They last HitPartLife to 1.25 × that at HitPartVel in HitPartColor. 0: none.',
       code: [['HandleShipHit', 0x36a45], ['HandleAsteroidHit', 0x36637], ['SpawnParticles', 0x44b70]],
     },
     HitPartLife: {
-      note: 'The fewest steps a hit particle lasts; the most, a quarter more.',
+      note: 'The fewest steps a hit particle lasts. The most is a quarter more.',
       code: [['HandleShipHit', 0x36a45]],
     },
     HitPartVel: {
@@ -1145,31 +1145,31 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45]],
     },
     Recoil: {
-      note: 'Pushes the firing ship back by Recoil ÷ its Mass each time it fires; below 0, forward. 0 or -1: none.',
+      note: 'Pushes the firing ship back by Recoil ÷ its Mass each time it fires. Below 0: forward. 0 or -1: none.',
       code: [['FireAIShipWeapon', 0x8873d]],
     },
     ExitType: {
-      note: 'Which of the shän\'s four sets of exit points its shots leave from, taking them in turn (or the one nearest the target, Flags3 0x0010): 0 guns, 1 turrets, 2 guided, 3 beams. Anything else: the middle of the ship.',
+      note: 'Which of the shän\'s four sets of exit points its shots use. They use the points in turn (or the one nearest the target with Flags3 0x0010). 0: guns. 1: turrets. 2: guided. 3: beams. Anything else: the middle of the ship.',
       code: [['ModifyShotStartPosition', 0x7348], ['SelectClosestShotStartPosition', 0x7254], ['SpawnBeam', 0x44ff3]],
     },
     BurstCount: {
-      note: 'Shots before a burst reload: this × the weapons carried, or this alone with Flags 0x0040. 0 or less: no bursts.',
+      note: 'Shots before a burst reload. It is this × the weapons carried or this alone with Flags 0x0040. 0 or less: no bursts.',
       code: [['FireAIShipWeapon', 0x8873d]],
     },
     BurstReload: {
-      note: 'The reload, in steps, after a burst (BurstCount).',
+      note: 'The reload in steps after a burst (BurstCount).',
       code: [['FireAIShipWeapon', 0x8873d]],
     },
     JamVuln: {
-      note: 'For a homing shot, each of the four jamming types: the game draws a number from 0 to this for the shot as it fires, and from 16 steps old, jamming confuses the shot while its target\'s jamming of that type is more than 100 minus that number. Kept to 0 to 100.',
+      note: 'For a homing shot each of the four jamming types. The game draws a number from 0 to this for the shot as it fires. From 16 steps old jamming confuses the shot while its target\'s jamming of that type is more than 100 minus that number. The value stays between 0 and 100.',
       code: [['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['ShipECM', 0x3aff]],
     },
     Flags3: {
-      note: '0x0001: a burst uses ammunition once, not each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads, no other weapon of the ship fires. 0x0002: the game draws its shots translucent, in thousands of colors or more.',
+      note: '0x0001: a burst uses ammunition once instead of for each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads no other weapon of the ship fires. 0x0002: the game draws its shots translucent in thousands of colors or more.',
       code: [['FireAIShipWeapon', 0x8873d], ['HandleShot', 0x35586], ['ModifyShotStartPosition', 0x7348]],
     },
     Durability: {
-      note: 'For a homing shot, what point defence must wear down: each hit takes off its MassDmg and half its EnergyDmg, and a hit when nothing is left destroys it. 0 or less: the first hit does.',
+      note: 'For a homing shot what point defense must wear down. Each hit removes its MassDmg and half its EnergyDmg. A hit when nothing remains destroys the shot. 0 or less: the first hit does.',
       code: [['SpawnShot', 0x3e550], ['PointDefenseCollisionHandler', 0x37776]],
     },
     IonizeColor: {
@@ -1177,15 +1177,15 @@ const NOVA_FIELD_NOTES = {
       code: [['IonizeShip', 0x8409]],
     },
     Reload: {
-      note: 'Steps before it fires again, shared among however many of it the ship carries: Reload ÷ that many for each shot fired, or the whole Reload with Flags 0x0040. At the end of a burst, BurstReload instead.',
+      note: 'Steps before it fires again shared among however many of it are aboard. Each shot fired waits Reload ÷ that many or the whole Reload with Flags 0x0040. At the end of a burst it waits BurstReload instead.',
       code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702]],
     },
     Count: {
-      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100, extended by its submunitions.',
+      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100. Its submunitions extend that reach.',
       code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586]],
     },
     Speed: {
-      note: 'A shot moves Speed ÷ 100 units a step along its heading; with Count, this sets its reach.',
+      note: 'A shot moves Speed ÷ 100 units a step along its heading. With Count this sets its reach.',
       code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
     },
     GuidedTurn: {

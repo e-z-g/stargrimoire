@@ -80,7 +80,7 @@ function novaRecordBytes(type, rec, base) {
 }
 
 /* A field's value from what is typed for it: a number, hex for flags (with
-   or without 0x), #RRGGBB for a colour. Throws with what is wrong. */
+   or without 0x), #RRGGBB for a color. Throws with what is wrong. */
 function novaFieldParse(kind, text) {
   const t = String(text).trim();
   const range = (v, lo, hi) => {
@@ -90,7 +90,7 @@ function novaFieldParse(kind, text) {
   if (kind === 'str' || kind === 'cstr') return String(text);
   if (kind === 'h16' || kind === 'h32' || kind === 'rgb') {
     const m = /^(?:0x|#)?([0-9a-f]+)$/i.exec(t);
-    if (!m) throw new Error(kind === 'rgb' ? 'must be a colour, #RRGGBB' : 'must be a hex number');
+    if (!m) throw new Error(kind === 'rgb' ? 'must be a color (#RRGGBB)' : 'must be a hex number');
     return range(parseInt(m[1], 16), 0, kind === 'h16' ? 0xFFFF : 0xFFFFFFFF);
   }
   if (!/^[-+]?\d+$/.test(t)) throw new Error('must be a whole number');

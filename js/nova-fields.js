@@ -887,7 +887,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionFailure', 0xa0285], ['QuickMissionFailure', 0x99d1b], ['EvalCurrentMissionBitSetString', 0x99a43]],
     },
     OnAbort: {
-      note: 'Control bits set when you abort the mission, when a set expression aborts it, after your escape pod\'s rescue, which aborts every mission, or when it ends by itself; not when a failed mission leaves your list.',
+      note: 'Control bits set when the player aborts the mission or a set expression aborts it. The game also sets them after the rescue of the player\'s escape pod (which aborts every mission) and when the mission ends by itself. It does not set them when a failed mission leaves the player\'s list.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['AbortMission', 0x99a92], ['DoMissionInfoDialog', 0x9e19b], ['EvalSetExp', 0x150fc], ['HandlePlayer', 0x68390], ['AutoAbortMission', 0x99bdc], ['QuickMissionFailure', 0x99d1b]],
     },
     OnShipDone: {
@@ -895,76 +895,76 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['MissionObjectivesCheck', 0x9e79e], ['EvalCurrentMissionBitSetString', 0x99a43]],
     },
     AcceptButton: {
-      note: 'The label of the Accept button as the game offers the mission. Empty, or not starting with a letter: "Yes" if it can be refused, else "Okay" (STR# 150).',
+      note: 'The label of the Accept button as the game offers the mission. When it is empty or does not start with a letter the button reads "Yes" if the player can decline the mission and otherwise "Okay" (STR# 150).',
       bible: 'empty text gives Yes, or Okay when it cannot be refused; it says nothing of text not starting with a letter.',
       code: [['OfferOneMission', 0xa21ac]],
     },
     RefuseButton: {
-      note: 'The label of the Refuse button as the game offers the mission. Empty, or not starting with a letter: "No" (STR# 150).',
+      note: 'The label of the Refuse button as the game offers the mission. When it is empty or does not start with a letter the button reads "No" (STR# 150).',
       code: [['OfferOneMission', 0xa21ac]],
     },
     DispWeight: {
-      note: 'This orders a port\'s missions, highest first: it sets the order of the Mission BBS\'s list, and which mission the game offers first elsewhere.',
+      note: 'This orders a port\'s missions highest first. It sets the order of the Mission BBS\'s list and which mission the game offers first elsewhere.',
       code: [['InitMissions', 0x97b97], ['RandomizeMissionData', 0xa1756], ['OfferMissionFromPort', 0xa369e]],
     },
     CargoType: {
-      note: '0 to 999: that cargo. 1000: one of the first six, at random. Anything else: none.',
+      note: '0 to 999: that cargo. 1000: one of the first six at random. Anything else: none.',
       code: [['SelectMissionCargoType', 0x981d8]],
     },
     CargoQty: {
-      note: '0 and up: that many tons. -1: none. -2 and below: half its size, plus a number from 0 to one less than its size drawn at random, so from half to one and a half times it.',
+      note: '0 and up: that many tons. -1: none. -2 and below: half its size plus a number from 0 to one less than its size drawn at random. That gives half to one and a half × the size.',
       code: [['SelectMissionCargoQty', 0x98191]],
     },
   },
   'oütf': {
     ModType: {
-      note: 'What it does, with ModVal setting how much; ModType2 to ModType4 the same. 1: the weapon wëap ModVal. 2: tons of hold; below 0 it takes hold space. 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge, ModVal ÷ 1,000 a frame. 6: armor points. 7: acceleration, ÷ 10,000. 8: top speed, ÷ 100. 9: turn, ÷ 100 degrees a frame. 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps; -1, every inhabited system; -1000 - n, the systems of governments of class n. 17: a cloak; ModVal 0x0002 shows on radar, 0x0004 drops the shields at once, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use and 0x0f00 ÷ 0x100 its shield use, 0x1000 cloaks the ships in formation with it. 18: a fuel scoop, as FuelRegen. 19: auto-refuelling. 20: auto-eject. 21: your record below 0 set to 0 in the systems of gövt ModVal, or in every one for -1. 22: days per jump. 23: how far from the middle of the system you can jump, 1,000 + ModVal. 24: anti-interference, -100 to 100 in all. 25: your capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these you carry. 28: murk. 29: armor recharge, ÷ 1,000 a frame. 30: a cloak scanner. 31: a mining scoop. 32: ModVal extra jumps per jump, counted once for each kind carried, not each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization, ÷ 100. 40: ionization capacity. 41: gravity does not pull you. 42: deadly stellars do not harm you. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship carrying it repairs itself to just over the point of disabling. For a ship not yours, 32 and 49 count among its class\'s DefaultItems.',
+      note: 'What it does. The amount is in ModVal and ModType2 to ModType4 work the same way. 1: the weapon wëap ModVal. 2: tons of hold (below 0 it uses hold space). 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge (ModVal ÷ 1,000 a frame). 6: armor points. 7: acceleration (÷ 10,000). 8: top speed (÷ 100). 9: turn (÷ 100 degrees a frame). 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps. -1 maps every inhabited system and -1000 - n the systems of governments of class n. 17: a cloak. In its ModVal 0x0002 shows on radar, 0x0004 drops the shields immediately, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use, 0x0f00 ÷ 0x100 is its shield use, and 0x1000 cloaks the ships in formation with it. 18: a fuel scoop (as FuelRegen). 19: auto-refueling. 20: auto-eject. 21: the player\'s record below 0 set to 0 in the systems of gövt ModVal or in every system for -1. 22: days per jump. 23: how far from the middle of the system the player can jump (1,000 + ModVal). 24: anti-interference (-100 to 100 in all). 25: the player\'s capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these the player carries. 28: murk. 29: armor recharge (÷ 1,000 a frame). 30: a cloak scanner. 31: a mining scoop. 32: ModVal extra jumps per jump. The game counts it once for each kind aboard and not for each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization (÷ 100). 40: ionization capacity. 41: gravity does not pull the player. 42: deadly stellars do not harm the player. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship with it aboard repairs itself to just over the point of disabling. For another ship 32 and 49 count among its class\'s DefaultItems.',
       code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581]],
     },
     ModVal: {
-      note: 'How much, for the effect ModType sets; see there. For ModType 1, 3 and 21, the game keeps the id minus 128.',
+      note: 'How much of the effect ModType sets. See there. For ModType 1, 3, and 21 the game stores the id minus 128.',
       code: [['LoadObjectData', 0x771b0]],
     },
-    ModType2: { note: 'A second effect, with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
-    ModVal2: { note: 'How much of ModType2\'s effect, as ModVal is for ModType.', code: [['LoadObjectData', 0x771b0]] },
-    ModType3: { note: 'A third effect, with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
-    ModVal3: { note: 'How much of ModType3\'s effect, as ModVal is for ModType.', code: [['LoadObjectData', 0x771b0]] },
-    ModType4: { note: 'A fourth effect, with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
-    ModVal4: { note: 'How much of ModType4\'s effect, as ModVal is for ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModType2: { note: 'A second effect with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal2: { note: 'How much of ModType2\'s effect (as ModVal is for ModType).', code: [['LoadObjectData', 0x771b0]] },
+    ModType3: { note: 'A third effect with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal3: { note: 'How much of ModType3\'s effect (as ModVal is for ModType).', code: [['LoadObjectData', 0x771b0]] },
+    ModType4: { note: 'A fourth effect with the same values as ModType.', code: [['LoadObjectData', 0x771b0]] },
+    ModVal4: { note: 'How much of ModType4\'s effect (as ModVal is for ModType).', code: [['LoadObjectData', 0x771b0]] },
     DispWeight: {
-      note: 'The outfitter lists the items on offer highest DispWeight first, those of equal DispWeight by id (but see Flags 0x1000).',
+      note: 'The outfitter shows the items on offer highest DispWeight first and those of equal DispWeight by id (but see Flags 0x1000).',
       code: [['SetupPortAvailableItems', 0xbedb]],
     },
     Mass: {
-      note: 'Tons of your ship\'s FreeMass each one takes; with Flags 0x0400, that percentage of your ship class\'s Mass when that is more. At 0 or less it is always sold to you, whatever your free mass.',
+      note: 'Tons of the player\'s FreeMass that each one uses. With Flags 0x0400 it is that percentage of the player\'s ship class\'s Mass when that is more. At 0 or less the player can always buy it whatever the free mass.',
       code: [['ShipFreeMass', 0xb462], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Max: {
-      note: 'The most you can carry, times the number of ModType 27 outfits you carry that name this one (at least 1). For ammunition (ModType 3) for a weapon with a MaxAmmo, the limit is instead MaxAmmo × the launchers you carry.',
+      note: 'The most the player can carry. The game multiplies it by the number of ModType 27 outfits aboard that point to this one (at least 1). For ammunition (ModType 3) for a weapon with a MaxAmmo the limit is instead MaxAmmo × the launchers aboard.',
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Flags: {
-      note: '0x0001: a fixed gun, and 0x0002 a turret, counted against your ship\'s MaxGun and MaxTur. 0x0004: it stays with you when you buy or capture another ship, and your ship\'s trade-in leaves it out; with 0x0004 or 0x0020 it also stays when a mission changes your ship. 0x0008: you cannot sell it. 0x0010: the game takes away what you carry of it when you leave the outfitter. 0x0100: not offered unless your bits meet its Requires, or you have one; 0x4000, unless its Availability test passes, or you have one. 0x0200: its price is Cost × your ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of your ship class\'s. 0x0800: any outfitter lists it while you have one. 0x1000: while it is on offer, the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among your ranks in the player info, not among the rest.',
+      note: '0x0001: a fixed gun. 0x0002: a turret. Both count against the ship\'s MaxGun and MaxTur. 0x0004: it stays with the player when the player buys or captures another ship and the ship\'s trade-in leaves it out. With 0x0004 or 0x0020 it also stays when a mission changes the player\'s ship. 0x0008: the player cannot sell it. 0x0010: the game removes the player\'s stock of it when the player leaves the outfitter. 0x0100: not offered unless the player\'s bits meet its Requires or the player has one. 0x4000: not offered unless its Availability test passes or the player has one. 0x0200: its price is Cost × the player\'s ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of the player\'s ship class\'s. 0x0800: any outfitter shows it while the player has one. 0x1000: while it is on offer the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among the player\'s ranks in the player info instead of among the rest.',
       code: [['HasMaxOfItem', 0x4512], ['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['PlayerShipTradeInPrice', 0xb079], ['EvalSetExp', 0x150fc], ['DoOutfitDialog', 0x5bacf], ['SetupPortAvailableItems', 0xbedb], ['AdjustedItemCost', 0x5869], ['AdjustedItemMass', 0x2889], ['SetupPlayerInfoText', 0x53cb8]],
     },
     Cost: {
-      note: 'Its price; 0 or less, free; with Flags 0x0200, Cost × your ship class\'s Mass when that is more. The outfitter sells it only while you have the credits.',
+      note: 'Its price. 0 or less: free. With Flags 0x0200: Cost × the player\'s ship class\'s Mass when that is more. The outfitter offers it only while the player has the credits.',
       code: [['AdjustedItemCost', 0x5869], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Requires: {
-      note: 'The outfitter sells it to you only when the Contributes bits of your ship and outfits include every bit set here, wherever RequireGovt applies them; with Flags 0x0100 it does not even list it until then, unless you have one.',
+      note: 'The outfitter offers it to the player only when the Contributes bits of the player\'s ship and outfits include every bit set here wherever RequireGovt applies them. With Flags 0x0100 the outfitter hides it until then unless the player has one.',
       code: [['CanBuyOutfitItem', 0x4e7c4], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableItems', 0xbedb]],
     },
     Availability: {
-      note: 'A test of control bits: while it fails, it is not sold, and with Flags 0x4000 not listed unless you have one. Empty: no test.',
+      note: 'A test of control bits. While it fails the outfitter does not offer it. With Flags 0x4000 the outfitter also hides it unless the player has one. Empty: no test.',
       code: [['CanBuyOutfitItem', 0x4e7c4], ['SetupPortAvailableItems', 0xbedb], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnPurchase: {
-      note: 'Control bits set when you buy one. Empty: none.',
+      note: 'Control bits set when the player buys one. Empty: none.',
       code: [['DoOutfitDialog', 0x5bacf], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnSell: {
-      note: 'Control bits set when you sell one. Empty: none.',
+      note: 'Control bits set when the player sells one. Empty: none.',
       code: [['DoOutfitDialog', 0x5bacf], ['EvalMissionBitSetString', 0x99dc5]],
     },
     ShortName: {
@@ -972,7 +972,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['OutfitDialogUpdate', 0x572cb]],
     },
     LCName: {
-      note: 'Its name in a sentence, for one: when you buy, sell or plunder it, are caught with it (ScanMask), and in the player info.',
+      note: 'Its name in a sentence for a single one. It appears when the player buys, sells, or plunders it, when a scan catches the player with it (ScanMask), and in the player info.',
       code: [['LoadObjectData', 0x771b0], ['DoOutfitDialog', 0x5bacf], ['DoPlunderDialog', 0x9302b], ['ScanPlayer', 0x7e46e], ['SetupPlayerInfoText', 0x53cb8]],
     },
     LCPlural: {

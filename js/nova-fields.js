@@ -772,40 +772,40 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['MissionObjectivesCheck', 0x9e79e]],
     },
     ShipDude: {
-      note: 'The düde the game draws the mission\'s ships from, each ship\'s class in turn; with the mission\'s Flags 0x0800, the game draws one class when you accept and it serves for them all.',
+      note: 'The game draws each mission ship\'s class in turn from this düde. With the mission\'s Flags 0x0800 the game draws one class when the player accepts and that class serves for them all.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['MissionDudeSpawn', 0x3cd3b], ['SelectShipFieldFromDude', 0x65c2]],
     },
     CompGovt: {
-      note: 'The government whose regard CompReward changes: 128 to 383. Anything else: none, and CompReward is not used.',
+      note: 'The government whose regard CompReward changes (128 to 383). Anything else: none. CompReward then does nothing.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc]],
     },
     CompReward: {
-      note: 'When you complete the mission, your record goes up by this in every system whose government is CompGovt, by half of it where the government is an ally of CompGovt\'s, and down by half where it is an enemy. When it fails, down by half in CompGovt\'s systems. When you abort it and its Flags has 0x0040, down by five times this there.',
+      note: 'On success the player\'s record goes up by this in every system whose government is CompGovt. It goes up by half this where the government is an ally of CompGovt\'s and down by half where it is an enemy. On failure it goes down by half in CompGovt\'s systems. It goes down by 5 × this in CompGovt\'s systems when the player aborts the mission and its Flags has 0x0040.',
       bible: 'speaks only of CompGovt: up by this on success, down by half on failure.',
       code: [['DoMissionSuccess', 0xa03fc], ['DoMissionFailure', 0xa0285], ['DoMissionInfoDialog', 0x9e19b], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
     },
     DatePostInc: {
-      note: 'Days that pass when you complete the mission, or when it ends by itself.',
+      note: 'Days that pass when the player completes the mission or when it ends by itself.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['IncrementGameTime', 0xb516]],
     },
     TimeLimit: {
-      note: 'Days you have: one comes off each day, and when none remain the mission fails, as soon as you are not in a spaceport, with a message unless its Flags has 0x0400. 0 or less: no limit.',
+      note: 'Days the player has. One comes off each day. When none remain the mission fails as soon as the player is not in a spaceport. A message shows unless its Flags has 0x0400. 0 or less: no limit.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['IncrementGameTime', 0xb516], ['MissionObjectivesCheck', 0x9e79e], ['QuickMissionFailure', 0x99d1b]],
     },
     CanAbort: {
-      note: 'Anything but 0: you can abort it from the mission list, and jettison its cargo, which fails it; when it fails, it leaves your list immediately. 0: neither, and a failed mission stays until you next land, when it ends as failed.',
+      note: 'Anything but 0: the player can abort it from the mission list and jettison its cargo. Jettisoning the cargo fails the mission. A failed mission leaves the player\'s list immediately. 0: neither. A failed mission stays until the player next lands and then ends as failed.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['PlayerHasJettisonableCargo', 0x825a], ['JettisonCargo', 0x3dffd], ['QuickMissionFailure', 0x99d1b], ['MissionLandCheck', 0xa19cc]],
     },
     BriefText: {
-      note: 'The dësc shown when you accept the mission. 0 or less: none.',
+      note: 'The dësc shown when the player accepts the mission. 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11]],
     },
     QuickBrief: {
-      note: 'The dësc shown for the mission in your list of missions. 0 or less: none.',
+      note: 'The dësc shown for the mission in the player\'s list of missions. 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionInfoDialog', 0x9e19b], ['MissionInfoFilter', 0x9d6e5]],
     },
     LoadCargText: {
-      note: 'The dësc shown when the cargo comes aboard, on accepting or landing (PickupMode 0 or 1). 0 or less: none.',
+      note: 'The dësc shown when the cargo comes aboard on accepting or landing (PickupMode 0 or 1). 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11], ['MissionLandCargoCheck', 0x9edc5]],
     },
     DropCargText: {
@@ -813,7 +813,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['MissionLandCargoCheck', 0x9edc5]],
     },
     CompText: {
-      note: 'The dësc shown when you complete the mission. 0 or less: none.',
+      note: 'The dësc shown when the player completes the mission. 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc]],
     },
     FailText: {
@@ -821,7 +821,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionFailure', 0xa0285]],
     },
     RefuseText: {
-      note: 'The dësc shown when you refuse the mission as the game offers it. -1: none.',
+      note: 'The dësc shown when the player declines the mission as the game offers it. -1: none.',
       code: [['OfferOneMission', 0xa21ac]],
     },
     ShipDoneText: {
@@ -829,57 +829,57 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['MissionObjectivesCheck', 0x9e79e]],
     },
     ShipNameID: {
-      note: '-1: the mission\'s ships have their usual names. Otherwise an STR#: one of its strings, picked at random when you accept, is the name of every one of them.',
+      note: '-1: the mission\'s ships have their usual names. Otherwise an STR#. The game picks one of its strings at random when the player accepts and gives that name to every one of them.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DrawStatusTarg', 0x4ace1], ['AICallForHelp', 0x82ffb]],
     },
     ShipSubtitle: {
-      note: '-1: none. Otherwise an STR#: one of its strings, picked at random when you accept, is the subtitle of every one of the mission\'s ships.',
+      note: '-1: none. Otherwise an STR#. The game picks one of its strings at random when the player accepts and gives that subtitle to every one of the mission\'s ships.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DrawStatusTarg', 0x4ace1]],
     },
     ShipStart: {
-      note: 'Where the mission\'s ships start. -1 to -16: on the stellar in that place of their system\'s list (-1 the first), there when you arrive. 0, or a place the list does not fill: brought in as the system\'s other ships are, there when you arrive. 1: they come in from hyperspace, heading for you, 100 to 199 steps after you arrive (30 with ShipBehav 1 and ShipGoal 3), and so again each time you enter their system. 2: the first time, the same; after that they are there when you arrive, cloaked.',
+      note: 'Where the mission\'s ships start. -1 to -16: on the stellar in that place of their system\'s list (-1 is the first). They are there when the player comes. With 0 or a place the list does not fill the game brings them in as the system\'s other ships and they are there when the player comes. 1: they come in from hyperspace heading for the player 100 to 199 steps after the player comes (30 with ShipBehav 1 and ShipGoal 3). They do so again each time the player enters their system. 2: the first time is the same. After that they are there and cloaked when the player comes.',
       bible: '-1 to -4 for the first four stellars; 1, jump in after a short delay; 2, appear at random, cloaked.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['DoShipCloak', 0xde73], ['GenericRandomShipSpawn', 0x3c89f]],
     },
     AuxShipCount: {
-      note: 'How many ships of AuxShipDude the mission sends after you, in the systems AuxShipSyst allows: 70 to 139 steps after you enter such a system (or take off), as many as remain come in from hyperspace, minus those already there. Each one that comes reduces what remains, unless the mission\'s Flags has 0x0010, when the full number comes again in each system. 0 or less: none.',
+      note: 'How many ships of AuxShipDude the mission sends after the player in the systems AuxShipSyst allows. 70 to 139 steps after the player enters such a system (or lifts off) as many as remain minus those already there come in from hyperspace. Each one that comes reduces what remains. With the mission\'s Flags 0x0010 the full number comes again in each system. 0 or less: none.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     AuxShipDude: {
-      note: 'The düde the game draws the aux ships from: 128 to 639. Anything else: none, and the game does not use AuxShipCount.',
+      note: 'The düde for the aux ships (128 to 639). Anything else: none. The game then ignores AuxShipCount.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     AuxShipSyst: {
-      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system; -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. 9999, 10000 + n and the other numbers AvailStel accepts for governments: systems of those governments, where a government with Flags 0x0001 counts every government not its ally as an enemy. Anything else: none.',
+      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system. -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. The government numbers AvailStel accepts (9999, 10000 + n, and the others) give systems of those governments. There a government with Flags 0x0001 counts every government not its ally as an enemy. Anything else: none.',
       code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
     },
     ScanMask: {
-      note: 'When a ship of a government whose ScanMask shares a bit with this scans you while the mission\'s cargo is aboard: with Flags 0x0020 the mission fails ("Your ship has been scanned - mission failed."); otherwise it is smuggling, and you pay a fine.',
+      note: 'A ship of a government whose ScanMask shares a bit with this may scan the player while the mission\'s cargo is aboard. With Flags 0x0020 the mission then fails ("Your ship has been scanned - mission failed."). Otherwise it is smuggling and the player pays a fine.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['ScanPlayer', 0x7e46e]],
     },
     Flags: {
-      note: '0x0001: it ends by itself once its ships are placed or its ShipGoal is met, or on accepting if it has no ships and no ReturnStel. 0x0002: its systems are not marked on the map. 0x0004: it cannot be refused. 0x0008: offered only while you have 100 units of fuel, which are taken when it ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if you are scanned with its cargo aboard (ScanMask). 0x0040: aborting it costs five times CompReward. 0x0100: its destination is marked on the map while it is offered. 0x0200: ShipSyst\'s system is marked on the map too. 0x0400: it is left out of your list of missions, its failures show no message, and its ships being destroyed or disabled does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while your ship class\'s InherentAI is 2 or less; 0x4000: while it is 3 or more.',
+      note: '0x0001: it ends by itself once the game places its ships or the player meets its ShipGoal. It also ends on accepting if it has no ships and no ReturnStel. 0x0002: the map does not mark its systems. 0x0004: the player cannot decline it. 0x0008: offered only while the player has 100 units of fuel. The game removes that fuel when the mission ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if a scan finds its cargo aboard (ScanMask). 0x0040: aborting it costs 5 × CompReward. 0x0100: the map marks its destination while the game offers it. 0x0200: the map marks ShipSyst\'s system too. 0x0400: the player\'s list of missions leaves it out and its failures show no message. Losing its ships to destruction or disabling does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while the InherentAI of the player\'s ship class is 2 or less. 0x4000: not offered while it is 3 or more.',
       bible: '0x0400 makes the mission invisible, kept out of the mission info dialog, and no more; it gives no 0x1000.',
       code: [['AutoAbortMission', 0x99bdc], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionObjectivesCheck', 0x9e79e], ['DoMissionAccept', 0xa1b11], ['RecalcMissionSystsForMap', 0xe1b5], ['OfferOneMission', 0xa21ac], ['IsMissionAvailable', 0x9b152], ['ScanPlayer', 0x7e46e], ['DoMissionInfoDialog', 0x9e19b], ['SetupMissionInfoList', 0x9de7a], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['JettisonCargo', 0x3dffd], ['MissionDudeSpawn', 0x3cd3b]],
     },
     Flags2: {
-      note: '0x0001: offered only while your ship has room for its cargo. 0x0002: you get PayVal when it ends by itself too. 0x0004: it fails if your ship becomes disabled.',
+      note: '0x0001: offered only while the player\'s ship has room for its cargo. 0x0002: the player receives PayVal when it ends by itself too. 0x0004: it fails if the player\'s ship becomes disabled.',
       code: [['IsMissionAvailable', 0x9b152], ['TotalMissionCargoSpace', 0xcffb], ['AutoAbortMission', 0x99bdc], ['ApplyMissionPay', 0x98326], ['DamageShip', 0x3a807]],
     },
     AvailBits: {
-      note: 'A test of control bits: the game offers the mission only while it passes. Empty: no test.',
+      note: 'A test of control bits. The game offers the mission only while it passes. Empty: no test.',
       code: [['InitMissions', 0x97b97], ['IsMissionAvailable', 0x9b152], ['EvalMissionBitTestString', 0x9959e]],
     },
     OnAccept: {
-      note: 'Control bits set when you accept the mission.',
+      note: 'Control bits set when the player accepts the mission.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionAccept', 0xa1b11], ['EvalCurrentMissionBitSetString', 0x99a43]],
     },
     OnRefuse: {
-      note: 'Control bits set when you refuse the mission as the game offers it.',
+      note: 'Control bits set when the player declines the mission as the game offers it.',
       code: [['OfferOneMission', 0xa21ac], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnSuccess: {
-      note: 'Control bits set when you complete the mission.',
+      note: 'Control bits set when the player completes the mission.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['DoMissionSuccess', 0xa03fc], ['EvalCurrentMissionBitSetString', 0x99a43]],
     },
     OnFailure: {

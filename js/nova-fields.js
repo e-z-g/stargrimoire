@@ -1422,65 +1422,65 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['RandomizeNewsDialog', 0x48238], ['GovtAllies', 0x4e3d]],
     },
     GovtNewsStr: {
-      note: 'The STR# of news for the NewsGovt beside it; the game picks one of its strings at random. Below 1: none.',
+      note: 'The STR# of news for the NewsGovt beside it. The game picks one of its strings at random. Below 1: none.',
       code: [['RandomizeNewsDialog', 0x48238], ['GetRandomIndString', 0x72ef7]],
     },
     Contrib: {
-      note: 'Added to your bits while the event is running: from the end of its PreHoldoff until it ends, not in its PostHoldoff. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, passes when they include every bit it sets.',
+      note: 'Added to the player\'s bits while the event is running. That is from the end of its PreHoldoff until it ends and not in its PostHoldoff. The player\'s bits come from the ship class, every outfit the player carries, every ränk the player holds, and every crön event that is running. The Require of a shïp, mïsn, crön, or gövt passes when the bits include every bit it sets. So do an oütf\'s Requires.',
       code: [['CronEventHandler', 0x3874f], ['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
   },
   'spöb': {
     xPos: {
-      note: 'With yPos, where it is in its system, from the middle; what ships head for and land on, and where the radar shows it.',
+      note: 'With yPos it gives where it is in its system measured from the middle. Ships head for and land on that point and the radar shows it there.',
       code: [['LoadObjectData', 0x771b0], ['FindNearestStellar', 0x276c], ['DrawStatusRadar', 0x496e0]],
     },
     yPos: {
-      note: 'With xPos, where it is in its system.',
+      note: 'With xPos it gives where it is in its system.',
       code: [['LoadObjectData', 0x771b0], ['FindNearestStellar', 0x276c]],
     },
     Type: {
-      note: 'Its picture: spïn 1000 + Type for its sprite, and PICT 10000 + Type when you land, unless CustPicID is 128 or more.',
+      note: 'Its picture. Its sprite is spïn 1000 + Type and its landing picture is PICT 10000 + Type unless CustPicID is 128 or more.',
       code: [['LoadObjectData', 0x771b0], ['HandleStellarSprites', 0x2e6f1], ['PreloadPortDialog', 0x4e5c7]],
     },
     Flags: {
-      note: '0x01: you can land or dock; 0x80: only while destroyed. 0x02, 0x04, 0x08, 0x40: a commodity exchange, an outfitter, a shipyard, a bar. 0x10: a station, which changes the words of hails, landing and advice. 0x20: uninhabited: you cannot hail it, gives no missions and no services. The next 24 bits are the six commodities\' prices, a nibble each from the top: 1 low, 2 medium, 4 high, only the first bit set counting; 0, not traded.',
+      note: '0x01: the player can land or dock. 0x80: only while destroyed. 0x02: a commodity exchange. 0x04: an outfitter. 0x08: a shipyard. 0x40: a bar. 0x10: a station. Being a station changes the words of hails, landing, and advice. 0x20: uninhabited. The player cannot hail it and it gives no missions and no services. The next 24 bits are the six commodities\' prices with a nibble each from the top. 1: low. 2: medium. 4: high. Only the first bit set counts. 0: not traded.',
       code: [['StellarIsLandable', 0xa989], ['SystemHasService', 0xd373], ['CalcPortDemand', 0x56b1], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerDockApproach', 0x647a6], ['SystemIsInhabited', 0x4c4a]],
     },
     TechLevel: {
-      note: 'Its shipyard offers the ship classes, and its outfitter the outfits, whose TechLevel is 0 or more and at most this, or equal to one of its SpecialTech.',
+      note: 'Its shipyard offers the ship classes and its outfitter the outfits whose TechLevel is 0 or more and at most this or equal to one of its SpecialTech.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['SetupPortAvailableItems', 0xbedb]],
     },
     SpecialTech: {
-      note: 'Three of its eight special tech levels (SpecialTech4to8 the other five): it also offers ship classes and outfits of exactly one of these TechLevels.',
+      note: 'Three of its eight special tech levels (SpecialTech4to8 has the other five). It also offers ship classes and outfits of exactly one of these TechLevels.',
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3], ['SetupPortAvailableItems', 0xbedb]],
     },
     SpecialTech4to8: {
-      note: 'The other five of its eight special tech levels; see SpecialTech.',
+      note: 'The other five of its eight special tech levels. See SpecialTech.',
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     MinStatus: {
-      note: 'In its hail dialog it treats you as hated while your record in its system is below this, or always at 32767; never at -32767. Releasing it once dominated puts your record there just below this.',
+      note: 'In its hail dialog it treats the player as hated while the player\'s record in its system is below this. At 32767 it always does and at -32767 it never does. Releasing it once dominated puts the player\'s record there just below this.',
       code: [['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9]],
     },
     CustPicID: {
-      note: 'The picture when you land: 128 and up, that PICT; below, PICT 10000 + Type. For a hypergate, where its frames split: the frames below this number are the opening frames, when it is from 1 to the frame count minus 2.',
+      note: 'The picture when the player lands. 128 and up: that PICT. Below 128: PICT 10000 + Type. For a hypergate it is where the frames split when it is from 1 to the frame count minus 2. The frames below this number are the opening frames.',
       code: [['PreloadPortDialog', 0x4e5c7], ['HandleStellarSprites', 0x2e6f1]],
     },
     CustSndID: {
-      note: 'While you are landed, a snd of 128 and up plays, if ambient sounds are on. For a hypergate or wormhole, the heading of a ship leaving it: 0 to 359, that heading; anything else, a random one.',
+      note: 'While the player is landed a snd of 128 and up plays if ambient sounds are on. For a hypergate or wormhole it is the heading of a ship leaving it. 0 to 359: that heading. Anything else: a random one.',
       code: [['DoPortDialog', 0x5f911], ['PlayerEnterHypergate', 0x637bf], ['PlayerEnterWormhole', 0x64005], ['AIMakeShipEmergeFromHyperGate', 0x89518]],
     },
     DefenseDude: {
-      note: 'The düde the game draws its defense ships from, of the stellar\'s government, flying as warships tied to it. Below 128: none.',
+      note: 'The düde for its defense ships. They are of the stellar\'s government and fly as warships tied to it. Below 128: none.',
       code: [['SpawnStellarDefenseShip', 0x3d2c9], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     DefCount: {
-      note: 'How many defence ships it has: up to 1000, that many, launched together; above, the last digit is how many are out at once, the total DefCount ÷ 10 - 100 (above 10,000, ÷ 10 - 1000), launched as it loses those out.',
+      note: 'How many defense ships it has. Up to 1000: that many launched together. Above 1000 the last digit is how many are out together and the total is DefCount ÷ 10 - 100 (÷ 10 - 1000 above 10,000). It launches more as it loses those out.',
       code: [['LoadObjectData', 0x771b0], ['EnterMoreShips', 0x43459], ['SpawnStellarDefenseShip', 0x3d2c9], ['DoPlanetCommDialog', 0x96949]],
     },
     Flags2: {
-      note: '0x0001: frame 0 is shown between each of the others; 0x0002: frames picked at random; 0x0080: it animates only while destroyed. 0x0020: always dominated. 0x0040: it starts destroyed. 0x0100: a ship that touches it is destroyed. 0x0400: its outfitter lists every outfit you carry that can be sold, to buy it back. 0x1000: a hypergate; 0x2000: a wormhole (HyperLink). 0x0010: its sound loops while you are landed. 0x0200: it fires only once provoked, and then only at you and ships flying with you.',
+      note: '0x0001: the game shows frame 0 between each of the others. 0x0002: the game picks frames at random. 0x0080: it animates only while destroyed. 0x0020: always dominated. 0x0040: it starts destroyed. 0x0100: it destroys a ship that touches it. 0x0400: its outfitter shows every outfit the player carries that the player can sell so the player can buy it back. 0x1000: a hypergate. 0x2000: a wormhole (HyperLink). 0x0010: its sound loops while the player is landed. 0x0200: it fires only once provoked and then only at the player and ships flying with the player.',
       code: [['HandleStellarSprites', 0x2e6f1], ['DoStellarTimePassage', 0x40867], ['DoNewPilot', 0x18b0a], ['HandleDeadlyStellars', 0x39ccd], ['SetupPortAvailableItems', 0xbedb], ['HandlePlayerDockRequest', 0x66691], ['PlayerEnterWormhole', 0x64005], ['PlanetSoundCallback', 0x55f5d], ['IsThreatToStellar', 0x9ef7]],
     },
     AnimDelay: {
@@ -1488,23 +1488,23 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleStellarSprites', 0x2e6f1]],
     },
     Frame0Bias: {
-      note: 'Above 1, the first frame shows this many times as long as the others.',
+      note: 'Above 1: the first frame lasts this multiple of the other frames\' length.',
       code: [['HandleStellarSprites', 0x2e6f1]],
     },
     HyperLink: {
-      note: 'For a hypergate, the stellars you can go to, picking their systems on the map; for a wormhole, one of them at random, or, with none set, another such wormhole at random. Below 128: none.',
+      note: 'For a hypergate the stellars the player can go to by picking their systems on the map. For a wormhole one of them at random or another such wormhole at random when it has none. Below 128: none.',
       code: [['PlayerEnterHypergate', 0x637bf], ['PlayerEnterWormhole', 0x64005], ['DoSystemMap', 0x121a3]],
     },
     OnDominate: {
-      note: 'Control bits set when you dominate it. Empty: none.',
+      note: 'Control bits set when the player dominates it. Empty: none.',
       code: [['DoPlanetCommDialog', 0x96949], ['EvalMissionBitSetString', 0x99dc5]],
     },
     OnRelease: {
-      note: 'Control bits set when you release it from domination. Empty: none.',
+      note: 'Control bits set when the player releases it from domination. Empty: none.',
       code: [['DoPlanetCommDialog', 0x96949], ['EvalMissionBitSetString', 0x99dc5]],
     },
     DeadTime: {
-      note: 'Days it stays destroyed: each day takes one off, and at 0 it regenerates with its strength restored, setting OnRegen. Below 0: it never regenerates.',
+      note: 'Days it stays destroyed. One comes off each day. At 0 it regenerates with its strength restored and sets OnRegen. Below 0: it never regenerates.',
       code: [['IncrementGameTime', 0xb516], ['StellarIsDestroyed', 0x4e14]],
     },
     OnDestroy: {
@@ -1516,19 +1516,19 @@ const NOVA_FIELD_NOTES = {
       code: [['IncrementGameTime', 0xb516], ['EvalMissionBitSetString', 0x99dc5]],
     },
     Govt: {
-      note: '128 and up is that gövt; anything less is no government.',
+      note: '128 and up: that gövt. Anything less: no government.',
       code: [['LoadObjectData', 0x771b0]],
     },
     Tribute: {
-      note: 'Credits added to yours each day once you have dominated the stellar; the player-info screen adds them up. 0 or less: TechLevel × 1,000.',
+      note: 'Credits added to the player\'s credits each day once the player has dominated the stellar. The player-info screen adds them up. 0 or less: TechLevel × 1,000.',
       code: [['LoadObjectData', 0x771b0], ['DoStellarTimePassage', 0x40867], ['PlayerInfoDialogUpdate', 0x5244f]],
     },
     Fee: {
-      note: 'Credits taken when you land. With fewer, landing is refused ("You don\'t have enough…"). Not charged once you have dominated it. Above 0, the landing clearance says "[Landing fee is …]", or "[Docking fee is …]" with Flags 0x10, or "[Hypergate fee is …]" with Flags2 0x1000.',
+      note: 'Credits charged when the player lands. With fewer the player cannot land ("You don\'t have enough…"). The game does not charge it once the player has dominated it. Above 0 the landing clearance reads "[Landing fee is …]". It reads "[Docking fee is …]" with Flags 0x10 and "[Hypergate fee is …]" with Flags2 0x1000.',
       code: [['HandlePlayerDockRequest', 0x66691], ['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949]],
     },
     Gravity: {
-      note: 'While you are in its system, pulls every ship in it toward the stellar, however far: each step by Gravity × the game speed ÷ the square of the distance in hundreds of units, the square taken as at least 30. Below 0, it pushes instead; 0, nothing. Inertialess ships do not feel it, nor ship classes with Flags3 0x0020, nor your ship if it carries an outfit with ModType 41.',
+      note: 'While the player is in its system it pulls every ship in the system toward the stellar however far. Each step the pull is Gravity × the game speed ÷ the square of the distance in hundreds of units. The square counts as at least 30. Below 0: it pushes instead. 0: nothing. Inertialess ships do not feel it and neither do ship classes with Flags3 0x0020 or the player\'s ship if an outfit with ModType 41 is aboard.',
       code: [['HandleGravity', 0x39bc3], ['ApplyGravity', 0x7c5a], ['ShipResistsGravity', 0x7b10]],
     },
     Weapon: {
@@ -1540,7 +1540,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['StellarIsDestroyed', 0x4e14]],
     },
     DeadType: {
-      note: 'Above 255, or below 0: its Type.',
+      note: 'With a value above 255 or below 0 it uses its Type.',
       code: [['LoadObjectData', 0x771b0]],
     },
     ExplodType: {

@@ -65,7 +65,7 @@ async function collectionShow() {
   if (!COLLECTION.lists.has(c.key)) {
     rows.innerHTML = '<p class="note">Fetching the list from archive.org…</p>';
     try { await collectionList(c); }
-    catch (err) { if (COLLECTION.at === c.key) rows.innerHTML = `<p class="note warn">Could not fetch the list from archive.org: ${esc(err.message)}</p>`; return; }
+    catch (err) { if (COLLECTION.at === c.key) rows.innerHTML = `<p class="note warn">Could not fetch the list from archive.org (${esc(err.message)})</p>`; return; }
     if (COLLECTION.at !== c.key) return;
   }
   collectionRows();
@@ -84,7 +84,7 @@ function collectionRows() {
   COLLECTION.packages = c.packages ? novaCollectionPackages(COLLECTION.shown) : null;
   rows.innerHTML = `<p class="note">${COLLECTION.shown.length === list.length ? list.length.toLocaleString() : `${COLLECTION.shown.length.toLocaleString()} of ${list.length.toLocaleString()}`}${c.packages ? ' files' : ''}</p>` +
     (COLLECTION.packages ? COLLECTION.packages.map((p, g) => p.files.length === 1 ? one(p.files[0]) :
-      `<div class="collRow collPackage"><label><input type="checkbox" data-g="${g}"><span>${esc(p.folder)} <small>${p.files.length} files, ${fmtBytes(p.files.reduce((s, f) => s + f.size, 0))}</small></span></label>` +
+      `<div class="collRow collPackage"><label><input type="checkbox" data-g="${g}"><span>${esc(p.folder)} <small>${p.files.length} files (${fmtBytes(p.files.reduce((s, f) => s + f.size, 0))})</small></span></label>` +
       `<details><summary>The files</summary>${p.files.map(f => one(f, false)).join('')}</details></div>`).join('')
       : COLLECTION.shown.map(f => one(f)).join(''));
   collectionSync();
@@ -102,7 +102,7 @@ function collectionSync() {
 
 function collectionTicked() {
   const t = [...COLLECTION.ticked.values()], el = document.getElementById('collTicked');
-  if (el) el.textContent = t.length ? `${t.length} ticked, ${fmtBytes(t.reduce((s, f) => s + f.size, 0))}` : '';
+  if (el) el.textContent = t.length ? `${t.length} ticked (${fmtBytes(t.reduce((s, f) => s + f.size, 0))})` : '';
   const open = document.querySelector('#choose [data-a="open"]');
   if (open) open.disabled = !t.length;
 }
@@ -122,7 +122,7 @@ async function collectionAbout(det) {
     const s = await r.text();
     COLLECTION.about.set(url, s);
     show(s);
-  } catch (err) { out.textContent = 'Could not fetch the description from archive.org: ' + err.message; }
+  } catch (err) { out.textContent = 'Could not fetch the description from archive.org (' + err.message + ')'; }
 }
 
 // The ticked plug-ins, fetched one after another and opened together.
@@ -131,9 +131,9 @@ async function collectionOpen(list) {
   const picked = [];
   for (const f of list) {
     try { picked.push(await fetchBytes(f.url, ' from archive.org')); }
-    catch (err) { setStatus(`Could not fetch ${f.name} from archive.org: ${err.message}`, true); return; }
+    catch (err) { setStatus(`Could not fetch ${f.name} from archive.org (${err.message})`, true); return; }
   }
-  // kept ticked when the opening is cancelled, as with plug-ins that have the same records
+  // kept ticked when the opening is canceled, as with plug-ins that have the same records
   if (await openGameFiles(picked)) COLLECTION.ticked.clear();
 }
 

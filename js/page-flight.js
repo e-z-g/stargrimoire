@@ -76,7 +76,7 @@ function flightSync() {
   if (!FLIGHT.started) { FLIGHT.started = true; FLIGHT.paused = FLIGHT.paused || reducedMotion(); }
   if (made) { FLIGHT.due = Math.min(FLIGHT.due, 1); if (flightListed()) renderPanel(); }
 }
-// Whether the moving ships are in the panel: the system's (flightPanel), or a stellar's whose defence ships are out; no other is drawn again as they move.
+// Whether the moving ships are in the panel: the system's (flightPanel), or a stellar's whose defense ships are out; no other is drawn again as they move.
 function flightListed() {
   const sel = VIEW.sel;
   if (VIEW.mode !== 'system' || FLIGHT.sys === null) return false;
@@ -180,10 +180,10 @@ function drawOutside(ctx, d, w, at, z) {
    at `alpha`, on a canvas cw by ch; `mark`, if given, draws beneath
    each ship (the battle's sides). */
 /* A ship's frame tinted, as the program tints an ionized ship: its
-   pixels taken `a` of the way to the colour. One canvas, drawn over each
+   pixels taken `a` of the way to the color. One canvas, drawn over each
    time. */
 let TINT_CANVAS = null;
-/* A ship's silhouette as a dashed line round it, at the size it is drawn:
+/* A ship's silhouette as a dashed line around it, at the size it is drawn:
    the picture's shape grown by 2 pixels each way, its shape cut out,
    and the ring left cut into dashes by diagonal stripes. One canvas (and
    one for the work), drawn over each time. */
@@ -337,16 +337,16 @@ function flightPanel(sys) {
     <div class="actions"><button data-flight="pause">${FLIGHT.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-flight="again" title="Arrive again, with other ships">Arrive again</button></div>`;
 }
 
-/* A stellar's defence fleet, launched as its hail dialog launches it
+/* A stellar's defense fleet, launched as its hail dialog launches it
    (novaDeployDefence) into the ships flying in its system: the button,
    and once launched how many are out and how many are left. */
 function defenceControl(sp, sys) {
   const w = FLIGHT.world;
   if (!FLIGHT.on || VIEW.mode !== 'system' || !w || FLIGHT.sys !== sys) return '';
   const d = w.defence && w.defence.get(sp.id);
-  if (!d) return `<button data-flight="defend:${sp.id}" title="Launch its defence ships as it does when hailed and refused">Deploy defences</button>`;
+  if (!d) return `<button data-flight="defend:${sp.id}" title="Launch its defense ships as it does when hailed and refused">Deploy defenses</button>`;
   const out = novaDefenceOut(w, sp.id);
-  return `${out} out, ${d.left} left${d.left > 0 ? (out ? '; one more comes whenever fewer than a wave are out' : '; no more come now that none are out') : ''}`;
+  return `${out} out and ${d.left} left.${d.left > 0 ? (out ? ' One more comes whenever fewer than a wave are out.' : ' No more come now that none are out.') : ''}`;
 }
 
 function flightControl(what) {

@@ -3,7 +3,7 @@
 
    The picker, dropping files on the page, and `?src=` for a page served
    over HTTP. What is opened is sorted by nova-files.js into the data files,
-   read at once because the map is made of their records, and the graphics
+   read immediately because the map is made of their records, and the graphics
    and titles files, read one at a time afterwards so the galaxy is up
    before the pictures are. The ships files, a hundred megabytes of
    sprites and pictures, are held back until the ships are first looked at
@@ -143,7 +143,7 @@ async function openGameFiles(picked, opts = {}) {
     try { saves.push(novaReadPilot(novaOpenFork(f.read()), f.name)); } catch (e) { refused.push(e.message); }
   }
   if (saves.length && !found.length) {
-    if (!GAME) { setStatus('The page shows a save file on the game\'s map: open the game first, then the save file', true); return; }
+    if (!GAME) { setStatus('The page shows a save file on the game\'s map. Open the game first and then the save file.', true); return; }
     if (!opts.remembered) {
       KEPT = KEPT.concat(picked.map(({ name, bytes }) => ({ name, bytes })));
       keptPut({ files: KEPT, savedAt: Date.now() }).then(() => showForget(true), () => {});
@@ -186,7 +186,7 @@ async function openGameFiles(picked, opts = {}) {
   for (const { f, bytes } of read) game.add(f, bytes);
   if (!game.list('sÿst').length) {
     setStatus('No star systems in ' + (now.map(f => f.name).join(', ') || 'those files') +
-              ' -- they are in the Nova Data files' + (refused.length ? '; ' + refused.join('; ') : ''), true);
+              '. They are in the Nova Data files.' + (refused.length ? ' ' + refused.join(' ') : ''), true);
     return;
   }
   if (fresh) { PENDING.length = 0; OPENED_NAMES = []; SHIP_FILES = []; }
@@ -214,13 +214,13 @@ function chooseClashes(groups) {
   const runs = ids => {
     const out = [];
     for (let i = 0; i < ids.length; i++) { let j = i; while (j + 1 < ids.length && ids[j + 1] === ids[j] + 1) j++; out.push(j > i ? `${ids[i]}–${ids[j]}` : `${ids[i]}`); i = j; }
-    return out.length > 12 ? out.slice(0, 12).join(', ') + ` and ${out.length - 12} more` : out.join(', ');
+    return out.length > 12 ? out.slice(0, 12).join(', ') + `, and ${out.length - 12} more` : out.join(', ');
   };
-  const and = list => list.length < 2 ? list[0] : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+  const and = list => list.length < 2 ? list[0] : list.slice(0, -1).join(', ') + (list.length > 2 ? ', and ' : ' and ') + list[list.length - 1];
   box.innerHTML = `<h2>Plug-ins with the same records</h2>
-    <p class="note">Where plug-ins have the same record, the page reads the copy in the one whose name comes last, in the order a Mac folder shows them; the others' copies are not used.</p>
+    <p class="note">When plug-ins have the same record the page reads the copy in the plug-in whose name comes last in a Mac folder's order. The page ignores the other copies.</p>
     ${groups.map(g => { const n = g.records.reduce((s, r) => s + r.ids.length, 0);
-      return `<p>${and(g.files.map(f => `<strong>${esc(f)}</strong>`))}: ${n} record${n === 1 ? '' : 's'}, ${esc(g.files[g.files.length - 1])}'s read<br><small>${g.records.map(r => `${esc(r.type)} ${runs(r.ids)}`).join('; ')}</small></p>`; }).join('')}
+      return `<p>${and(g.files.map(f => `<strong>${esc(f)}</strong>`))}: ${n} record${n === 1 ? '' : 's'}. The page reads ${esc(g.files[g.files.length - 1])}'s.<br><small>${g.records.map(r => `${esc(r.type)} ${runs(r.ids)}`).join('; ')}</small></p>`; }).join('')}
     <div class="actions"><button data-a="cancel">Cancel</button><button data-a="ok">Open anyway</button></div>`;
   el.hidden = false;
   return new Promise(res => {
@@ -237,7 +237,7 @@ function chooseClashes(groups) {
 function choosePlugins(list) {
   const el = document.getElementById('choose'), box = el.querySelector('.box');
   box.innerHTML = `<h2>Which plug-ins?</h2>
-    <p class="note">These are in separate folders or set beside the game, so they may be alternatives. Tick the ones to open.</p>
+    <p class="note">These are in separate folders or beside the game. They may be alternatives to each other. Tick the ones to open.</p>
     ${list.map((f, i) => `<label><input type="checkbox" data-i="${i}"><span>${esc(f.name)} <small>${esc(f.folder || 'the archive')}</small></span></label>`).join('')}
     <div class="actions"><button data-a="cancel">Cancel</button><button data-a="ok">Open</button></div>`;
   el.hidden = false;
@@ -389,7 +389,7 @@ function wireOpening() {
   document.getElementById('creditsItem').addEventListener('click', e => { e.stopPropagation(); moreShow(false); creditsShow(credits.hidden); });
   document.getElementById('forgetBtn').addEventListener('click', () => {
     keptClear().then(() => { setStatus('Forgotten. Reloading…'); location.reload(); },
-                     () => setStatus('The page has nothing saved, so there is nothing to clear.'));
+                     () => setStatus('The page has nothing saved to clear.'));
   });
   if (srcs.length) fetchAndOpen(srcs.map(s => s === 'archive.org' ? ARCHIVE_ORG.url : s));
   else if (params.get('cache') !== 'skip') keptGet().then(rec => {
@@ -432,7 +432,7 @@ async function fetchAndOpen(urls) {
     const from = s === ARCHIVE_ORG.url ? ' from archive.org' : '';
     try { picked.push(await fetchBytes(s, from)); }
     catch (e) {
-      setStatus(`Could not fetch ${decodeURIComponent(s.split('/').pop())}${from}: ${e.message}`, true);
+      setStatus(`Could not fetch ${decodeURIComponent(s.split('/').pop())}${from} (${e.message})`, true);
       return;
     }
   }

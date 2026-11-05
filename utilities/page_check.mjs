@@ -393,7 +393,7 @@ try {
             const b = document.querySelector('#panel [data-flight="defend:128"]');
             if (!b) return { button: false, world: !!FLIGHT.world };
             b.click(); await wait(50);
-            const t = document.getElementById('panel').textContent, m = / (\\d+) out, (\\d+) left/.exec(t);
+            const t = document.getElementById('panel').textContent, m = / (\\d+) out and (\\d+) left/.exec(t);
             const homes = FLIGHT.world.ships.filter(s => s && s.home === 128);
             VIEW.sel = null; renderPanel();
             return { button: true, out: m && +m[1], left: m && +m[2], homes: homes.length, govts: [...new Set(homes.map(s => s.govt))], ai: [...new Set(homes.map(s => s.ai))] };

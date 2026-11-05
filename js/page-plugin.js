@@ -14,7 +14,7 @@
    been read for has its note under it (nova-fields.js), with the routines it
    was read from shown on hovering; a few words stand for it until Notes in full is
    ticked. While comparing, it also
-   saves what differs from the files compared with.
+   saves what differs from the files it is compared against.
 
    The page's script: DOM here. LOAD ORDER: after js/page-compare.js
    and js/nova-plugin.js; page-map.js and page-ships.js call fieldsTable,
@@ -82,7 +82,7 @@ function fieldsTable(type, rec, whole) {
     ? `<button data-edit-apply>Apply</button> <button data-edit-cancel>Cancel</button> <span class="warn" data-edit-why></span>`
     : `<button data-edit>Change</button>${changed ? ' <button data-edit-undo>Undo the changes</button>' : ''}`;
   const full = `<label class="notesFull"><input type="checkbox" data-notes-full${NOTES_FULL ? ' checked' : ''}> Notes in full</label>`;
-  return `<details class="fieldsBox" data-type="${esc(type)}" data-id="${rec.id}"${open}><summary>Every field of ${esc(type)} ${rec.id}, from ${esc(rec.file)}</summary>` +
+  return `<details class="fieldsBox" data-type="${esc(type)}" data-id="${rec.id}"${open}><summary>Every field of ${esc(type)} ${rec.id} in ${esc(rec.file)}</summary>` +
          `<div class="editBar">${buttons}${full}</div><table class="fields${editing ? ' editing' : ''}"${rows ? '' : ' data-later'}>${rows ? rows.join('') : ''}</table></details>`;
 }
 // The rows of the shut tables in el that are open now.
@@ -130,7 +130,7 @@ function fieldsRead(box, type) {
     try {
       if (n && kind !== 'str' && kind !== 'pad') {
         const parts = input.value.split(',');
-        if (parts.length !== n) throw new Error(`must be ${n} values, with commas between`);
+        if (parts.length !== n) throw new Error(`must be ${n} values separated by commas`);
         rec[f] = parts.map(p => novaFieldParse(kind, p));
       } else rec[f] = novaFieldParse(kind, input.value);
       if (kind === 'str' && encodeMacRoman(rec[f]).length > n - 1) throw new Error(`can be at most ${n - 1} characters`);
@@ -211,15 +211,15 @@ function pluginAsk() {
   }).join('');
   const diff = COMPARE && COMPARE.game ? novaPluginFromGames(COMPARE.game, GAME) : null;
   box.innerHTML = `<h2>Plug-in</h2>
-    <p class="note">The records changed here, which the page reads after every file open. Change a record from its panel: open Every field, then Change.</p>
+    <p class="note">The page reads these changed records after every file it opens. Open Every field in a record's panel and press Change to edit it.</p>
     ${rows ? `<table class="kv plugin">${rows}</table>` : '<p class="note">No changes yet.</p>'}
     <label>Name <input id="pluginName" value="${esc(PLUGIN_NAME)}" maxlength="31"></label>
-    <p class="note">Saved as a <b>.rez</b>, it is a plug-in for the Windows builds and the Community Edition. Saved for the Mac, it is a MacBinary <b>.bin</b>: StuffIt Expander or The Unarchiver turns it into the plug-in itself, a file with a resource fork.</p>
+    <p class="note">A <b>.rez</b> file is a plug-in for the Windows builds and the Community Edition. For the Mac the page saves a MacBinary <b>.bin</b>. StuffIt Expander or The Unarchiver turns it into the plug-in. The plug-in is a file with a resource fork.</p>
     <div class="actions">
       <button data-a="rez"${list.length ? '' : ' disabled'}>Save as .rez</button>
       <button data-a="bin"${list.length ? '' : ' disabled'}>Save for the Mac</button>
     </div>
-    ${diff ? `<p class="note">Or every record that differs from ${esc(COMPARE.label)}, these changes among them: ${diff.length.toLocaleString()} records, a plug-in that makes ${esc(COMPARE.label)} into what is open now (though a plug-in cannot remove a record).</p>
+    ${diff ? `<p class="note">The page can also save every record that differs from ${esc(COMPARE.label)}. These changes are among them. That is ${diff.length.toLocaleString()} records. The plug-in makes ${esc(COMPARE.label)} into what is open now. A plug-in cannot remove a record.</p>
     <div class="actions"><button data-a="diff-rez"${diff.length ? '' : ' disabled'}>Save as .rez</button><button data-a="diff-bin"${diff.length ? '' : ' disabled'}>Save for the Mac</button></div>` : ''}
     <div class="actions">${list.length ? '<button data-a="clear">Undo every change</button>' : ''}<button data-a="close">Close</button></div>`;
   el.hidden = false;

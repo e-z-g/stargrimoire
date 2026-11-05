@@ -100,7 +100,7 @@ const SUBWAY_STORE = 'stargrimoire-subway';
    names it: the words below joined by ',' (&subway=names,22.5). 22.5
    degrees only where needed (mixed) brings 22.5 degrees with it; busy
    stations as points, not bars (dots), means something only with
-   headings kept, and is dropped without them. */
+   headings kept and is dropped without them. */
 const SUBWAY_WORDS = { names: 'names', fine: '22.5', mixed: 'mixed', heading: 'heading', dots: 'dots', side: 'side' };
 function subwayKind(on) { return Object.keys(SUBWAY_WORDS).filter(k => (on[k] && (k !== 'dots' || on.heading) && (k !== 'side' || (on.heading && on.names))) || (k === 'fine' && on.mixed)).join('-') || '45'; }
 function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(SUBWAY_WORDS).filter(k => f[k]).map(k => SUBWAY_WORDS[k]).join(','); }
@@ -429,7 +429,7 @@ function placeOf(id) {
 function repOf(p) { return p.ids.includes(VIEW.sys) ? VIEW.sys : p.ids[0]; }
 function curPlace() { return VIEW.sys !== null && VIEW.mode !== 'galaxy' ? PLACE_OF.get(VIEW.sys) || null : null; }
 
-/* The stellars a system is fitted to. Wormholes and the like sit
+/* The stellars that set a system's scale. Wormholes and similar stellars sit
    thousands of units out where the planets are hundreds apart, and a view
    fitted to them shows the planets as dots; so, walking outwards, a
    stellar more than three times as far out as the one before, or than
@@ -497,7 +497,7 @@ function boxView(x0, y0, x1, y1, pad) {
   const w = Math.max(x1 - x0, 1), h = Math.max(y1 - y0, 1);
   return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, s: Math.min(Math.max(CW - pad * 2, 20) / w, Math.max(CH - pad * 2, 20) / h) };
 }
-/* The whole map at once, drawn into ctx at w by h map pixels, for saving it large (the
+/* The whole map in one picture, drawn into ctx at w by h map pixels, for saving it large (the
    maintainer's request, 30 September 2026). The stellars are left closed, so that every system is
    its mark however near; the screen's context, size and view are put back afterwards. Framed by
    wholeMapFrame, a far place with no links brought in to the rest (wholeMapMoves), an arrow at
@@ -823,13 +823,13 @@ function nebulaShape(ctx, n, img, x, y, w, h, a) {
    cloud, in the middle, at the left, at the right, then along the bottom, then just outside it above
    and below, along what of it is on the screen, then beside it -- that is on the screen and not
    within 5 pixels of a system's name, a system's mark or a nebula's name already placed; of those,
-   the one with most room round it, the earlier slightly preferred, at 13 pixels or else 11. Where no
+   the one with most room around it, the earlier slightly preferred, at 13 pixels or else 11. Where no
    spot is clear, the name is left off the map, and is still in the panel. */
 function drawNebulaNames(ctx) {
   if (!NEB_NAMES.length) return;
   const r = systemRadius() + 2, marks = DRAWN.filter(d => d.t < 1).map(d => ({ x0: d.x - r, x1: d.x + r, y0: d.y - r, y1: d.y + r }));
   // kept a little off them, not only clear of them (the maintainer found L-1551's crowding the
-  // systems' names round it)
+  // systems' names around it)
   const M = 5, hit = (a, b) => a.x0 < b.x1 + M && b.x0 < a.x1 + M && a.y0 < b.y1 + M && b.y0 < a.y1 + M;
   const placed = [];
   ctx.save();
@@ -844,7 +844,7 @@ function drawNebulaNames(ctx) {
       const vy0 = Math.max(y, 0), vy1 = Math.min(y + h, CH), ys = [vy0 + pad + hh, vy1 - pad - hh, y - hh - 2, y + h + hh + 2];
       // and beside it, left and right, half way down
       const cands = ys.flatMap(ty => xs.map(tx => [tx, ty])).concat([[x - tw - 8, (vy0 + vy1) / 2], [x + w + 8, (vy0 + vy1) / 2]]);
-      // of the clear spots, the one with most room round it, the earlier a little preferred
+      // of the clear spots, the one with most room around it, the earlier a little preferred
       const gap = (a, b) => Math.hypot(Math.max(0, b.x0 - a.x1, a.x0 - b.x1), Math.max(0, b.y0 - a.y1, a.y0 - b.y1));
       let best = -Infinity;
       cands.forEach(([tx, ty], q) => {
@@ -876,7 +876,7 @@ function drawDiscs(ctx) {
     if (d.t <= 0) continue;
     const bg = d.sys.rec.BkgndColor & 0xFFFFFF, R = d.D / 2, q = R / sysGeo(d.sys).R, pr = POCKET.r * R;
     const pk = systemPockets(d.sys).map(([x, y]) => [d.x + x * q, d.y + y * q]);
-    // the disc and its pockets as one shape, outlined round the outside of it
+    // the disc and its pockets as one shape, outlined around the outside of it
     const circle = (x, y, r) => { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); };
     ctx.beginPath(); circle(d.x, d.y, R);
     for (const [x, y] of pk) circle(x, y, pr);
@@ -1037,11 +1037,11 @@ function renderLegend() {
     else parts.push(ramp(`Jumps from ${esc(U.byId.get(jumpSource()).name)}`, jumpT, 1, JUMPS.max));
   }
   const f = SYS_STYLE === 'dots' && DOT_FIGURES[DOTS_BY];
-  if (f) { const max = figureMax(f.field); parts.push(ramp(`${f.what}; none in grey`, t => figureT(1 + t * (max - 1), max), 1 + f.unit, max + f.unit)); }
+  if (f) { const max = figureMax(f.field); parts.push(ramp(`${f.what} (none in gray)`, t => figureT(1 + t * (max - 1), max), 1 + f.unit, max + f.unit)); }
   if (REACH && !jumpMap()) parts.push(`<div>Select a system to light what is within ${REACH} jump${REACH === 1 ? '' : 's'} of it</div>`);
   if (LIGHT !== 'all' && U) {
     const shown = U.systems.filter(s => SHOWN.has(s.id));
-    parts.push(`<div>${shown.filter(s => !sysUnlit(s)).length} of ${shown.length} systems lit: ${esc($('litSel').selectedOptions[0].textContent)}</div>`);
+    parts.push(`<div>${shown.filter(s => !sysUnlit(s)).length} of ${shown.length} systems lit (${esc($('litSel').selectedOptions[0].textContent)})</div>`);
   }
   el.hidden = !parts.length;
   el.innerHTML = parts.join('<div class="gap"></div>');
@@ -1141,8 +1141,8 @@ function routeBlock() {
   // a step no hyperspace link makes is a gate's, named by the gate
   const hyper = new Set(LINKS.flatMap(l => [(!l.oneWay || l.forward) && l.from.id + '-' + l.to.id, (!l.oneWay || !l.forward) && l.to.id + '-' + l.from.id]).filter(Boolean));
   const step = (a, b) => { if (hyper.has(a + '-' + b)) return ' › '; const w = GATES.ways.find(v => v.from.id === a && v.to.id === b); return ` › by ${w ? esc(w.gate.name) : 'gate'} › `; };
-  const how = p ? `${p.length - 1} step${p.length === 2 ? '' : 's'}: ${p.map((id, i) => (i ? step(p[i - 1], id) : '') + sysLink(id)).join('')}` : `no way there along the links${GATE_LINES ? ' and gates' : ''} shown now`;
-  return `<div class="route">Route from ${sysLink(ROUTE.from)} to ${sysLink(ROUTE.to)}, ${how}. ${clear}</div>`;
+  const how = p ? ` in ${p.length - 1} step${p.length === 2 ? '' : 's'} (${p.map((id, i) => (i ? step(p[i - 1], id) : '') + sysLink(id)).join('')})` : `. There is no way there along the links${GATE_LINES ? ' and gates' : ''} shown now`;
+  return `<div class="route">Route from ${sysLink(ROUTE.from)} to ${sysLink(ROUTE.to)}${how}. ${clear}</div>`;
 }
 
 // A path onto the canvas with its corners rounded to radius R: the points
@@ -1221,7 +1221,7 @@ function drawLinks(ctx) {
     ctx.stroke();
   }
   ctx.lineWidth = 1;
-  // A link the other end does not return: an arrowhead half way, pointing toward the end it leads to.
+  // A link the other end does not return: an arrowhead halfway along, pointing toward the end the link reaches.
   ctx.fillStyle = 'rgba(125,145,180,0.9)';
   for (const s of segs) if (s.l.oneWay) {
     ctx.globalAlpha = far.has(s) ? FAINT : 1;
@@ -1250,7 +1250,7 @@ function arrowHalfway(ctx, pts) {
    off at first since 13 October 2026, at his request). A gate's way to another system is drawn straight and dashed
    over the hyperspace links, a hypergate's in teal and a wormhole's in
    violet, with an arrowhead where it runs one way. A random wormhole goes
-   to any other (novaShownGates), which, all drawn at once, would be a web over
+   to any other (novaShownGates), which, all drawn together, would be a web over
    the galaxy, so its ways are drawn only from the selected system, or the
    one you are in, finer and fainter. Beside each system's dot, a mark for
    each kind of gate it has, hollow for a gate that leads nowhere. */
@@ -1384,10 +1384,10 @@ function drawDots(ctx) {
     if (d.t >= 1) continue;
     ctx.globalAlpha = (1 - d.t) * (dimOther && d.sys.govt !== VIEW.govt ? 0.25 : 1) * (placeFaint(d.p) ? FAINT : 1);
     // the mark itself, unless the systems are drawn not at all (the maintainer found the dots in the
-    // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings round it are drawn
+    // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings around it are drawn
     // either way. As metro stations (the maintainer's request, the same day): white, a small stop on a
     // line, and where three links or more meet a larger one in a ring the color of the background,
-    // so that the lines stop short of it; and round the white a ring in the color Systems colored
+    // so that the lines stop short of it; and around the white a ring in the color Systems colored
     // gives, its government's or a figure's, thin for a stop and thicker where three links or more
     // meet, and outside it a thin ring of the background (the maintainer's request, 30 September 2026)
     if (SYS_STYLE === 'dots') {
@@ -1548,7 +1548,7 @@ function drawSystemLabels(ctx) {
   ctx.textBaseline = 'middle';
   const order = DRAWN.slice().sort((a, b) => isSel(b) - isSel(a) || isHover(b) - isHover(a));
   // On the map with room for names, each in its room, its letters 0.72 of a grid step high,
-  // once that is 7 pixels, and narrowed if this screen's letters are wider than the room.
+  // once that is 7 pixels and narrowed if this screen's letters are wider than the room.
   const room = namesInRoom() ? 0.72 * LAYOUT.sub.layout.step * CAM.s : 0;
   for (const d of order) {
     if (d.p === cur) continue;
@@ -1740,7 +1740,7 @@ function zoomVia(hx, hy, to, ms, curve, also) {
     if (also) also(e);
   }, curve);
 }
-/* A long way at once -- a link to a system across the galaxy, a search --
+/* A long way in one move -- a link to a system across the galaxy, a search --
    goes by van Wijk and Nuij's smooth zoom (2003), the path d3's
    interpolateZoom computes: out as far as the distance needs, across, and in
    again. A view is its middle and w, the shorter side in galaxy units. */
@@ -3192,8 +3192,8 @@ function wireTools() {
   const wholeName = ext => `stargrimoire-whole-map${LAYOUT.kind ? '-subway' : ''}.${ext}`;
   $('saveWhole').onclick = async () => {
     const all = wholeMapSize(), size = wholeMapSize(Infinity, 32000), [w, h] = size;
-    if (size.names < all.names && !confirm(`This picture can hold ${size.names.toLocaleString()} of the ${all.names.toLocaleString()} system names: ` +
-        'with all of them it would be too wide for a browser to draw. The SVG has every name. Save the picture anyway?')) return;
+    if (size.names < all.names && !confirm(`This picture has room for ${size.names.toLocaleString()} of the ${all.names.toLocaleString()} system names. ` +
+        'With all of them it would be too wide for a browser to draw. The SVG has every name. Save the picture anyway?')) return;
     if (w * h <= 32e6) {
       const k = Math.max(1, Math.min(4, Math.sqrt(32e6 / (w * h)))), c = document.createElement('canvas');
       c.width = Math.round(w * k); c.height = Math.round(h * k);
@@ -3215,10 +3215,10 @@ function wireTools() {
         drawWholeMap(ctx, w, h);
         await nextPaint();
         return ctx.getImageData(0, 0, w, n).data;
-      }, y => setStatus(`Making the whole map, ${w.toLocaleString()} by ${h.toLocaleString()} pixels: ${Math.round(100 * y / h)}%`));
+      }, y => setStatus(`Making the whole map at ${w.toLocaleString()} by ${h.toLocaleString()} pixels (${Math.round(100 * y / h)}%)`));
       dlBlob(new Blob(parts, { type: 'image/png' }), wholeName('png'));
-      setStatus(`Saved the whole map, ${w.toLocaleString()} by ${h.toLocaleString()} pixels, ${size.names === all.names ? 'every name' : size.names.toLocaleString() + ' of the ' + all.names.toLocaleString() + ' names'} in it`);
-    } catch (err) { setStatus('Could not make the whole map: ' + err.message, true); }
+      setStatus(`Saved the whole map at ${w.toLocaleString()} by ${h.toLocaleString()} pixels with ${size.names === all.names ? 'every name' : size.names.toLocaleString() + ' of the ' + all.names.toLocaleString() + ' names'} in it`);
+    } catch (err) { setStatus('Could not make the whole map (' + err.message + ')', true); }
   };
   $('saveSvg').onclick = () => {
     const [w, h] = wholeMapSize(), ctx = svgContext(w, h);

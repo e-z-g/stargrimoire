@@ -316,110 +316,110 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
     },
     Person: {
-      note: 'Up to eight përs that may be here as well as those AvgShips brings: each, while not destroyed or captured and its ActivateOn test passes, comes when you enter with a chance of its PersonProb in 100.',
+      note: 'Up to eight përs that may be here as well as those AvgShips brings. Each comes when the player enters with a chance of its PersonProb in 100. No one may have destroyed or captured it and its ActivateOn test must pass.',
       code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['EvalMissionBitTestString', 0x9959e]],
     },
     PersonProb: {
-      note: 'The chance in 100 that the Person beside it comes when you enter.',
+      note: 'The chance in 100 that the Person beside it comes when the player enters.',
       code: [['SetupShipsInSystem', 0x42b61], ['Rand', 0xa4c76]],
     },
     Message: {
-      note: 'Shown when you arrive: entry Message of STR# 1000, or the STR resource numbered Message + 999 where there is one. -1: "Entering the", "Jumping into the" or "Arriving in the", at random, and the system\'s name.',
+      note: 'Shown when the player reaches the system. It is entry Message of STR# 1000 or the STR resource numbered Message + 999 where there is one. -1: the game picks "Entering the", "Jumping into the", or "Arriving in the" at random. The system\'s name follows.',
       code: [['HandlePlayer', 0x68390], ['DisplayMessage', 0x5289], ['LoadPluginString', 0x71a8e]],
     },
     ReinfFleet: {
-      note: 'The flët that comes when a ship of a government allied with the fleet\'s calls for help in this system: when the odds against it are more than half the MaxOdds of the fleet\'s government, or, without that test, when a ship you hail comes to help you. While it is on its way, a warship of that side does not run until the odds reach twice its MaxOdds, instead of its MaxOdds. Below 128: none.',
+      note: 'The flët that comes when a ship of a government allied with the fleet\'s signals for help in this system. A ship signals when the odds against it are more than half the MaxOdds of the fleet\'s government. Without that test the fleet also comes when a ship the player hails comes to help the player. While the fleet is on its way a warship of that side runs only once the odds reach twice its MaxOdds instead of its MaxOdds. Below 128: none.',
       bible: 'a ship calls the fleet once the odds against ships allied with its government exceed that government\'s MaxOdds, not half of it.',
       code: [['AICallForReinforcements', 0x7f5a1], ['GovtAllies', 0x4e3d], ['WarshipAI', 0x8b729], ['DoCommDialog', 0x956d5], ['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
     },
     ReinfTime: {
-      note: 'How long the fleet takes to come once called: counted down by the game speed each step, then it arrives from hyperspace. When less than a quarter is left: "Sensors detect" the government\'s name "reinforcement fleet approaching."',
+      note: 'How long the fleet needs to come once called. The game counts it down by the game speed each step and then the fleet jumps in from hyperspace. When less than a quarter remains the game shows "Sensors detect" followed by the government\'s name and "reinforcement fleet approaching."',
       code: [['AICallForReinforcements', 0x7f5a1], ['HandleReinforcements', 0x39048]],
     },
     ReinfIntrval: {
-      note: 'Days before a ship can call the fleet here again, from its warning or its arrival; at least 1.',
+      note: 'Days from the fleet\'s warning or its coming before a ship can call it here again. At least 1.',
       code: [['HandleReinforcements', 0x39048], ['IncrementGameTime', 0xb516]],
     },
   },
   'shïp': {
     Holds: {
-      note: 'Tons of cargo. Yours: plus each ModType 2 outfit\'s ModVal; the cargo you can buy and carry also counts the Holds of each ship flying with you under AI 6 whose class has an InherentAI of 2 or less, up to 32,000 in all. Below 0: as many tons, but no outfit taking hold space (ModType 2 with a negative ModVal) can be bought for it; otherwise one needs that much room free.',
+      note: 'Tons of cargo. The player\'s ship adds each ModType 2 outfit\'s ModVal. The player\'s cargo space also counts the Holds of each ship flying with the player under AI 6 whose class has an InherentAI of 2 or less (up to 32,000 in all). Below 0: the ship has as many tons but the player cannot buy any outfit that uses hold space (ModType 2 with a negative ModVal) for it. Otherwise such an outfit needs that much room free.',
       code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['TotalFleetHolds', 0xc24d], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Shield: {
-      note: 'Shield points. Yours: plus each ModType 4 outfit\'s ModVal. A përs\'s ship: × its ShieldMod, a percentage, when above 0. A ship under AI 5, which the program gives launched fighters and ships you capture: × 1.333.',
+      note: 'Shield points for a ship of this class. The player\'s ship adds the ModVal of each ModType 4 outfit. A përs\'s ship scales the shield by its ShieldMod percentage when ShieldMod is above 0. Launched fighters and ships the player captures fly under AI 5. A ship under AI 5 has its shield multiplied by 1.333.',
       code: [['LoadObjectData', 0x771b0], ['ShipShieldCapacity', 0x2995]],
     },
     Accel: {
-      note: 'Accel ÷ 10,000 is its acceleration, each 30th of a second. Yours: plus each ModType 7 outfit\'s ModVal ÷ 10,000. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100, then × 2; a third while another ship\'s tractor beam holds it; reduced by its ionization, by at most 70% (IonizeMax); Flags 0x0400 makes it 0. A ship caught in a tractor beam matches the speed of the ship that fired it by a quarter of your acceleration each 30th of a second, whoever fired.',
+      note: 'Accel ÷ 10,000 is its acceleration each 30th of a second. The player\'s ship adds each ModType 7 outfit\'s ModVal ÷ 10,000. For another ship the game multiplies it by its skill (SkillVar) × its government\'s SkillMult ÷ 100 and then by 2. It drops to a third while it is in another ship\'s tractor beam. Ionization reduces it by at most 70% (IonizeMax). Flags 0x0400 makes it 0. A ship caught in a tractor beam matches the speed of the ship that fired it by a quarter of the player\'s acceleration each 30th of a second whoever fired the beam.',
       code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['HandleShip', 0x33581]],
     },
     Speed: {
-      note: 'Speed ÷ 100 is its top speed, each 30th of a second. Yours: plus each ModType 8 outfit\'s ModVal ÷ 100; then, for you and the ships flying with you, × 1.5 unless the pilot was made for strict play. Not yours: × its skill (SkillVar) × its government\'s SkillMult ÷ 100; a third while another ship\'s tractor beam holds it; Flags 0x0400 makes it 0.',
+      note: 'Speed ÷ 100 is its top speed each 30th of a second. The player\'s ship adds each ModType 8 outfit\'s ModVal ÷ 100. The game then multiplies the top speed of the player\'s ship and of the ships flying with it by 1.5 unless the pilot is a strict-play pilot. For another ship the game multiplies it by its skill (SkillVar) × its government\'s SkillMult ÷ 100. It drops to a third while it is in another ship\'s tractor beam. Flags 0x0400 makes it 0.',
       code: [['LoadObjectData', 0x771b0], ['ShipMaxSpeed', 0x36f2], ['DoNewPilotNameDialog', 0x165cc]],
       bible: 'Top speed. 300 is also an average value here.',
     },
     Maneuver: {
-      note: 'Maneuver ÷ 10 is its turn, in degrees each 30th of a second. Yours: plus each ModType 9 outfit\'s ModVal ÷ 100, at least 1 if the class turns at all. Not yours: a third while another ship\'s tractor beam holds it. A class turning 1 or more turns at least 1; then reduced by its ionization, by at most 70%, unless it is jumping.',
+      note: 'Maneuver ÷ 10 is its turn in degrees each 30th of a second. The player\'s ship adds each ModType 9 outfit\'s ModVal ÷ 100 and turns at least 1 if the class turns at all. For another ship the turn drops to a third while it is in another ship\'s tractor beam. A class turning 1 or more turns at least 1. Ionization then reduces the turn by at most 70% unless the ship is jumping.',
       code: [['LoadObjectData', 0x771b0], ['ShipTurnRate', 0x32f7]],
     },
     Fuel: {
-      note: 'Units of fuel; a jump takes 100. Yours: plus each ModType 12 outfit\'s ModVal, 0 to 32,000. A ship not yours jumps out of a system only if its class has 100 or more; a përs\'s ship with Flags2 0x0001 also needs 100 aboard.',
+      note: 'Units of fuel. A jump uses 100. The player\'s ship adds each ModType 12 outfit\'s ModVal (0 to 32,000). Another ship jumps out of a system only if its class has 100 or more. A përs\'s ship with Flags2 0x0001 also needs 100 aboard.',
       code: [['ShipFuelCapacity', 0x2f21], ['HandlePlayer', 0x68390], ['AIShipHasFuelForJump', 0x7f48f]],
     },
     FreeMass: {
-      note: 'Tons for outfits. Yours: this minus each outfit\'s Mass for each one carried, an outfit with Flags 0x0400 weighing that percentage of this class\'s Mass when that is more; below 0 counts as 0. Its stock weapons and their ammunition take none of it, since loading adds their outfits\' Mass to it (WeapType). The outfitter sells you an outfit only while its Mass fits (or is 0 or less).',
+      note: 'Tons for outfits. The player\'s ship has this minus the Mass of each outfit carried. An outfit with Flags 0x0400 weighs that percentage of this class\'s Mass when that is more. Below 0 counts as 0. Its stock weapons and their ammunition use none of it because loading adds their outfits\' Mass to it (WeapType). The outfitter offers an outfit to the player only while its Mass fits (or is 0 or less).',
       code: [['ShipFreeMass', 0xb462], ['LoadObjectData', 0x771b0], ['AdjustedItemMass', 0x2889], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Armor: {
-      note: 'Armor points. Yours: plus each ModType 6 outfit\'s ModVal. A përs\'s ship: × its ShieldMod, a percentage, when above 0. A ship under AI 5 (as Shield): × 1.333.',
+      note: 'Armor points for a ship of this class. The player\'s ship adds the ModVal of each ModType 6 outfit. A përs\'s ship scales the armor by its ShieldMod percentage when ShieldMod is above 0. A ship under AI 5 has its armor multiplied by 1.333 (as Shield).',
       code: [['LoadObjectData', 0x771b0], ['ShipArmorCapacity', 0x2bc0]],
     },
     DispWeight: {
-      note: 'The shipyard lists the classes on offer highest DispWeight first, classes of equal DispWeight by id (but see Flags3 0x4000).',
+      note: 'The shipyard shows the classes on offer highest DispWeight first and classes of equal DispWeight by id (but see Flags3 0x4000).',
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     DeathDelay: {
-      note: 'How many steps its ships take to break up once their armor is gone, with small explosions (Explode1) over them, 1 in 8 a step while 60 or more remain, 1 in 4 from 40, 1 in 2 from 20, then every step. At the end a ship of Mass 100 or more, without Flags 0x0400, blasts every ship within Mass × 0.075 + 50 for Mass × 0.0375 + 25 damage, which can disable but not kill; then Explode2, and it is gone.',
+      note: 'How many steps its ships need to break up once their armor is gone. Small explosions (Explode1) show over them 1 in 8 steps while 60 or more steps remain, 1 in 4 from 40, 1 in 2 from 20, and then every step. At the end a ship of Mass 100 or more without Flags 0x0400 blasts every ship within Mass × 0.075 + 50 for Mass × 0.0375 + 25 damage. The blast can disable but not kill. Then Explode2 shows and the ship is gone.',
       code: [['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['CreateExplosion', 0x3f698]],
       bible: '0 to 59: the ship disintegrates for this number of frames and then disappears in a single fireball. 60 and up: then a huge explosion, its size proportional to the ship\'s mass.',
     },
     Explode1: {
-      note: 'The explosion shown over its ships as they break up (DeathDelay): 0 to 63, bööm 128 + n; 1000 to 1063, a big one with smaller ones round it; anything else, none.',
+      note: 'The explosion shown over its ships as they break up (DeathDelay). 0 to 63: bööm 128 + n. 1000 to 1063: a big one with smaller ones around it. Anything else: none.',
       code: [['HandleShipDisplay', 0x2b514], ['CreateExplosion', 0x3f698]],
     },
     Explode2: {
-      note: 'The explosion when one of its ships is gone, after DeathDelay, or at once when it touches a deadly stellar: values as Explode1; the big kind spreads over the blast of a ship of Mass 100 or more.',
+      note: 'The explosion when one of its ships is gone after DeathDelay or immediately when it touches a deadly stellar. Its values are as Explode1. The big kind spreads over the blast of a ship of Mass 100 or more.',
       code: [['HandleShipDisplay', 0x2b514], ['HandleDeadlyStellars', 0x39ccd], ['CreateExplosion', 0x3f698]],
     },
     Length: {
-      note: 'Shown in the ship\'s description; nothing else reads it.',
+      note: 'Shown in the ship\'s description. Nothing else reads it.',
       code: [['ShipDescDialogUpdate', 0x4f915]],
     },
     Flags: {
-      note: '0x0001, 0x0002, 0x0004: its jumps run at 0.7, 1.3 or 1.6 times the usual pace, only the first bit set counts. 0x0008: its FuelRegen works for you. 0x0010: it is disabled at a tenth of its armor, not a third. 0x0020: a ship not yours has an afterburner when your kills ÷ shïp 128\'s Strength reach 256 + a number to 1,343 drawn for it; 0x0040: always. 0x0100 and 0x0200 change what the target display shows of its shields and armor. 0x0400: a planet-type ship: only weapons with wëap Flags2 0x0400 hit it, and those hit nothing else; when not yours, it does not move; a tractor beam cannot hold it; it leaves no blast. 0x1000, 0x2000, 0x4000: its turrets cannot fire within 45° of ahead, from 45° to 135° off, or beyond 135°. 0x8000: carried in your fighter bay, it is your escape ship: you eject into it.',
+      note: '0x0001 to 0x0004: its jumps run at 0.7 (0x0001), 1.3 (0x0002), or 1.6 (0x0004) × the usual pace. Only the first bit set counts. 0x0008: its FuelRegen works for the player. 0x0010: it becomes disabled at a tenth of its armor instead of a third. 0x0020: another ship has an afterburner when the player\'s kills ÷ shïp 128\'s Strength reach 256 + a number up to 1,343 drawn for it. 0x0040: always. 0x0100 and 0x0200 change what the target display shows of its shields and armor. 0x0400: a planet-type ship. Only weapons with wëap Flags2 0x0400 hit it and those hit nothing else. When it is not the player\'s it does not move. Tractor beams do not work on it and it leaves no blast. 0x1000 to 0x4000: its turrets cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). 0x8000: in the player\'s fighter bay it is the player\'s escape ship. The player ejects into it.',
       code: [['LoadObjectData', 0x771b0], ['HandleShip', 0x33581], ['ShipFuelGenRate', 0x2ffb], ['IsDisabled', 0x2ce6], ['AIHasAfterburner', 0x64f5], ['DrawStatusTarg', 0x4ace1], ['ShotCanHitShip', 0x4477e], ['AIFireGun', 0x7feb6], ['ShipAccelRate', 0x353b], ['HandleBeams', 0x30295], ['TurretBlindSpot', 0xb325], ['EscapeShipType', 0x38d0]],
       bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
     },
     Flags2: {
-      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: you cannot target it: your targeting keys and mouse pass it over, and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as your escort it does not reply to your orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), while flying about (0x0800); 0x1000: it stays cloaked while attacking until within 165 of its target on both axes, or while mining. 0x2000: it cloaks while idle. 0x4000: attacked by a ship it is not fighting, it cloaks at once, its burst weapons put into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
+      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: the player cannot target it. The targeting keys and mouse pass it over and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as the player\'s escort it does not reply to orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor, and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), or while flying about (0x0800). 0x1000: it stays cloaked while attacking until within 165 of its target on both axes or while mining. 0x2000: it cloaks while idle. 0x4000: it cloaks immediately when a ship it is not fighting attacks it. Its burst weapons go into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
       code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807]],
     },
     PodCount: {
-      note: 'How many escape pods its ships launch as they break up (DeathDelay): the first at once, then one every DeathDelay ÷ PodCount × 0.4 frames, at least 10 apart. 0 or less: none.',
+      note: 'How many escape pods its ships launch as they break up (DeathDelay). The first goes immediately. Then one goes every DeathDelay ÷ PodCount × 0.4 frames and at least 10 frames apart. 0 or less: none.',
       code: [['RandomShipSpawn', 0x3c0f3], ['HandleShip', 0x33581], ['SpawnEscapePod', 0x45547]],
       bible: 'At a rate of one per second.',
     },
     Mass: {
-      note: 'Days a jump takes: 1 under 100, 2 from 100 to 199, 3 from 200; yours plus each ModType 22 outfit\'s ModVal, at least 1. From 100 it is a larger blip on the radar. A tractor beam takes hold of it only when the firing ship\'s Mass is at least ¾ of this; With 0 or less, or Flags 0x0400, it is never held. Only a ship of 100 or more is tested for giving up a hopeless chase.',
+      note: 'It sets how many days a jump lasts. Under 100: 1 day. 100 to 199: 2 days. From 200: 3 days. The player\'s ship adds each ModType 22 outfit\'s ModVal to the days (at least 1). From 100 it shows as a larger blip on the radar. A tractor beam catches it only when the firing ship\'s Mass is at least ¾ of this. With 0 or less or with Flags 0x0400 no beam catches it. The game tests only a ship of 100 or more for giving up a hopeless chase.',
       code: [['ShipHyperTransitTime', 0x43d0], ['DrawStatusRadar', 0x496e0], ['HandleBeams', 0x30295], ['AIEvalHopelessChase', 0x80ea9]],
     },
     InherentAI: {
-      note: 'The AI of its ships wherever a düde, mission or përs leaves it 0 or less (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, 4 InterceptorAI; 0 or less, none runs). 2 or less is a trading ship: as your escort it carries cargo for you (Holds), a fleet\'s ship starts with cargo (flët Flags), and missions and persons can ask for one in your ship (mïsn Flags, përs Flags); above 2, as your escort it adds to your capture odds (Crew).',
+      note: 'The AI of its ships wherever a düde, mission, or përs leaves it 0 or less (1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI, and 4 InterceptorAI). With 0 or less none runs. 2 or less is a trading ship. As the player\'s escort its Holds add to the player\'s cargo space. A fleet\'s ship starts with cargo (flët Flags). Missions and persons can require the player to fly one (mïsn Flags and përs Flags). Above 2: as the player\'s escort it adds to the player\'s capture odds (Crew).',
       code: [['RandomShipSpawn', 0x3c0f3], ['AIDispatch', 0x8fb52], ['TotalFleetHolds', 0xc24d], ['HyperSpawnFleet', 0x41c8d], ['SetPlunderValues', 0x92219]],
     },
     InherentGovt: {
-      note: 'Two governments for every ship of the class: 128 to 383, that gövt as both; 1128 to 1383, less 1000, the attributes government only; 2128 to 2383, less 2000, the combat government only; anything else, neither. The combat government is what others take it for: a warship picks it as a target, and a stellar as a threat, when it is their enemy, and it counts among a ship\'s friends when it is an ally. The attributes government gives it that government\'s jamming and determines whether it calls for help, and is read where it hails, is captured or flies as an escort.',
+      note: 'Two governments for every ship of the class. 128 to 383: that gövt as both. 1128 to 1383: minus 1000 for the attributes government only. 2128 to 2383: minus 2000 for the combat government only. Anything else: neither. Other ships see its combat government. A warship picks it as a target and a stellar treats it as a threat when that government is their enemy. It counts among a ship\'s friends when that government is an ally. The attributes government gives it that government\'s jamming and determines whether it signals for help. The game also reads it where the ship hails, where the player captures it, or where it flies as an escort.',
       code: [['LoadObjectData', 0x771b0], ['SelectWarshipTarget', 0x89d5e], ['IsThreatToStellar', 0x9ef7], ['AIShipFriendStrength', 0x825a8], ['ShipECM', 0x3aff], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCapture', 0x41120], ['IssueNewEscortCommand', 0x660d5]],
     },
     Crew: {

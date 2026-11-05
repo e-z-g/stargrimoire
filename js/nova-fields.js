@@ -1189,23 +1189,23 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
     },
     GuidedTurn: {
-      note: 'A homing shot turns a tenth of this in degrees each step, from 15 steps old.',
+      note: 'A homing shot turns a tenth of this in degrees each step from 15 steps old.',
       code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
     },
     Impact: {
-      note: 'Pushes the ship it hits, unless that ship is jumping.',
+      note: 'Pushes the ship it hits unless that ship is jumping.',
       code: [['DamageShip', 0x3a807]],
     },
     Ionization: {
-      note: 'Added to the ship it hits; from a blast, reduced by the square of the distance over the square of BlastRadius, and none beyond it.',
+      note: 'Added to the ship it hits. For a blast the game reduces it by the square of the distance over the square of BlastRadius. Beyond BlastRadius it adds none.',
       code: [['IonizeShip', 0x8409]],
     },
     SubCount: {
-      note: 'How many shots of SubType a shot breaks into.',
+      note: 'How many shots of SubType come from a shot as it breaks up.',
       code: [['SpawnShotSubmunitions', 0x3f1d5]],
     },
     SubTheta: {
-      note: 'Above 0: each submunition within this many degrees of the shot\'s heading, at random. Below 0: fanned out this far apart.',
+      note: 'Above 0: each submunition leaves at random within this many degrees of the shot\'s heading. Below 0: the submunitions fan out this far apart.',
       code: [['SpawnShotSubmunitions', 0x3f1d5]],
     },
     SubLimit: {
@@ -1215,51 +1215,51 @@ const NOVA_FIELD_NOTES = {
   },
   'përs': {
     Color: {
-      note: 'The color the game paints its ship, in place of its government\'s ShipColor; black, unpainted.',
+      note: 'The color the game paints its ship in place of its government\'s ShipColor. Black: unpainted.',
       code: [['LoadObjectData', 0x771b0], ['GetShipPaintColor', 0x7d0c]],
     },
     Coward: {
-      note: 'As a warship of a government with Flags 0x0010 and with no leader, it turns tail once its shields fall below Coward per cent of their full; ships that are not persons go by their aggression instead.',
+      note: 'As a warship of a government with Flags 0x0010 and with no leader it turns tail once its shields fall below Coward percent of full. Ships that are not persons go by their aggression instead.',
       code: [['WarshipAI', 0x8b729], ['ShipShieldCapacity', 0x2995]],
     },
     HailPict: {
-      note: 'The picture shown when you hail its ship: 128 and up, that PICT; anything else, its ship class\'s.',
+      note: 'The picture shown when the player hails its ship. 128 and up: that PICT. Anything else: the picture of its ship class.',
       code: [['LoadObjectData', 0x771b0], ['DoCommDialog', 0x956d5]],
     },
     CommQuote: {
-      note: 'What its ship answers when you hail it: above 0, the STR resource numbered CommQuote + 15000 where there is one, else entry CommQuote of STR# 7100. -1 with Flags 0x8000: news of a disaster now under way. Otherwise the usual answer.',
+      note: 'What its ship answers when the player hails it. Above 0: the STR resource numbered CommQuote + 15000 where there is one and otherwise entry CommQuote of STR# 7100. With -1 and Flags 0x8000 it gives news of a disaster now under way. Otherwise the usual answer.',
       code: [['LoadAdvice', 0x9133c], ['LoadPluginString', 0x71a8e]],
     },
     Subtitle: {
-      note: 'Shown for its ship in your target display.',
+      note: 'Shown for its ship in the player\'s target display.',
       code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1]],
     },
     Credits: {
-      note: 'The credits you can take when you plunder this person\'s ship: Credits ÷ 1,000 rounded down and halved, plus, when that is above 2, a number from 0 to one less than it drawn at random; that many thousands. 0 or less: none.',
+      note: 'The credits the player can take when plundering this person\'s ship. The game rounds Credits ÷ 1,000 down and halves it. When that is above 2 the game adds a number from 0 to one less than it drawn at random. The result is in thousands. 0 or less: none.',
       code: [['LoadObjectData', 0x771b0], ['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
     },
     GrantClass: {
-      note: 'When you plunder this person\'s ship, with a chance of GrantProb in 100, you are given outfits of one oütf picked at random among those whose ItemClass is this and of which you do not already have the maximum. 0 or less: none.',
+      note: 'When the player plunders this person\'s ship there is a chance of GrantProb in 100 of a gift. The player receives outfits of one oütf picked at random among those whose ItemClass is this and of which the player does not already have the maximum. 0 or less: none.',
       code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b], ['HasMaxOfItem', 0x4512], ['GrantOutfitItem', 0x44d4f]],
     },
     GrantProb: {
-      note: 'The chance in 100 of the GrantClass gift; kept between 0 and 100.',
+      note: 'The chance in 100 of the GrantClass gift. The value stays between 0 and 100.',
       code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b]],
     },
     GrantCount: {
-      note: 'How many of the GrantClass outfit it grants: GrantCount × a number from 50 to 100 drawn at random ÷ 100, at least 1, and fewer while they would not fit your ship\'s free mass. 0 or less: none.',
+      note: 'How many of the GrantClass outfit it grants. That is GrantCount × a number from 50 to 100 drawn at random ÷ 100 and at least 1. The number drops while they would not fit the free mass of the player\'s ship. 0 or less: none.',
       code: [['LoadObjectData', 0x771b0], ['DoPlunderDialog', 0x9302b], ['ShipFreeMass', 0xb462], ['GrantOutfitItem', 0x44d4f]],
     },
     ShipType: {
-      note: 'The class of this person\'s ship: 128 to 895. Anything else: shïp 128.',
+      note: 'The class of this person\'s ship (128 to 895). Anything else: shïp 128.',
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     Govt: {
-      note: 'The government of this person\'s ship. If that gövt has Flags 0x0800, the ship starts disabled and never jumps in.',
+      note: 'The government of this person\'s ship. If that gövt has Flags 0x0800 the ship starts disabled and never jumps in.',
       code: [['SpawnPerson', 0x408d5]],
     },
     AIType: {
-      note: 'How this person\'s ship flies, by the program\'s routines: 1 WimpyTraderAI, 2 BraveTraderAI, 3 WarshipAI (PirateWarshipAI if its government has Flags 0x1000), 4 InterceptorAI, above 4 EscortAI. 0 or less: the person is never picked by LinkSyst.',
+      note: 'How this person\'s ship flies by the program\'s routines. 1: WimpyTraderAI. 2: BraveTraderAI. 3: WarshipAI (PirateWarshipAI if its government has Flags 0x1000). 4: InterceptorAI. Above 4: EscortAI. 0 or less: LinkSyst never picks the person.',
       code: [['SpawnPerson', 0x408d5], ['AIDispatch', 0x8fb52], ['WimpyTraderAI', 0x8b029], ['BraveTraderAI', 0x8b493], ['WarshipAI', 0x8b729], ['PirateWarshipAI', 0x8c2d2], ['InterceptorAI', 0x8c895], ['EscortAI', 0x838d2]],
     },
     Aggress: {
@@ -1267,11 +1267,11 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnPerson', 0x408d5]],
     },
     WeapType: {
-      note: 'Weapons added to those of the ship\'s class, each 128 and up a wëap, WeapCount of it and AmmoLoad of its ammunition; if one appears twice, the later one counts. Below 128: none.',
+      note: 'Weapons added to those of the ship\'s class. Each value of 128 and up is a wëap with WeapCount of it and AmmoLoad of its ammunition. If one appears twice the later one counts. Below 128: none.',
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     WeapCount: {
-      note: 'How many of the WeapType beside it the ship gets.',
+      note: 'How many of the WeapType beside it the ship receives.',
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     AmmoLoad: {
@@ -1283,24 +1283,24 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     HailQuote: {
-      note: 'What this person\'s ship says when it hails you: the STR resource numbered HailQuote + 4999 where there is one, else entry HailQuote of STR# 7101. -1: it does not hail. It hails, while you can see it and it is not dying, jumping or leaving, 1 time in 140 each step and not within 2,700 ticks of its last hail, as Flags allows.',
+      note: 'The message this person\'s ship sends when it hails the player. It is the STR resource numbered HailQuote + 4999 where there is one and otherwise entry HailQuote of STR# 7101. -1: it does not hail. It hails 1 time in 140 each step as Flags allows. It must be in sight and not dying, jumping, or leaving, and 2,700 ticks must have passed since its last hail.',
       code: [['HandleShip', 0x33581], ['ShowPersonHailQuote', 0x4457e], ['LoadPluginString', 0x71a8e]],
     },
     LinkMission: {
-      note: 'The mïsn this person offers: when you hail its ship, or with Flags 0x0200, when you board it, if the mission is available then (AvailLoc 2). -1: none.',
+      note: 'The mïsn this person offers when the player hails its ship (or boards it with Flags 0x0200) if the mission is available then (AvailLoc 2). -1: none.',
       code: [['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['IsMissionAvailable', 0x9b152], ['OfferOneMission', 0xa21ac]],
     },
     Flags: {
-      note: '0x0001: damaging its ship gives it a grudge, and as a warship it then goes for you. 0x0002: its ship always has an afterburner; losing its ship does not remove it for good; and as its ship\'s death throes reach half their length it launches an escape pod, unless its government has Flags 0x0100; the pod is only seen, nothing hits it. HailQuote only: 0x0004, while it has a grudge; 0x0008, while it likes you; 0x0010, as it turns on you (then at once); 0x0020, while its ship lies disabled; 0x0080, once; 0x0400, while its LinkMission is available; not 0x1000 if your ship class\'s InherentAI is 1, 0x2000 if 2, 0x4000 if 3 or more. 0x0040: once you accept its LinkMission, if that mission has one ship, this ship becomes it. 0x0100: once you accept its LinkMission, you do not meet it again. 0x0200: it offers its LinkMission on boarding, not hailing. 0x0800: once you accept its LinkMission, its ship leaves. 0x8000: with CommQuote -1, hailing it gives news of a disaster.',
+      note: '0x0001: damaging its ship gives it a grudge and as a warship it then attacks the player. 0x0002: its ship always has an afterburner. Losing its ship does not remove it for good. As its ship\'s death throes reach half their length it launches an escape pod unless its government has Flags 0x0100. The pod is only for show and nothing hits it. The next flags apply to HailQuote only. 0x0004: while it has a grudge. 0x0008: while it likes the player. 0x0010: as it turns on the player (then immediately). 0x0020: while its ship lies disabled. 0x0080: only the first time. 0x0400: while its LinkMission is available. 0x1000 to 0x4000: not if the InherentAI of the player\'s ship class is 1 (0x1000), 2 (0x2000), or 3 or more (0x4000). 0x0040: once the player accepts its LinkMission and that mission has one ship this ship becomes the mission\'s ship. 0x0100: once the player accepts its LinkMission the player does not meet it again. 0x0200: it offers its LinkMission on boarding instead of hailing. 0x0800: once the player accepts its LinkMission its ship leaves. 0x8000: with CommQuote -1 hailing it gives news of a disaster.',
       bible: '0x1000, 0x2000 and 0x4000 keep the person from offering its mission to a player flying a wimpy freighter, beefy freighter or warship, not from hailing; 0x8000 shows disaster info when hailing, with no word of CommQuote.',
       code: [['DamageShip', 0x3a807], ['SelectWarshipTarget', 0x89d5e], ['SpawnPerson', 0x408d5], ['HandleShipDisplay', 0x2b514], ['HandleShip', 0x33581], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000], ['LoadAdvice', 0x9133c], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToPlayer', 0x7f501], ['AIMakeShipLeave', 0x7e2b0], ['SpawnEscapePod', 0x45547]],
     },
     Flags2: {
-      note: '0x0001: its ship starts with no fuel, and cannot jump out while it has less than 100 units.',
+      note: '0x0001: its ship starts with no fuel and cannot jump out while it has less than 100 units.',
       code: [['SpawnPerson', 0x408d5], ['AIShipHasFuelForJump', 0x7f48f], ['WarshipAI', 0x8b729]],
     },
     LinkSyst: {
-      note: 'Where you may meet this person among the ships a system\'s AvgShips brings, or among those jumping in later (1 time in 7 each). -1: anywhere. 128 to 9998: that sÿst; 0 to 127 count as 128 to 255. 9999: systems of no government; 10000 + n, of gövt 128 + n; 15000 + n, of its allies; 20000 + n, of another government; 25000 + n, of its enemies. Not among those jumping in if its government has Flags 0x0800. The game never picks it while its AIType is 0 or less or its ActivateOn fails, after its destruction or capture, or while it is already there.',
+      note: 'Where the player may meet this person among the ships a system\'s AvgShips brings or among those jumping in later (1 time in 7 each). -1: anywhere. 128 to 9998: that sÿst (0 to 127 count as 128 to 255). 9999: systems of no government. 10000 + n: systems of gövt 128 + n. 15000 + n: systems of its allies. 20000 + n: systems of another government. 25000 + n: systems of its enemies. It is never among those jumping in if its government has Flags 0x0800. The game never picks it while its AIType is 0 or less or its ActivateOn fails, after its destruction or capture, or while it is already there.',
       code: [['SpawnPerson', 0x408d5], ['SetupShipsInSystem', 0x42b61], ['HyperShipSpawn', 0x4291a], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22]],
     },
     ActivateOn: {

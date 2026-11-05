@@ -1729,7 +1729,7 @@ const NOVA_FIELD_SHORT = {
     PartLifeMax: 'Longest trail particle life', PartColor: 'Trail particle color', BeamLength: 'Beam reach', BeamWidth: 'Beam width or steps a frame', Falloff: 'Beam fade', SubType: 'Submunition weapon',
     ProxSafety: 'Steps before it arms', Flags2: 'Frames, hits, submunitions, planet-type, and more', HitParticles: 'Particles where it hits', HitPartLife: 'Hit particle life', HitPartVel: 'Hit particle speed',
     HitPartColor: 'Hit particle color', Recoil: 'Push back on the firer', ExitType: 'Which exit points', BurstCount: 'Shots a burst', BurstReload: 'Reload after a burst', JamVuln: 'How jamming affects it',
-    Flags3: 'Ammunition, one shot at a time, and exit point', Durability: 'What point defense wears down', IonizeColor: 'Color of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
+    Flags3: 'Ammunition, single shots, and exit point', Durability: 'What point defense wears down', IonizeColor: 'Color of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
     Speed: 'Shot speed', GuidedTurn: 'Homing turn', Impact: 'Push on the ship hit', Ionization: 'Ionization added', SubCount: 'Submunitions a shot', SubTheta: 'Submunition spread', SubLimit: 'Submunition generations',
   },
   'përs': {
@@ -1740,7 +1740,7 @@ const NOVA_FIELD_SHORT = {
   },
   'ränk': {
     Weight: 'Which rank gives the player\'s title', Govt: 'Its government', PriceMod: 'Price (percent)', Salary: 'Daily pay', SalaryCap: 'Pay only below this', Contrib: 'Bits it gives while held',
-    Flags: 'How the player loses it and what it does', ConvName: 'Name used for <PRK>', ShortName: 'Name used for <SRK>',
+    Flags: 'Losing it and what it does', ConvName: 'Name used for <PRK>', ShortName: 'Name used for <SRK>',
   },
   'crön': {
     FirstDay: 'Earliest day', FirstMonth: 'Earliest month', FirstYear: 'Earliest year', LastDay: 'Latest day', LastMonth: 'Latest month', LastYear: 'Latest year', Random: 'Daily chance it starts',

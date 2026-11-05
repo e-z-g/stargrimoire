@@ -18,9 +18,9 @@
    Everything drawn comes from nova-universe.js, and the subway map's
    places and paths from nova-subway.js; this file sets only how it
    looks. The choices made here: a system is a dot in its
-   government's Color with a light rim, so the governments whose colour is
-   black still show on black; an independent system is grey; a system's
-   disc reaches 0.42 of the way to its nearest neighbour, so no two discs
+   government's Color with a light rim, so the governments whose color is
+   black still show on black; an independent system is gray; a system's
+   disc reaches 0.42 of the way to its nearest neighbor, so no two discs
    meet; a stellar is never drawn smaller than MIN_STELLAR pixels once its
    system is open; a nebula's picture is laid over the map in screen
    blending, as ResForge's Galaxy Editor does.
@@ -69,20 +69,20 @@ const LAYOUT = { kind: null, want: null, mix: 0, sub: null, base: null, subs: {}
 // How much of a subway map is drawn, for the lines' width and their rounded corners: all of one
 // the whole way from one to another.
 const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
-/* How the links are coloured (LINKS_BY: 'plain', 'govt' -- from one end's
-   government colour to the other's -- or 'jumps', by how many jumps they
+/* How the links are colored (LINKS_BY: 'plain', 'govt' -- from one end's
+   government color to the other's -- or 'jumps', by how many jumps they
    are from the selected system), and whether the systems' names are drawn
    on the galaxy (the selected and pointed-at always are). The jumps run
    through the whole spectrum, as the maintainer asked (28 September
    2026), red at one jump to blue at the furthest: turbo (Mikhailov, 2019),
-   d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every colour
+   d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every color
    is at least 3:1 against the black of the map. */
-// SYS_STYLE: how a system is marked: 'dots', coloured by DOTS_BY; 'metro', a white stop, or where
+// SYS_STYLE: how a system is marked: 'dots', colored by DOTS_BY; 'metro', a white stop, or where
 // three links or more meet a larger one ringed, as metro maps mark stations; 'none'
 // PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's request, 30 September 2026):
-// one size, never made smaller to fit, semibold, white, outlined in the background's colour
+// one size, never made smaller to fit, semibold, white, outlined in the background's color
 // NEB_STYLE: the nebulae as their pictures, as plain shapes (nebulaShape), or not at all; NEBULAE, drawn at all
-// FLAT_LINKS: links in government colours each in one (as govtOne), not shading from one end's to the other's
+// FLAT_LINKS: links in government colors each in one (as govtOne), not shading from one end's to the other's
 // The metro styles are the subway map's, each a switch under it (subwayLook).
 let LINKS_BY = 'plain', NAMES = true, NEBULAE = true, NEB_STYLE = 'pictures', SYS_STYLE = 'dots', PLAIN_NAMES = false, FLAT_LINKS = false;
 function turbo(t) {
@@ -459,11 +459,11 @@ function sysGeo(sys) {
 function kOf(sys) { return placeOf(sys.id).rho / sysGeo(sys).R; }
 /* Where a stellar is drawn, in its system's units: where it is, or, for
    one beyond the near ones -- in the shipped game 18 wormholes, each 4,000
-   to 12,000 units out, past the neighbouring systems -- in a pocket, a
+   to 12,000 units out, past the neighboring systems -- in a pocket, a
    small circle on the rim of the disc in the stellar's direction, the
    maintainer's idea (1 October 2026), so that it is on the screen with its
    system. The galaxy's mark for a gate is put the same way (drawGateMarks). */
-const POCKET = { at: 1.16, r: 0.24 };   // the pocket's centre and radius, in the disc's radius
+const POCKET = { at: 1.16, r: 0.24 };   // the pocket's center and radius, in the disc's radius
 function stellarPos(sys, sp) {
   const g = sysGeo(sys);
   if (g.near.has(sp.id)) return [sp.xPos, sp.yPos];
@@ -730,7 +730,7 @@ function drawNebulae(ctx) {
   ctx.restore();
 }
 /* A nebula as a plain shape (the maintainer's request, 30 September 2026: the pictures were hard to
-   see the lines over): a rounded patch in its picture's colour, the colour its pixels average to,
+   see the lines over): a rounded patch in its picture's color, the color its pixels average to,
    each weighted by its brightness and brought up to a steady brightness, faint enough for the lines
    and stations over it to read, a lighter edge, and its name. */
 const NEB_TINT = new Map();
@@ -744,16 +744,16 @@ function nebulaTint(n, img) {
     g.drawImage(img, 0, 0, k, k);
     const px = g.getImageData(0, 0, k, k).data;
     let r = 0, gr = 0, b = 0, wt = 0;
-    // weighted by how bright and how coloured each pixel is, so that black and white lettering count for nothing
+    // weighted by how bright and how colored each pixel is, so that black and white lettering count for nothing
     for (let i = 0; i < px.length; i += 4) { const mx = Math.max(px[i], px[i + 1], px[i + 2]), mn = Math.min(px[i], px[i + 1], px[i + 2]), l = mx * (mx ? (mx - mn) / mx : 0); r += px[i] * l; gr += px[i + 1] * l; b += px[i + 2] * l; wt += l; }
     if (wt > 0) { const m = Math.max(r, gr, b) / wt || 1; t = [r, gr, b].map(v => Math.round(v / wt * 220 / m)); }
     NEB_TINT.set(n.id, t);
   }
   return t;
 }
-// The part of a nebula's picture that is the nebula: its coloured pixels that are bright for that
+// The part of a nebula's picture that is the nebula: its colored pixels that are bright for that
 // picture, so that the black of space and the nearly colourless name lettered on it are left out.
-// Each is in its colour brought up to full brightness (the maintainer found one colour for a
+// Each is in its color brought up to full brightness (the maintainer found one color for a
 // nebula, its average, muddy), with its alpha showing how much it is cloud; on a 48 by 48 grid,
 // softened, drawn stretched. And the box, in fractions
 // of the picture, of what is clearly cloud.
@@ -766,9 +766,9 @@ function nebulaMask(n, img) {
   const g = c.getContext('2d');
   g.drawImage(img, 0, 0, k, k);
   const d = g.getImageData(0, 0, k, k), px = d.data;
-  // each pixel its colour brought up to full brightness, premultiplied by how much it is cloud
+  // each pixel its color brought up to full brightness, premultiplied by how much it is cloud
   const pm = new Float32Array(k * k * 4);
-  // brightness judged against that of the picture's coloured pixels, their 90th percentile: the lettering
+  // brightness judged against that of the picture's colored pixels, their 90th percentile: the lettering
   // is its brightest (up to 241 in the Rochak Dust Field, whose dust is 41 to 56), and is nearly
   // colourless (30 September 2026, measured over the four nebulae of the stock game)
   const sat = i => { const mx = Math.max(px[4 * i], px[4 * i + 1], px[4 * i + 2]), mn = Math.min(px[4 * i], px[4 * i + 1], px[4 * i + 2]); return mx ? (mx - mn) / mx : 0; };
@@ -778,7 +778,7 @@ function nebulaMask(n, img) {
   let x0 = k, y0 = k, x1 = -1, y1 = -1;
   for (let i = 0; i < k * k; i++) {
     const r = px[4 * i], gr = px[4 * i + 1], b = px[4 * i + 2], mx = Math.max(r, gr, b), mn = Math.min(r, gr, b);
-    // cloud: coloured, and bright for the picture's coloured pixels
+    // cloud: colored, and bright for the picture's colored pixels
     const wgt = clampNum((mx - 0.25 * P) / (0.6 * P), 0, 1) * clampNum((sat(i) - 0.15) / 0.2, 0, 1), up = mx ? 255 / mx : 0;
     pm[4 * i] = r * up * wgt; pm[4 * i + 1] = gr * up * wgt; pm[4 * i + 2] = b * up * wgt; pm[4 * i + 3] = 255 * wgt;
     if (wgt > 0.25) { const x = i % k, y = (i / k) | 0; x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
@@ -867,7 +867,7 @@ function drawNebulaNames(ctx) {
   ctx.restore();
 }
 
-// An open system's disc, in its background colour, with a faint rim that
+// An open system's disc, in its background color, with a faint rim that
 // goes as the disc outgrows the screen.
 function drawDiscs(ctx) {
   const m = Math.min(CW, CH);
@@ -931,8 +931,8 @@ function trimPath(pts, a, b) {
   return [{ x: p.x, y: p.y }, ...pts.slice(p.i + 1, q.i + 1), { x: q.x, y: q.y }];
 }
 
-// A government's colour for a link: a dark one lifted towards the plain
-// link's grey, so that it still shows on black.
+// A government's color for a link: a dark one lifted toward the plain
+// link's gray, so that it still shows on black.
 function linkColor(govt) {
   const hex = govtFill(govt), n = parseInt(hex.slice(1), 16);
   let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
@@ -983,9 +983,9 @@ function linkJumps(l, m) {
   if (b !== undefined && (!l.oneWay || !l.forward)) j = Math.min(j, b + 1);
   return j;
 }
-/* The links each in one government's colour (the maintainer's request, 30 September 2026), rather than
-   a blend from one end's to the other's: a link within a government its colour; between two, the
-   colour of the one with fewer systems shown; but where two parts of a government -- its systems
+/* The links each in one government's color (the maintainer's request, 30 September 2026), rather than
+   a blend from one end's to the other's: a link within a government its color; between two, the
+   color of the one with fewer systems shown; but where two parts of a government -- its systems
    joined by its links -- are joined through one other system and only that one, the two links
    through it are the government's, so that it does not look split in two. Governments with more
    systems are handled first. */
@@ -1047,11 +1047,11 @@ function renderLegend() {
   el.innerHTML = parts.join('<div class="gap"></div>');
 }
 
-/* How the systems' dots are coloured (DOTS_BY): by government (the
-   panel's chips stay in government colours whatever the map shows, since
-   there they show which government it is), all in one colour, or by a figure of the system's
+/* How the systems' dots are colored (DOTS_BY): by government (the
+   panel's chips stay in government colors whatever the map shows, since
+   there they show which government it is), all in one color, or by a figure of the system's
    record, on the turbo scale from 1 to the most any shown system has, and
-   in a dark grey where it is 0 (the maintainer's request, 29 September
+   in a dark gray where it is 0 (the maintainer's request, 29 September
    2026). */
 let DOTS_BY = 'govt';
 const PLAIN_DOT = '#aeb8c6', NONE_DOT = '#3d434c';
@@ -1221,7 +1221,7 @@ function drawLinks(ctx) {
     ctx.stroke();
   }
   ctx.lineWidth = 1;
-  // A link the other end does not return: an arrowhead half way, pointing towards the end it leads to.
+  // A link the other end does not return: an arrowhead half way, pointing toward the end it leads to.
   ctx.fillStyle = 'rgba(125,145,180,0.9)';
   for (const s of segs) if (s.l.oneWay) {
     ctx.globalAlpha = far.has(s) ? FAINT : 1;
@@ -1386,8 +1386,8 @@ function drawDots(ctx) {
     // the mark itself, unless the systems are drawn not at all (the maintainer found the dots in the
     // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings round it are drawn
     // either way. As metro stations (the maintainer's request, the same day): white, a small stop on a
-    // line, and where three links or more meet a larger one in a ring the colour of the background,
-    // so that the lines stop short of it; and round the white a ring in the colour Systems coloured
+    // line, and where three links or more meet a larger one in a ring the color of the background,
+    // so that the lines stop short of it; and round the white a ring in the color Systems colored
     // gives, its government's or a figure's, thin for a stop and thicker where three links or more
     // meet, and outside it a thin ring of the background (the maintainer's request, 30 September 2026)
     if (SYS_STYLE === 'dots') {
@@ -2005,7 +2005,7 @@ function syncOpts(kind = LAYOUT.want) {
 }
 // The subway map is its arrangement of the systems and a look beside it, each part a switch under
 // it, all on with it (the maintainer's request, 13 October 2026): names and systems as a metro
-// map's, links each in one colour, and the nebulae as plain shapes.
+// map's, links each in one color, and the nebulae as plain shapes.
 function subwayLook() {
   const on = $('optSubway').checked;
   PLAIN_NAMES = on && $('optPlainNames').checked;
@@ -2033,7 +2033,7 @@ function optsRestore() {
   subwayLook();
   showOpts();
 }
-// A switch whose parent is off is hidden, and so is the dots' colouring where there are none.
+// A switch whose parent is off is hidden, and so is the dots' coloring where there are none.
 function showOpts() {
   const hide = (id, h) => { $(id).closest('label').hidden = h; };
   const sub = $('optSubway').checked, arr = sub && $('optArrange').checked;

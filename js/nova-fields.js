@@ -976,42 +976,42 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoOutfitDialog', 0x5bacf], ['DoPlunderDialog', 0x9302b], ['ScanPlayer', 0x7e46e], ['SetupPlayerInfoText', 0x53cb8]],
     },
     LCPlural: {
-      note: 'Its name in a sentence for more than one, where LCName is for one.',
+      note: 'Its name in a sentence for more than one. LCName is for one.',
       code: [['LoadObjectData', 0x771b0], ['DoOutfitDialog', 0x5bacf], ['DoPlunderDialog', 0x9302b], ['ScanPlayer', 0x7e46e], ['SetupPlayerInfoText', 0x53cb8]],
     },
     ItemClass: {
-      note: 'Its class for a përs\'s GrantClass: plundering that përs\'s ship may give you outfits of one item of this class.',
+      note: 'Its class for a përs\'s GrantClass. Plundering that përs\'s ship may give the player outfits of one item of this class.',
       code: [['DoPlunderDialog', 0x9302b]],
     },
     ScanMask: {
-      note: 'When a ship of a government whose ScanMask shares a bit with this scans you while you carry one, it is smuggling: your record with that government suffers and you pay its ScanFine, and the ship tells you so, naming it.',
+      note: 'A ship of a government whose ScanMask shares a bit with this may scan the player while the player carries one. That counts as smuggling. The player\'s record with that government drops and the player pays its ScanFine. The ship\'s message gives the outfit\'s name.',
       code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
     },
     RequireGovt: {
-      note: 'Where its Requires apply when you are landed: -1, everywhere; 128 to 383, at stellars of that gövt or its allies; 1128 to 1383, those and independent stellars; 2128 to 2383, everywhere but stellars of that gövt or its allies; 3128 to 3383, everywhere but those and independent stellars. Anything else: everywhere.',
+      note: 'Where its Requires apply when the player is landed. -1: everywhere. 128 to 383: at stellars of that gövt or its allies. 1128 to 1383: those and independent stellars. 2128 to 2383: everywhere but stellars of that gövt or its allies. 3128 to 3383: everywhere but those and independent stellars. Anything else: everywhere.',
       code: [['CanBuyOutfitItem', 0x4e7c4], ['GovtAllies', 0x4e3d]],
     },
     TechLevel: {
-      note: 'Offered at outfitters whose stellar\'s TechLevel is at least this, or with this among the stellar\'s SpecialTech. Below 0, or 32767: nowhere by its TechLevel.',
+      note: 'Offered at outfitters whose stellar\'s TechLevel is at least this or with this among the stellar\'s SpecialTech. With a value below 0 or 32767 no outfitter offers it by its TechLevel.',
       code: [['SetupPortAvailableItems', 0xbedb]],
     },
     BuyRandom: {
-      note: 'The chance in 100 that it is for sale on a given day: it is for sale while BuyRandom is at least a number from 1 to 100 drawn for it each day. Above 100: 100. 0 or less: never, unless you already have one.',
+      note: 'The chance in 100 that it is for sale on a given day. It is for sale while BuyRandom is at least a number from 1 to 100 drawn for it each day. Above 100: 100. 0 or less: never unless the player already has one.',
       bible: 'the game reads values below 1 or above 100 as 100.',
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableItems', 0xbedb], ['IncrementGameTime', 0xb516]],
     },
     Contributes: {
-      note: 'Added to your bits while you carry at least one. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, passes when they include every bit it sets.',
+      note: 'Added to the player\'s bits while the player carries at least one. The player\'s bits come from the ship class, every outfit the player carries, every ränk the player has, and every crön event that is running. The Require of a shïp, mïsn, crön, or gövt passes when the bits include every bit it sets. So do an oütf\'s Requires.',
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableItems', 0xbedb], ['CanBuyOutfitItem', 0x4e7c4]],
     },
   },
   'wëap': {
     Sound: {
-      note: 'The sound when it fires: 0 and up, snd 200 + Sound; with Flags 0x0010 it is not started again while still playing, so it loops. Below 0: silent.',
+      note: 'The sound when it fires. 0 and up: snd 200 + Sound. With Flags 0x0010 the game does not start it again while it still plays so it loops. Below 0: silent.',
       code: [['LoadSounds', 0x1c036], ['FireAIShipWeapon', 0x8873d]],
     },
     SmokeSet: {
-      note: 'Which set of smoke pictures its shots leave behind them, eight to a set: small with Flags 0x0200, big with 0x0400, lasting longer with 0x0800. Without those, no smoke.',
+      note: 'Which set of smoke pictures its shots leave behind them (eight to a set). Flags 0x0200 gives small smoke, 0x0400 big smoke, and 0x0800 smoke lasting longer. Without those: no smoke.',
       code: [['HandleShot', 0x35586], ['SpawnSmoke', 0x3f927], ['HandleSmoke', 0x2e29f]],
     },
     BeamColor: {
@@ -1019,56 +1019,56 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     CoronaColor: {
-      note: 'The color of a beam\'s glow round its core, as drawn; a lightning beam has none.',
+      note: 'The color of a beam\'s glow around its core as drawn. A lightning beam has none.',
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     LiDensity: {
-      note: 'Above 0, the game draws the beam as lightning, zig-zagging this often (1 counts as 2), with no glow (Falloff 0) and a BeamWidth of at least 1. It strikes as a straight beam would.',
+      note: 'Above 0: the game draws the beam as lightning zig-zagging this often (1 counts as 2) with no glow (Falloff 0) and a BeamWidth of at least 1. It strikes as a straight beam would.',
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     LiAmplitude: {
-      note: 'How far a lightning beam\'s zig-zags swing, as drawn (LiDensity).',
+      note: 'How far a lightning beam\'s zig-zags swing as drawn (LiDensity).',
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     MaxAmmo: {
-      note: 'Above 0, the most ammunition you can carry for it is MaxAmmo × the launchers you carry, whatever the ammunition outfit\'s Max. 0 or less: the outfit\'s Max.',
+      note: 'Above 0: the most ammunition the player can carry for it is MaxAmmo × the launchers aboard whatever the ammunition outfit\'s Max. 0 or less: the outfit\'s Max.',
       code: [['HasMaxOfItem', 0x4512]],
     },
     MassDmg: {
-      note: 'Damage to the armor of a ship hit, once its shields are down (at once with Flags 0x0020); less one for each Decay period passed. A beam takes it from an asteroid\'s strength too, ten times with Flags2 0x8000. Against a shot, this plus half its EnergyDmg is what point defence takes off its Durability.',
+      note: 'Damage to the armor of a ship hit once its shields are down (immediately with Flags 0x0020). One comes off for each Decay period passed. A beam removes it from an asteroid\'s strength too (× 10 with Flags2 0x8000). Against a shot point defense removes this plus half its EnergyDmg from the shot\'s Durability.',
       code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleBeams', 0x30295], ['PointDefenseCollisionHandler', 0x37776]],
     },
     EnergyDmg: {
-      note: 'Damage to the shields of a ship hit; less one for each Decay period passed. The shields go no lower than a tenth of their capacity below 0. A shot (not a beam) takes it from an asteroid\'s strength, ten times with Flags2 0x8000.',
+      note: 'Damage to the shields of a ship hit. One comes off for each Decay period passed. The shields go no lower than a tenth of their capacity below 0. A shot (not a beam) removes it from an asteroid\'s strength (× 10 with Flags2 0x8000).',
       code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleAsteroidHit', 0x36637]],
       bible: 'Flags2 0x8000: weapon does x10 mass damage to asteroids.',
     },
     Guidance: {
-      note: 'How it flies and fires: -1 a forward gun; 0 a beam; 1 homing (Seeker, GuidedTurn); 3 a turreted beam and 4 a turret, at the target in reach and out of the blind spots; 5 a bomb, turning a degree a step to its course; 6 a rocket, easing onto its heading; 7 and 8 front and rear quadrant turrets, within 45° of the bow or stern; 9 and 10 point defence, shot and beam, fired at homing shots coming at the ship or its lead and at ships of Flags2 0x0008 attacking them; 99 a fighter bay (AmmoType the ship class).',
+      note: 'How it flies and fires. -1: a forward gun. 0: a beam. 1: homing (Seeker and GuidedTurn). 3: a turreted beam. 4: a turret. Both fire at the target in reach and out of the blind spots. 5: a bomb turning a degree a step to its course. 6: a rocket easing onto its heading. 7 and 8: front and rear quadrant turrets within 45° of the bow or stern. 9 and 10: point defense (shot and beam). They fire at homing shots coming at the ship or its lead and at ships of Flags2 0x0008 attacking them. 99: a fighter bay (AmmoType gives the ship class).',
       code: [['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['HandleShipPointDefense', 0x392c4]],
     },
     AmmoType: {
-      note: 'What a shot uses: -1 nothing; 0 to 255, the ammunition kept for weapon 128 + n; -999, firing wrecks the firing ship, its shields and armor to 0; -1000 and below, (|AmmoType| - 1000) ÷ 10 fuel a shot, fired only with that much aboard. For a fighter bay, the ship class.',
+      note: 'What a shot uses. -1: nothing. 0 to 255: the ammunition stored for weapon 128 + n. -999: firing wrecks the firing ship and sets its shields and armor to 0. -1000 and below: (|AmmoType| - 1000) ÷ 10 fuel a shot. The weapon fires only with that much aboard. A fighter bay gives the ship class.',
       code: [['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550]],
     },
     Graphic: {
-      note: 'Its shots\' sprite, spïn 3000 + Graphic; above 255, the weapon makes no shot.',
+      note: 'Its shots\' sprite (spïn 3000 + Graphic). Above 255: the weapon makes no shot.',
       code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586]],
     },
     Inaccuracy: {
-      note: 'Above 0, each shot leaves within that many degrees either side of its aim (a bomb\'s picture only). Below 0, it leaves that many degrees off the bow, to the side of the exit point it leaves from. 0: straight.',
+      note: 'Above 0: each shot leaves within that many degrees either side of its aim (only a bomb\'s picture). Below 0: it leaves that many degrees off the bow toward the side of its exit point. 0: straight.',
       code: [['SpawnShot', 0x3e550], ['HandleShipPointDefense', 0x392c4]],
     },
     ExplodType: {
-      note: 'The explosion where it hits, or where it ends with Flags 0x8000: 0 to 63, bööm 128 + n; 1000 to 1063, the big kind spread over BlastRadius. Anything else: none.',
+      note: 'The explosion where it hits or where it ends with Flags 0x8000. 0 to 63: bööm 128 + n. 1000 to 1063: the big kind spread over BlastRadius. Anything else: none.',
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['CreateExplosion', 0x3f698]],
     },
     ProxRadius: {
-      note: 'The reach of its proximity fuse, plus a third of the target\'s sprite: a shot that comes that near, once armed (ProxSafety), goes off. 0: only a hit.',
+      note: 'The reach of its proximity fuse plus a third of the target\'s sprite. An armed shot (ProxSafety) goes off when it comes that near. 0: only a hit.',
       code: [['CheckShotProximities', 0x371bc]],
     },
     BlastRadius: {
-      note: 'Every other ship within this, on each axis, of where it goes off takes its full damage, Impact and Ionization too; the firer is spared, but your own blast hurts you unless Flags 0x0100. 0: none.',
+      note: 'Every other ship within this distance on each axis of where it goes off receives its full damage with Impact and Ionization. The blast spares the firer. The player\'s blast hurts the player unless Flags 0x0100. 0: none.',
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {

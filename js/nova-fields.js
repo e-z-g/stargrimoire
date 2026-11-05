@@ -647,11 +647,11 @@ const NOVA_FIELD_NOTES = {
       code: [['GovtEnemies', 0x4f22], ['GovtAllies', 0x4e3d]],
     },
     SkillMult: {
-      note: 'Multiplies the skill of its ships (shïp SkillVar), and so their acceleration and top speed: SkillMult ÷ 100; 0 or less, 1.',
+      note: 'Multiplies the skill of its ships (shïp SkillVar) and so their acceleration and top speed by SkillMult ÷ 100. 0 or less: 1.',
       code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2]],
     },
     ScanMask: {
-      note: 'Its scans find a mission\'s cargo, a jünk or an outfit whose ScanMask shares a bit with this: smuggling, fined at ScanFine and SmugPenalty.',
+      note: 'Its scans find a mission\'s cargo, a jünk, or an outfit whose ScanMask shares a bit with this. Finding one counts as smuggling and brings ScanFine and SmugPenalty.',
       code: [['ScanPlayer', 0x7e46e]],
     },
     CommName: {
@@ -663,11 +663,11 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DrawStatusTarg', 0x4ace1]],
     },
     Require: {
-      note: 'You may land at its stellars only when the Contributes bits of your ship and outfits include every bit set here, unless one of your missions goes to or returns to that stellar.',
+      note: 'The player may land at its stellars only when the Contributes bits of the player\'s ship and outfits include every bit set here. The test does not apply when one of the player\'s missions goes to or returns to that stellar.',
       code: [['HandlePlayerDockRequest', 0x66691], ['PlayerMeetsRequirements', 0x776f]],
     },
     InhJam: {
-      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). A ship not yours adds the jamming outfits among its class\'s DefaultItems, and has it all halved when the ship\'s government has Flags 0x0080. Yours adds your jamming outfits. Below 0 counts as 0.',
+      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). Another ship adds the jamming outfits among its class\'s DefaultItems. The game halves that ship\'s total when the ship\'s government has Flags 0x0080. The player\'s ship adds the player\'s jamming outfits. Below 0 counts as 0.',
       code: [['ShipECM', 0x3aff]],
     },
     MediumName: {
@@ -679,7 +679,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DrawMapInfluence', 0xe360]],
     },
     ShipColor: {
-      note: 'The color the game paints its ships, kept to 5 bits a channel; black, unpainted. The game draws a përs\'s ship in the përs\'s color instead, and leaves yours unpainted.',
+      note: 'The color the game paints its ships (5 bits a channel). Black: unpainted. The game draws a përs\'s ship in the përs\'s color instead and leaves the player\'s ship unpainted.',
       code: [['LoadObjectData', 0x771b0], ['GetShipPaintColor', 0x7d0c]],
     },
     Intf: {
@@ -691,84 +691,84 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoNewsDialog', 0x47f0a]],
     },
     InitialRec: {
-      note: 'Your record in each system whose Govt is this, when you start a new pilot; a system with no government starts at 0. After your escape pod\'s rescue (dësc 13999), every system\'s record goes back to this.',
+      note: 'The player\'s record in each system whose Govt is this at the start of a new pilot. A system with no government starts at 0. After the rescue of the player\'s escape pod (dësc 13999) every system\'s record goes back to this.',
       bible: 'says nothing of the escape pod.',
       code: [['ResetPlayer', 0x1d40d], ['ResetPlayerRecord', 0x1db70], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
     },
     ScanFine: {
-      note: 'The fine when one of its ships fines you after a scan: 1 and up, that many credits; 0, a warning only; below 0, that percentage of your credits, rounded down to the hundred (at least 1).',
+      note: 'The fine when one of its ships fines the player after a scan. 1 and up: that many credits. 0: a warning only. Below 0: that percentage of the player\'s credits rounded down to the hundred (at least 1).',
       code: [['ScanPlayer', 0x7e46e]],
     },
     MaxOdds: {
-      note: 'Kept as MaxOdds ÷ 100, at least 0.01. A warship of this government runs once the odds against it pass that, or twice that while a reinforcement fleet is on its way; a ship calls a system\'s reinforcement fleet of this government at half of it.',
+      note: 'The game stores it as MaxOdds ÷ 100 (at least 0.01). A warship of this government runs once the odds against it pass that. While a reinforcement fleet is on its way it runs at twice that. A ship calls a system\'s reinforcement fleet of this government at half of it.',
       code: [['LoadObjectData', 0x771b0], ['WarshipAI', 0x8b729], ['AICallForReinforcements', 0x7f5a1]],
     },
   },
   'mïsn': {
     Require: {
-      note: 'The game offers it only when the Contributes bits of your ship and outfits include every bit set here.',
+      note: 'The game offers it only when the Contributes bits of the player\'s ship and outfits include every bit set here.',
       code: [['IsMissionAvailable', 0x9b152], ['PlayerMeetsRequirements', 0x776f]],
     },
     AvailStel: {
-      note: 'Where the game offers it. -1: anywhere. 128 to 4999: at that spöb. 5000 + n: in a system with a link to sÿst 128 + n. At a stellar whose government is: 9999, none; 10000 + n, gövt 128 + n; 15000 + n, an ally of it; 20000 + n, any but it, or none; 25000 + n, an enemy of it; 30000 + n, it, or one with the same class in the same one of the four Classes; 31000 + n, neither (not none). Anything else: never. Not tested when a ship offers it. Unless it is a single spöb, the game does not offer it while its TravelStel or ReturnStel is a stellar in the system you are in.',
+      note: 'Where the game offers it. -1: anywhere. 128 to 4999: at that spöb. 5000 + n: in a system with a link to sÿst 128 + n. 9999: at a stellar with no government. 10000 + n: at a stellar of gövt 128 + n. 15000 + n: at a stellar of an ally of it. 20000 + n: at a stellar of any government but it or of none. 25000 + n: at a stellar of an enemy of it. 30000 + n: at a stellar of it or of a government with the same class in the same one of the four Classes. 31000 + n: at a stellar of neither (a stellar with no government does not count). Anything else: never. The game does not test it when a ship offers the mission. Unless it is a single spöb the game does not offer the mission while its TravelStel or ReturnStel is a stellar in the player\'s current system.',
       code: [['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48], ['LoadObjectData', 0x771b0]],
     },
     AvailLoc: {
-      note: 'Where the game offers it. 0: listed in the Mission BBS. 1: in the bar. 2: by a ship whose përs has it as LinkMission, when you hail the ship, or, with that përs\'s Flags 0x0200, when you board it. 3: on landing, at the spaceport. 4: at the Trade Center. 5: at the shipyard. 6: at the outfitter. Anything else: nowhere.',
+      note: 'Where the game offers it. 0: listed in the Mission BBS. 1: in the bar. 2: by a ship whose përs has it as LinkMission. The ship offers it when the player hails it. With that përs\'s Flags 0x0200 it offers it when the player boards it. 3: on landing at the spaceport. 4: at the Trade Center. 5: at the shipyard. 6: at the outfitter. Anything else: nowhere.',
       code: [['IsMissionAvailable', 0x9b152], ['OfferMissionFromPort', 0xa369e], ['DoMissionDialog', 0xa37cf], ['DoBarDialog', 0x48ef5], ['DoPortDialog', 0x5f911], ['DoTradeDialog', 0x5dbe1], ['DoShipyardDialog', 0x5e679], ['DoOutfitDialog', 0x5bacf], ['HandlePlayerCommunication', 0x61f48], ['HandlePlayerBoardAttempt', 0x65000]],
     },
     AvailRecord: {
-      note: '0: no test. Above 0: your record in this system must be at least this; below 0, at most this. -32000: the stellar you are at must be one you have dominated; -32001: you must have dominated some stellar; below that: never offered.',
+      note: '0: no test. Above 0: the player\'s record in this system must be at least this. Below 0: it must be at most this. -32000: the stellar the player is at must be one the player has dominated. -32001: the player must have dominated some stellar. Below that: never offered.',
       code: [['IsMissionAvailable', 0x9b152]],
     },
     AvailRating: {
-      note: '0 or less: no test. Above 0: your combat rating must be at least this.',
+      note: '0 or less: no test. Above 0: the player\'s combat rating must be at least this.',
       code: [['IsMissionAvailable', 0x9b152]],
     },
     AvailRandom: {
-      note: 'The chance in 100 that the game offers it: each mission has a number from 1 to 100, drawn again from time to time as you play, and the game offers it while AvailRandom is at least that. 100 or more: always. 0 or less: never. Accepting it sets its number to 0.',
+      note: 'The chance in 100 that the game offers it. Each mission has a number from 1 to 100 that the game draws again from time to time during play. The game offers the mission while AvailRandom is at least that number. 100 or more: always. 0 or less: never. Accepting it sets its number to 0.',
       code: [['IsMissionAvailable', 0x9b152], ['InitObjects', 0x1c2e5], ['HandlePlayer', 0x68390], ['DoMissionAccept', 0xa1b11]],
     },
     AvailShipTyp: {
-      note: '128 to 896: you must be flying that ship class; 1128 to 1896: you must not be. 2128 to 2384: your ship class\'s InherentGovt must name that government (as 128 and up or 1128 and up); 3128 to 3384: it must be some other government. Anything else: no test.',
+      note: '128 to 896: the player must be flying that ship class. 1128 to 1896: the player must not be. 2128 to 2384: the InherentGovt of the player\'s ship class must be that government (as 128 and up or 1128 and up). 3128 to 3384: it must be some other government. Anything else: no test.',
       code: [['IsMissionAvailable', 0x9b152], ['LoadObjectData', 0x771b0]],
     },
     TravelStel: {
-      note: 'Where you must go, picked when the game makes the mission ready to offer. -1: nowhere. 128 to 2175: that spöb. -2: one picked at random from the stellars that qualify and have Flags 0x20 clear; -3: from those with Flags 0x20 set and 0x10 clear. 9999, 10000 + n, 15000 + n, 20000 + n, 25000 + n, 30000 + n and 31000 + n: from those, Flags 0x20 clear, of the governments AvailStel\'s same numbers name; for 10000 + n, Flags 0x20 set too when gövt 128 + n has Flags 0x0800. A stellar qualifies when its system is there now (its Visibility), it is in every version of that system, you can land on it and it is no hypergate or wormhole (Flags2 0x1000, 0x2000), and it is not where you are nor in your system or one linked to it. The game does not offer the mission while none qualifies (not counting that last test). -4, anything else, or none qualifying: the stellar you are at (offered by a ship, the first in your system). Landing on it, or on a stellar of the same name at the same place, completes this part of the mission.',
+      note: 'Where the player must go. The game picks it when it makes the mission ready to offer. -1: nowhere. 128 to 2175: that spöb. -2: one picked at random from the stellars that qualify and have Flags 0x20 clear. -3: one from those with Flags 0x20 set and 0x10 clear. The government numbers of AvailStel (9999, 10000 + n, 15000 + n, 20000 + n, 25000 + n, 30000 + n, and 31000 + n) pick one with Flags 0x20 clear from those of the governments they give. For 10000 + n stellars with Flags 0x20 set also count when gövt 128 + n has Flags 0x0800. A stellar qualifies when its system is there now (its Visibility) and it is in every version of that system. The player must be able to land on it and it must be no hypergate or wormhole (Flags2 0x1000 and 0x2000). It must not be where the player is, in the player\'s system, or in a system linked to it. The game does not offer the mission while none qualifies (not counting that last test). With -4, any other value, or none qualifying it is the player\'s current stellar. When a ship offers the mission it is the first stellar in the player\'s system. Landing on it or on a stellar of the same name at the same place completes this part of the mission.',
       bible: 'lists no -4, nor what other values do.',
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['StellarsAreDistant', 0x9cb9], ['StellarIsNormalLandable', 0xa9f8], ['StellarIsLandable', 0xa989], ['IsMissionAvailable', 0x9b152], ['HandleStellarSystemVisibility', 0x32aa5], ['PropagateMissionBitEffects', 0x99676], ['StellarsAreIdentical', 0xab35], ['MissionLandCargoCheck', 0x9edc5]],
     },
     ReturnStel: {
-      note: 'Where you must land to complete the mission, once you have done the rest of it: picked as TravelStel is, from where you are, and a random pick is never the stellar TravelStel picked. -1: the stellar TravelStel picked, so landing there completes it; with TravelStel -1 too, no landing completes it. Landing on a stellar of the same name at the same place counts as well.',
+      note: 'Where the player must land to complete the mission once the player has done the rest of it. The game picks it as it picks TravelStel from where the player is. A random pick is never the stellar TravelStel picked. -1: the stellar TravelStel picked. Landing there completes it. With TravelStel -1 too no landing completes it. Landing on a stellar of the same name at the same place counts as well.',
       bible: '-1 is no specific stellar destination.',
       code: [['RandomizeOneMission', 0xa14d1], ['SelectMissionStellar', 0x9a26a], ['LoadCurrentMissionData', 0xa0a38], ['MissionLandCheck', 0xa19cc], ['StellarsAreIdentical', 0xab35]],
     },
     PickupMode: {
-      note: 'When the cargo comes aboard. 0: when you accept, which the game refuses while the cargo is more than your holds or your free room. 1: on landing at TravelStel\'s stellar; while it will not fit, that stellar does not count as reached. 2: on boarding one of the mission\'s ships. Anything else: never. The game shows LoadCargText, if not -1, as the cargo comes aboard by landing or accepting.',
+      note: 'When the cargo comes aboard. 0: when the player accepts. The player cannot accept while the cargo is more than the player\'s cargo space or free room. 1: on landing at TravelStel\'s stellar. While the cargo does not fit that stellar does not count as reached. 2: on boarding one of the mission\'s ships. Anything else: never. The game shows LoadCargText (unless it is -1) as the cargo comes aboard by landing or accepting.',
       code: [['DoMissionAccept', 0xa1b11], ['MissionLandCargoCheck', 0x9edc5], ['DoMissionCargoPickup', 0x98292], ['HandlePlayerBoardAttempt', 0x65000]],
     },
     DropoffMode: {
-      note: 'Where the cargo comes off, if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s, once you meet its ShipGoal or it is -1 (with ShipGoal 3, also while a count kept with the mission, not yet read, is 0). Anything else: never. The game shows DropCargText then, if not -1.',
+      note: 'Where the cargo comes off if it is aboard. 0: on landing at TravelStel\'s stellar. 1: on landing at ReturnStel\'s once the player meets its ShipGoal or it is -1. With ShipGoal 3 this also needs a count kept with the mission (not yet read) to be 0. Anything else: never. The game then shows DropCargText unless it is -1.',
       code: [['MissionLandCargoCheck', 0x9edc5]],
     },
     PayVal: {
-      note: 'Above 0: credits paid when you complete the mission. -10000 - n: instead, in every system whose government is gövt n, a record below 0 goes to 0; -20000 - n: the same where the government is an ally of gövt n; -30000 - n: where it shares a class with it. -40000 - p, p from 1 to 99: you lose p per cent of your credits. -50000 - c, below -50000: it costs c credits, taken when you accept (never leaving you below 0), and the game offers it only while you have c. Paid as well when the mission ends by itself, with Flags2 0x0002. Anything else: nothing.',
+      note: 'Above 0: credits paid when the player completes the mission. -10000 - n: no credits. Instead in every system whose government is gövt n a record below 0 goes to 0. -20000 - n: the same where the government is an ally of gövt n. -30000 - n: the same where the government shares a class with it. -40000 - p: the player loses p percent of the player\'s credits (p from 1 to 99). -50000 - c: the mission costs c credits for any value below -50000. The game charges them when the player accepts and never leaves the player below 0. The game offers the mission only while the player has c credits. With Flags2 0x0002 the payment also happens when the mission ends by itself. Anything else: nothing.',
       code: [['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc], ['AutoAbortMission', 0x99bdc], ['DoMissionAccept', 0xa1b11], ['IsMissionAvailable', 0x9b152], ['GovtAllies', 0x4e3d], ['GovtSharedClass', 0x6e48]],
     },
     ShipSyst: {
-      note: 'Where the mission\'s ships are, worked out when you accept. -1: the system you are in then. -2: a random system there now (its Visibility) other than yours. -3: TravelStel\'s stellar\'s system, or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to yours and there now, drawn until one qualifies. -6: whichever system you are in. 128 to 2175: that sÿst. 9999, 10000 + n and the other numbers AvailStel accepts for governments: a random system there now, not yours, of those governments. Anything else: nowhere.',
+      note: 'Where the mission\'s ships are. The game works it out when the player accepts. -1: the player\'s system at that moment. -2: a random system there now (its Visibility) other than the player\'s. -3: TravelStel\'s stellar\'s system or ReturnStel\'s if TravelStel has none. -4: ReturnStel\'s. -5: a random system linked to the player\'s and there now (drawn until one qualifies). -6: whichever system the player is in. 128 to 2175: that sÿst. The government numbers AvailStel accepts (9999, 10000 + n, and the others) give a random system there now of those governments other than the player\'s. Anything else: nowhere.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SelectMissionSystem', 0x9b993], ['SetupShipsInSystem', 0x42b61], ['MissionHandlePlayerEnteredNewSystem', 0x99f11]],
     },
     ShipGoal: {
-      note: 'What you must do with the mission\'s ships before landing at ReturnStel\'s stellar finishes it. 0: destroy them all. 1: disable them all. 2 and 5: board them all (with 5 they start still and disabled, and stay disabled until boarded). 3: keep them; you meet the goal while one of them is still around. 4: see one of them, once all have come (if it can cloak, on your screen). 6: get rid of them, each one destroyed or jumped out counting (jumping out does not count with ShipSyst -6). Unless its Flags has 0x0400, the mission fails at once when one blows up with goal 1 or 3, or with 2 or 5 before you have boarded it, and when one becomes disabled with goal 3.',
+      note: 'What the player must do with the mission\'s ships before landing at ReturnStel\'s stellar finishes it. 0: destroy them all. 1: disable them all. 2 and 5: board them all. With 5 they start still and disabled and stay disabled until boarded. 3: keep them. The player meets the goal while one of them is still around. 4: see one of them once all have come (on the player\'s screen if it can cloak). 6: get rid of them. Each one destroyed or jumped out counts. Jumping out does not count with ShipSyst -6. Unless its Flags has 0x0400 the mission fails immediately when one blows up with goal 1 or 3 or with 2 or 5 before the player has boarded it. It also fails when one becomes disabled with goal 3.',
       code: [['MissionObjectivesCheck', 0x9e79e], ['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['HandlePlayerBoardAttempt', 0x65000], ['LowLevelAIHandler', 0x851da], ['QuickMissionFailure', 0x99d1b], ['ShipVisibleToShip', 0x971c], ['SetupShipsInSystem', 0x42b61], ['IsDisabled', 0x2ce6]],
     },
     ShipBehav: {
-      note: 'How the mission\'s ships act. 0: each goes after you as it appears. 1: they fly with you as escorts do, while not disabled. 2: they go for stellars, not yet destroyed, of governments that are enemies of theirs. Anything else: they fly by their AI.',
+      note: 'How the mission\'s ships act. 0: each attacks the player as it appears. 1: they fly with the player as escorts do while not disabled. 2: they attack stellars of governments that are their enemies while the stellars still stand. Anything else: they fly by their AI.',
       code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6]],
     },
     ShipCount: {
-      note: 'How many ships the mission has, placed as ShipSyst and ShipStart say. 0 or less: none. With ShipSyst -6 and ShipBehav 1, those of them already with you are not placed again.',
+      note: 'How many ships the mission has. ShipSyst and ShipStart set where they go. 0 or less: none. With ShipSyst -6 and ShipBehav 1 the game does not place again those already with the player.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['MissionObjectivesCheck', 0x9e79e]],
     },
     ShipDude: {

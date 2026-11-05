@@ -67,7 +67,7 @@ function codeEntries(id, indexes) {
   const home = routines.find(r => indexes.every(n => uses.some(u => u.routine === r && u.index === n)));
   return indexes.map(n => {
     const u = uses.find(x => x.index === n && (home === undefined || x.routine === home));
-    return u ? `<a class="codeNum" data-code="${hex(u.routine)}" data-at="${hex(u.addr)}" title="${esc(p.nameOf(p.byStart.get(u.routine)))}, at ${hex(u.addr)}">${n}</a>` : String(n);
+    return u ? `<a class="codeNum" data-code="${hex(u.routine)}" data-at="${hex(u.addr)}" title="${esc(p.nameOf(p.byStart.get(u.routine)))} at ${hex(u.addr)}">${n}</a>` : String(n);
   });
 }
 /* A figure as text that links to the instruction holding it. */

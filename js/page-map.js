@@ -2228,9 +2228,9 @@ let PANEL_KEY = null;
    shown now: its stellars and their systems, a random other wormhole, or
    nowhere and why. `sys` is the system whose panel it is. */
 const GATE_WHY = {
-  offline: () => 'nowhere: you cannot land on it: "it is offline"',
-  elsewhere: home => `nowhere from here: it belongs to ${home}, the first system shown now that lists it, and from here you get "the radiation levels are too extreme"`,
-  unlinked: () => 'nowhere: it links to nothing, and landing on it does nothing',
+  offline: () => 'nowhere. Landing on it shows "it is offline"',
+  elsewhere: home => `nowhere from here. It belongs to ${home} (the first system shown now that lists it). Landing from here shows "the radiation levels are too extreme"`,
+  unlinked: () => 'nowhere. It links to nothing and landing on it does nothing',
   nowhere: () => 'nowhere: none of its stellars is in a system shown now',
 };
 function gateTo(sp, sys) {
@@ -2240,7 +2240,7 @@ function gateTo(sp, sys) {
   const r = GATES.random.find(x => x.spob === sp);
   if (r) {
     const n = GATES.random.filter(x => x.sys.id !== r.sys.id).length;
-    return `a random one of the ${n} other wormholes with no set destination in the systems shown now, which the game draws each time you go through`;
+    return `a random one of the ${n} other wormholes with no set destination in the systems shown now. The game draws one each time a ship goes through`;
   }
   const ways = GATES.ways.filter(w => w.gate === sp);
   if (!ways.length) return SHOWN.has(sys) || !sys ? '' : 'nowhere while its system is not shown';
@@ -2267,7 +2267,7 @@ const kvRow = (k, v) => (v === null || v === undefined || v === '') ? '' : `<tr>
 
 // How the game reads a test, where that is not as it is written (ncbAsWritten), kept by text.
 const AS_WRITTEN = new Map();
-const GAME_READS = 'Mac 1.1.1 reads tests differently from the Bible. At each & or | it keeps only the last term, so in a run of bare terms only the last two count. It passes over a lone number, or a character outside the test syntax. A test that does not start with b, (, !, p, g, o or e is never true.';
+const GAME_READS = 'Mac 1.1.1 reads tests differently from the Bible. At each & or | only the last term counts. In a run of bare terms only the last two count. Mac 1.1.1 passes over a lone number or a character outside the test syntax. A test that does not start with b, (, !, p, g, o, or e is never true.';
 function testLine(text) {
   if (!text) return '<span class="note">none: always</span>';
   const holds = ncbTest(text, STATE);
@@ -2293,7 +2293,7 @@ function bitTitle(n) {
   const b = BITS.get(n);
   return b ? b.name || 'nothing in these files turns it on' : 'no record in these files uses it';
 }
-// A test or set expression, each bxxx in it a link to what the bit is for.
+// A test or set expression, each bxxx in it a link to the bit's panel.
 function bitText(text) {
   return esc(text).replace(/(^|[^A-Za-z0-9])([Bb])(\d+)/g, (m, pre, b, n) =>
     +n < 10000 ? `${pre}<a data-bit="${+n}" title="${esc(bitTitle(+n))}">${b}${n}</a>` : m);
@@ -2334,7 +2334,7 @@ function bitPanel(n) {
     <div class="sub">${esc(bitTitle(n))}</div>
     <div class="actions"><button data-bit-back>Back</button>
       <button data-bit-map="${n}">${set ? `Show the map without b${n}` : `Show the map with b${n} set`}</button></div>
-    <p class="note">A control bit means only what the records that turn it on and test it make of it. Here is every test and set expression in the open files that uses b${n}, as the game reads them.</p>
+    <p class="note">A control bit means only what the records that turn it on and test it make of it. Here is every test and set expression in the open files that uses b${n} as the game reads them.</p>
     ${sections || '<p class="note">No record in these files tests or sets it.</p>'}`;
 }
 
@@ -2377,16 +2377,16 @@ function missionPanel(id) {
   return `<h2>${esc(m.name)}</h2>
     <div class="sub">mïsn ${id}${st ? ` · ${storyLink(st.key)}${st.step ? ', step ' + esc(st.step) : ''}` : ''}${st && st.last ? ' · its last' : ''}${st && st.cutoff ? ' · where the unregistered game stops' : ''}</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    ${m.note ? `<p class="note">Ambrosia's note in its resource name: “${esc(m.note)}”</p>` : ''}
+    ${m.note ? `<p class="note">Ambrosia's note in its resource name is “${esc(m.note)}”.</p>` : ''}
     <table class="kv">
       ${kvRow('Offered at', placeText('avail', r.AvailStel) + ', from ' + esc(NOVA_AVAIL_LOC[r.AvailLoc] || 'nowhere'))}
       ${kvRow('Offered when', testLine(r.AvailBits))}
-      ${kvRow('Chance', r.AvailRandom > 0 && r.AvailRandom < 100 ? r.AvailRandom + '% each time you arrive in the system' : '')}
+      ${kvRow('Chance', r.AvailRandom > 0 && r.AvailRandom < 100 ? r.AvailRandom + '% each time the player arrives in the system' : '')}
       ${kvRow('Legal record', r.AvailRecord === -32000 ? 'the stellar dominated' : r.AvailRecord === -32001 ? 'a stellar dominated' : r.AvailRecord > 0 ? 'at least ' + r.AvailRecord : r.AvailRecord < 0 ? 'at most ' + r.AvailRecord : '')}
       ${kvRow('Combat rating', r.AvailRating > 0 ? 'at least ' + r.AvailRating : '')}
       ${kvRow('Goes to', r.TravelStel !== -1 ? placeText('travel', r.TravelStel) : '')}
       ${kvRow('Returns to', r.ReturnStel !== -1 ? placeText('return', r.ReturnStel) : '')}
-      ${kvRow('Special ships', r.ShipCount > 0 ? `${r.ShipCount} × ${esc(resName('düde', r.ShipDude))}, in ${placeText('ship', r.ShipSyst)}` : '')}
+      ${kvRow('Special ships', r.ShipCount > 0 ? `${r.ShipCount} × ${esc(resName('düde', r.ShipDude))} in ${placeText('ship', r.ShipSyst)}` : '')}
       ${kvRow('Time limit', r.TimeLimit > 0 ? r.TimeLimit + ' days' : '')}
       ${kvRow('Pay', payText(r.PayVal))}
       ${sets}
@@ -2394,9 +2394,9 @@ function missionPanel(id) {
       ${kvRow('Started by', m.startedBy.map(missionLink).join('<br>'))}
       ${kvRow('Follows', m.prev.map(missionLink).join('<br>'))}
     </table>
-    <p class="note">Leads to: the missions it starts, and those whose AvailBits (as the game reads them) need a bit on that this one turns on, where fewer missions turn that bit on than any other bit they need.</p>
+    <p class="note">Leads to: the missions it starts and those whose AvailBits (as the game reads them) need a bit on that this one turns on. That bit must be the one they need that the fewest missions turn on.</p>
     <div data-dead="mission" data-id="${id}"></div>
-    ${text('The offer', 4000 + id - 128, `dësc ${4000 + id - 128} (${figText('missionOffer', 4000)} + ${id - 128}), as the mission computer loads it.`)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
+    ${text('The offer', 4000 + id - 128, `dësc ${4000 + id - 128} (${figText('missionOffer', 4000)} + ${id - 128}) as the mission computer loads it.`)}${text('The briefing', r.BriefText)}${text('On success', r.CompText)}${text('On failure', r.FailText)}
     ${compareBlock('mïsn', id)}
     ${fieldsTable('mïsn', r)}`;
 }
@@ -2473,12 +2473,12 @@ function deadStep(e) {
 }
 const deadWay = a => a.path.slice(-6).map(deadStep).join(', ');
 // A bit left on for good, in words, from the side of the mission that leaves it.
-const heldText = h => `an escape pod during it leaves ${bitText('b' + h.bit)} on, its OnAbort not turning it off, and nothing that can first happen while it is on turns it off: then ${h.never.length === 1 ? 'one mission that needs it off is' : h.never.length + ' missions that need it off are'} never offered: ${h.never.map(missionLink).join(', ')}.`;
+const heldText = h => `an escape pod during it leaves ${bitText('b' + h.bit)} on. Its OnAbort does not turn the bit off. Nothing that can first happen while the bit is on turns it off either. ${h.never.length === 1 ? 'One mission that needs it off is' : h.never.length + ' missions that need it off are'} then never offered (${new Intl.ListFormat('en-US').format(h.never.map(missionLink))}).`;
 // A mission an escape pod can lose, in words: what goes with it.
-const podText = o => `Never offered, started only by ${o.by.map(missionLink).join(' or ') || 'an S'}: an escape pod during it loses it, its OnAbort doing nothing, and with it ${[
-  ...o.bits.map(b => `${bitText('b' + b.bit)}, which nothing else turns on and ${b.needed.map(missionLink).join(', ')} ${b.needed.length === 1 ? 'needs' : 'need'} on`),
-  ...(o.starts.length ? [`the start of ${o.starts.map(missionLink).join(' and ')}, which nothing else starts`] : []),
-  ...(o.end ? [`the end of ${storyLink(o.end)}`] : [])].join('; ')}.`;
+const podText = o => `Nothing offers this mission. Only ${o.by.map(missionLink).join(' or ') || 'an S'} starts it. An escape pod during it loses it. Its OnAbort does nothing. With the mission go ${new Intl.ListFormat('en-US').format([
+  ...o.bits.map(b => `${bitText('b' + b.bit)} (nothing else turns it on and ${new Intl.ListFormat('en-US').format(b.needed.map(missionLink))} ${b.needed.length === 1 ? 'needs' : 'need'} it on)`),
+  ...(o.starts.length ? [`the start of ${o.starts.map(missionLink).join(' and ')} (nothing else starts it)`] : []),
+  ...(o.end ? [`the end of ${storyLink(o.end)}`] : [])])}.`;
 // The dead-end section of a storyline's panel, and the note on a mission's.
 function deadEndsFill(el) {
   for (const box of el.querySelectorAll('[data-dead]')) {
@@ -2493,16 +2493,16 @@ function deadEndsFill(el) {
 }
 function storyDeadEndsHtml(key) {
   const s = missionData().stories.get(key), r = storyDeadEnds(key);
-  const head = `<h3>Dead ends</h3><p class="note">Where you can leave this storyline with no way forward: started, none of its missions under way, none you can ever take again, and none of its endings ${r.ends.length ? `(its missions that no other mission of it follows and that you can finish: ${r.ends.map(missionName).join(', ')})` : '(it has none; here, a mission of it you can still take)'} reached. A search of every state of the bits its missions' AvailBits read (${r.bits ? r.bits.length : 0}${r.free && r.free.length ? `; ${r.free.length} that something outside it changes taken as either at any time` : ''}), as the game reads them, one of its missions taken at a time, an escape pod aborting what is under way. The files do not show whether a closing was meant.</p>`;
-  if (r.tooMany) return head + `<p class="note">More than ${r.states.toLocaleString('en-US')} states: too many to search.</p>`;
+  const head = `<h3>Dead ends</h3><p class="note">These are the ways the player can leave this storyline with no way forward. The storyline has started. None of its missions is under way. The player can never take any of them again. The player has reached none of its endings.${r.ends.length ? ` Its endings are ${new Intl.ListFormat('en-US').format(r.ends.map(missionName))}. No other mission of the storyline follows them and the player can finish them.` : ' It has no endings. Here an ending is any mission of it that the player can still take.'} The page searches every state of the ${r.bits ? r.bits.length : 0} bits that its missions' AvailBits read as the game reads them.${r.free && r.free.length ? ` Something outside the storyline changes ${r.free.length} of them. The search treats those as on or off at any time.` : ''} The search allows one mission at a time and lets an escape pod abort what is under way. The files do not show whether a closing was meant.</p>`;
+  if (r.tooMany) return head + `<p class="note">There are more than ${r.states.toLocaleString('en-US')} states. That is too many to search.</p>`;
   const ids = s.missions.map(m => m.id);
   const held = heldBits(ids).filter(h => ids.includes(h.mission) || h.never.some(id => ids.includes(id)));
   const rows = r.after.map(a => `<li>After ${deadStep(a)}${a.count > 1 ? ` (${a.count} states)` : ''}: as by ${deadWay(a)}.</li>`).join('');
   const heldRows = held.map(h => `<li>${missionName(h.mission)}: ${heldText(h)}</li>`).join('');
   const podRows = podLosses(ids).map(o => `<li>${missionName(o.mission)}: ${podText(o)}</li>`).join('');
-  return head + (rows ? `<ul>${rows}</ul>` : `<p>None found, in ${r.states.toLocaleString('en-US')} states.</p>`) +
+  return head + (rows ? `<ul>${rows}</ul>` : `<p>None found in ${r.states.toLocaleString('en-US')} states.</p>`) +
     (heldRows ? `<h3>Bits left on for good</h3><ul>${heldRows}</ul>` : '') +
-    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Missions of it that nothing offers, so once you lose one you cannot take it again where you took it (its panel shows whether you can take again what started it).</p><ul>${podRows}</ul>` : '');
+    (podRows ? `<h3>Lost to an escape pod</h3><p class="note">Nothing offers these missions. Once the player loses one the player cannot take it again where the player took it. Its panel shows whether the player can take again what started it.</p><ul>${podRows}</ul>` : '');
 }
 function missionDeadEndsHtml(id) {
   const m = missionData().byId.get(id);
@@ -2511,14 +2511,14 @@ function missionDeadEndsHtml(id) {
   if (m.story) {
     const r = storyDeadEnds(m.story.key);
     if (!r.tooMany) for (const a of r.after) if (a.mission === id || (a.missions && a.missions.includes(id)))
-      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way forward: you can take none of its missions again or reach any of its endings; as by ${deadWay(a)}.`);
+      out.push(`${a.what === 'escape pod' ? 'An escape pod during it' : DEAD_WHAT[a.what][0].toUpperCase() + DEAD_WHAT[a.what].slice(1) + ' it'}${a.missions && a.missions.length > 1 ? ' (with ' + a.missions.filter(x => x !== id).map(missionName).join(' and ') + ')' : ''} can leave ${storyLink(m.story.key)} with no way forward. The player can then take none of its missions again and reach none of its endings. One way there is ${deadWay(a)}.`);
   }
   for (const h of heldBits([id])) {
     if (h.mission === id) out.push(heldText(h).replace(/^an/, 'An'));
-    else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}: it needs ${bitText('b' + h.bit)} off, which that leaves on for good.`);
+    else if (h.never.includes(id)) out.push(`Never offered again once an escape pod has come during ${missionName(h.mission)}. It needs ${bitText('b' + h.bit)} off. That escape pod leaves the bit on for good.`);
   }
   for (const o of podLosses([id])) out.push(podText(o));
-  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">From a search of the storyline's states and of bits a mission leaves on (the storyline's panel shows how); the files do not show whether it was meant.</p>` : '';
+  return out.length ? `<h3>Dead ends</h3>${out.map(t => `<p>${t}</p>`).join('')}<p class="note">These come from a search of the storyline's states and of bits a mission leaves on. The storyline's panel shows how. The files do not show whether it was meant.</p>` : '';
 }
 
 /* ---- the whole game: the storylines and how they join (novaGameOverview) -- */
@@ -2526,7 +2526,7 @@ function missionDeadEndsHtml(id) {
 const OVERVIEW = { pick: null };
 let OVERVIEW_DATA = null;
 function overviewData() { return OVERVIEW_DATA && OVERVIEW_DATA.m === missionData() ? OVERVIEW_DATA.o : (OVERVIEW_DATA = { m: missionData(), o: novaGameOverview(GAME, missionData()) }).o; }
-// A storyline's openings: its missions that no other of its missions leads to.
+// A storyline's openings: its missions with no other mission of the storyline leading to them.
 function storyOpenings(s) { const M = missionData(); return s.missions.filter(m => !m.prev.some(p => { const q = M.byId.get(p); return q && q.story && q.story.key === s.key; })); }
 
 /* The whole game as a chart, over the page (#storyMap): the storylines that
@@ -2563,7 +2563,7 @@ function storyMapRender() {
   const options = O.stories.slice().sort((a, b) => st(a).name.localeCompare(st(b).name)).map(k => `<option value="${esc(k)}"${k === pick ? ' selected' : ''}>${esc(st(k).name)}</option>`).join('');
   el.innerHTML = `<div class="smTop"><b>The whole game</b> <label class="note">What <select data-sm-pick aria-label="The storyline whose shutting to show"><option value="">a storyline</option>${options}</select> shuts</label>
       <button data-sm-close>Close</button></div>
-    <p class="note smNote">Each storyline comes after those that lead to it (where a mission of one leads to a mission of the other); storylines that lead to none and that none leads to are in the last column. Green where the game can offer one of its openings ${shownWhere()}.${pick ? ` Red: the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good, by turning on a bit they need off; amber: the ${shutBy.length} that shut its openings${both ? `; purple: ${both} that do both` : ''}.` : ''} A box opens its storyline.</p>
+    <p class="note smNote">Each storyline comes after those that lead to it. One storyline leads to another when a mission of one leads to a mission of the other. Storylines that lead to none and that none leads to are in the last column. Green marks a storyline where the game can offer one of its openings ${shownWhere()}.${pick ? ` Red marks the ${shuts.length} storylines whose openings ${esc(st(pick).name)} shuts for good by turning on a bit they need off. Amber marks the ${shutBy.length} that shut its openings.${both ? ` Purple marks the ${both} that do both.` : ''}` : ''} A box opens its storyline.</p>
     <div class="smScroll"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <text x="10" y="18" class="step">nothing leads to these</text>${rest.length ? `<text x="${10 + L.layers * (W + GX)}" y="18" class="step">joined only by shutting</text>` : ''}${lines}${boxes}</svg></div>`;
 }
@@ -2586,12 +2586,12 @@ function overviewPanel() {
   const M = missionData(), O = overviewData(), keys = O.stories;
   const st = k => M.stories.get(k);
   // what joins each storyline, with the missions and bits that make it
-  const via = list => list.map(v => v.length === 2 ? `${missionLink(v[0])} → ${missionLink(v[1])}` : `${missionLink(v[0])} turns on ${bitText('b' + v[2])}, which ${missionLink(v[1])} needs off`).join('<br>');
+  const via = list => list.map(v => v.length === 2 ? `${missionLink(v[0])} → ${missionLink(v[1])}` : `${missionLink(v[0])} turns on ${bitText('b' + v[2])} and ${missionLink(v[1])} needs it off`).join('<br>');
   const joinsOf = k => {
     const out = O.leads.filter(j => j.from === k), shut = O.shuts.filter(j => j.from === k), into = O.leads.filter(j => j.to === k), shutBy = O.shuts.filter(j => j.to === k);
     if (!out.length && !shut.length && !into.length && !shutBy.length) return '';
     const part = (label, list, end) => list.length ? `<p><b>${label}</b> ${list.map(j => `${storyLink(j[end])} <span class="note">${j.via.length}</span>`).join(', ')}</p>${list.map(j => `<details><summary>${storyLink(j.from)} and ${storyLink(j.to)}</summary><p class="note">${via(j.via)}</p></details>`).join('')}` : '';
-    return `<details class="ovStory"><summary>${storyLink(k)} <span class="note">leads to ${out.length}, shuts ${shut.length}; led to from ${into.length}, shut by ${shutBy.length}</span></summary>
+    return `<details class="ovStory"><summary>${storyLink(k)} <span class="note">leads to ${out.length} · shuts ${shut.length} · led to from ${into.length} · shut by ${shutBy.length}</span></summary>
       ${part('Leads to', out, 'to')}${part('Shuts the openings of', shut, 'to')}${part('Led to from', into, 'from')}${part('Its openings shut by', shutBy, 'from')}</details>`;
   };
   const order = keys.slice().sort((a, b) => st(b).missions.length - st(a).missions.length || st(a).name.localeCompare(st(b).name));
@@ -2606,12 +2606,12 @@ function overviewPanel() {
   return `<h2>The whole game</h2>
     <div class="sub">${keys.length} storylines, from Ambrosia's notes in the missions' names, and how they join</div>
     <div class="actions"><button data-bit-back>Back</button> <button data-ov="map">The chart</button></div>
-    <p class="note">One storyline leads to another when one of its missions leads to one of the other's (it starts it, or turns on the rarest bit it needs); it shuts another when one of its missions turns on a bit that one of the other's openings needs off, which shuts that opening for good (an opening is a mission that no other mission of its storyline leads to). The chart draws them all, full screen.</p>
+    <p class="note">One storyline leads to another when one of its missions leads to one of the other's. A mission leads to another when it starts it or turns on the rarest bit it needs. One storyline shuts another when one of its missions turns on a bit that one of the other's openings needs off. That shuts the opening for good. An opening is a mission with no other mission of its storyline leading to it. The chart draws them all full screen.</p>
     <h3>What joins each</h3>
-    <p class="note">${O.leads.length} times one storyline leads to another, ${O.shuts.length} times one shuts another's openings${alone.length ? `; ${alone.map(storyLink).join(', ')} join${alone.length === 1 ? 's' : ''} none` : ''}. The chart leaves out the ${[...M.byId.values()].filter(m => !m.story).length} missions that belong to no storyline.</p>
+    <p class="note">One storyline leads to another ${O.leads.length} times. One shuts another's openings ${O.shuts.length} times.${alone.length ? ` ${new Intl.ListFormat('en-US').format(alone.map(storyLink))} join${alone.length === 1 ? 's' : ''} none.` : ''} The chart leaves out the ${[...M.byId.values()].filter(m => !m.story).length} missions that belong to no storyline.</p>
     ${order.map(joinsOf).join('')}
-    ${people ? `<h3>People</h3><p class="note">A person whose ActivateOn needs on a bit a storyline's missions turn on appears with it, and one that needs it off is gone with it.</p><table class="kv">${people}</table>` : ''}
-    ${events ? `<h3>Events</h3><p class="note">An event that, as it starts or ends, turns on a bit a storyline's missions need on opens them; one that turns it off shuts them.</p><table class="kv">${events}</table>` : ''}`;
+    ${people ? `<h3>People</h3><p class="note">A person whose ActivateOn needs on a bit that a storyline's missions turn on appears with that storyline. A person whose ActivateOn needs the bit off disappears with it.</p><table class="kv">${people}</table>` : ''}
+    ${events ? `<h3>Events</h3><p class="note">An event that turns on a bit a storyline's missions need on opens those missions as the event starts or ends. An event that turns the bit off shuts them.</p><table class="kv">${events}</table>` : ''}`;
 }
 
 function storyPanel(key) {
@@ -2623,9 +2623,9 @@ function storyPanel(key) {
     ` <span class="${missionHolds(m) ? 'yes' : 'no'}" title="its AvailBits with the bits shown">●</span>` +
     `<br><span class="note">at ${placeText('avail', m.rec.AvailStel)}</span></td></tr>`).join('');
   return `<h2>${esc(s.name)}</h2>
-    <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'}, named in Ambrosia's notes</div>
+    <div class="sub">a storyline of ${s.missions.length} mission${s.missions.length === 1 ? '' : 's'} named in Ambrosia's notes</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}”, in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${shownWhere()}. The map rings the places that offer them and the places they send you to.</p>
+    <p class="note">The missions whose resource names end in a note beginning “${esc(s.name)}” in the order of the step the note gives. ● shows whether a mission's AvailBits pass ${shownWhere()}. The map rings the places that offer them and their destinations.</p>
     ${storyChart(s)}
     <div data-dead="story" data-id="${esc(key)}"><h3>Dead ends</h3><p class="note">Looking…</p></div>
     <table class="kv">${rows}</table>`;
@@ -2651,10 +2651,10 @@ function storyChart(s) {
     return `<a data-mission="${m.id}"><title>${esc(m.name)}${m.story.step ? ', step ' + esc(m.story.step) : ''}</title><rect x="${x(n)}" y="${y(n)}" width="${W}" height="${H}" rx="5" class="${holds ? 'yes' : 'no'}"/>` +
       `<text x="${x(n) + 8}" y="${y(n) + 15}" class="step">${esc(m.story.step || '')}</text><text x="${x(n) + 8}" y="${y(n) + 30}">${esc(short(m.name))}</text></a>`;
   }).join('');
-  return `<h3>Chart</h3><p class="note">Each mission sits below those of this storyline that lead to it (it starts it, or turns on the rarest bit the other needs); green where its AvailBits pass ${shownWhere()}. A dashed line goes back up a loop.</p>
+  return `<h3>Chart</h3><p class="note">Each mission sits below the missions of this storyline that lead to it. A mission leads to another when it starts it or turns on the rarest bit the other needs. Green marks a mission whose AvailBits pass ${shownWhere()}. A dashed line goes back up a loop.</p>
     <div class="storyChart"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${lines}${boxes}</svg></div>`;
 }
-// The places the open storyline's missions are offered at, go to or return to.
+// The places that offer the open storyline's missions, and the missions' destinations and return points.
 let STORY_PLACES = { key: null, set: null };
 function storyPlaces() {
   if (VIEW.sel && VIEW.sel.kind === 'rec') return recPlaces();
@@ -2673,7 +2673,7 @@ function storyPlaces() {
 // The storylines, longest first, for the galaxy's panel.
 function storyList() {
   const list = [...missionData().stories.values()].sort((a, b) => b.missions.length - a.missions.length || a.name.localeCompare(b.name));
-  return `<h3>Storylines <span class="note">${list.length}, from the notes in the missions' names</span></h3><div class="actions"><button data-story="*">The whole game</button></div><div class="list">${list.map(s => `<a data-story="${esc(s.key)}">${esc(s.name)}</a> <span class="note">${s.missions.length}</span>`).join(' ')}</div>`;
+  return `<h3>Storylines <span class="note">${list.length} from the notes in the missions' names</span></h3><div class="actions"><button data-story="*">The whole game</button></div><div class="list">${list.map(s => `<a data-story="${esc(s.key)}">${esc(s.name)}</a> <span class="note">${s.missions.length}</span>`).join(' ')}</div>`;
 }
 // The missions offered at a stellar, and those that send you there, for its panel.
 function stellarMissions(sp) {
@@ -2681,7 +2681,7 @@ function stellarMissions(sp) {
   const row = m => `${missionLink(m.id)} <span class="${missionHolds(m) ? 'yes' : 'no'}" title="its AvailBits with the bits shown">●</span>`;
   const here = all.filter(m => m.rec.AvailStel === sp.id), to = all.filter(m => m.rec.AvailStel !== sp.id && (m.rec.TravelStel === sp.id || m.rec.ReturnStel === sp.id));
   if (!here.length && !to.length) return '';
-  return `<h3>Missions</h3><table class="kv">${kvRow('Offered here', here.map(row).join('<br>'))}${kvRow('Sending you here', to.map(row).join('<br>'))}</table>`;
+  return `<h3>Missions</h3><table class="kv">${kvRow('Offered here', here.map(row).join('<br>'))}${kvRow('Sending the player here', to.map(row).join('<br>'))}</table>`;
 }
 
 function galaxyPanel() {
@@ -2693,10 +2693,10 @@ function galaxyPanel() {
   const places = new Set(U.systems.map(s => s.x + ',' + s.y)).size;
   const neb = U.nebulae.map(n => `<a data-nebula="${n.id}">${esc(n.name)}</a>`).join('');
   const files = GAME.files.map(f => `<tr><td>${esc(f.name)}</td><td>${f.plugin ? 'plug-in' : esc(f.role || '')}</td></tr>`).join('');
-  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : SHOW_MODE === 'save' ? 'the systems whose visibility test passes with the save file\'s bits on' : 'the systems whose visibility test passes at the start of a new game, when every control bit is off';
+  const mode = SHOW_MODE === 'all' ? 'every version of every system' : SHOW_MODE === 'bits' ? 'the systems whose visibility test passes with those bits set' : SHOW_MODE === 'save' ? 'the systems whose visibility test passes with the save file\'s bits on' : 'the systems whose visibility test passes at the start of a new game with every control bit off';
   return `<h2>The galaxy</h2>
-    <div class="sub">${shown.length} of ${U.systems.length} systems shown, at ${places} places; ${LINKS.length} hyperspace links; ${GATES.links.length} ways by hypergate or wormhole, and ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
-    <p class="note">Shown: ${mode}. Tap a system to see it; tap it again to go in.</p>
+    <div class="sub">${shown.length} of ${U.systems.length} systems shown at ${places} places · ${LINKS.length} hyperspace links · ${GATES.links.length} ways by hypergate or wormhole · ${new Set(GATES.random.map(r => r.sys.id)).size} systems with a wormhole to a random other</div>
+    <p class="note">Shown: ${mode}. Tap a system to see it. Tap it again to go in.</p>
     ${SHOW_MODE === 'bits' && STATE.bits.size ? `<h3>Bits set</h3><table class="kv">${[...STATE.bits].sort((a, b) => a - b).map(n => kvRow('b' + n, `<a data-bit="${n}">${esc(bitTitle(n) || 'what it is for')}</a>`)).join('')}</table>` : ''}
     ${pilotBlock()}
     ${routeBlock()}
@@ -2713,8 +2713,8 @@ function nebulaPanel(n) {
   const pic = have.map(p => { const f = novaPictFrame(GAME, p.id); return `PICT ${p.id}${f ? ` (${f.w} × ${f.h})` : ''}`; }).join(', ');
   return `<h2>${esc(n.name)}</h2><div class="sub">nëbu ${n.id}</div>
     <table class="kv">
-      ${kvRow('Place', `${n.x}, ${n.y}, ${n.w} × ${n.h} map units`)}
-      ${kvRow('Pictures', esc(pic || 'none in these files') + `<br><span class="note">PICT ${figText('nebulaPict', 9500)} + ${figText('nebulaPicts', 7)} × ${n.id - 128} and the six after; the map draws ${figText('nebulaFit', 'the last that fits')} its rectangle, else the first.</span>`)}
+      ${kvRow('Place', `at ${n.x}, ${n.y} (${n.w} × ${n.h} map units)`)}
+      ${kvRow('Pictures', esc(pic || 'none in these files') + `<br><span class="note">PICT ${figText('nebulaPict', 9500)} + ${figText('nebulaPicts', 7)} × ${n.id - 128} and the six pictures that follow. The map draws ${figText('nebulaFit', 'the last that fits')} its rectangle or else the first.</span>`)}
       ${kvRow('Shown when', testLine(n.activeOn))}
       ${kvRow('On exploring', n.rec.OnExplore ? `<span class="test">${bitText(n.rec.OnExplore)}</span>` : '')}
     </table>
@@ -2758,17 +2758,17 @@ function systemPanel(sys) {
     ${gates ? `<h3>Hypergates and wormholes</h3><table class="kv gates">${gates}</table>` : ''}
     <h3>Traffic</h3>
     <table class="kv">
-      ${kvRow('Ships', r.AvgShips ? `about ${r.AvgShips}, ± half` : 'none')}
+      ${kvRow('Ships', r.AvgShips ? `about ${r.AvgShips} ± half` : 'none')}
       ${kvRow('Of these kinds', dudes.join('<br>'))}
       ${kvRow('People', pers.join('<br>'))}
-      ${kvRow('Reinforcements', r.ReinfFleet >= 128 ? `${recLink('flët', r.ReinfFleet)}, after ${(r.ReinfTime / 30).toFixed(1)} s, again after ${r.ReinfIntrval} day${r.ReinfIntrval === 1 ? '' : 's'}` : '')}
+      ${kvRow('Reinforcements', r.ReinfFleet >= 128 ? `${recLink('flët', r.ReinfFleet)} after ${(r.ReinfTime / 30).toFixed(1)} s and again after ${r.ReinfIntrval} day${r.ReinfIntrval === 1 ? '' : 's'}` : '')}
     </table>
     ${flightPanel(sys)}
     <h3>Space</h3>
     <table class="kv">
       ${kvRow('Asteroids', r.Asteroids ? `${r.Asteroids}${roids.length ? ': ' + roids.join(', ') : ''}` : 'none')}
       ${kvRow('Interference', r.Interference ? r.Interference + '%' : 'none')}
-      ${kvRow('Murk', r.Murk < 0 ? 'none, and no starfield' : r.Murk ? r.Murk : 'none')}
+      ${kvRow('Murk', r.Murk < 0 ? 'none and no starfield' : r.Murk ? r.Murk : 'none')}
       ${kvRow('Background', bg ? `${chip('#' + bg.toString(16).padStart(6, '0'))} #${bg.toString(16).toUpperCase().padStart(6, '0')}` : 'black')}
       ${kvRow('Message buoy', buoy ? esc(buoy) : '')}
     </table>
@@ -2792,7 +2792,7 @@ function stellarPanel(sp) {
   const dead = sp.DeadTime === 0 ? ', and regenerates at the end of the day' : sp.DeadTime < 0 ? ', and never regenerates' : `, and regenerates after DeadTime ${sp.DeadTime}`;
   const pw = planetWeapons();
   const destroyed = sp.Strength > 0 ? `${sp.Strength.toLocaleString()} damage from planet-type weapons${dead}. ` +
-    (pw.length ? `Those in these files: ${pw.map(w => esc(resName('wëap', w.id))).join(', ')}.` : 'These files have none.') : 'nothing: it is indestructible';
+    (pw.length ? `These files have ${new Intl.ListFormat('en-US').format(pw.map(w => esc(resName('wëap', w.id))))}.` : 'These files have none.') : 'nothing (it is indestructible)';
   const minStatus = sp.MinStatus === -32767 ? 'always allowed' : sp.MinStatus === 32767 ? 'never allowed' : sp.MinStatus;
   const typeName = stellarTypeName(sp.Type);
   const sets = [['On dominating', sp.OnDominate], ['On release', sp.OnRelease], ['On destruction', sp.OnDestroy], ['On regenerating', sp.OnRegen]]
@@ -2808,10 +2808,10 @@ function stellarPanel(sp) {
     <table class="kv">
       ${pilotStellarRows(sp)}
       ${kvRow('Services', esc(services || 'none'))}
-      ${kvRow('Tech level', sp.TechLevel + (techs.length ? `; also exactly ${techs.join(', ')}` : ''))}
+      ${kvRow('Tech level', sp.TechLevel + (techs.length ? ` and also exactly ${new Intl.ListFormat('en-US').format(techs.map(String))}` : ''))}
       ${kvRow('Landing fee', sp.Fee ? sp.Fee.toLocaleString() + ' credits' : '')}
       ${kvRow('Landing', (f & 0x20) || !(f & 1) ? '' : typeof minStatus === 'number' ? `refused below a legal status of ${minStatus}` : esc(minStatus))}
-      ${kvRow('Defence', def ? `${esc(resName('düde', def.dude))}: ${def.total} ship${def.total === 1 ? '' : 's'}${def.wave ? `, in waves of ${def.wave}` : ''}` : '')}
+      ${kvRow('Defense', def ? `${esc(resName('düde', def.dude))}: ${def.total} ship${def.total === 1 ? '' : 's'}${def.wave ? ` in waves of ${def.wave}` : ''}` : '')}
       ${def ? kvRow('', defenceControl(sp, sysHere)) : ''}
       ${kvRow('Tribute', tribute)}
       ${kvRow('Weapon', sp.Weapon > 0 ? esc(resName('wëap', sp.Weapon)) : '')}
@@ -2819,9 +2819,9 @@ function stellarPanel(sp) {
       ${kvRow('Gravity', sp.Gravity ? sp.Gravity : '')}
       ${kvRow('Also', esc(flags2))}
       ${kvRow(gate & 0x2000 ? 'Wormhole to' : 'Hypergate to', gateTo(sp, sysHere))}
-      ${gate ? kvRow('Refused with', (t => (t ? `“${esc(t)}” <span class="note">(STR# 2002, ${codeEntries(2002, [84, gate & 0x2000 ? 86 : 85]).join(' and ')})</span>` : ''))(gameText(84, gate & 0x2000 ? 86 : 85))) : ''}
-      ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ', its CustPicID' : ` (${figText('landingPict', 10000)} + its Type, ${sp.Type})`}` : '')}
-      ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${figText('stellarSpin', NOVA_SPIN_BASE.stellar)} + its Type, ${sp.Type})`)}
+      ${gate ? kvRow('Refused with', (t => (t ? `“${esc(t)}” <span class="note">(STR# 2002 entries ${codeEntries(2002, [84, gate & 0x2000 ? 86 : 85]).join(' and ')})</span>` : ''))(gameText(84, gate & 0x2000 ? 86 : 85))) : ''}
+      ${kvRow('Landing picture', (f & 1) && !gate ? `PICT ${land}${sp.CustPicID >= 128 ? ' (its CustPicID)' : ` (${figText('landingPict', 10000)} + its Type ${sp.Type})`}` : '')}
+      ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${figText('stellarSpin', NOVA_SPIN_BASE.stellar)} + its Type ${sp.Type})`)}
     </table>
     ${prices ? `<h3>Commodities</h3><table class="kv">${prices}</table>` : ''}
     <h3>In ${inSys.length === 1 ? 'the system' : 'the systems'}</h3><div class="list">${inSys.map(id => sysLink(id)).join('') || '<span class="note">none: in no system\'s navigation list</span>'}</div>
@@ -2850,10 +2850,10 @@ function renderPlanet() {
   parts.push('<div class="land">');
   parts.push('<div id="landPict"></div>');
   const n = sp.id - 128, did = `dësc ${novaStellarDescId(sp)} (${figText('stellarDesc', 128)} + ${n})`;
-  if (d) parts.push(`<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">${did}, as the spaceport loads it.</p>`);
+  if (d) parts.push(`<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">${did} as the spaceport loads it.</p>`);
   else parts.push(`<div class="desc dim">No description: the files have no ${did}.</div>`);
   if (bar) {
-    parts.push(`<h3>The bar</h3><div id="barPict"></div><div class="desc">${esc(novaDescText(bar.Description, STATE))}</div><p class="note">dësc ${novaStellarBarDescId(sp)} (${figText('barDesc', 10000)} + ${n}), as the bar loads it.</p>`);
+    parts.push(`<h3>The bar</h3><div id="barPict"></div><div class="desc">${esc(novaDescText(bar.Description, STATE))}</div><p class="note">dësc ${novaStellarBarDescId(sp)} (${figText('barDesc', 10000)} + ${n}) as the bar loads it.</p>`);
   }
   if (d && novaDescBits(d.Description).length) parts.push(`<p class="note">This description changes with control bits ${novaDescBits(d.Description).map(b => 'b' + b).join(', ')}.</p>`);
   parts.push('</div>');
@@ -2865,7 +2865,7 @@ function renderPlanet() {
     else host.innerHTML = `<div class="nopict">${GAME.has('PICT', id) ? 'Reading PICT ' + id + '…' : PENDING.length || PUMPING ? 'Waiting for the titles files…' : 'PICT ' + id + ' is not in these files.'}</div>`;
   } else {
     const spr = stellarSprite(sp);
-    host.innerHTML = `<div class="nopict">${gate ? (gate & 0x2000 ? 'A wormhole: landing sends a ship elsewhere, and there is no landing picture.' : 'A hypergate: landing chooses a destination, and there is no landing picture.') : 'Nothing to land on here.'}</div>`;
+    host.innerHTML = `<div class="nopict">${gate ? (gate & 0x2000 ? 'A wormhole. Landing sends a ship elsewhere and there is no landing picture.' : 'A hypergate. Landing opens a choice of destination and there is no landing picture.') : 'Nothing to land on here.'}</div>`;
     if (spr) { const b = document.createElement('div'); b.className = 'spritebox'; b.appendChild(asCanvas(spr)); host.appendChild(b); }
   }
   if (bar && bar.Graphic >= 128) {

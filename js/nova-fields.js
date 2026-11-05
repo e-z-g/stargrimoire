@@ -30,7 +30,7 @@ const NOVA_FIELD_NOTES = {
     OnExplore: { note: 'Control bits set the first time you arrive in a system inside it while it is active. Empty: none.', code: [['ExploreNebulaeFromSystem', 0x508f], ['EvalMissionBitSetString', 0x99dc5]] },
   },
   'spïn': {
-    SpritesID: { note: 'Its frames: an rlë of this id if there is one (rlëD in thousands of colours or more, rlë8 below), else PICT SpritesID cut into frames with MasksID as their mask.', code: [['GetSpriteInfo', 0x1bf80], ['LoadSprites', 0x20541], ['SWCreateSpriteFromRLEResource', 0xa9990], ['SWCreateSpriteFromSinglePictXY', 0xa9bee]] },
+    SpritesID: { note: 'Its frames: an rlë of this id if there is one (rlëD in thousands of colors or more, rlë8 below), else PICT SpritesID cut into frames with MasksID as their mask.', code: [['GetSpriteInfo', 0x1bf80], ['LoadSprites', 0x20541], ['SWCreateSpriteFromRLEResource', 0xa9990], ['SWCreateSpriteFromSinglePictXY', 0xa9bee]] },
     MasksID: { note: 'For a PICT sprite, the PICT that masks its frames; unused with an rlë.', code: [['GetSpriteInfo', 0x1bf80], ['SWCreateSpriteFromSinglePictXY', 0xa9bee]] },
     xSize: { note: 'For a PICT sprite, a frame\'s width.', code: [['GetSpriteInfo', 0x1bf80], ['SWCreateSpriteFromSinglePictXY', 0xa9bee]] },
     ySize: { note: 'For a PICT sprite, a frame\'s height.', code: [['GetSpriteInfo', 0x1bf80], ['SWCreateSpriteFromSinglePictXY', 0xa9bee]] },
@@ -51,12 +51,12 @@ const NOVA_FIELD_NOTES = {
     YieldType: { note: 'What it leaves when broken: 0 to 6, a commodity; 1000 to 1127, a jünk; anything else, nothing. Each box you scoop up is a ton of it.', code: [['LoadObjectData', 0x771b0], ['DestroyAsteroid', 0xadc9], ['SpawnScoopableBox', 0x3e3c5]] },
     YieldQty: { note: 'How many boxes it leaves: YieldQty × 0.5 to 1.5. Below 0: none.', code: [['DestroyAsteroid', 0xadc9]] },
     PartCount: { note: 'Particles thrown out when it breaks. 0 or less: none.', code: [['DestroyAsteroid', 0xadc9], ['SpawnParticles', 0x44b70]] },
-    PartColor: { note: 'Those particles\' colour.', code: [['DestroyAsteroid', 0xadc9]] },
+    PartColor: { note: 'Those particles\' color.', code: [['DestroyAsteroid', 0xadc9]] },
     FragType1: { note: 'One kind of fragment it breaks into: 128 to 143, that röid (0 to 15 count as 128 to 143). Anything else: none.', code: [['LoadObjectData', 0x771b0], ['DestroyAsteroid', 0xadc9], ['SpawnSubAsteroid', 0x3fbc7]] },
     FragType2: { note: 'The other kind; with both, each fragment is one or the other at random.', code: [['DestroyAsteroid', 0xadc9], ['SpawnSubAsteroid', 0x3fbc7]] },
     FragCount: { note: 'How many fragments: FragCount ÷ 2 up to just under 1.5 × FragCount.', code: [['DestroyAsteroid', 0xadc9]] },
     ExplodType: { note: 'The explosion when it breaks, as wëap ExplodType. Below 0: none.', code: [['DestroyAsteroid', 0xadc9], ['CreateExplosion', 0x3f698]] },
-    Mass: { note: 'How hard it is to push: a hit pushes it by the weapon\'s Impact ÷ Mass, to at most 2 a step; a tractor beam on an asteroid more than twice the firer\'s Mass pulls the ship towards it instead.', code: [['HandleAsteroidHit', 0x36637], ['HandleBeams', 0x30295]] },
+    Mass: { note: 'How hard it is to push: a hit pushes it by the weapon\'s Impact ÷ Mass, to at most 2 a step; a tractor beam on an asteroid more than twice the firer\'s Mass pulls the ship toward it instead.', code: [['HandleAsteroidHit', 0x36637], ['HandleBeams', 0x30295]] },
   },
   'shän': {
     BaseTransp: { note: 'How transparent the game draws the base picture.', code: [['LoadExtendedShipSprites', 0x226af], ['HandleShipDisplay', 0x2b514]] },
@@ -280,7 +280,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ResetPlayer', 0x1d40d], ['SpawnPerson', 0x408d5], ['SelectMissionSystem', 0x9b993], ['ValidAuxShipSystem', 0x992b5], ['ApplyMissionPay', 0x98326], ['DoMissionSuccess', 0xa03fc]],
     },
     BkgndColor: {
-      note: 'The colour of space while you are in the system.',
+      note: 'The color of space while you are in the system.',
       code: [['LoadObjectData', 0x771b0], ['SetSystemBackgroundColor', 0x6af4]],
     },
     Visibility: {
@@ -675,7 +675,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HandleReinforcements', 0x39048]],
     },
     Color: {
-      note: 'The colour of its territory on the galaxy map.',
+      note: 'The color of its territory on the galaxy map.',
       code: [['LoadObjectData', 0x771b0], ['DrawMapInfluence', 0xe360]],
     },
     ShipColor: {
@@ -1015,11 +1015,11 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShot', 0x35586], ['SpawnSmoke', 0x3f927], ['HandleSmoke', 0x2e29f]],
     },
     BeamColor: {
-      note: 'The colour of a beam\'s core as drawn.',
+      note: 'The color of a beam\'s core as drawn.',
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     CoronaColor: {
-      note: 'The colour of a beam\'s glow round its core, as drawn; a lightning beam has none.',
+      note: 'The color of a beam\'s glow round its core, as drawn; a lightning beam has none.',
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     LiDensity: {
@@ -1100,7 +1100,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnParticles', 0x44b70]],
     },
     PartColor: {
-      note: 'The trail particles\' colour, scaled 0.6 to 1.4 with their speed.',
+      note: 'The trail particles\' color, scaled 0.6 to 1.4 with their speed.',
       code: [['LoadObjectData', 0x771b0], ['SpawnParticles', 0x44b70]],
     },
     BeamLength: {
@@ -1141,7 +1141,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45]],
     },
     HitPartColor: {
-      note: 'The hit particles\' colour.',
+      note: 'The hit particles\' color.',
       code: [['HandleShipHit', 0x36a45]],
     },
     Recoil: {
@@ -1173,7 +1173,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnShot', 0x3e550], ['PointDefenseCollisionHandler', 0x37776]],
     },
     IonizeColor: {
-      note: 'The colour added to a ship it ionizes.',
+      note: 'The color added to a ship it ionizes.',
       code: [['IonizeShip', 0x8409]],
     },
     Reload: {
@@ -1643,7 +1643,7 @@ const NOVA_FIELD_SHORT = {
   'spïn': { SpritesID: 'Its frames: rlë or PICT', MasksID: 'PICT mask for the frames', xSize: 'Frame width', ySize: 'Frame height', xTiles: 'Frames across', yTiles: 'Frames down' },
   'dësc': { Description: 'The text shown' },
   'bööm': { FrameAdvance: 'How fast it plays', SoundIndex: 'Its sound, snd 300 + n', GraphicIndex: 'Its picture, spïn 400 + n' },
-  'röid': { Strength: 'Damage before it breaks', SpinRate: 'How fast it turns', YieldType: 'What it leaves when broken', YieldQty: 'How many boxes it leaves', PartCount: 'Particles when it breaks', PartColor: 'Particle colour', FragType1: 'One fragment kind', FragType2: 'Other fragment kind', FragCount: 'How many fragments', ExplodType: 'Explosion when it breaks', Mass: 'How hard it is to push' },
+  'röid': { Strength: 'Damage before it breaks', SpinRate: 'How fast it turns', YieldType: 'What it leaves when broken', YieldQty: 'How many boxes it leaves', PartCount: 'Particles when it breaks', PartColor: 'Particle color', FragType1: 'One fragment kind', FragType2: 'Other fragment kind', FragCount: 'How many fragments', ExplodType: 'Explosion when it breaks', Mass: 'How hard it is to push' },
   'shän': {
     BaseTransp: 'Base picture transparency', WeapDecay: 'Weapon flash fade', BlinkMode: 'How its lights blink', BlinkA: 'Blink setting A', BlinkB: 'Blink setting B', BlinkC: 'Blink setting C', BlinkD: 'Blink setting D',
     BaseImageID: 'Base picture sprite', BaseMaskID: 'Base picture mask', BaseXSize: 'Base frame width', BaseYSize: 'Base frame height',
@@ -1675,7 +1675,7 @@ const NOVA_FIELD_SHORT = {
     Govt: 'Government of its ships', Quote: 'Message when it jumps in', Flags: 'Traders start with cargo',
   },
   'sÿst': {
-    xPos: 'Place on the map, across', yPos: 'Place on the map, down', Con: 'Linked systems', Nav: 'Its stellars', Govt: 'Its government', BkgndColor: 'Colour of space',
+    xPos: 'Place on the map, across', yPos: 'Place on the map, down', Con: 'Linked systems', Nav: 'Its stellars', Govt: 'Its government', BkgndColor: 'Color of space',
     Visibility: 'Test: when it is there', Interference: 'Radar jamming chance', Murk: 'How murky', Asteroids: 'Asteroids kept around', AstTypes: 'Asteroid kinds', DudeTypes: 'Düdes its ships come from',
     Probs: 'Weight of each düde', AvgShips: 'Ships placed on arrival', Person: 'Persons who may be here', PersonProb: 'Chance each person comes', Message: 'Arrival message',
     ReinfFleet: 'Fleet called for help', ReinfTime: 'How long it takes to come', ReinfIntrval: 'Days before it can come again',
@@ -1699,7 +1699,7 @@ const NOVA_FIELD_SHORT = {
     SmugPenalty: 'Record lost for smuggling', DisabPenalty: 'Record lost for disabling', BoardPenalty: 'Record lost for boarding', KillPenalty: 'Record lost for destroying', ShootPenalty: 'Record lost for firing on',
     Classes: 'Class numbers others name it by', Allies: 'Its allied classes', Enemies: 'Classes it is at war with', SkillMult: 'Skill of its ships', ScanMask: 'What its scans find',
     CommName: 'Name in the hail dialog', TargetCode: 'Name in the target display', Require: 'Bits needed to land', InhJam: 'Jamming of its ships', MediumName: 'Name when reinforcements arrive',
-    Color: 'Territory colour on the map', ShipColor: 'Paint on its ships', Intf: 'Status display in its systems', NewsPic: 'News picture', InitialRec: 'Your starting record',
+    Color: 'Territory color on the map', ShipColor: 'Paint on its ships', Intf: 'Status display in its systems', NewsPic: 'News picture', InitialRec: 'Your starting record',
     ScanFine: 'Fine after a scan', MaxOdds: 'Odds before its warships run',
   },
   'mïsn': {
@@ -1722,14 +1722,14 @@ const NOVA_FIELD_SHORT = {
     TechLevel: 'Tech level to sell it', BuyRandom: 'Daily chance it is for sale', Contributes: 'Bits it gives while carried',
   },
   'wëap': {
-    Sound: 'Sound when fired', SmokeSet: 'Smoke its shots leave', BeamColor: 'Beam core colour', CoronaColor: 'Beam glow colour', LiDensity: 'Lightning zig-zags', LiAmplitude: 'Lightning swing',
+    Sound: 'Sound when fired', SmokeSet: 'Smoke its shots leave', BeamColor: 'Beam core color', CoronaColor: 'Beam glow color', LiDensity: 'Lightning zig-zags', LiAmplitude: 'Lightning swing',
     MaxAmmo: 'Most ammunition per launcher', MassDmg: 'Armor damage', EnergyDmg: 'Shield damage', Guidance: 'How it flies and fires', AmmoType: 'What a shot uses', Graphic: 'Shot sprite',
     Inaccuracy: 'Spread of its shots', ExplodType: 'Explosion where it hits', ProxRadius: 'Proximity fuse reach', BlastRadius: 'Blast reach', Flags: 'Frames, shields, firing together and more',
     Seeker: 'Asteroids, ionization, decoys, jamming', Decay: 'Damage lost as it flies', Particles: 'Trail particles', PartVel: 'Trail particle speed', PartLifeMin: 'Trail particle life, least',
-    PartLifeMax: 'Trail particle life, most', PartColor: 'Trail particle colour', BeamLength: 'Beam reach', BeamWidth: 'Beam width, or steps a frame', Falloff: 'Beam fade', SubType: 'Submunition weapon',
+    PartLifeMax: 'Trail particle life, most', PartColor: 'Trail particle color', BeamLength: 'Beam reach', BeamWidth: 'Beam width, or steps a frame', Falloff: 'Beam fade', SubType: 'Submunition weapon',
     ProxSafety: 'Steps before it arms', Flags2: 'Frames, hits, submunitions, planet-type and more', HitParticles: 'Particles where it hits', HitPartLife: 'Hit particle life', HitPartVel: 'Hit particle speed',
-    HitPartColor: 'Hit particle colour', Recoil: 'Push back on the firer', ExitType: 'Which exit points', BurstCount: 'Shots a burst', BurstReload: 'Reload after a burst', JamVuln: 'How jamming affects it',
-    Flags3: 'Ammunition, one shot at a time, exit point', Durability: 'What point defence wears down', IonizeColor: 'Colour of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
+    HitPartColor: 'Hit particle color', Recoil: 'Push back on the firer', ExitType: 'Which exit points', BurstCount: 'Shots a burst', BurstReload: 'Reload after a burst', JamVuln: 'How jamming affects it',
+    Flags3: 'Ammunition, one shot at a time, exit point', Durability: 'What point defence wears down', IonizeColor: 'Color of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
     Speed: 'Shot speed', GuidedTurn: 'Homing turn', Impact: 'Push on the ship hit', Ionization: 'Ionization added', SubCount: 'Submunitions a shot', SubTheta: 'Submunition spread', SubLimit: 'Submunition generations',
   },
   'përs': {

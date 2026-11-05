@@ -282,7 +282,7 @@ function renderShip() {
 
 function shipFilesNote() {
   if (SHIP_FILES.length || PENDING.some(f => f.role === 'ships')) return '<p class="note">Reading the ships files…</p>';
-  if (!GAME.files.some(f => f.role === 'ships') && !GAME.list('shän').length) return '<p class="note">No ships files are open, so there are no sprites or pictures: open the game\'s Nova Ships files with the rest.</p>';
+  if (!GAME.files.some(f => f.role === 'ships') && !GAME.list('shän').length) return '<p class="note">No ships files are open. Open the game\'s Nova Ships files with the rest to see the sprites and pictures.</p>';
   return '';
 }
 
@@ -290,20 +290,20 @@ function shipHtml(ship, shan) {
   const id = ship.id;
   const govts = novaShipGovts(ship.InherentGovt);
   const govtLine = govts.combat === -1 && govts.attrs === -1 ? '' : govts.combat === govts.attrs ? esc(govtName(govts.combat))
-    : govts.combat === -1 ? `${esc(govtName(govts.attrs))}'s attributes, of no government in combat` : `${esc(govtName(govts.combat))} in combat, with no government's attributes`;
+    : govts.combat === -1 ? `${esc(govtName(govts.attrs))}'s attributes (no government in combat)` : `${esc(govtName(govts.combat))} in combat (no government's attributes)`;
   const sub = [`shïp ${id}`, ship.Subtitle, govtLine, ship.file].filter(Boolean).map(s => s === govtLine ? s : esc(s)).join(' · ');
   // its descriptions' ids, a base read from the program plus its number minus 128
   const fd = fig('shipDesc'), fe = fig('escortDesc'), n = id - 128;
   const d = fd ? descText(fd.value + n) : null, pd = fe ? descText(fe.value + n) : null;
   const perSec = v => fmtNum(Math.round(v * 30 / 10) / 100);
   const days = novaShipJumpDays(ship.Mass);
-  const holds = ship.Holds < 0 ? `${fmtNum(-ship.Holds)} tons, and no mass expansions` : `${fmtNum(ship.Holds)} tons`;
+  const holds = ship.Holds < 0 ? `${fmtNum(-ship.Holds)} tons and no mass expansions` : `${fmtNum(ship.Holds)} tons`;
   const weapons = novaShipWeapons(ship).map(w => `${w.count} × ${recLink('wëap', w.id)}${w.ammo ? ` <span class="note">with ${fmtNum(w.ammo)} rounds</span>` : ''}`);
   const items = novaShipItems(ship).map(it => `${it.count > 1 ? it.count + ' × ' : ''}${recLink('oütf', it.id)}`);
   const flags = [...novaFlagWords(ship.Flags, NOVA_SHIP_FLAGS), ...novaFlagWords(ship.Flags2, NOVA_SHIP_FLAGS2), ...novaFlagWords(ship.Flags3, NOVA_SHIP_FLAGS3)];
   const yards = ship.BuyRandom > 0 ? novaShipyards(U.stellars.values(), ship).filter(s => U.inSystems.has(s)) : [];
   const sale = ship.BuyRandom <= 0 ? 'Never: BuyRandom is 0'
-    : `${ship.BuyRandom < 100 ? `On ${ship.BuyRandom}% of days, at` : 'At'} ${yards.length ? `<details class="inline"><summary>${yards.length} shipyard${yards.length === 1 ? '' : 's'}</summary><div class="list">${yards.map(s => stellarLink(s)).join('')}</div></details>` : 'no shipyard: none has its tech level'}`;
+    : `${ship.BuyRandom < 100 ? `On ${ship.BuyRandom}% of days at` : 'At'} ${yards.length ? `<details class="inline"><summary>${yards.length} shipyard${yards.length === 1 ? '' : 's'}</summary><div class="list">${yards.map(s => stellarLink(s)).join('')}</div></details>` : 'no shipyard because none has its tech level'}`;
   const require = (ship.Require || []).some(v => v) ? (ship.Require || []).map(v => '0x' + (v >>> 0).toString(16).toUpperCase().padStart(8, '0')).join(' ') : '';
   const contributes = (ship.Contributes || []).some(v => v) ? (ship.Contributes || []).map(v => '0x' + (v >>> 0).toString(16).toUpperCase().padStart(8, '0')).join(' ') : '';
   const sell = ship.EscSellValue > 0 ? `${fmtNum(ship.EscSellValue)} credits` : `${fmtNum(Math.round(ship.Cost / 10))} credits (a tenth of its cost)`;
@@ -312,14 +312,14 @@ function shipHtml(ship, shan) {
     .filter(([, v]) => v).map(([k, v]) => kvRow(k, `<span class="test">${esc(v)}</span>`)).join('');
   const np = novaNameParts(ship.name);
   return `<div class="shipHead"><h2>${esc(np.name || 'shïp ' + id)}</h2><div class="sub">${sub}</div>
-    ${np.note !== null ? `<p class="note">Named "${esc(ship.name)}" in the file; the game shows only what comes before the semicolon.</p>` : ''}</div>
+    ${np.note !== null ? `<p class="note">Named "${esc(ship.name)}" in the file. The game shows only what comes before the semicolon.</p>` : ''}</div>
     <div class="shipTop">
       <div class="shipStage">${shan ? '<canvas id="shipCanvas"></canvas><div id="shipCtl" class="shipCtl"></div><div id="shipAt" class="note"></div>'
-        : `<div class="nopict">${GAME.list('shän').length ? `No shän ${id} in these files, so no sprites.` : 'The sprites are in the ships files.'}</div>`}</div>
+        : `<div class="nopict">${GAME.list('shän').length ? `These files have no shän ${id} and so no sprites.` : 'The sprites are in the ships files.'}</div>`}</div>
       <div id="shipPics" class="shipPics"></div>
     </div>
-    ${!fd ? `<p class="note">The game's program finds its description, ${program() ? 'but does not show where for this one' : 'and the open files do not include the program'}.</p>`
-      : d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">dësc ${fd.value + n} (${codeNum(fd)} + ${n}), as the shipyard loads it.</p>` : `<p class="note">No description: the files have no dësc ${fd.value + n} (${codeNum(fd)} + ${n}).</p>`}
+    ${!fd ? `<p class="note">The game's program finds its description. ${program() ? 'The page cannot show where for this one.' : 'The open files do not include the program.'}</p>`
+      : d ? `<div class="desc">${esc(novaDescText(d.Description, STATE))}</div><p class="note">dësc ${fd.value + n} (${codeNum(fd)} + ${n}) as the shipyard loads it.</p>` : `<p class="note">No description: the files have no dësc ${fd.value + n} (${codeNum(fd)} + ${n}).</p>`}
     ${pd ? `<h3>As an escort for hire</h3><div class="desc">${esc(novaDescText(pd.Description, STATE))}</div><p class="note">dësc ${fe.value + n} (${codeNum(fe)} + ${n}).</p>` : ''}
     <div class="shipCols">
       <div><h3>Performance</h3><table class="kv">
@@ -331,8 +331,8 @@ function shipHtml(ship, shan) {
         ${kvRow('Fuel', `${fmtNum(ship.Fuel)} <span class="note">(${Math.floor(ship.Fuel / 100)} jump${Math.floor(ship.Fuel / 100) === 1 ? '' : 's'})</span>`)}
         ${kvRow('Cargo', holds)}
         ${kvRow('Free space', `${fmtNum(ship.FreeMass)} tons`)}
-        ${kvRow('Guns, turrets', `up to ${ship.MaxGun} and ${ship.MaxTur}`)}
-        ${kvRow('Crew', ship.Crew ? fmtNum(ship.Crew) : '0: no one can board it, and it cannot capture')}
+        ${kvRow('Guns and turrets', `up to ${ship.MaxGun} and ${ship.MaxTur}`)}
+        ${kvRow('Crew', ship.Crew ? fmtNum(ship.Crew) : '0 (no one can board it and it cannot capture)')}
         ${kvRow('Mass', `${fmtNum(ship.Mass)} tons${days ? ` <span class="note">(${days} day${days === 1 ? '' : 's'} a jump)</span>` : ''}`)}
         ${kvRow('Length', ship.Length ? `${fmtNum(ship.Length)} m` : '')}
         ${kvRow('Strength', fmtNum(ship.Strength))}
@@ -374,7 +374,7 @@ function shanHtml(shan) {
   const rows = novaShanLayers(shan).map(l => {
     const s = shipSprite(l.image);
     const what = !s ? '' : s.kind === 'rle' ? `${s.type} ${l.image}: ${s.count} frames of ${s.width} × ${s.height}`
-      : s.kind === 'pict' ? `PICT ${l.image}, a sheet this page cannot draw` : s.kind === 'bad' ? `${l.image}: ${s.error}` : `${l.image}, not in these files`;
+      : s.kind === 'pict' ? `PICT ${l.image} (a sheet this page cannot draw)` : s.kind === 'bad' ? `${l.image}: ${s.error}` : `${l.image} (not in these files)`;
     return kvRow(l.label, esc(what));
   }).join('');
   const modes = novaFlagWords(shan.Flags, NOVA_SHAN_FLAGS);
@@ -385,7 +385,7 @@ function shanHtml(shan) {
     ${kvRow('Modes', modes.map(esc).join('<br>'))}</table></details>`;
 }
 
-/* The ship's pictures: target, shipyard, and the one its description points to. */
+/* The ship's pictures: target, shipyard, and the one its description gives. */
 function renderShipPictures() {
   const host = $('shipPics');
   if (!host || SHIPS.id === null) return;
@@ -394,9 +394,9 @@ function renderShipPictures() {
   const t = novaShipPict(GAME, id, NOVA_SHIP_PICT.target), y = novaShipPict(GAME, id, NOVA_SHIP_PICT.shipyard);
   const whose = p => p.from !== id ? `, shïp ${p.from}'s` : '';
   const n = p => p.from - 128;
-  if (y) list.push({ pict: y.id, label: `Shipyard, PICT ${y.id} (${figText('shipyardPict', NOVA_SHIP_PICT.shipyard)} + ${n(y)}${whose(y)})` });
-  if (t) list.push({ pict: t.id, label: `Target display, PICT ${t.id} (${figText('shipTargetPict', NOVA_SHIP_PICT.target)} + ${n(t)}${whose(t)})` });
-  if (d && d.Graphic >= 128 && GAME.has('PICT', d.Graphic)) list.push({ pict: d.Graphic, label: `Named by its description, PICT ${d.Graphic}` });
+  if (y) list.push({ pict: y.id, label: `Shipyard PICT ${y.id} (${figText('shipyardPict', NOVA_SHIP_PICT.shipyard)} + ${n(y)}${whose(y)})` });
+  if (t) list.push({ pict: t.id, label: `Target display PICT ${t.id} (${figText('shipTargetPict', NOVA_SHIP_PICT.target)} + ${n(t)}${whose(t)})` });
+  if (d && d.Graphic >= 128 && GAME.has('PICT', d.Graphic)) list.push({ pict: d.Graphic, label: `PICT ${d.Graphic} from its description` });
   const key = list.map(p => p.pict).join(',');
   const done = host.dataset.key === key && !host.querySelector('.wait');
   if (done) return;
@@ -437,7 +437,7 @@ function startShipAnim(ship, shan) {
     last: performance.now(), acc: 0, raf: 0,
   };
   SHIP_ANIM = A;
-  // The box is sized from the base sprite, with room round it for a glow
+  // The box is sized from the base sprite, with room around it for a glow
   // or a shield, which can be drawn on a sprite twice its size; the base is
   // shown some 170 pixels across, whole pixels when that is at least
   // double, and never shrunk.
@@ -453,7 +453,7 @@ function startShipAnim(ship, shan) {
   shipControls(A);
   wireShipCanvas(A, c);
   if (!base || !base.spr || base.spr.kind !== 'rle') {
-    $('shipAt').textContent = !base || !base.spr || base.spr.kind === 'missing' ? 'The base sprite is in the ships files.' : base.spr.kind === 'pict' ? 'This ship\'s sprites are a PICT sheet, which this page cannot draw.' : base.spr.error;
+    $('shipAt').textContent = !base || !base.spr || base.spr.kind === 'missing' ? 'The base sprite is in the ships files.' : base.spr.kind === 'pict' ? 'This ship\'s sprites are a PICT sheet. This page cannot draw one.' : base.spr.error;
   }
   const loop = now => {
     if (SHIP_ANIM !== A) return;
@@ -532,8 +532,8 @@ function drawShip(A, c) {
     const sets = Math.max(1, A.shan.BaseSetCount);
     const all = A.show.exits ? shipExits(A.shan, A.per, h) : [];
     const key = EXIT_KINDS.filter((_, k) => all[k] && all[k].some(p => p.set)).map(([n, col]) => `<span style="color:${col}">■</span> ${n.toLowerCase()}`).join(', ');
-    at.innerHTML = esc(`Heading ${Math.round(h * 360 / A.per)}°, frame ${h + 1} of ${A.per}` + (sets > 1 ? `, set ${set + 1} of ${sets}` : '')) + (key ? `; exit points: ${key}` : '') +
-      (A.flash > 0 && !A.show.weap ? esc(`; weapon glow ${Math.trunc(Math.min(A.flash, 32))} of 32${A.decay > 0 ? '' : ', WeapDecay 0: it stays'}`) : '');
+    at.innerHTML = esc(`Heading ${Math.round(h * 360 / A.per)}° · frame ${h + 1} of ${A.per}` + (sets > 1 ? ` · set ${set + 1} of ${sets}` : '')) + (key ? ` · exit points: ${key}` : '') +
+      (A.flash > 0 && !A.show.weap ? esc(` · weapon glow ${Math.trunc(Math.min(A.flash, 32))} of 32${A.decay > 0 ? '' : ' (it stays with WeapDecay 0)'}`) : '');
   }
 }
 
@@ -575,7 +575,7 @@ function shipControls(A) {
   ];
   const toggle = (k, label) => has(k) ? `<button data-c="${k}" aria-pressed="${A.show[k]}">${label}</button>` : '';
   parts.push(toggle('glow', 'Engines'), toggle('light', 'Lights'), toggle('alt', 'Alternating'), toggle('weap', 'Weapon glow'), toggle('shield', 'Shield'));
-  // firing: the weapon glow flashes and fades by WeapDecay; the exit points, coloured by the kind of weapon
+  // firing: the weapon glow flashes and fades by WeapDecay; the exit points, colored by the kind of weapon
   if (has('weap')) parts.push(`<button data-c="fire" title="The weapon glow at full, fading by WeapDecay">Fire</button>`);
   const kinds = EXIT_KINDS.filter((_, k) => shipExits(s, A.per, 0)[k].some(p => p.set));
   if (kinds.length) parts.push(`<button data-c="exits" aria-pressed="false" title="${kinds.map(([n, col]) => n.toLowerCase()).join(', ')}">Exit points</button>`);

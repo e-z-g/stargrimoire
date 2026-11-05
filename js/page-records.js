@@ -61,9 +61,9 @@ function missionListPanel() {
   const item = m => `<a data-mission="${m.id}">${esc(m.name)}</a> <span class="note">${m.story && m.story.step ? esc(m.story.step) : m.id}</span>`;
   const stories = [...M.stories.values()].sort((a, b) => a.name.localeCompare(b.name));
   return `<h2>Missions</h2>
-    <div class="sub">every mïsn in the files open, ${M.byId.size}</div>
+    <div class="sub">every mïsn in the open files (${M.byId.size})</div>
     <div class="actions"><button data-bit-back>Back</button></div>
-    <p class="note">By storyline, as Ambrosia's notes in their names give it, each in step order; then the ${none.length} in none. The Library's Missions table has their fields side by side, to sort.</p>
+    <p class="note">Missions by storyline as Ambrosia's notes in their names give it. Each storyline is in step order. The ${none.length} missions in no storyline come last. The Library's Missions table has their fields side by side for sorting.</p>
     ${stories.map(s => `<details class="ovStory"><summary>${esc(s.name)} <span class="note">${s.missions.length}</span></summary><p><a data-story="${esc(s.key)}">The storyline's panel</a></p><div class="list">${s.missions.map(item).join('')}</div></details>`).join('')}
     <details class="ovStory"><summary>In no storyline <span class="note">${none.length}</span></summary><div class="list">${none.map(item).join('')}</div></details>`;
 }
@@ -73,7 +73,7 @@ function recListPanel(type) {
   const recs = novaAll(GAME, type).map(r => ({ id: r.id, name: novaNameParts(r.name).name || `${type} ${r.id}` }))
     .sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
   return `<h2>${esc(REC_KIND[type])}</h2>
-    <div class="sub">every ${esc(type)} in the files open, ${recs.length}</div>
+    <div class="sub">every ${esc(type)} in the open files (${recs.length})</div>
     <div class="actions"><button data-bit-back>Back</button></div>
     <div class="list">${recs.map(r => `<a data-rec="${NOVA_REC_WORD.get(type)}.${r.id}">${esc(r.name)}</a> <span class="note">${r.id}</span>`).join('')}</div>`;
 }
@@ -83,7 +83,7 @@ function recPanel(key) {
   const [word, n] = String(key).split('.');
   if (word === 'misn') return missionListPanel();
   const type = NOVA_REC_BY_WORD.get(word);
-  if (!type) return `<p class="note">No such record type: ${esc(word)}.</p>`;
+  if (!type) return `<p class="note">The files have no record type ${esc(word)}.</p>`;
   if (n === undefined) return recListPanel(type);
   const id = +n, r = novaGet(GAME, type, id);
   if (!r) return `<h2>${esc(type)} ${id}</h2><div class="actions"><button data-bit-back>Back</button></div><p class="note">Not in the files open.</p>`;
@@ -144,10 +144,10 @@ const recPict = (id, caption) => (GAME.has('PICT', id) ? `<figure class="recPict
    was read; or a note that the program is needed. */
 function recFromProgram(id, pictFig, descFig, what) {
   const p = fig(pictFig), d = fig(descFig), n = id - 128;
-  if (!p && !d) return `<p class="note">The game's program finds its ${what} picture and description, ${program() ? 'but does not show where for this one' : 'and the open files do not include the program'}.</p>`;
+  if (!p && !d) return `<p class="note">The game's program finds its ${what} picture and description. ${program() ? 'The page cannot show where for this one.' : 'The open files do not include the program.'}</p>`;
   const pid = p ? p.value + n : null, did = d ? d.value + n : null;
   return (p ? recPict(pid, `${esc(what[0].toUpperCase() + what.slice(1))}, PICT ${pid} (${codeNum(p)} + ${n})`) : '') +
-    (d ? `${recDesc(did, 'description')}<p class="note">dësc ${did} (${codeNum(d)} + ${n}), as the ${esc(what)} loads it.</p>` : '');
+    (d ? `${recDesc(did, 'description')}<p class="note">dësc ${did} (${codeNum(d)} + ${n}) as the ${esc(what)} loads it.</p>` : '');
 }
 function recPictures() {
   for (const fig of document.querySelectorAll('#panel figure.recPict')) {
@@ -179,17 +179,17 @@ const REC_BODY = {
         ${kvRow('What it does', does.join('<br>') || '<span class="note">nothing</span>')}
         ${kvRow('Cost', r.Cost > 0 ? r.Cost.toLocaleString() + ' credits' : 'nothing')}
         ${kvRow('Mass', r.Mass + ' tons')}
-        ${kvRow('Most you can carry', r.Max > 0 ? String(r.Max) : '')}
+        ${kvRow('Most per ship', r.Max > 0 ? String(r.Max) : '')}
         ${kvRow('Tech level', String(r.TechLevel))}
         ${kvRow('Offered when', testLine(r.Availability))}
       </table>
       <h3>Sold at <span class="note">${soldAt.length}</span></h3>
-      <p class="note">Outfitters whose tech level is at least the outfit's, or that list it among their special techs; Offered when, its Needs and the day's draw (BuyRandom) then decide whether the outfitter offers it on a given day.</p>
+      <p class="note">Outfitters whose tech level is at least the outfit's or that list it among their special techs. Whether an outfitter offers it on a given day depends on Offered when, its Needs, and the day's draw (BuyRandom).</p>
       ${many(soldAt.map(stellarRef), 'outfitters')}
-      ${refs.needs.length ? `<h3>Needs</h3><p class="note">You need every one of these contribute bits, from the ship, an outfit carried, a rank held or a running event.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
-      ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">Added to yours when you buy, capture or start in one (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}
+      ${refs.needs.length ? `<h3>Needs</h3><p class="note">The player needs every one of these contribute bits. Each can come from the ship, an outfit carried, a rank held, or a running event.</p><table class="kv">${refs.needs.map(nd => kvRow(maskText(nd.bit), many(nd.from.map(contribRef), 'ships, outfits, and events', 'nothing in these files gives it'))).join('')}</table>` : ''}
+      ${refs.carriedBy.length ? `<h3>Comes with the ships <span class="note">${refs.carriedBy.length}</span></h3><p class="note">The player's ship receives it when the player buys, captures, or starts in one of these ships (their DefaultItems).</p>${many(refs.carriedBy.map(c => counted(c.count, recShipLink(c.id))), 'ships')}` : ''}
       ${given.length ? `<h3>Given and taken</h3><table class="kv">${given.map(g => `<tr><td colspan="2">${g}</td></tr>`).join('')}</table>` : ''}
-      ${refs.grantedBy.length ? `<h3>Found plundering</h3><p class="note">People whose GrantClass is this outfit's ItemClass, ${r.ItemClass}.</p><div class="list">${refs.grantedBy.map(p => recLink('përs', p)).join('')}</div>` : ''}
+      ${refs.grantedBy.length ? `<h3>Found plundering</h3><p class="note">People whose GrantClass is this outfit's ItemClass (${r.ItemClass}).</p><div class="list">${refs.grantedBy.map(p => recLink('përs', p)).join('')}</div>` : ''}
       ${refs.maxBy.length ? `<h3>More of it carried with</h3><div class="list">${refs.maxBy.map(o => recLink('oütf', o)).join('')}</div>` : ''}`;
   },
   'wëap'(r, refs) {
@@ -245,7 +245,7 @@ const REC_BODY = {
     const c = r.Color & 0xFFFFFF;
     const short = (list, f, what) => list.length ? many(list.map(f), what) : '';
     return `<table class="kv">
-        ${kvRow('Colour', `${chip('#' + c.toString(16).padStart(6, '0'))} #${c.toString(16).toUpperCase().padStart(6, '0')}`)}
+        ${kvRow('Color', `${chip('#' + c.toString(16).padStart(6, '0'))} #${c.toString(16).toUpperCase().padStart(6, '0')}`)}
         ${kvRow('Allied with', many(refs.allies.map(g => recLink('gövt', g)), 'governments'))}
         ${kvRow('Enemies', many(refs.enemies.map(g => recLink('gövt', g)), 'governments'))}
         ${kvRow('Systems', short(refs.systems, s => sysLink(s), 'systems'))}
@@ -255,7 +255,7 @@ const REC_BODY = {
         ${kvRow('People', short(refs.persons, x => recLink('përs', x), 'people'))}
         ${kvRow('Ranks', short(refs.ranks, x => recLink('ränk', x), 'ranks'))}
       </table>
-      <p class="note">Allied and at war as the program reads the classes (GovtAllies, GovtEnemies).</p>`;
+      <p class="note">Allied and at war as the program reads the classes (GovtAllies and GovtEnemies).</p>`;
   },
   'crön'(r) {
     const news = id => (id > 0 ? novaStrings(GAME, id) : []);
@@ -279,7 +279,7 @@ const REC_BODY = {
     return `<table class="kv">
         ${kvRow('Base price', String(r.BasePrice))}
       </table>
-      <p class="note">Traded at these stellars, on the trade screen's seventh row (BoughtAt) or eighth (SoldAt), bought and sold at the one price. Where several commodities list a stellar, the stellar trades the highest-numbered one.</p>
+      <p class="note">These stellars trade it on the seventh row of the trade screen (BoughtAt) or the eighth row (SoldAt). The price is the same for buying and selling. When several commodities list a stellar the stellar trades the highest-numbered one.</p>
       <table class="kv">
         ${kvRow('At base price × 1.25', listOr(refs.boughtAt.map(stellarRef), 'nowhere'))}
         ${kvRow('while', testLine(r.BuyOn))}
@@ -293,7 +293,7 @@ const REC_BODY = {
     return `<table class="kv">
         ${kvRow('Government', govtRef(r.Govt))}
         ${kvRow('Prices', `${r.PriceMod > 0 ? r.PriceMod : 100}% at the stellars of its government and its allies`)}
-        ${kvRow('Salary', r.Salary ? `${r.Salary.toLocaleString()} credits a day${r.SalaryCap > 0 ? `, while you have under ${r.SalaryCap.toLocaleString()}` : ''}` : '')}
+        ${kvRow('Salary', r.Salary ? `${r.Salary.toLocaleString()} credits a day${r.SalaryCap > 0 ? ` while the player has under ${r.SalaryCap.toLocaleString()}` : ''}` : '')}
         ${kvRow('Name used for <PRK>', r.ConvName ? esc(r.ConvName) : '')}
         ${kvRow('Name used for <SRK>', r.ShortName ? esc(r.ShortName) : '')}
         ${kvRow('Weight', String(r.Weight))}

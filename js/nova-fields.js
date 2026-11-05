@@ -532,25 +532,25 @@ const NOVA_FIELD_NOTES = {
       code: [['PropagateMissionBitEffects', 0x99676], ['SelectShipFieldFromDude', 0x65c2]],
     },
     TechLevel: {
-      note: 'Offered at stellars with a shipyard whose TechLevel is at least this, or with this among their SpecialTech. Below 0: in none.',
+      note: 'Offered at stellars with a shipyard whose TechLevel is at least this or with this among their SpecialTech. Below 0: in none.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     Cost: {
-      note: 'What the shipyard asks is this less a trade-in, never below 0: a quarter of your current ship\'s Cost and half the Cost of each outfit you carry, some outfits aside. Each is multiplied by the PriceMod of every rank you hold with a government allied to the stellar\'s, the trade-in twice over; at a stellar of TechLevel 5 or less, a ship of lower TechLevel costs 3% less for each level between (from 100 credits), the trade-in again twice; and each is rounded down to 10 credits above 100, 100 above 10,000, 1,000 above 100,000.',
+      note: 'The shipyard\'s price is this minus a trade-in and never below 0. The trade-in is a quarter of the player\'s current ship\'s Cost and half the Cost of each outfit the player carries. Some outfits do not count. The PriceMod of every rank the player holds with a government allied to the stellar\'s multiplies each amount (the trade-in twice over). At a stellar of TechLevel 5 or less a ship of lower TechLevel costs 3% less for each level between (from 100 credits). The trade-in again counts that twice. The game rounds each amount down to 10 credits above 100, 100 above 10,000, and 1,000 above 100,000.',
       bible: 'the price is the new ship\'s Cost less 25% of the original cost of your current ship and upgrades; it says nothing of outfits at half, nor of the PriceMods and TechLevel.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerShipTradeInPrice', 0xb079], ['ApplyPriceAndTechnologyFlux', 0x4e6cd], ['DoPortDialog', 0x5f911]],
     },
     BuyRandom: {
-      note: 'The chance in 100 that it is for sale on a given day: it is for sale while BuyRandom is at least a number from 1 to 100 drawn for its class each day. 0: never.',
+      note: 'The chance in 100 that it is for sale on a given day. It is for sale while BuyRandom is at least a number from 1 to 100 drawn for its class each day. 0: never.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
     },
     HireRandom: {
-      note: 'The chance in 100 that it is for hire on a given day: it is for hire while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy, the state in which the program sends its nag ship, Captain Hector, the program skips the draw and every class above 0 is for hire every day.',
+      note: 'The chance in 100 that it is for hire on a given day. It is for hire while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy the program skips the draw and every class above 0 is for hire every day. That is the state in which the program sends its nag ship (Captain Hector).',
       bible: 'says nothing of the unregistered copy.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['SpawnNagShip', 0x5fdb]],
     },
     Require: {
-      note: 'You can buy it only when the Contributes bits of your ship and outfits include every bit set here. With Flags3 0x0200 the shipyard does not show it either until then; without, the shipyard shows it and you cannot buy it.',
+      note: 'The player can buy it only when the Contributes bits of the player\'s ship and outfits include every bit set here. With Flags3 0x0200 the shipyard also hides it until then. Without that flag the shipyard shows it but the player cannot buy it.',
       code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
     },
     UpgradeTo: {
@@ -558,15 +558,15 @@ const NOVA_FIELD_NOTES = {
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['LoadObjectData', 0x771b0]],
     },
     EscUpgrdCost: {
-      note: 'Credits taken for that upgrade, at the shipyard; with fewer, it waits.',
+      note: 'Credits charged for that upgrade at the shipyard. With fewer the upgrade waits.',
       code: [['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     EscSellValue: {
-      note: 'Credits paid to you when you land at a shipyard for an escort of this class marked "Will be sold off at next shipyard", and it leaves. Only escorts you own, not hired ones, and not while disabled. 0 or less: a tenth of its Cost.',
+      note: 'Credits paid to the player for an escort of this class marked "Will be sold off at next shipyard" when the player lands at a shipyard. The escort then leaves. This applies only to escorts the player owns and not to hired or disabled ones. 0 or less: a tenth of its Cost.',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     DefaultItems: {
-      note: 'An outfit a ship of this class comes with, ItemCount of it: 128 to 639 is that oütf; anything else, none. Added to yours when you buy one at a shipyard, start a new pilot in one, capture one, or a set expression gives you one. Four more fields of the same kind follow, from DefaultItms2.',
+      note: 'An outfit a ship of this class comes with (ItemCount of it). 128 to 639: that oütf. Anything else: none. The player\'s ship receives it when the player buys one at a shipyard, starts a new pilot in one, or captures one, or when a set expression gives the player one. Four more fields of the same kind follow from DefaultItms2.',
       bible: '128 to 255.',
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['DoNewPilot', 0x18b0a], ['DoShipCapture', 0x41120], ['EvalSetExp', 0x150fc]],
     },
@@ -575,7 +575,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
     },
     DefaultItms2: {
-      note: 'Four more DefaultItems, read the same way, with ItemCount2.',
+      note: 'Four more DefaultItems with ItemCount2. The game reads them the same way.',
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
     },
     ItemCount2: {
@@ -583,67 +583,67 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679]],
     },
     Contributes: {
-      note: 'Added to your bits while you fly this class. Your bits are those of your ship class, of every outfit you carry, of every ränk you hold and of every crön event that is running; the Require of a shïp, mïsn, crön or gövt, and an oütf\'s Requires, passes when they include every bit it sets.',
+      note: 'Added to the player\'s bits while the player flies this class. The player\'s bits come from the ship class, every outfit the player carries, every ränk the player has, and every crön event that is running. The Require of a shïp, mïsn, crön, or gövt passes when the bits include every bit it sets. So do an oütf\'s Requires.',
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     FuelRegen: {
-      note: 'One unit of Fuel back every FuelRegen steps, times the game speed, up to what it can hold. 0 or less: none. Your ship regains it only with Flags 0x0008.',
+      note: 'One unit of Fuel comes back every FuelRegen steps × the game speed up to what the ship can have. 0 or less: none. The player\'s ship regains it only with Flags 0x0008.',
       code: [['ShipFuelGenRate', 0x2ffb], ['HandleShip', 0x33581]],
     },
     Flags3: {
-      note: '0x0001 and 0x0002: a ship not following another flies as a miner: with 0x0001 it parks where there are no asteroids; with 0x0002 it goes between the nearest stellars, and coasts 100 to 174 steps, not 300 to 499, when idle. 0x0020: a planet\'s Gravity does not pull it, and deadly stellars do not harm it. 0x0040: the game draws its turrets\' shots above the ships. 0x0100: the shipyard hides it while its Availability fails; 0x0200, while its Require fails. 0x4000: while it is on offer, the shipyard offers no higher-numbered class of the same DispWeight. The program does not read 0x0010.',
+      note: '0x0001 and 0x0002: a ship not following another flies as a miner. With 0x0001 it parks where there are no asteroids. With 0x0002 it goes between the nearest stellars and coasts 100 to 174 steps instead of 300 to 499 when idle. 0x0020: a planet\'s Gravity does not pull it and deadly stellars do not harm it. 0x0040: the game draws its turrets\' shots above the ships. 0x0100: the shipyard hides it while its Availability fails. 0x0200: the shipyard hides it while its Require fails. 0x4000: while it is on offer the shipyard offers no higher-numbered class of the same DispWeight. The program does not read 0x0010.',
       code: [['AIDispatch', 0x8fb52], ['MinerAI', 0x8b202], ['HighLevelAIHandler', 0x8d453], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['SpawnShot', 0x3e550], ['SetupPortAvailableShipTypes', 0xbbe3]],
       bible: '0x0010, the ship ignores gravity; 0x0020, it ignores deadly stellars.',
     },
   },
   'gövt': {
     VoiceType: {
-      note: 'Its ships\' spoken messages: snd resources from 1000 + 100 × VoiceType, ten for each kind of message, one of those present picked at random. -1: none.',
+      note: 'Its ships\' spoken messages. They are snd resources from 1000 + 100 × VoiceType with ten for each kind of message. The game picks one of those present at random. -1: none.',
       code: [['HandleVoiceSound', 0x31e20]],
     },
     Flags: {
-      note: '0x0001: every government not its ally, and every independent ship, is its enemy (Enemies). 0x0004: its warships go for you whenever they see you. 0x0008: your shots, and your fleet\'s, do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full, depending on their aggression, or at the share a përs sets; without it they fight on. 0x0040: its warships leave you be, and your fleet\'s shots and its ships\' do not hit each other. 0x0080: the jamming of its ships not yours is halved (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships take bribes; 0x2000, its freighters; 0x4000, its stellars. 0x0400: its ships cannot be hailed. 0x0800: its ships are derelicts, always disabled, no one\'s ally or enemy, and no penalty follows from what you do to them. 0x1000: its warships fly the pirate warship AI, plundering before they destroy. 0x0002: its warships go for you in other governments\' and independent systems too, below -2 × CrimeTol there. 0x0020: other governments\' warships do not come to help its ships when they are attacked. 0x8000: its ships ask a bigger bribe, 10,000 + 1,000 × a random number up to your credits ÷ 10,000 (otherwise 3,000 + 1,000 × one up to your credits ÷ 2,000,000), and its stellars half as much again and always take one; a bribe is at most a third of your credits.',
+      note: '0x0001: every government not its ally and every independent ship is its enemy (Enemies). 0x0004: its warships attack the player whenever they see the player. 0x0008: shots from the player and the player\'s fleet do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full depending on their aggression or at the share a përs sets. Without it they fight on. 0x0040: its warships leave the player alone. The shots of the player\'s fleet and its ships do not hit each other. 0x0080: the game halves the jamming of its ships other than the player\'s (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships accept bribes. 0x2000: its freighters accept bribes. 0x4000: its stellars accept bribes. 0x0400: the player cannot hail its ships. 0x0800: its ships are derelicts. They are always disabled and no one\'s ally or enemy. Nothing the player does to them brings a penalty. 0x1000: its warships fly the pirate warship AI and plunder before they destroy. 0x0002: its warships also attack the player in other governments\' and independent systems when the record there is below -2 × CrimeTol. 0x0020: other governments\' warships do not come to help its ships when something attacks them. 0x8000: its ships demand a bigger bribe of 10,000 + 1,000 × a random number up to the player\'s credits ÷ 10,000. Otherwise the bribe is 3,000 + 1,000 × a random number up to the player\'s credits ÷ 2,000,000. Its stellars demand half as much again and always accept one. A bribe is at most a third of the player\'s credits.',
       code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
     Flags2: {
-      note: '0x0001: the hail dialog\'s request for help is not offered with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not call for help. 0x0010: its ships help you, repairing or refuelling, without asking payment (as does a ränk with Flags 0x0800 held with an ally). When its ships pick a stellar to go to: 0x0020, never a hypergate; 0x0040, a hypergate whenever the system has one; 0x0080, a wormhole whenever it has one (without it, never a wormhole). Its mission ships arriving in your system always come through a hypergate with 0x0040 (half the time without, never with 0x0020), and always through a wormhole with 0x0080 (otherwise one time in four).',
+      note: '0x0001: the hail dialog offers no request for help with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not signal for help. 0x0010: its ships help the player by repairing or refueling free of charge (as does a ränk with Flags 0x0800 held with an ally). 0x0020 to 0x0080 set where its ships go. 0x0020: never to a hypergate. 0x0040: to a hypergate whenever the system has one. 0x0080: to a wormhole whenever the system has one (without it never to a wormhole). Its mission ships always reach the player\'s system through a hypergate with 0x0040. Without it they do half the time and never with 0x0020. They always come through a wormhole with 0x0080 and otherwise one time in four.',
       code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCommPayment', 0x920f3], ['SelectRandomStellarDest', 0x805de], ['HandlePlayerDockRequest', 0x66691]],
     },
     CrimeTol: {
-      note: 'Whether its warships go for you, by your record in the system you are in: in systems it governs, below -CrimeTol; in an ally\'s, below -1.5 × CrimeTol; in an enemy\'s, above CrimeTol; elsewhere only with Flags 0x0002, below -2 × CrimeTol. Your legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256 and -1,024 × CrimeTol.',
+      note: 'Whether its warships attack the player depends on the player\'s record in the current system. In systems it governs they attack below -CrimeTol. In an ally\'s they attack below -1.5 × CrimeTol. In an enemy\'s they attack above CrimeTol. Elsewhere they attack only with Flags 0x0002 and below -2 × CrimeTol. The player\'s legal status in its systems drops a step at -CrimeTol, -4, -16, -64, -256, and -1,024 × CrimeTol.',
       code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
     },
     SmugPenalty: {
-      note: 'How far your record with it falls when one of its ships catches you smuggling (ScanMask): half this where it happens, the change spreading to other systems from there; the game drops very small changes and keeps the record between -32,000 and 32,000.',
+      note: 'How far the player\'s record with it falls when one of its ships catches the player smuggling (ScanMask). It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     DisabPenalty: {
-      note: 'How far your record with it falls when you disable one of its ships: half this where it happens, the change spreading to other systems from there; the game drops very small changes and keeps the record between -32,000 and 32,000.',
+      note: 'How far the player\'s record with it falls when the player disables one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     BoardPenalty: {
-      note: 'How far your record with it falls when you board one of its ships: half this where it happens, the change spreading to other systems from there; the game drops very small changes and keeps the record between -32,000 and 32,000.',
+      note: 'How far the player\'s record with it falls when the player boards one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     KillPenalty: {
-      note: 'How far your record with it falls when you destroy one of its ships: half this where it happens, the change spreading to other systems from there; the game drops very small changes and keeps the record between -32,000 and 32,000.',
+      note: 'How far the player\'s record with it falls when the player destroys one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     ShootPenalty: {
-      note: 'How far your record with it falls when you fire on one of its ships: half this where it happens, the change spreading to other systems from there; the game drops very small changes and keeps the record between -32,000 and 32,000.',
+      note: 'How far the player\'s record with it falls when the player fires on one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     Classes: {
-      note: 'Up to four class numbers (0 and up; below 0, none), which other governments\' Allies and Enemies, missions and other records use to refer to it.',
+      note: 'Up to four class numbers (0 and up). Below 0: none. Other governments\' Allies and Enemies, missions, and other records use them to refer to it.',
       code: [['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
     },
     Allies: {
-      note: 'Up to four class numbers: a government with any of them among its Classes is its ally, and it theirs. Below 0: none. A government with Flags 0x0800 is no one\'s ally.',
+      note: 'Up to four class numbers. A government with any of them among its Classes is its ally and it is theirs. Below 0: none. A government with Flags 0x0800 is no one\'s ally.',
       code: [['GovtAllies', 0x4e3d]],
     },
     Enemies: {
-      note: 'Up to four class numbers: a government with any of them among its Classes is its enemy, and it theirs, even if they are also allies. Failing that, with Flags 0x0001 every government not its ally, and every independent ship, is its enemy. A government with Flags 0x0800 is no one\'s enemy.',
+      note: 'Up to four class numbers. A government with any of them among its Classes is its enemy and it is theirs even if they are also allies. Otherwise with Flags 0x0001 every government not its ally and every independent ship is its enemy. A government with Flags 0x0800 is no one\'s enemy.',
       code: [['GovtEnemies', 0x4f22], ['GovtAllies', 0x4e3d]],
     },
     SkillMult: {

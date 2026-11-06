@@ -398,6 +398,16 @@ function pefDemangle(m) {
   const special = { __ct: '', __dt: '~', __pl: 'operator+', __mi: 'operator-', __ml: 'operator*', __dv: 'operator/', __as: 'operator=', __eq: 'operator==', __ne: 'operator!=', __lt: 'operator<', __gt: 'operator>', __apl: 'operator+=', __ami: 'operator-=', __cl: 'operator()', __vc: 'operator[]', __rf: 'operator->', __nw: 'operator new', __dl: 'operator delete', __ls: 'operator<<', __rs: 'operator>>', __aa: 'operator&&', __oo: 'operator||', __nt: 'operator!', __ad: 'operator&', __or: 'operator|', __er: 'operator^', __pp: 'operator++', __mm: 'operator--' };
   let kind = null;
   for (const k of Object.keys(special)) if (m.startsWith(k + '__')) { kind = k; i = k.length; break; }
+  // In a conversion operator's name, the target type sits between __op and
+  // the next __, spelled as an argument is: __opPc__8TSegLoadFv is
+  // TSegLoad::operator char*(). When that part does not read as exactly one
+  // argument type, the name stays mangled.
+  if (kind === null && m.startsWith('__op')) {
+    const sep = m.indexOf('__', 4);
+    const to = sep > 4 ? pefDemangleArgs(m.slice(4, sep), 0) : null;
+    if (!to || to.length !== 1) return m;
+    kind = '__op'; base = 'operator ' + to[0]; i = sep;
+  }
   if (kind === null) {
     const sep = m.indexOf('__', 1);
     if (sep < 0) return m;
@@ -413,7 +423,7 @@ function pefDemangle(m) {
   }
   if (kind === '__ct') base = cls.split('::').pop();
   else if (kind === '__dt') base = '~' + cls.split('::').pop();
-  else if (kind) base = special[kind];
+  else if (kind && kind !== '__op') base = special[kind];
   let args = null, isConst = false;
   if (m[i] === 'C') { isConst = true; i++; }
   if (m[i] === 'F') { args = pefDemangleArgs(m, i + 1); if (args === null) return (cls ? cls + '::' : '') + base + '(' + m.slice(i + 1) + ')'; }

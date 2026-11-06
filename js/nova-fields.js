@@ -40,15 +40,15 @@ const NOVA_FIELD_NOTES = {
   'dësc': {
     Description: { note: 'The text shown where the game describes the thing of its number (a ship, outfit, stellar, mission, the intro, and the rest).', code: [['LoadDescription', 0x717fe]] },
     Graphic: {
-      note: 'Above 127: the PICT of that number is shown with the text, in a layout with room for it, in the bar, the shipyard, the text dialogs and the mission dialogs. 127 or less: no picture. A record that ends with its text has none.',
+      note: 'Above 127: the game shows PICT Graphic beside the text in the bar, the shipyard, the text dialogs, and the mission dialogs. Each of those dialogs then uses a layout with room for the picture. 127 or less: no picture. A record that ends after its text has no Graphic.',
       code: [['LoadDescription', 0x717fe], ['DoBarDialog', 0x48ef5], ['DoShipyardDescription', 0x5b6d2], ['ShipDescDialogUpdate', 0x4f915], ['ShowTextDialog', 0x5a752], ['TextDialogUpdate', 0x51b40], ['OfferOneMission', 0xa21ac], ['SingleMissionDialogUpdate', 0x98950]],
     },
     Movie: {
-      note: 'The file name of a QuickTime movie, up to the first 0 or all 32 characters, played with the text in a text dialog or a mission\'s offer. A stellar\'s description, the dësc of the stellar\'s number, plays it when the player lands there or goes through it as a hypergate or a wormhole. Empty: none. The game plays no movie at all while byte 7 of its settings is not 0 (LoadPrefs reads it from the preference QuickTimeMovies). A key, the mouse button or Return ends it.',
+      note: 'The file name of a QuickTime movie. The game reads up to the first 0 or all 32 characters. A text dialog or a mission\'s offer plays it with the text. The game also plays the movie of a stellar\'s description when the player lands there or goes through it as a hypergate or a wormhole. Empty: no movie. No movie plays when the player turns off QuickTime Movies in the game\'s preferences. Keys.nib stores that box reversed as the preference QuickTimeMovies. The preference sets byte 7 of the settings (LoadPrefs). Every movie tests that byte. A key, the mouse button, or Return stops the movie.',
       code: [['LoadDescription', 0x717fe], ['ShowTextDialog', 0x5a752], ['OfferOneMission', 0xa21ac], ['PlayQTMovieFromDesc', 0x55f11], ['PlayerLandOnStellar', 0x631c4], ['PlayQTMovie', 0x55957], ['LoadPrefs', 0xce758]],
     },
     Flags: {
-      note: 'How the Movie plays. 0x0001: after the text in a text dialog or a mission\'s offer, not before it. On landing and at a gate the movie plays first whatever this bit is. 0x0002: at twice its size. 0x0004: the screen fades out and the movie plays in a window over the whole game, made smaller if it does not fit, and the screen fades back in after it. The program reads only the low byte, and no bit of it but these three.',
+      note: 'How the Movie plays. 0x0001: in a text dialog or a mission\'s offer the movie plays after the text instead of before it. On landing and at a gate the movie always plays first. 0x0002: the movie plays at twice its size. 0x0004: the screen fades out before the movie. The movie then plays in a window over the whole game and shrinks to fit. The screen fades back in after it. The program reads only these three bits.',
       code: [['LoadDescription', 0x717fe], ['ShowTextDialog', 0x5a752], ['OfferOneMission', 0xa21ac], ['PlayQTMovieFromDesc', 0x55f11], ['PlayQTMovie', 0x55957]],
     },
   },
@@ -870,9 +870,9 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['ScanPlayer', 0x7e46e]],
     },
     Flags: {
-      note: '0x0001: it ends by itself once the game places its ships or the player meets its ShipGoal. It also ends on accepting if it has no ships and no ReturnStel. 0x0002: the map does not mark its systems. 0x0004: the player cannot decline it. 0x0008: offered only while the player has 100 units of fuel. The game removes that fuel when the mission ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if a scan finds its cargo aboard (ScanMask). 0x0040: aborting it costs 5 × CompReward. 0x0100: the map marks its destination while the game offers it. 0x0200: the map marks ShipSyst\'s system too. 0x0400: the player\'s list of missions leaves it out and its failures show no message. Losing its ships to destruction or disabling does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while the InherentAI of the player\'s ship class is 2 or less. 0x4000: not offered while it is 3 or more.',
+      note: '0x0001: it ends by itself once the game places its ships or the player meets its ShipGoal. It also ends on accepting if it has no ships and no ReturnStel. 0x0002: the map does not mark its systems. 0x0004: the player cannot decline it. 0x0008: offered only while the player has 100 units of fuel. The game removes that fuel when the mission ends by itself. 0x0010: the aux ships never run out. 0x0020: it fails if a scan finds its cargo aboard (ScanMask). 0x0040: aborting it costs 5 × CompReward. 0x0100: the map marks its destination while the game offers it. 0x0200: the map marks ShipSyst\'s system too. 0x0400: the player\'s list of missions leaves it out and its failures show no message. Losing its ships to destruction or disabling does not fail it. 0x0800: one class for all its ships (ShipDude). 0x2000: not offered while the InherentAI of the player\'s ship class is 2 or less. 0x4000: not offered while it is 3 or more. 0x8000: it fails when a ship plunders the player\'s ship. The program reads neither 0x0080 nor 0x1000.',
       bible: '0x0400 makes the mission invisible, kept out of the mission info dialog, and no more; it gives no 0x1000.',
-      code: [['AutoAbortMission', 0x99bdc], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionObjectivesCheck', 0x9e79e], ['DoMissionAccept', 0xa1b11], ['RecalcMissionSystsForMap', 0xe1b5], ['OfferOneMission', 0xa21ac], ['IsMissionAvailable', 0x9b152], ['ScanPlayer', 0x7e46e], ['DoMissionInfoDialog', 0x9e19b], ['SetupMissionInfoList', 0x9de7a], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['JettisonCargo', 0x3dffd], ['MissionDudeSpawn', 0x3cd3b]],
+      code: [['AutoAbortMission', 0x99bdc], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionObjectivesCheck', 0x9e79e], ['DoMissionAccept', 0xa1b11], ['RecalcMissionSystsForMap', 0xe1b5], ['OfferOneMission', 0xa21ac], ['IsMissionAvailable', 0x9b152], ['ScanPlayer', 0x7e46e], ['DoMissionInfoDialog', 0x9e19b], ['SetupMissionInfoList', 0x9de7a], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['JettisonCargo', 0x3dffd], ['MissionDudeSpawn', 0x3cd3b], ['AIPlunderShipContents', 0x83fab]],
     },
     Flags2: {
       note: '0x0001: offered only while the player\'s ship has room for its cargo. 0x0002: the player receives PayVal when it ends by itself too. 0x0004: it fails if the player\'s ship becomes disabled.',
@@ -1845,7 +1845,7 @@ const NOVA_FIELD_READS = {
     RefuseButton: v => /^[a-z]/i.test(v || '') ? `"${v}"` : '"No"',
     Flags: v => novaBitsRead(v, { 1: 'ends by itself', 2: 'unmarked on the map', 4: 'cannot be refused', 8: 'needs 100 fuel', 0x10: 'aux ships without end',
       0x20: 'fails if scanned', 0x40: 'abort penalty', 0x100: 'marked while offered', 0x200: "ShipSyst's system marked", 0x400: 'invisible',
-      0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more' }),
+      0x800: 'one ship class', 0x2000: 'not for InherentAI 2 or less', 0x4000: 'not for InherentAI 3 or more', 0x8000: 'fails if plundered', 0x80: 'not read', 0x1000: 'not read' }),
     Flags2: v => novaBitsRead(v, { 1: 'needs cargo room', 2: 'pays when it ends by itself', 4: 'fails if the player is disabled' }),
   },
   'jünk': {

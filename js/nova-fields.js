@@ -409,7 +409,7 @@ const NOVA_FIELD_NOTES = {
       code: [['ShipDescDialogUpdate', 0x4f915]],
     },
     Flags: {
-      note: '0x0001 to 0x0004: its jumps run at 0.7 (0x0001), 1.3 (0x0002), or 1.6 (0x0004) × the usual pace. Only the first bit set counts. 0x0008: its FuelRegen works for the player. 0x0010: it becomes disabled at a tenth of its armor instead of a third. 0x0020: another ship has an afterburner when the player\'s kills ÷ shïp 128\'s Strength reach 256 + a number up to 1,343 drawn for it. 0x0040: always. 0x0100 and 0x0200 change what the target display shows of its shields and armor. 0x0400: a planet-type ship. Only weapons with wëap Flags2 0x0400 hit it and those hit nothing else. When it is not the player\'s it does not move. Tractor beams do not work on it and it leaves no blast. 0x1000 to 0x4000: its turrets cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). 0x8000: in the player\'s fighter bay it is the player\'s escape ship. The player ejects into it.',
+      note: '0x0001 to 0x0004: its jumps run at 0.7 (0x0001), 1.3 (0x0002), or 1.6 (0x0004) × the usual pace. Only the first bit set counts. 0x0008: its FuelRegen works for the player. 0x0010: it becomes disabled at a tenth of its armor instead of a third. 0x0020: another ship has an afterburner when the player\'s kills ÷ shïp 128\'s Strength reach 256 + a number up to 1,343 drawn for it. 0x0040: always. 0x0100 and 0x0200 change what the target display shows of its shields and armor. 0x0400: a planet-type ship. Only weapons with wëap Flags2 0x0400 hit it and those hit nothing else. When it is not the player\'s it does not move. Tractor beams do not work on it and it leaves no blast. 0x1000 to 0x4000: its turrets cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). 0x8000: in the player\'s fighter bay it is the player\'s escape ship. The player ejects into it. The program reads neither 0x0080 nor 0x0800.',
       code: [['LoadObjectData', 0x771b0], ['HandleShip', 0x33581], ['ShipFuelGenRate', 0x2ffb], ['IsDisabled', 0x2ce6], ['AIHasAfterburner', 0x64f5], ['DrawStatusTarg', 0x4ace1], ['ShotCanHitShip', 0x4477e], ['AIFireGun', 0x7feb6], ['ShipAccelRate', 0x353b], ['HandleBeams', 0x30295], ['TurretBlindSpot', 0xb325], ['EscapeShipType', 0x38d0]],
       bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
     },
@@ -956,7 +956,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Flags: {
-      note: '0x0001: a fixed gun. 0x0002: a turret. Both count against the ship\'s MaxGun and MaxTur. 0x0004: it stays with the player when the player buys or captures another ship and the ship\'s trade-in leaves it out. With 0x0004 or 0x0020 it also stays when a mission changes the player\'s ship. 0x0008: the player cannot sell it. 0x0010: the game removes the player\'s stock of it when the player leaves the outfitter. 0x0100: not offered unless the player\'s bits meet its Requires or the player has one. 0x4000: not offered unless its Availability test passes or the player has one. 0x0200: its price is Cost × the player\'s ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of the player\'s ship class\'s. 0x0800: any outfitter shows it while the player has one. 0x1000: while it is on offer the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among the player\'s ranks in the player info instead of among the rest.',
+      note: '0x0001: a fixed gun. 0x0002: a turret. Both count against the ship\'s MaxGun and MaxTur. 0x0004: it stays with the player when the player buys or captures another ship and the ship\'s trade-in leaves it out. With 0x0004 or 0x0020 it also stays when a mission changes the player\'s ship. 0x0008: the player cannot sell it. 0x0010: the game removes the player\'s stock of it when the player leaves the outfitter. 0x0100: not offered unless the player\'s bits meet its Requires or the player has one. 0x4000: not offered unless its Availability test passes or the player has one. 0x0200: its price is Cost × the player\'s ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of the player\'s ship class\'s. 0x0800: any outfitter shows it while the player has one. 0x1000: while it is on offer the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among the player\'s ranks in the player info instead of among the rest. The program reads no other bit.',
       code: [['HasMaxOfItem', 0x4512], ['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['PlayerShipTradeInPrice', 0xb079], ['EvalSetExp', 0x150fc], ['DoOutfitDialog', 0x5bacf], ['SetupPortAvailableItems', 0xbedb], ['AdjustedItemCost', 0x5869], ['AdjustedItemMass', 0x2889], ['SetupPlayerInfoText', 0x53cb8]],
     },
     Cost: {
@@ -1177,7 +1177,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['ShipECM', 0x3aff]],
     },
     Flags3: {
-      note: '0x0001: a burst uses ammunition once instead of for each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads no other weapon of the ship fires. 0x0002: the game draws its shots translucent in thousands of colors or more.',
+      note: '0x0001: a burst uses ammunition once instead of for each shot. 0x0004: no second shot until the first is gone. 0x0010: from the exit point nearest the target. 0x0020: while it reloads no other weapon of the ship fires. 0x0002: the game draws its shots translucent in thousands of colors or more. The program reads no other bit.',
       code: [['FireAIShipWeapon', 0x8873d], ['HandleShot', 0x35586], ['ModifyShotStartPosition', 0x7348]],
     },
     Durability: {
@@ -1811,7 +1811,7 @@ const NOVA_FIELD_READS = {
     startGovt: (v, r, g) => novaListRead(v.map((id, i) => id >= 128 ? `${novaGovtText(g, id)}: ${r.startStatus[i]}` : null)),
     introPictID: (v, r) => novaListRead(v.map((id, i) => id >= 128 ? `PICT ${id}, ${Math.min(300, Math.max(0, r.introPictDelay[i]))} s` : null)),
     introTextID: (v, r, g) => v > 0 ? novaRefText(g, 'dësc', v) : 'none',
-    Flags: v => novaBitsRead(v, { 1: 'offered first' }),
+    Flags: v => novaBitsRead(v, { 1: 'offered first', 0x2: 'not read', 0x4: 'not read', 0x8: 'not read', 0x10: 'not read', 0x20: 'not read', 0x40: 'not read', 0x80: 'not read', 0x100: 'not read', 0x200: 'not read', 0x400: 'not read', 0x800: 'not read', 0x1000: 'not read', 0x2000: 'not read', 0x4000: 'not read', 0x8000: 'not read' }),
   },
   'mïsn': {
     AvailStel: (v, r, g) => novaPlaceRead(g, 'avail', v),
@@ -1926,7 +1926,7 @@ const NOVA_FIELD_READS = {
     PodCount: v => v > 0 ? `${v} pod${v === 1 ? '' : 's'}` : 'none',
     EscortType: (v, r) => (t => ['fighter', 'medium', 'warship', 'freighter'][t] + (v >= 0 && v <= 3 ? '' : ', worked out'))(v >= 0 && v <= 3 ? v : r.InherentAI <= 2 ? 3 : r.Mass < 50 ? 0 : r.Mass < 200 ? 1 : 2),
     KeyCarried: (v, r, g) => v >= 128 && v <= 895 ? novaRefText(g, 'shïp', v) : 'none',
-    Flags: v => novaBitsRead(v, { 1: 'jumps at 0.7', 2: 'jumps at 1.3', 4: 'jumps at 1.6', 8: 'FuelRegen for the player too', 0x10: 'disabled at a tenth', 0x20: 'afterburner for good pilots', 0x40: 'afterburner always', 0x100: 'target display', 0x200: 'target display', 0x400: 'planet-type', 0x1000: 'no turret fire ahead', 0x2000: 'no turret fire abeam', 0x4000: 'no turret fire astern', 0x8000: 'escape ship' }),
+    Flags: v => novaBitsRead(v, { 1: 'jumps at 0.7', 2: 'jumps at 1.3', 4: 'jumps at 1.6', 8: 'FuelRegen for the player too', 0x10: 'disabled at a tenth', 0x20: 'afterburner for good pilots', 0x40: 'afterburner always', 0x100: 'target display', 0x200: 'target display', 0x400: 'planet-type', 0x1000: 'no turret fire ahead', 0x2000: 'no turret fire abeam', 0x4000: 'no turret fire astern', 0x8000: 'escape ship', 0x80: 'not read', 0x800: 'not read' }),
     Flags2: v => novaBitsRead(v, { 1: 'swarms', 2: 'stands off', 4: 'untargetable', 8: 'point defense fires on it', 0x10: 'no spoken replies', 0x20: 'jumps without slowing', 0x40: 'inertialess', 0x80: 'minds its ammunition', 0x100: 'cloaks in burst reload', 0x200: 'cloaks running away', 0x400: 'cloaks jumping', 0x800: 'cloaks flying about', 0x1000: 'cloaked until near', 0x2000: 'cloaks idle', 0x4000: 'cloaks when attacked' }),
     WeapType: (v, r, g) => novaStockRead(g, v, r.WeapCount, r.AmmoLoad),
     WeapType2: (v, r, g) => novaStockRead(g, v, r.WeapCount2, r.AmmoLoad2),
@@ -1956,7 +1956,7 @@ const NOVA_FIELD_READS = {
     Cost: (v, r) => v <= 0 ? 'free' : `${v.toLocaleString('en-US')} credits${r.Flags & 0x0200 ? ', × the ship class\'s Mass' : ''}`,
     Flags: v => novaBitsRead(v, { 1: 'fixed gun', 2: 'turret', 4: 'kept on a new ship', 8: 'the player cannot sell it', 0x10: 'taken on leaving', 0x20: 'kept on a mission\'s new ship',
       0x100: 'hidden without Requires', 0x200: 'price by ship mass', 0x400: 'mass by ship mass', 0x800: 'sold anywhere', 0x1000: 'hides later items of its DispWeight',
-      0x2000: 'shown among ranks', 0x4000: 'hidden without Availability' }),
+      0x2000: 'shown among ranks', 0x4000: 'hidden without Availability', 0x40: 'not read', 0x80: 'not read', 0x8000: 'not read' }),
     ScanMask: (v, r, g) => novaScanRead(g, v),
     RequireGovt: (v, r, g) => v >= 128 && v <= 383 ? 'at stellars of ' + novaGovtText(g, v) + ' or its allies' : v >= 1128 && v <= 1383 ? 'at independent stellars and those of ' + novaGovtText(g, v - 1000) + ' or its allies'
       : v >= 2128 && v <= 2383 ? 'except at stellars of ' + novaGovtText(g, v - 2000) + ' or its allies' : v >= 3128 && v <= 3383 ? 'except at independent stellars and those of ' + novaGovtText(g, v - 3000) + ' or its allies' : 'everywhere',
@@ -2032,7 +2032,8 @@ const NOVA_FIELD_READS = {
     Seeker: v => novaBitsRead(v, { 1: 'over asteroids', 2: 'decoyed by asteroids', 8: 'confused by interference', 0x10: 'turns away jammed', 0x20: 'not when ionized', 0x4000: 'loses lock off the nose', 0x8000: 'may turn on its ship' }),
     Flags2: v => novaBitsRead(v, { 1: 'first frame till armed', 2: 'holds last frame', 4: 'not read', 8: 'hits others than its target', 0x10: 'submunitions seek', 0x20: 'no submunitions at its end', 0x40: 'ammunition not shown',
       0x80: 'needs KeyCarried', 0x100: 'the player\'s alone', 0x200: 'weapon sprite', 0x400: 'planet-type', 0x800: 'hidden when empty', 0x1000: 'disables only', 0x2000: 'beam under ships', 0x4000: 'fires cloaked', 0x8000: '× 10 on asteroids' }),
-    Flags3: v => novaBitsRead(v, { 1: 'ammunition a burst', 2: 'translucent', 4: 'one shot at a time', 0x10: 'nearest exit', 0x20: 'exclusive' }),
+    Flags3: v => novaBitsRead(v, { 1: 'ammunition a burst', 2: 'translucent', 4: 'one shot at a time', 0x10: 'nearest exit', 0x20: 'exclusive',
+      0x8: 'not read', 0x40: 'not read', 0x80: 'not read', 0x100: 'not read', 0x200: 'not read', 0x400: 'not read', 0x800: 'not read', 0x1000: 'not read', 0x2000: 'not read', 0x4000: 'not read', 0x8000: 'not read' }),
     SubType: (v, r, g) => r.SubCount > 0 && v >= 128 && v <= 383 ? novaRefText(g, 'wëap', v) : 'none',
     Recoil: v => v > 0 ? `${v} back divided by the ship's Mass` : v < -1 ? `${-v} forward divided by the ship's Mass` : 'none',
     ExitType: v => ({ 0: 'gun points', 1: 'turret points', 2: 'guided points', 3: 'beam points' })[v] || 'the middle',

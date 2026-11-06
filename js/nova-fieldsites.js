@@ -325,12 +325,20 @@ function novaHandedIn(prog, routine) {
   return out.size ? out : null;
 }
 // Of r3 to r6, those a routine reads before it writes them, as it is laid
-// out up to its first branch or call.
+// out up to its first call or its first branch that is always taken, past
+// the branches that may fall through. At that call a register is passed on
+// unwritten, and so read, when one after it is written for the call: the
+// arguments fill r3 upward.
 function novaArgsRead(prog, routine) {
   const out = new Set(), written = new Set();
   for (const o of prog.ops(routine)) {
     const op = o.op;
-    if (!op || op.branch) break;
+    if (!op) break;
+    if (op.branch && op.conditional && !op.lk && (op.bo & 0x14) !== 0x14) continue;
+    if (op.branch) {
+      if (op.lk) for (let r = 3, last = Math.max(...[4, 5, 6, 7, 8, 9, 10].filter(x => written.has(x)), 0); r < last && r <= 6; r++) if (!written.has(r)) out.add(r);
+      break;
+    }
     // in the forms with rS and no displacement (or, mr., ori) rA is the one written
     const store = /^st/.test(op.mn), rsForm = op.rs !== undefined && op.ra !== undefined && op.d === undefined;
     const reads = [rsForm ? undefined : op.ra, op.rb, op.rs, store ? op.rt : undefined].filter(r => r !== undefined && !(r === 0 && op.d !== undefined));

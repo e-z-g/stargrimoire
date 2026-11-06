@@ -104,7 +104,7 @@ const NOVA_FIELD_NOTES = {
     ShieldYSize: { note: 'A PICT shield sprite\'s frame height.', code: [['LoadExtendedShipSprites', 0x226af]] },
     BaseSetCount: { note: 'How many sets of FramesPer frames the base picture has. Flags uses them for banking, folding, or cycling.', code: [['LoadExtendedShipSprites', 0x226af], ['HandleShipDisplay', 0x2b514]] },
     AltSetCount: { note: 'How many sets of frames the alternating picture has.', code: [['LoadExtendedShipSprites', 0x226af]] },
-    Flags: { note: '0x0001: banking. The second set turns left and the third turns right. 0x0002: folding. It shows a new set every AnimDelay. The ship unfolds when idle and folds to jump. With 0x0080 too it folds only to fire. 0x0004: the second set shows while one of its KeyCarried is aboard. 0x0008: the sets cycle every AnimDelay.', code: [['HandleShipDisplay', 0x2b514], ['KeyCarriedShipTypeOnboard', 0x399c]] },
+    Flags: { note: '0x0001: banking. The second set turns left and the third turns right. 0x0002: folding. It shows a new set every AnimDelay. The ship unfolds when idle and folds to jump. With 0x0080 too it folds only to fire. 0x0004: the second set shows while one of its KeyCarried is aboard. 0x0008: the sets cycle every AnimDelay. 0x0010: a disabled ship\'s sets stop changing. 0x0020: a disabled ship shows no alternating image. 0x0040: a disabled ship\'s running lights go out. 0x0100: the frames suit a ship drawn in perspective. Each frame\'s heading is an even step squashed by UpCompress toward the top of the screen and by DnCompress toward the bottom (InitSprites). The program reads no other bit.', code: [['HandleShipDisplay', 0x2b514], ['KeyCarriedShipTypeOnboard', 0x399c], ['InitSprites', 0x1eda2]] },
     AnimDelay: { note: 'Steps between its sets as it folds or cycles (Flags).', code: [['HandleShipDisplay', 0x2b514]] },
     FramesPer: { note: 'Frames to a full turn in each set. The ship\'s heading selects the frame. 0 or less: 36.', code: [['HandleShipDisplay', 0x2b514], ['LoadExtendedShipSprites', 0x226af]] },
     GunPosX: { note: 'Four exit points for its guns (wëap ExitType) used in turn. Each gives how far across the ship the point is with the ship facing up.', code: [['ModifyShotStartPosition', 0x7348], ['LoadExtendedShipSprites', 0x226af]] },
@@ -1323,7 +1323,7 @@ const NOVA_FIELD_NOTES = {
   'ränk': {
     Weight: {
       note: 'Of the ranks the player holds that have a ConvName the heaviest gives <PRK> in the game\'s texts. Of those with a ShortName the heaviest gives <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
-      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0]],
+      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0, ['DeactivateRank', 0x4541e], ['DoCommDialog', 0x956d5]]],
     },
     Govt: {
       note: 'Its government. 128 and up: that gövt. Below 128: none. Its PriceMod and Flags 0x0004, 0x0040, 0x0100, and 0x0200 apply at the stellars and ships of every government allied with it (GovtAllies and this one too). Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
@@ -1346,7 +1346,7 @@ const NOVA_FIELD_NOTES = {
       code: [['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
     Flags: {
-      note: '0x0001: gaining it removes every other rank the player holds of its government except those with 0x0008. 0x0010: gaining it removes those of its government with a lower Weight except those with 0x0008. 0x0008: never lost that way or for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government. 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while the player holds it the ships of a government allied with the rank\'s government do not count the player a threat (IsThreatToShip). They check whether the player is one when they choose targets and come to help. 0x0200: while the player holds it the stellars of a government allied with the rank\'s government check the player the same way when the player hails and lands and for their colors on the map. The game reads 0x0400 and 0x0800 when the player hails a ship of an allied government (DoCommDialog). This page has not traced them.',
+      note: '0x0001: gaining it removes every other rank the player holds of its government except those with 0x0008. 0x0010: gaining it removes those of its government with a lower Weight except those with 0x0008. 0x0008: never lost that way or for crimes. 0x0040: lost on any crime against a government allied with the rank\'s government. 0x0004: lost only on disabling or destroying one of their ships. 0x0100: while the player holds it the ships of a government allied with the rank\'s government do not count the player a threat (IsThreatToShip). They check whether the player is one when they choose targets and come to help. 0x0200: while the player holds it the stellars of a government allied with the rank\'s government check the player the same way when the player hails and lands and for their colors on the map. 0x0002: losing it removes every other rank the player holds of its government except those with 0x0008. 0x0020: losing it removes those of its government with a lower Weight except those with 0x0008. 0x0400: while the player holds it a ship of a government allied with the rank\'s government always answers a request for help against its enemies. It fights them and sends for reinforcements. 0x0800: such a ship repairs or refuels the player free of charge (DoCommDialog). The program reads no other bit.',
       code: [['ActivateRank', 0x452f0], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['PlayerBlessedByGovt', 0x2732], ['IsThreatToShip', 0x81faf], ['SelectWarshipTarget', 0x89d5e], ['HandlePlayerDockRequest', 0x66691], ['DoPlanetCommDialog', 0x96949], ['ColorCodeStellar', 0xaa26], ['DoCommDialog', 0x956d5]],
     },
     ConvName: {
@@ -1776,8 +1776,15 @@ const NOVA_FIELD_READS = {
     Movie: v => v || 'none',
     Flags: v => novaBitsRead(v, { 1: 'after the text', 2: 'twice its size', 4: 'over the whole game' }),
   },
+  'shän': {
+    Flags: v => novaBitsRead(v, { 1: 'banking', 2: 'folding', 4: 'second set with KeyCarried', 8: 'cycling', 0x10: 'still while disabled', 0x20: 'no alternating image while disabled',
+      0x40: 'no running lights while disabled', 0x80: 'folds only to fire', 0x100: 'frames in perspective', 0x200: 'not read', 0x400: 'not read', 0x800: 'not read', 0x1000: 'not read', 0x2000: 'not read', 0x4000: 'not read', 0x8000: 'not read' }),
+  },
   'ränk': {
     Govt: (v, r, g) => novaGovtText(g, v),
+    Flags: v => novaBitsRead(v, { 1: 'gaining it removes the others', 0x10: 'gaining it removes lower Weights', 2: 'losing it removes the others', 0x20: 'losing it removes lower Weights',
+      8: 'never removed that way', 0x40: 'lost on crimes against allies', 4: 'lost only on attacks', 0x100: "allies' ships see no threat", 0x200: "allies' stellars see no threat",
+      0x400: 'allies always help', 0x800: 'allies help free', 0x80: 'not read', 0x1000: 'not read', 0x2000: 'not read', 0x4000: 'not read', 0x8000: 'not read' }),
     PriceMod: v => `${v > 0 ? v : 100}% of the price`,
     Salary: v => `${v.toLocaleString('en-US')} credits a day`,
     SalaryCap: v => (v > 0 ? `while the player has under ${v.toLocaleString('en-US')} credits` : 'always'),
@@ -1808,6 +1815,7 @@ const NOVA_FIELD_READS = {
   },
   'mïsn': {
     AvailStel: (v, r, g) => novaPlaceRead(g, 'avail', v),
+    ScanMask: (v, r, g) => r.Flags & 0x20 ? novaScanRead(g, v).replace(/^smuggling where scanned by /, 'fails if scanned by ').replace(/^never smuggling$/, 'never fails a scan') : novaScanRead(g, v),
     AvailLoc: v => NOVA_AVAIL_LOC[v] || 'nowhere',
     AvailRecord: v => v === 0 ? 'no test' : v === -32000 ? 'a stellar the player has dominated' : v === -32001 ? 'once the player has dominated a stellar' : v < -32001 ? 'never offered' : v > 0 ? `a record of ${v} or more here` : `a record of ${v} or less here`,
     AvailRating: v => v <= 0 ? 'no test' : `a combat rating of ${v} or more`,

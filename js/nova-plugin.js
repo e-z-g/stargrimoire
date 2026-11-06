@@ -45,7 +45,8 @@ function novaRecordBytes(type, rec, base) {
     if (kind === 'cstr') {
       let end = off;
       while (end < b.length && b[end] !== 0) end++;
-      if (name in rec) {
+      // written only when changed: an empty record of a plug-in's has no NUL to keep
+      if (name in rec && rec[name] !== decodeMacRoman(b.subarray(off, end))) {
         const s = encodeMacRoman(rec[name]);
         const nb = new Uint8Array(off + s.length + 1 + Math.max(0, b.length - end - 1));
         nb.set(b.subarray(0, off)); nb.set(s, off);
@@ -57,13 +58,13 @@ function novaRecordBytes(type, rec, base) {
     }
     if (kind === 'str' || kind === 'pad') {
       if (off + n > b.length) break;
-      if (kind === 'str' && name in rec) {
+      // what was there past the old string's NUL is kept, as the game's
+      // editors leave it; only a changed string and its NUL are written, so
+      // a plug-in's string that fills its field with no NUL is kept as read
+      if (kind === 'str' && name in rec && rec[name] !== novaFixedString(b, off, n)) {
         const s = encodeMacRoman(rec[name]);
         if (s.length > n - 1) throw new Error(`${name} can be at most ${n - 1} characters`);
-        // what was there past the old string's NUL is kept, as the game's
-        // editors leave it; only the string and its NUL are written
-        const old = novaFixedString(b, off, n);
-        if (old !== rec[name]) { b.fill(0, off, off + n); b.set(s, off); }
+        b.fill(0, off, off + n); b.set(s, off);
       }
       off += n;
       continue;

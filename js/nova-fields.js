@@ -39,6 +39,18 @@ const NOVA_FIELD_NOTES = {
   },
   'dësc': {
     Description: { note: 'The text shown where the game describes the thing of its number (a ship, outfit, stellar, mission, the intro, and the rest).', code: [['LoadDescription', 0x717fe]] },
+    Graphic: {
+      note: 'Above 127: the PICT of that number is shown with the text, in a layout with room for it, in the bar, the shipyard, the text dialogs and the mission dialogs. 127 or less: no picture. A record that ends with its text has none.',
+      code: [['LoadDescription', 0x717fe], ['DoBarDialog', 0x48ef5], ['DoShipyardDescription', 0x5b6d2], ['ShipDescDialogUpdate', 0x4f915], ['ShowTextDialog', 0x5a752], ['TextDialogUpdate', 0x51b40], ['OfferOneMission', 0xa21ac], ['SingleMissionDialogUpdate', 0x98950]],
+    },
+    Movie: {
+      note: 'The file name of a QuickTime movie, up to the first 0 or all 32 characters, played with the text in a text dialog or a mission\'s offer. A stellar\'s description, the dësc of the stellar\'s number, plays it when the player lands there or goes through it as a hypergate or a wormhole. Empty: none. The game plays no movie at all while byte 7 of its settings is not 0 (LoadPrefs reads it from the preference QuickTimeMovies). A key, the mouse button or Return ends it.',
+      code: [['LoadDescription', 0x717fe], ['ShowTextDialog', 0x5a752], ['OfferOneMission', 0xa21ac], ['PlayQTMovieFromDesc', 0x55f11], ['PlayerLandOnStellar', 0x631c4], ['PlayQTMovie', 0x55957], ['LoadPrefs', 0xce758]],
+    },
+    Flags: {
+      note: 'How the Movie plays. 0x0001: after the text in a text dialog or a mission\'s offer, not before it. On landing and at a gate the movie plays first whatever this bit is. 0x0002: at twice its size. 0x0004: the screen fades out and the movie plays in a window over the whole game, made smaller if it does not fit, and the screen fades back in after it. The program reads only the low byte, and no bit of it but these three.',
+      code: [['LoadDescription', 0x717fe], ['ShowTextDialog', 0x5a752], ['OfferOneMission', 0xa21ac], ['PlayQTMovieFromDesc', 0x55f11], ['PlayQTMovie', 0x55957]],
+    },
   },
   'bööm': {
     FrameAdvance: { note: 'How fast it plays. It advances FrameAdvance ÷ 100 frames a step. Its wait before it starts runs down at the same rate.', code: [['LoadObjectData', 0x771b0], ['HandleExplods', 0x2f5d2]] },
@@ -1641,7 +1653,7 @@ const novaItemsRead = (game, ids, counts) => novaListRead(ids.map((id, i) => id 
 const NOVA_FIELD_SHORT = {
   'nëbu': { XPos: 'Map rectangle\'s left edge', YPos: 'Map rectangle\'s top edge', XSize: 'Map rectangle\'s width', YSize: 'Map rectangle\'s height', ActiveOn: 'Test: when it is there', OnExplore: 'Bits set on first arrival' },
   'spïn': { SpritesID: 'Its frames: rlë or PICT', MasksID: 'PICT mask for the frames', xSize: 'Frame width', ySize: 'Frame height', xTiles: 'Frames across', yTiles: 'Frames down' },
-  'dësc': { Description: 'The text shown' },
+  'dësc': { Description: 'The text shown', Graphic: 'Picture shown with it', Movie: 'Movie played with it', Flags: 'How the movie plays' },
   'bööm': { FrameAdvance: 'How fast it plays', SoundIndex: 'Its sound (snd 300 + n)', GraphicIndex: 'Its picture (spïn 400 + n)' },
   'röid': { Strength: 'Damage before it breaks', SpinRate: 'How fast it turns', YieldType: 'What it leaves when broken', YieldQty: 'How many boxes it leaves', PartCount: 'Particles when it breaks', PartColor: 'Particle color', FragType1: 'One fragment kind', FragType2: 'Other fragment kind', FragCount: 'How many fragments', ExplodType: 'Explosion when it breaks', Mass: 'How hard it is to push' },
   'shän': {
@@ -1759,6 +1771,11 @@ const NOVA_FIELD_SHORT = {
 };
 
 const NOVA_FIELD_READS = {
+  'dësc': {
+    Graphic: v => v > 127 ? `PICT ${v}` : 'none',
+    Movie: v => v || 'none',
+    Flags: v => novaBitsRead(v, { 1: 'after the text', 2: 'twice its size', 4: 'over the whole game' }),
+  },
   'ränk': {
     Govt: (v, r, g) => novaGovtText(g, v),
     PriceMod: v => `${v > 0 ? v : 100}% of the price`,

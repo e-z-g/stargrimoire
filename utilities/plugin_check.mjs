@@ -88,6 +88,16 @@ for (const v of versions) games[v] = openRelease(S, v, new Set(['data']));
   for (const [kind, text] of [['i16', '40000'], ['i16', 'x'], ['h16', '0x10000'], ['rgb', '#GGGGGG'], ['i32', '1.5']])
     try { S.novaFieldParse(kind, text); } catch (e) { refused++; }
   if (refused !== 5) fail(`novaFieldParse took ${5 - refused} of 5 values it should reject`);
+  // two records of plug-ins in archive.org's collection (corpus_check): a dësc
+  // of no bytes, and a Movie of all 32 characters with no 0 after it
+  const empty = new Uint8Array(0);
+  if (!same(S.novaRecordBytes('dësc', S.novaRecord('dësc', empty), empty), empty)) fail('a dësc of no bytes is not written back as no bytes');
+  const full = Uint8Array.from([0x41, 0, 0, 0x80, ...Array(32).fill(0x4D), 0, 2]);
+  try { if (!same(S.novaRecordBytes('dësc', S.novaRecord('dësc', full), full), full)) fail('a dësc whose Movie fills its 32 bytes is not written back as read'); }
+  catch (e) { fail(`writing back a dësc whose Movie fills its 32 bytes throws (${e.message})`); }
+  let longMovie = false;
+  try { S.novaRecordBytes('dësc', { Movie: 'M'.repeat(32) }, Uint8Array.from([0x41, 0, 0, 0x80, ...Array(34).fill(0)])); } catch (e) { longMovie = true; }
+  if (!longMovie) fail('a Movie changed to 32 characters is written with no 0 after it');
   const s1 = games[versions[0]].get('sÿst', 128).bytes;
   if (same(S.novaRecordBytes('sÿst', { xPos: S.novaRecord('sÿst', s1).xPos + 1 }, s1), s1)) fail('a changed xPos wrote the same bytes');
   console.log(`${records} records in ${versions.join(', ')} written back as read; ${edits} single fields changed alone`);

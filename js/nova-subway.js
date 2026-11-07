@@ -26,7 +26,7 @@
    others in it, so that they still fit in the nebula's picture without
    stretching it, at the same distance and direction from their middle as
    in the true galaxy. A move is not made if it would change the order of
-   the links round a system from their order after evening out, which is
+   the links around a system from their order after evening out, which is
    nearly always the true galaxy's (utilities/subway_check.mjs prints how
    nearly).
 
@@ -35,7 +35,7 @@
    by its angle: Bast, Brosi and Storandt's costs ("Metro maps on
    octilinear grid graphs", 2020), 1 for 45 degrees, 1.5 for 90 and 2 for
    135. Two links never share a step; they may cross, at a price, straight
-   over each other. Round each system the links leave in that same order,
+   over each other. Around each system the links leave in that same order,
    the rule of that paper. A link with no
    way through is routed through the fewest others, which are then
    routed again (rip-up and reroute, as circuit boards are routed). Last,
@@ -87,7 +87,7 @@
    not among the reasons).
 
    WHAT IS LAID OUT is every system and every link there is, all versions
-   of a place at once (nova-universe.js), so that the map does not change
+   of a place together (nova-universe.js), so that the map does not change
    when the control bits do; a link is drawn only when both its ends are
    shown. A place is a position in the galaxy, as the map's discs are.
 
@@ -129,7 +129,7 @@ function subwayModule() {
      charges for a link turned past it, more the further past. tangle: a
      place whose links truly cross c others is pulled 1 / (1 + c / tangle) as
      hard, so that a tangle can come apart (the maintainer found one in the K-
-     systems round the L-1551 nebula, 29 September 2026: 31 links there
+     systems around the L-1551 nebula, 29 September 2026: 31 links there
      truly cross 37 times). At 5 the stock galaxy's crossings in all fell
      from 39 to 28 with room for names, 34 to 25 without, 33 to 27 with 22.5
      degrees where needed, links off their heading 1 to 3 at most; 4 and 6
@@ -137,8 +137,8 @@ function subwayModule() {
      Most of the tangle is in the galaxy itself: with no heading kept at all,
      the map with room for names still crosses 17 times there.
      ownName: what a link pays, as a share of nameStep, to cross the room kept
-     for the name of a place it ends at. The names are put last, so that room
-     is only a plan, and at the full price a line would bend round its
+     for the name of a place at one of its ends. The names are put last, so that room
+     is only a plan, and at the full price a line would bend around its
      station's name rather than run straight on out of it (Starfleet
      Adventures' Chuch'Hov, whose line to Tak'lur bent three times for it, 30
      September 2026); at 0 the stock galaxy's lines ran straight through
@@ -569,8 +569,8 @@ function subwayModule() {
       s += straightness(v, i, j, -1, 0, 0);
       for (const { to: w } of adj[v]) s += straightness(w, gi[w], gj[w], v, i, j);
       if (s >= bound) return s;
-      // a place in a nebula kept within a box four fifths the nebula's size, round the middle of its
-      // places, and out of every other nebula's full size and a gap round it
+      // a place in a nebula kept within a box four fifths the nebula's size, around the middle of its
+      // places, and out of every other nebula's full size and a gap around it
       for (const g of groupOf[v]) {
         let sx = i, sy = j;
         for (const w of g.members) if (w !== v) { sx += gi[w]; sy += gj[w]; }
@@ -659,7 +659,7 @@ function subwayModule() {
   }
 
   /* Stage 3. at: grid points from stage 2; want: evened positions, for the
-     order of the links round each system; heading, for the map with headings
+     order of the links around each system; heading, for the map with headings
      kept, each link's true direction; bars, each place's bar or null. A
      link leaves a place by one of its ports (subwayBarPorts), from the
      point of its bar the port is on. Returns the paths, as grid points
@@ -715,7 +715,7 @@ function subwayModule() {
       return edgeUse[id(i + dx, j) * 8 + OTHER_DIAG[d]];
     };
 
-    // the links round each system in their true clockwise order, and the port each leaves by
+    // the links around each system in their true clockwise order, and the port each leaves by
     const inc = Array.from({ length: n }, () => []);
     links.forEach(([a, b], e) => {
       inc[a].push({ e, side: 0, ang: Math.atan2(want[b].y - want[a].y, want[b].x - want[a].x) });
@@ -748,7 +748,7 @@ function subwayModule() {
     const portCost = (d, want) => C.port * Math.abs(((d * Math.PI / 4 - want + 3 * Math.PI) % (2 * Math.PI)) - Math.PI) / (Math.PI / 4);
 
     /* The cheapest path for link e; soft lets it through other links at a price. The search
-       stays first in a box round the two ends, BOX points wide of them, and goes wider only
+       stays first in a box around the two ends, BOX points wide of them, and goes wider only
        when that finds nothing. On the map with headings kept, the path uses only
        the directions within it; with free 1, within twice that, and with free 2, any; and any
        where its ends are not where such steps reach. */
@@ -1264,7 +1264,7 @@ function subwayModule() {
      made smaller and those in their kept room are counted (stats.smaller,
      stats.kept). at: the places and lines: the links' points, in grid
      steps; textW: each name's letters, in grid steps, 0.84 of a step high
-     with the room round them; side: the room kept for each, as
+     with the room around them; side: the room kept for each, as
      subwayNameCells has it; links: the links' ends. Returns each name's
      anchor, alignment, size and box. */
   const SUBWAY_LABEL = { gap: 0.15, h: 0.42, place: 0.5, line: 0.15, ownLine: 0.03, near: 0.25, bar: 0.4 };
@@ -1449,7 +1449,7 @@ function subwayModule() {
       for (let k = 0; k + 1 < pts.length; k++) if (nearSegment(p, pts[k], pts[k + 1]) > 1e-9 && nearSegment(q, pts[k], pts[k + 1]) > 1e-9 && subwayCross(p.x, p.y, q.x, q.y, pts[k].x, pts[k].y, pts[k + 1].x, pts[k + 1].y)) return true;
       return false;
     };
-    // a quick rejection first: each place's points within a box round its point (its bar's cells), and over
+    // a quick rejection first: each place's points within a box around its point (its bar's cells), and over
     // can be true only for a place whose box comes within clear of the piece's, the crossing and the
     // running along only for pieces whose boxes meet; the slack is so that rounding does not change the answer
     const barBox = at.map((_, v) => { const c = bars && bars[v] ? subwayBarCells(bars[v], 0, 0) : [[0, 0]]; return { x0: Math.min(...c.map(q => q[0])), x1: Math.max(...c.map(q => q[0])), y0: Math.min(...c.map(q => q[1])), y1: Math.max(...c.map(q => q[1])) }; });
@@ -1613,7 +1613,7 @@ function subwayModule() {
     };
     const looseLinks = [];
     // first the links whose ends have not moved, each on its 45-degree path where that is still
-    // clear; then the rest, fitted round them
+    // clear; then the rest, fitted around them
     const unmoved = e => links[e].every(v => Math.hypot(P[v].x - P0[v].x, P[v].y - P0[v].y) < 1e-9);
     for (const e of links.map((_, e) => e).filter(e => !lines[e] && unmoved(e) && !needs(e))) {
       const [a, b] = links[e], l = paths[e].map(q => ({ x: q.i, y: q.j }));
@@ -1766,7 +1766,7 @@ function subwayModule() {
     const bars = subwayBars(pos.length, links, F.dots ? null : heading);
     const pairs = subwayPairs(pos, links);
     const placed = subwayPlace(want, links, T.place, T.spacing, T.len, width, groups, heading, neighbours, bars, pairs);
-    // the links round each place leave it in the order they have evened out, or on the map with headings
+    // the links around each place leave it in the order they have evened out, or on the map with headings
     // kept, in their true order
     // the map with room for names leaves a place whose links run straight where it is, so its
     // room stays; with the names put after the lines there is none to keep, and a move may bring a link back
@@ -1909,13 +1909,13 @@ function subwayModule() {
      systems a and b, from a's place to b's, or null when there is none.
      stored is a layout this returned before, used when its fingerprint is
      this galaxy's, since working one out lasts seconds on a phone. */
-  // The tuning a kind of map is made with.
+  // The tuning for a kind of map.
   function subwayTuneFor(kind) { return subwayFlags(kind).names ? SUBWAY_NAMES : SUBWAY_TUNE; }
 
   /* What a kind of map of the galaxy u is laid out from, as plain data (for a
      background thread): its places, links, names and nebulae, and a
-     fingerprint of all of it, the numbers and this code, to match a stored
-     layout by. */
+     fingerprint of all of it, the numbers and this code, which a stored
+     layout must match. */
   function subwayInput(u, kind) {
     kind = kind || '45';
     const key = (x, y) => x + ',' + y;
@@ -1989,7 +1989,7 @@ function subwayModule() {
     };
   }
 
-  /* The galaxy u laid out as a kind of map, at once: stored is a layout this
+  /* The galaxy u laid out as a kind of map in one call: stored is a layout this
      gave before, used when its fingerprint is this galaxy's. */
   function novaSubway(u, stored, kind) {
     const input = subwayInput(u, kind);

@@ -17,7 +17,7 @@
 // degree) except for the links the layout counts in stats.astray, which are
 // printed and must be fewer than one in fifty; a place whose links cannot
 // all leave one point within it is a bar (subwayBars), its points in a row
-// one step apart round its point, a link from it leaves from one of them, and
+// one step apart around its point, a link from it leaves from one of them, and
 // no link runs over or cuts across one. With room for names too,
 // its names are put where the lines leave room: none on a line, a place or
 // another name, except for those the layout counts in stats.unnamed, fewer
@@ -31,7 +31,7 @@
 // as bright a part as they truly are at least as nearly as fitting to their
 // positions alone does, summed over the nebulae; both are printed. The
 // crossings, the bends and how many places keep the true order of their
-// links round them are printed beside the true galaxy's figures, not
+// links around them are printed beside the true galaxy's figures, not
 // asserted. Each property's test is first shown to fail on a map broken
 // on purpose, so that a pass means something.
 import { site, openRelease, haveRelease, RELEASES } from './load.mjs';
@@ -311,7 +311,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   const r = S.subwayLayout(pos, links, S.SUBWAY_TUNE, 'fine');
   const m = { places: pos, links, layout: r };
   const clean = problemsFine(m);
-  if (clean.length) fail(`a small graph at 22.5 degrees: ${clean.join('; ')}`);
+  if (clean.length) fail(`faults in a small graph at 22.5 degrees (${clean.join('; ')})`);
   const k = r.step, e = 0, [a, b] = links[e];
   const broken = [
     ['a piece at 30 degrees', lines => { const p = lines[e][0], q = lines[e][lines[e].length - 1], L = Math.hypot(q.x - p.x, q.y - p.y) / 2; lines[e] = [p, { x: p.x + L * Math.cos(Math.PI / 6), y: p.y + L * Math.sin(Math.PI / 6) }, q]; }],
@@ -336,7 +336,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   const r = S.subwayLayout(pos, links, S.SUBWAY_NAMES, 'names', chars);
   const m = { places: pos, links, layout: r };
   const clean = problemsNames(m);
-  if (clean.length) fail(`a small graph with room for names: ${clean.join('; ')}`);
+  if (clean.length) fail(`faults in a small graph with room for names (${clean.join('; ')})`);
   const k = r.step, cellAt = (v, t) => { const [ci, cj] = S.subwayNameCells(Math.round((r.at[v].x - r.origin.x) / k), Math.round((r.at[v].y - r.origin.y) / k), r.side[v], r.width[v])[t]; return { x: r.origin.x + ci * k, y: r.origin.y + cj * k }; };
   const e = 0, [a] = links[e], other = [1, 2, 3, 4].find(v => v !== links[e][1]);
   const broken = [
@@ -362,7 +362,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   const r = S.subwayLayout(pos, links, S.SUBWAY_NAMES, 'names-fine', chars);
   const m = { places: pos, links, layout: r };
   const clean = problemsNamesFine(m);
-  if (clean.length) fail(`a small graph at 22.5 degrees with room for names: ${clean.join('; ')}`);
+  if (clean.length) fail(`faults in a small graph at 22.5 degrees with room for names (${clean.join('; ')})`);
   const k = r.step, v = 0, b = S.subwayNameBox((r.at[v].x - r.origin.x) / k, (r.at[v].y - r.origin.y) / k, r.side[v], r.width[v]);
   const mid = { x: r.origin.x + k * (b.x0 + b.x1) / 2, y: r.origin.y + k * (b.y0 + b.y1) / 2 };
   const e = links.findIndex(([a, c]) => a !== v && c !== v);
@@ -382,7 +382,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   for (const kind of ['heading', 'fine-heading']) {
     const r = S.subwayLayout(pos, links, S.SUBWAY_TUNE, kind), m = { places: pos, links, layout: r }, slack = kind === 'heading' ? 0 : S.SUBWAY_FINE.eps;
     const clean = (kind === 'heading' ? problems(m) : problemsFine(m)).concat(astray(m, slack).map(e => `link ${e} is off its heading`));
-    if (clean.length) fail(`a small graph, ${kind}: ${clean.join('; ')}`);
+    if (clean.length) fail(`faults in a small graph on the ${kind} map (${clean.join('; ')})`);
     // link 0 runs east: a first piece north-west instead
     const lines = r.lines.map(l => l && l.map(p => ({ ...p }))), l = lines[0], k = r.step;
     lines[0] = [l[0], { x: l[0].x - k, y: l[0].y - k }, l[l.length - 1]];
@@ -404,7 +404,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
     const F = S.subwayFlags(kind), r = S.subwayLayout(pos, links, S.SUBWAY_TUNE, kind), m = { places: pos, links, layout: r }, slack = F.fine ? S.SUBWAY_FINE.eps : 0;
     if (!r.bars || !r.bars[0] || r.stats.bars !== 1) { fail(`a crowded place, ${kind}, is not made a bar`); continue; }
     const clean = (F.fine ? problemsFine(m) : problems(m)).concat(astray(m, slack).map(e => `link ${e} is off its heading`), F.mixed ? problemsMixed(m) : []);
-    if (clean.length) fail(`a crowded place, ${kind}: ${clean.join('; ')}`);
+    if (clean.length) fail(`faults at a crowded place on the ${kind} map (${clean.join('; ')})`);
     const k = r.step, b = r.bars[0], c = barPoints(r, 0), n = c.length - 1, beyond = { x: b.a.x - (b.b.x - b.a.x) / n, y: b.a.y - (b.b.y - b.a.y) / n };
     const e = r.lines.findIndex(l => Math.hypot(l[0].x - b.a.x, l[0].y - b.a.y) < 1e-6 * k);
     const off = r.lines.map(l => l.slice()); off[e] = [beyond, ...off[e]];
@@ -412,12 +412,12 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
     if (c[0].x !== c[1].x && c[0].y !== c[1].y) {
       const across = r.lines.map(l => l.slice()); across[5] = [{ x: c[0].x, y: c[1].y }, { x: c[1].x, y: c[0].y }];
       if (!(F.fine ? problemsFine : problems)({ ...m, layout: { ...r, lines: across } }).some(p => /cuts across|runs over place 0/.test(p))) fail(`the bar tests, ${kind}, miss a piece cut across a bar`);
-    } else fail(`the bar tests, ${kind}: the bar is not at a slant, so a piece across it is not tried`);
+    } else fail(`on the ${kind} map the bar is not at a slant, so the bar tests do not try a piece across it`);
   }
   // set to points only (dots), the same place is a point, every link from it
   const dots = S.subwayLayout(pos, links, S.SUBWAY_TUNE, 'heading-dots'), dp = problems({ places: pos, links, layout: dots });
-  if (dots.bars || dots.stats.bars !== 0 || dp.length) fail(`a crowded place set to be a point: ${JSON.stringify(dots.stats)}; ${dp.join('; ')}`);
-  if (fails === before) console.log('a crowded place is a bar on each map with headings kept, and a point when set to points only; the bar tests catch a link from beside the bar and a piece cut across it');
+  if (dots.bars || dots.stats.bars !== 0 || dp.length) fail(`faults at a crowded place set to be a point (${JSON.stringify(dots.stats)}, ${dp.join('; ')})`);
+  if (fails === before) console.log('a crowded place is a bar on each map with headings kept and a point when set to points only. The bar tests catch a link from beside the bar and a piece cut across it');
 }
 
 {
@@ -427,7 +427,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   const links = [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [2, 5]];
   const r = S.subwayLayout(pos, links, S.SUBWAY_TUNE, 'mixed'), m = { places: pos, links, layout: r };
   const clean = problemsFine(m).concat(problemsMixed(m));
-  if (clean.length) fail(`a small graph, 22.5 degrees only where needed: ${clean.join('; ')}`);
+  if (clean.length) fail(`faults in a small graph with 22.5 degrees only where needed (${clean.join('; ')})`);
   const e = oddLinks(m).length ? r.lines.findIndex((_, f) => !oddLinks(m).includes(f)) : 0, l = r.lines[e], p = l[0], q = l[l.length - 1], L = Math.hypot(q.x - p.x, q.y - p.y) / 2, a = Math.atan2(q.y - p.y, q.x - p.x) + Math.PI / 8;
   const lines = r.lines.map(x => x.slice()); lines[e] = [p, { x: p.x + L * Math.cos(a), y: p.y + L * Math.sin(a) }, q];
   if (!problemsMixed({ ...m, layout: { ...r, lines } }).length) fail('the tests of 22.5 degrees only where needed miss a link bent at 22.5 degrees that the layout did not count');
@@ -440,7 +440,7 @@ function turnOrder(p, nbrs) { return nbrs.slice().sort((a, b) => Math.atan2(a.y 
   const links = [[0, 1], [1, 2], [2, 3], [3, 0], [3, 4]], chars = [5, 9, 3, 7, 11];
   const r = S.subwayLayout(pos, links, S.SUBWAY_NAMES, 'names-heading', chars), m = { places: pos, links, layout: r };
   const clean = problems(m).concat(astray(m, 0).map(e => `link ${e} is off its heading`), problemsLabels(m), crowded(m).map(v => `place ${v}'s name meets something`));
-  if (clean.length) fail(`a small graph, names put after the lines: ${clean.join('; ')}`);
+  if (clean.length) fail(`faults in a small graph with names put after the lines (${clean.join('; ')})`);
   const l = r.lines[0], mid = { x: (l[0].x + l[l.length - 1].x) / 2, y: (l[0].y + l[l.length - 1].y) / 2 }, b = r.labels[4].box;
   const labels = r.labels.map(x => ({ ...x })), w = b.x1 - b.x0, h = b.y1 - b.y0;
   labels[4] = { ...labels[4], box: { x0: mid.x - w / 2, x1: mid.x + w / 2, y0: mid.y - h / 2, y1: mid.y + h / 2 } };
@@ -515,9 +515,9 @@ for (const v of Object.keys(RELEASES)) {
       const k = b.indexOf(a[0]);
       if (a.every((j, t) => b[(k + t) % b.length] === j)) kept++;
     });
-    console.log(`${v}, ${name}: ${m.places.length} places and ${m.links.length} links laid out in ${(ms / 1000).toFixed(1)} s (in node:vm);` +
-                ` ${straight} links straight, ${bends} bends in all; ${subX} crossings, ${trueX} in the true galaxy;` +
-                ` ${kept} of ${busy} places with three links or more keep their true order; brightness under the places near each nebula off by ${byBright.map(x => x.toFixed(2)).join(', ')} (${byPlace.map(x => x.toFixed(2)).join(', ')} fitted to the places); ${JSON.stringify(r.stats)}`);
+    console.log(`${v}, ${name}: ${m.places.length} places and ${m.links.length} links laid out in ${(ms / 1000).toFixed(1)} s (in node:vm).` +
+                ` ${straight} links straight and ${bends} bends in all, ${subX} crossings against ${trueX} in the true galaxy.` +
+                ` ${kept} of ${busy} places with three links or more keep their true order. Brightness under the places near each nebula off by ${byBright.map(x => x.toFixed(2)).join(', ')} (${byPlace.map(x => x.toFixed(2)).join(', ')} fitted to the places), ${JSON.stringify(r.stats)}`);
     const twice = S.subwayLayout(m.places, m.links, S.subwayTuneFor(kind), kind, m.names, u.nebulae);
     if (JSON.stringify(twice.lines) !== JSON.stringify(r.lines)) fail(`${v}, ${name}: two layouts of the same galaxy differ`);
     done.push({ v, kind, layout: r });

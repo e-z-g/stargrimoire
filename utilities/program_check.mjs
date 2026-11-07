@@ -28,7 +28,7 @@
 // by number (novaProgramUses), in 1.0.10 and 1.1.1: every number's word as
 // LLVM reads it, and the dialogs' backgrounds each loaded by its dialog.
 // js/nova-routines.js, where 1.1.1's routines are in 1.0.x, must be what
-// utilities/match.mjs gives, and is checked against what the matcher does not
+// utilities/match.mjs gives. It is checked against what the matcher does not
 // compare: the figures' routines and the decimal rules, in each release.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -63,7 +63,7 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
   const tvs = new Set(prog.img.pef.loader.symbols.filter(s => s.classCode === 2).map(s => s.name));
   const glue = new Set(prog.routines.filter(r => r.glue).map(r => r.name));
   const missing = [...tvs].filter(n => !glue.has(n)), extra = [...glue].filter(n => !tvs.has(n));
-  if (extra.length) fail(`${v}: glue pointing to something that is not an imported transition vector: ${extra.slice(0, 5).join(', ')}`);
+  if (extra.length) fail(`${v}: glue pointing to something other than an imported transition vector (${extra.slice(0, 5).join(', ')})`);
   const dialogs = S.novaDialogRoutines(prog);
   if (!dialogs.some(d => d.name === 'Outfit') || !dialogs.some(d => d.name === 'Shipyard')) fail(`${v}: the Outfit and Shipyard dialogs' routines not found`);
   const got = {};
@@ -79,7 +79,7 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
   }
   if (v === '1.0.10') usesCheck(v, prog);
   if (v === '1.0.10' && got.descLoader && got.descLoader.routine !== 0x12ce10) fail(`1.0.10: the description loader at ${S.hex(got.descLoader.routine)}, where the workbench has 0x12ce10`);
-  console.log(`${v}: ${src.name}, ${prog.routines.filter(r => !r.glue).length} routines and ${glue.size} calls into the system in ${ms} ms (${tvs.size - missing.length} of the ${tvs.size} imported routines called); ${dialogs.length} dialogs' routines named; ` +
+  console.log(`${v}: ${src.name}, ${prog.routines.filter(r => !r.glue).length} routines and ${glue.size} calls into the system in ${ms} ms (${tvs.size - missing.length} of the ${tvs.size} imported routines called), ${dialogs.length} dialogs' routines named, and ` +
     figures.filter(n => got[n]).map(n => `${n} ${got[n].value} at ${S.hex(got[n].addr)}`).join(', '));
   // a word changed on purpose: the figure must not survive it
   if (v === '1.0.10' && got.outfitDesc) {
@@ -99,11 +99,11 @@ for (const [v, rel] of Object.entries(ARCHIVES)) {
 }
 for (const [name, list] of seen) {
   const values = new Set(list.map(x => JSON.stringify(x.f.value)));
-  if (name !== 'descLoader' && values.size !== 1) fail(`${name}: different values in different releases: ${list.map(x => `${x.v} ${x.f.value}`).join(', ')}`);
+  if (name !== 'descLoader' && values.size !== 1) fail(`${name} differs between releases (${list.map(x => `${x.v} ${x.f.value}`).join(', ')})`);
   if (name !== 'descLoader' && list.length !== read) fail(`${name}: found in ${list.length} of ${read} releases`);
 }
 
-{ const only = Object.keys(S.NOVA_MACHO_FIGURES).filter(n => !(n in S.NOVA_FIGURES)); if (only.length) fail(`read from 1.1.1 but not from 1.0.x: ${only.join(', ')}`); }
+{ const only = Object.keys(S.NOVA_MACHO_FIGURES).filter(n => !(n in S.NOVA_FIGURES)); if (only.length) fail(`read from 1.1.1 but not from 1.0.x (${only.join(', ')})`); }
 
 // ---- 1.1.1, the PowerPC half of its Mach-O program
 const DMG = path.join(REF, 'game/EV_Nova_1.1.1_for_Mac_OS_X.dmg');
@@ -138,7 +138,7 @@ else {
     const cited = new Set();
     for (const t of Object.values(S.NOVA_FIELD_NOTES)) for (const f of Object.values(t)) for (const [n] of f.code) cited.add(n);
     const missing = [...cited].filter(n => !S.novaRoutineNamed(prog, n));
-    if (missing.length) fail(`1.1.1: field notes cite routines not in the PowerPC half: ${missing.join(', ')}`);
+    if (missing.length) fail(`1.1.1: field notes cite routines not in the PowerPC half (${missing.join(', ')})`);
     // the figures
     const got = {};
     for (const name of Object.keys(S.NOVA_MACHO_FIGURES)) {
@@ -151,7 +151,7 @@ else {
     usesCheck('1.1.1', prog);
     // the rules: the list the code gives, each found where it points
     const want = JSON.stringify(scanRules(S, prog)), have = JSON.stringify(S.NOVA_RULES);
-    if (want !== have) fail('1.1.1: js/nova-rules.js is not the list the code gives; run node utilities/rules_build.mjs');
+    if (want !== have) fail('1.1.1: js/nova-rules.js is not the list the code gives. Run node utilities/rules_build.mjs');
     const sites = S.novaRuleSites(prog);
     if (sites.length !== S.NOVA_RULES.length) fail(`1.1.1: ${S.NOVA_RULES.length - sites.length} rules not found in their routines`);
     let rbad = 0;
@@ -161,7 +161,7 @@ else {
       // a float constant: read from the file where the load points, by this check's offsets
       if (o.op.mn === 'lfs' || o.op.mn === 'lfd') {
         const at = fileOffset(bytes, o.data), x = at < 0 ? NaN : o.op.mn === 'lfs' ? dv.getFloat32(at) : dv.getFloat64(at);
-        if (Math.fround(x) !== Math.fround(s.value) && rbad++ < 5) fail(`1.1.1: the rule ${s.value} (${s.file} ${s.line}): the constant at ${S.hex(o.data)} is ${x}`);
+        if (Math.fround(x) !== Math.fround(s.value) && rbad++ < 5) fail(`1.1.1: the constant at ${S.hex(o.data)} is ${x}, not the rule ${s.value} (${s.file} ${s.line})`);
         continue;
       }
       if (!LLVM) continue;
@@ -196,7 +196,7 @@ function routinesCheck(mac) {
     .map(([v, rel]) => { const src = S.novaArchiveProgram(new Uint8Array(fs.readFileSync(path.join(REF, rel)))); return [v, S.novaProgram(src.read(), src.readRsrc())]; });
   if (pefs.length < 3) { console.log('SKIP js/nova-routines.js: a 1.0.x release is not in reference/'); return; }
   const t0 = Date.now(), names = citedRoutines(S), releases = routinePlaces(S, mac, pefs, names);
-  if (routinesFile(releases) !== fs.readFileSync(path.join(ROOT, 'js/nova-routines.js'), 'utf8')) fail('js/nova-routines.js is not what the matcher gives; run node utilities/routines_build.mjs');
+  if (routinesFile(releases) !== fs.readFileSync(path.join(ROOT, 'js/nova-routines.js'), 'utf8')) fail('js/nova-routines.js is not what the matcher gives. Run node utilities/routines_build.mjs');
   const said = [];
   for (const [v, p] of pefs) {
     const k = S.NOVA_ROUTINES.releases.findIndex(([, n]) => n === p.code.length);
@@ -226,7 +226,7 @@ function routinesCheck(mac) {
       said.push(`moved one routine on, ${kept}`);
     }
   }
-  console.log(`js/nova-routines.js, as the matcher gives it in ${((Date.now() - t0) / 1000).toFixed(1)} s: ${said.join('; ')}`);
+  console.log(`js/nova-routines.js, as the matcher gives it in ${((Date.now() - t0) / 1000).toFixed(1)} s (${said.join('; ')})`);
 }
 // A figure's word as LLVM reads it (a list's words are comparisons, each holding
 // its number or one less; a rule's word is not a number), its words for the
@@ -255,9 +255,9 @@ function usesCheck(v, prog) {
   }
   const outfit = u.fixed.get('PICT 8502') || [], named = S.novaNamedRoutines(prog, null);
   const by = outfit.map(x => (named.find(m => m.routine && m.routine.start === x.routine) || {}).name);
-  if (!by.some(b => b === 'DoOutfitDialog' || b === 'Opens "Outfit"')) fail(`${v}: PICT 8502 not loaded where the outfitter opens: ${JSON.stringify(by)}`);
+  if (!by.some(b => b === 'DoOutfitDialog' || b === 'Opens "Outfit"')) fail(`${v}: PICT 8502 not loaded where the outfitter opens (${JSON.stringify(by)})`);
   if (u.fixed.size < 50) fail(`${v}: only ${u.fixed.size} resources loaded by number`);
-  console.log(`${v}: ${u.fixed.size} resources the program loads by number, at ${n} places, each word as LLVM reads it, and ${u.bases.length} bases; PICT 8502 loaded by ${by.join(', ')}`);
+  console.log(`${v}: ${u.fixed.size} resources the program loads by number, at ${n} places, each word as LLVM reads it, and ${u.bases.length} bases. PICT 8502 is loaded by ${by.join(', ')}`);
 }
 
 // A Mach-O PowerPC half's file offset for an address, from its segments.

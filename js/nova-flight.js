@@ -315,7 +315,7 @@ function novaGovtEnemies(D, a, b) {
 /* Whether a flët or përs may come to a system by its LinkSyst (SpawnFleet
    0x42704, SpawnPerson 0x408d5): -1 anywhere; the system; 10000 + n the
    systems of government 128 + n, 15000 + n those of its allies, 20000 + n
-   all but that government's, 25000 + n those of its enemies. The program stores
+   every system except that government's, 25000 + n those of its enemies. The program stores
    governments as 0 to 255 and compares n with that. A përs's government
    window starts at 9999, a flët's at 10000, so 9999 sends a përs to the
    independent systems; and a LinkSyst below 128 equal to the system's id
@@ -558,7 +558,7 @@ function novaPickSystemFleet(w) {
   return i < 0 ? null : w.D.fleets.get(list[i].id);
 }
 
-/* SelectRandomStellarDest 0x805de: a stellar for a ship to head for. Only
+/* SelectRandomStellarDest 0x805de: a stellar as a ship's destination. Only
    one that can be landed on and lies within 999 of the middle to the right
    and down counts, as the program tests. `plainOnly`, a stellar neither
    gate nor wormhole; else a wormhole for a government that prefers them,
@@ -740,16 +740,16 @@ function novaSetupShips(w) {
 
 /* Defense FLEETS. A stellar's defense ships come out from its hail dialog
    (DoPlanetCommDialog 0x97814), novaDeployDefence here: with a DefCount up
-   to 1000, all it has left at once; above, the last digit of DefCount, a
+   to 1000, all it has left together; above, the last digit of DefCount, a
    wave, taken from what is left. Each frame a stellar with one of its
    ships still about is defending (DoPlayGameWork 0x4443e), and while it
    is, EnterMoreShips sends one more whenever fewer than that last digit
    are out, until none are left; when its last ship is lost, no more come.
-   What is left is w.defence (the stellar's +0x466), from novaDefense. */
+   What is left is w.defense (the stellar's +0x466), from novaDefense. */
 function novaDefenceOf(w, sp) {
-  if (!w.defence) w.defence = new Map();
-  let d = w.defence.get(sp.id);
-  if (!d) { const def = novaDefense(sp); d = { sp, def, left: def ? def.total : 0, defending: false }; w.defence.set(sp.id, d); }
+  if (!w.defense) w.defense = new Map();
+  let d = w.defense.get(sp.id);
+  if (!d) { const def = novaDefense(sp); d = { sp, def, left: def ? def.total : 0, defending: false }; w.defense.set(sp.id, d); }
   return d;
 }
 const novaDefenceWave = sp => ((sp.DefCount % 10) + 10) % 10;
@@ -790,17 +790,17 @@ function novaDeployDefence(w, sp) {
 }
 // EnterMoreShips's defense part: one more ship for the first stellar, in the system's order, that is defending and short.
 function novaDefenceTopUp(w) {
-  if (!w.defence) return;
+  if (!w.defense) return;
   for (const id of w.si.nav) {
-    const d = w.defence.get(id);
+    const d = w.defense.get(id);
     if (!d || !d.defending || d.left <= 0) continue;
     if (novaDefenceOut(w, id) < novaDefenceWave(d.sp)) { novaSpawnDefender(w, d.sp); d.left--; return; }
   }
 }
-// Which stellars are defending: those with a ship of theirs about.
+// Which stellars are defending: those with one of their ships still out.
 function novaDefenceFlags(w) {
-  if (!w.defence) return;
-  for (const d of w.defence.values()) d.defending = novaDefenceOut(w, d.sp.id) > 0;
+  if (!w.defense) return;
+  for (const d of w.defense.values()) d.defending = novaDefenceOut(w, d.sp.id) > 0;
 }
 
 /* EnterMoreShips 0x43459, without mission fleets, the player's escorts,
@@ -1298,7 +1298,7 @@ function novaLowLevel(w, s) {
   s.want = Math.trunc(s.heading);
   if (s.mode === 0) novaEscortFireUnprovoked(w, s);
   const vel = () => novaDeg(novaBearing(0, 0, f32(s.vx * 100), f32(s.vy * 100)));
-  // 1: braking: turned against the velocity, full thrust, then half thrust and 0.94 a step below 1.75, and still below 0.35
+  // 1: braking: turned against the velocity, full thrust, then half thrust and 0.94 a step below 1.75, and below 0.35 eased by 0.95 and idle (mode 0)
   if (s.mode === 1 && ok) {
     if (Math.abs(s.vx) < 0.35 && Math.abs(s.vy) < 0.35) {
       s.vx = f32(s.vx * 0.95); s.vy = f32(s.vy * 0.95); s.speed = f32(s.speed * 0.95); s.mode = 0;
@@ -1737,7 +1737,7 @@ function novaFlightEngaged(w, isOpen) {
    (0x08) -- and the first set otherwise; a ship that folds (0x02) shows the
    set its folding has reached (novaFoldStep). Called once a step.
    The alternating image's frame goes in s.altFrame (0x2c97d), -1 for none:
-   the same heading, in a set of its own, the next when the base's cycling
+   the same heading, in a separate set, the next when the base's cycling
    moves on, or, with the base not cycling, every AnimDelay on the same
    clock; hidden while disabled with Flags 0x20. Each clock stands still
    while the ship is disabled with Flags 0x10. The alternating image moves

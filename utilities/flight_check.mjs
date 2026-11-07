@@ -79,12 +79,12 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   const rate = S.novaShipAccel(w.D, s);
   near('thrust doubled', rate, 0.1, 1e-6);
   for (let i = 0; i < 60; i++) { s.thrust = rate; s.desired = 0; S.novaHandleShip(w, s); }
-  if (!(s.vx >= 3 && s.vx < 3.1)) fail(`thrust to top speed: vx ${s.vx}, expected 3 to 3.1`);
+  if (!(s.vx >= 3 && s.vx < 3.1)) fail(`thrust reached vx ${s.vx}, not 3 to 3.1`);
   near('no thrust across', s.vy, 0, 1e-4);
   // Then turned up: the second axis is taken to its share, the first kept, and the ship runs past its top speed.
   s.heading = 0; s.want = 0;
   for (let i = 0; i < 60; i++) { s.thrust = rate; s.desired = 0; S.novaHandleShip(w, s); }
-  if (!(Math.hypot(s.vx, s.vy) > 4)) fail(`the program's drift past top speed: ${Math.hypot(s.vx, s.vy)}`);
+  if (!(Math.hypot(s.vx, s.vy) > 4)) fail(`a speed of ${Math.hypot(s.vx, s.vy)} has no drift past top speed`);
   // An inertialess ship (Flags2 0x0040) at speed 2 facing right: its velocity steered there 0.4 a step on each axis.
   const q = ship(cls({ flags2: 0x0040 }), { heading: 90, want: 90, speed: 2, vy: 1 });
   S.novaHandleShip(w, q);
@@ -96,9 +96,9 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   // The alternating image (HandleShipDisplay 0x2c97d), as the Thunderforge has it: a base cycling (shän Flags 0x08) of one
   // set, AnimDelay 5, and an alternating image of six sets. The clock goes on 1 for the base, then 1 again for the
   // alternating image, so the base moves on when it passes 5 at steps 4, 6, 9, 11, 14, 16: the alternating image's set
-  // after each of 16 steps. Without cycling (Flags 0), the alternating image moves on its own every 6 steps, the clock
+  // after each of 16 steps. Without cycling (Flags 0), the alternating image moves by itself every 6 steps, the clock
   // then set to 0. Disabled with Flags 0x20, it is hidden; with 0x10, it stands still. A frame rule without the second
-  // tick moves at steps 6 and 12, and must fail.
+  // tick moves at steps 6 and 12, and the check fails it.
   const sets = (flags, n, frame = S.novaShipFrame, o = {}) => {
     const s = ship(cls({ shanFlags: flags, animDelay: 5, sets: 1, framesPer: 64, alt: 1330, altSets: 6 }), Object.assign({ altSet: 0, altFrame: -1 }, o));
     const out = [];
@@ -106,7 +106,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
     return out;
   };
   eq('alternating image, cycling', sets(0x08, 16), [0, 0, 0, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4, 5, 5, 0]);
-  eq('alternating image, on its own', sets(0, 13), [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2]);
+  eq('alternating image without cycling', sets(0, 13), [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2]);
   eq('alternating image, disabled', [sets(0x28, 3, undefined, { disabled: true })[2], sets(0x18, 8, undefined, { disabled: true })[7]], [-1, 0]);
   const once = s => { S.novaShipFrame(s); if (s.altFrame >= 0) s.animAcc = Math.fround(s.animAcc - 1); };
   if (JSON.stringify(sets(0x08, 16, once)) === JSON.stringify(sets(0x08, 16))) fail('alternating image: a clock ticked once a step passed');
@@ -115,8 +115,8 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   // A tractor beam's catch (HandleShip 0x33fc3): the firer's Accel 1000, 0.2 a step, a quarter of it 0.05;
   // the caught ship's 500, 0.1. Still, beside a firer moving 1.02 a step to the right, it is eased 0.05 a step
   // to 1 on the 20th step, and set to 1.02 there, being within 0.05; up and down it stays at rest. Caught on
-  // an asteroid, it eases to rest by a quarter of its own: 0.06, 0.035, then 0. A hold eased by the caught
-  // ship's own acceleration takes 41 steps, and must fail the test.
+  // an asteroid, it eases to rest by a quarter of its acceleration: 0.06, 0.035, then 0. A hold eased by the caught
+  // ship's acceleration lasts 41 steps, and the check fails it.
   const steps = hold => {
     const w = world(), f = ship(cls({ accel: Math.fround(0.1) }), { slot: 1, vx: Math.fround(1.02) }), s = ship(cls(), { slot: 2, tractor: 1 });
     w.ships[1] = f; w.ships[2] = s;
@@ -131,7 +131,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   w.ships[2] = s;
   const vs = [];
   for (let i = 0; i < 3; i++) { S.novaTractorHold(w, s); vs.push(Math.round(s.vx * 1000) / 1000); }
-  eq('tractor beam on an asteroid: to rest', vs, [0.035, 0, 0]);
+  eq('tractor beam on an asteroid', vs, [0.035, 0, 0]);
 }
 {
   // An arrival: desired speed -50, lowered by 1.165 a step, the velocity |desired| along the heading, until it is
@@ -145,7 +145,7 @@ const step = (w, s) => { S.novaAI(w, s); if (w.ships[s.slot] === s || !w.ships[s
   for (let k = 0; k < 40; k++) y += speeds[k];
   near('arrival distance', s.y, y, 0.05);
   near('arrival leaves it at', Math.hypot(s.vx, s.vy), speeds[40], 1e-4);
-  if (!(s.timer >= 30 && s.timer < 60)) fail(`after the arrival, a coast of 30 to 59 steps: ${s.timer}`);
+  if (!(s.timer >= 30 && s.timer < 60)) fail(`a coast of ${s.timer} steps after the arrival, not 30 to 59`);
 }
 
 {
@@ -213,27 +213,27 @@ if (haveRelease('1.1.1')) {
   const flat = new Array(8).fill(0), live = weights.map((x, i) => x > 0 ? i : -1).filter(i => i >= 0);
   for (let i = 0; i < N; i++) flat[live[w.rand(live.length)]]++;
   if (new Set(weights.filter(x => x > 0)).size > 1 && oddsHold(flat, weights)) fail('the odds test did not notice düdes drawn as if all were as likely');
-  if (!fails) console.log(`odds: Sol's düdes ${counts.filter(Boolean).join('/')} of ${N} for Probs ${weights.filter(Boolean).join('/')}; düde ${dude.id}'s ships by its Probs`);
+  if (!fails) console.log(`odds: Sol's düdes ${counts.filter(Boolean).join('/')} of ${N} for Probs ${weights.filter(Boolean).join('/')}, so düde ${dude.id}'s ships come by its Probs`);
 }
 
 // ---- 4b. asteroids ---------------------------------------------------------
-// Round a screen 800 x 600 at (1000, -500) in a system with asteroids: as many as it has, from the start and
+// Around a screen 800 x 600 at (1000, -500) in a system with asteroids: as many as it has, from the start and
 // after a minute; every one within the screen and its margins (half + 128 out, a corner's 0.7 x 1.5 at most,
-// and gone 32 past an edge beyond its width); and moving the screen, all of them gone and come in again round it.
+// and gone 32 past an edge beyond its width); and moving the screen, all of them gone and come in again around it.
 if (haveRelease('1.1.1')) {
   const game = openRelease(S, '1.1.1', new Set(['data', 'graphics', 'ships', 'sounds'])), u = S.novaUniverse(game), D = S.novaFlightData(u);
   const sys = u.systems.find(x => x.rec.Asteroids >= 5 && x.rec.AstTypes), view = { x: 1000, y: -500, hw: 400, hh: 300 };
   const w = S.novaFlightWorld(D, sys, {}, 11, view), n = sys.rec.Asteroids;
   const live = () => w.roids.filter(a => a.active);
   const inside = v => live().every(a => Math.abs(a.x - v.x) <= 1.05 * (v.hw + 128) + 100 && Math.abs(a.y - v.y) <= 1.05 * (v.hw + 128) + 100);
-  if (live().length !== n) fail(`asteroids on coming into ${sys.name}: ${live().length}, it has ${n}`);
+  if (live().length !== n) fail(`${live().length} asteroids on coming into ${sys.name}, which has ${n}`);
   for (let i = 0; i < 1800; i++) S.novaFlightStep(w);
-  if (live().length !== n || !inside(view)) fail(`asteroids after a minute: ${live().length} of ${n}, ${JSON.stringify(live().map(a => [Math.round(a.x), Math.round(a.y)]))}`);
+  if (live().length !== n || !inside(view)) fail(`${live().length} of ${n} asteroids after a minute, at ${JSON.stringify(live().map(a => [Math.round(a.x), Math.round(a.y)]))}`);
   w.view = { x: 20000, y: 20000, hw: 400, hh: 300 };
   const before = new Set(live());
   for (let i = 0; i < 60; i++) S.novaFlightStep(w);
   if (live().some(a => before.has(a) && Math.abs(a.x) < 5000) || !inside(w.view)) fail('asteroids did not follow the screen');
-  if (!fails) console.log(`asteroids: ${sys.name}'s ${n} round the screen, after a minute and after it moved`);
+  if (!fails) console.log(`asteroids: ${sys.name}'s ${n} around the screen, after a minute and after it moved`);
 }
 
 // ---- 4c. fighting --------------------------------------------------------
@@ -264,11 +264,11 @@ if (haveRelease('1.0.10')) {
   eq(`disabled under ${Math.floor(third)} of ${acap} armour`, [up, down], [false, true]);
   a.shield = cap; a.armor = acap; S.novaSetDisabled(D, a); a.primary = -1; a.anger = 0;
   S.novaDamageShip(w, a, b, 0, 5, 5, b.slot, true, true, false, false, false);
-  eq('an aimed hit from an enemy: turned on, angered by the damage', [a.primary, a.anger], [b.slot, 10]);
+  eq('an aimed hit from an enemy turns it and angers it', [a.primary, a.anger], [b.slot, 10]);
   const c = S.novaPlaceShip(w, DESTROYER, FED, 0, 200, 3);
   c.primary = -1;
   S.novaDamageShip(w, c, a, 0, 5, 5, a.slot, true, true, false, false, false);
-  eq('a hit from its government: not turned on', c.primary, -1);
+  eq('a hit from its government does not turn it', c.primary, -1);
   // targets: the nearer of two enemies; then a ship too strong for its MaxOdds passed over
   w = empty(2);
   const v = S.novaPlaceShip(w, VIPER, AUR, 0, 0, 3), close = S.novaPlaceShip(w, VIPER, FED, 400, 0, 3), far = S.novaPlaceShip(w, VIPER, FED, 900, 0, 3);
@@ -301,7 +301,7 @@ if (haveRelease('1.0.10')) {
       if (now.length > before) { launched.push({ death: cr.death, frame: (w4.t - 1) % 1025 }); lives.push(...now.slice(-1).map(q => q.life)); }
       if (k === 399) n = now.length;
     }
-    eq('an Aurora Cruiser\'s pods: five, the first with 62 steps of its throes left, the rest on the frame counter\'s tens, all gone in time',
+    eq('an Aurora Cruiser\'s five pods, the first with 62 steps of its throes left, the rest on the frame counter\'s tens, all gone in time',
       [launched.length, launched[0] && launched[0].death, launched.slice(1).every(l => l.frame % 10 === 0), n], [5, 62, true, 0]);
     if (lives.some(l => l < 149 || l > 249)) fail(`escape pods' lives ${lives}, not 150 to 249 minus a step`);
     const personPods = noPodGovt => {
@@ -327,7 +327,7 @@ if (haveRelease('1.0.10')) {
     };
     const f32 = Math.fround, sum = (rate, k) => { let f = 0; for (let i = 0; i < k; i++) f = f32(f + rate); return f; };
     eq('fuel a step: a Vell-os Dart, a Scarab', [D.classes.get(173).fuelGen, D.classes.get(162).fuelGen, D.classes.get(DESTROYER).fuelGen], [f32(1 / 8), f32(f32(0.1) + 1 / 4), null]);
-    eq('a Vell-os Dart\'s fuel from 0 after 40 steps; a Raven\'s from 1,499.5 after 3; a destroyer\'s none', [fuelAfter(173, 0, 40), fuelAfter(164, 1499.5, 3), fuelAfter(DESTROYER, 10, 5)], [sum(f32(1 / 8), 40), 1500, 10]);
+    eq('a Vell-os Dart\'s fuel from 0 after 40 steps, a Raven\'s from 1,499.5 after 3, and a destroyer\'s none', [fuelAfter(173, 0, 40), fuelAfter(164, 1499.5, 3), fuelAfter(DESTROYER, 10, 5)], [sum(f32(1 / 8), 40), 1500, 10]);
   }
   // out of ammunition: Raven Rockets spent, a Viper (Flags2 0x0080) runs; without the flag it fights on
   const spent = (flag, noRetreat) => {
@@ -351,7 +351,7 @@ if (haveRelease('1.0.10')) {
   S.novaIonize(io, { ion: 100, blast: 100, ionColor: 0x1200 }, { x: 50, y: 0 });
   const blast = io.ion;
   S.novaIonize(io, { ion: 10, blast: 0, ionColor: 0x34 }, null);
-  eq('ionized by a blast 50 of 100 off, then a hit of 10: 75 + 10, the colors or-ed', [blast, io.ion, io.ionColor], [75, 85, 0x1234]);
+  eq('ionized by a blast 50 of 100 off and then a hit of 10 makes 75 + 10, the colors or-ed', [blast, io.ion, io.ionColor], [75, 85, 0x1234]);
   io.ion = ionMax / 2;
   eq('turning slowed by half at half its IonizeMax', S.novaShipTurn(io), Math.fround(turn0 * 0.5));
   io.ion = ionMax * 3;
@@ -363,7 +363,7 @@ if (haveRelease('1.0.10')) {
   w = empty(7);
   const RAVEN = 263, POL = [...u.govts.values()].find(g => g.name === 'Polaris').id;
   const rv = S.novaPlaceShip(w, RAVEN, POL, 0, 0, 3), fd = S.novaPlaceShip(w, DESTROYER, FED, 2000, 0, 3);
-  eq('a Raven has a cloak, and can cloak', [rv.cls.cloak >= 0, S.novaCanCloak(rv)], [true, true]);
+  eq('a Raven has a cloak and can cloak', [rv.cls.cloak >= 0, S.novaCanCloak(rv)], [true, true]);
   S.novaCloak(rv);
   let n = 0; for (; n < 100 && rv.cloak < 32; n++) S.novaCloakFade(w, rv);
   const rate = (rv.cls.flags2 & 1) ? 1.5 : 0.75;   // Flags2 0x0001, as a Raven has: 1.5
@@ -409,7 +409,7 @@ for (const v of Object.keys(RELEASES)) {
     for (const s of w.ships) if (s && ![s.x, s.y, s.vx, s.vy, s.heading].every(Number.isFinite)) { fail(`${v} ${sys.name}: ship ${s.slot} lost to ${[s.x, s.y, s.vx, s.vy, s.heading]}`); break; }
   }
   if (over.length) fail(`${v}: more düde ships than AvgShips in ${over.slice(0, 5).join(', ')}`);
-  console.log(`${v}: ${u.systems.length} systems x 3 seeds: ${t.ships} ships, ${t.dude} of düdes, ${t.person} persons, ${t.fleet} fleets (${t.jump} by hyperspace, ${t.gate} out of a hypergate);` +
+  console.log(`${v}: in ${u.systems.length} systems x 3 seeds ${t.ships} ships, ${t.dude} of düdes, ${t.person} persons, ${t.fleet} fleets (${t.jump} by hyperspace, ${t.gate} out of a hypergate);` +
               ` in 30 seconds ${t.jumped} jumped out, ${t.gated} went into a gate, ${t.later} come since and still here`);
 }
 

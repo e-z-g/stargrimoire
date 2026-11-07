@@ -30,8 +30,8 @@
 
    Figures the site states from the program are read from it by the shape
    of the instructions around them (novaFigure), never by an address, and
-   come back with the address of the instruction that contains them, which
-   the page links to.
+   come back with the address of the instruction that contains them, and
+   the page links to that address.
 
    GENERIC TO EV NOVA, NO DOM. LOAD ORDER: after mac-ppc.js, mac-pef.js,
    mac-resfork.js and mac-bytes.js. */
@@ -397,7 +397,7 @@ function novaCallsIn(prog, r, target) {
   return prog.ops(r).map((o, i) => ({ o, i })).filter(x => x.o.target !== null && want.has(x.o.target));
 }
 
-/* Routines the readers recognise, named for what they are shown to do:
+/* Routines the readers recognize, named for what they are shown to do:
    [{ routine, name, why }]. */
 function novaNamedRoutines(prog, game) {
   if (prog.named) return prog.named;
@@ -407,7 +407,7 @@ function novaNamedRoutines(prog, game) {
   for (const d of novaDialogRoutines(prog)) out.push({ routine: d.routine, name: `Opens "${d.name}"`, why: `calls GetNewDialog for DLOG ${d.dlog}, whose items are DITL ${d.ditl}, named "${d.name}" in the program's resources` });
   const why = prog.kind === 'macho' ? "named in the program's symbol table" : 'named by its traceback table (the runtime library)';
   for (const r of prog.routines) if (r.name && !r.glue && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.name, why });
-  for (const r of prog.routines) if (r.as && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.as, why: `the routine Mac 1.1.1 names ${r.as}: matched to it by the system calls, strings, numbers and record fields both use, and by their callers and callees` });
+  for (const r of prog.routines) if (r.as && !out.some(n => n.routine === r)) out.push({ routine: r, name: r.as, why: `the routine Mac 1.1.1 names ${r.as}, matched to it by the system calls, strings, numbers and record fields both use, and by their callers and callees` });
   prog.named = out.filter(n => n.routine);
   return prog.named;
 }
@@ -446,27 +446,27 @@ function novaDialogRoutines(prog) {
    from, and the value the site's code uses where it has one, which
    program_check compares with the program's. */
 const NOVA_FIGURE_WORDS = {
-  outfitDesc: [v => `an outfit's description in the outfitter: dësc ${v} + the oütf's number minus 128`],
-  outfitPict: [v => `an outfit's picture in the outfitter: PICT ${v} + the oütf's number minus 128`],
-  shipDesc: [v => `a ship's description in the shipyard: dësc ${v} + the shïp's number minus 128`, () => novaShipDescId(128)],
-  escortDesc: [v => `a ship's description as an escort for hire: dësc ${v} + the shïp's number minus 128`, () => novaShipPilotDescId(128)],
+  outfitDesc: [v => `dësc ${v} + the oütf's number minus 128, an outfit's description in the outfitter`],
+  outfitPict: [v => `PICT ${v} + the oütf's number minus 128, an outfit's picture in the outfitter`],
+  shipDesc: [v => `dësc ${v} + the shïp's number minus 128, a ship's description in the shipyard`, () => novaShipDescId(128)],
+  escortDesc: [v => `dësc ${v} + the shïp's number minus 128, a ship's description as an escort for hire`, () => novaShipPilotDescId(128)],
   missionOffer: [v => `a mission's offer: dësc ${v} + the mïsn's number minus 128`, () => 4000],
-  stellarDesc: [v => `a stellar's description in its spaceport: dësc ${v} + the spöb's number minus 128`, () => novaStellarDescId({ id: 128 })],
+  stellarDesc: [v => `dësc ${v} + the spöb's number minus 128, a stellar's description in its spaceport`, () => novaStellarDescId({ id: 128 })],
   barDesc: [v => `a stellar's bar: dësc ${v} + the spöb's number minus 128`, () => novaStellarBarDescId({ id: 128 })],
-  landingPict: [v => `a stellar's landing picture: PICT ${v} + its Type, where CustPicID is under 128`, () => novaLandingPict({ CustPicID: 0, Type: 0 })],
-  shipTargetPict: [v => `a ship's target display: PICT ${v} + the shïp's number minus 128`, () => NOVA_SHIP_PICT.target],
-  shipyardPict: [v => `a ship's picture in the shipyard: PICT ${v} + the shïp's number minus 128`, () => NOVA_SHIP_PICT.shipyard],
+  landingPict: [v => `PICT ${v} + its Type, a stellar's landing picture where CustPicID is under 128`, () => novaLandingPict({ CustPicID: 0, Type: 0 })],
+  shipTargetPict: [v => `PICT ${v} + the shïp's number minus 128, a ship's target display`, () => NOVA_SHIP_PICT.target],
+  shipyardPict: [v => `PICT ${v} + the shïp's number minus 128, a ship's picture in the shipyard`, () => NOVA_SHIP_PICT.shipyard],
   shotSpin: [v => `a weapon's shot: spïn ${v} + its Graphic`, () => NOVA_SPIN_BASE.shot],
   explodSpin: [v => `an explosion: spïn ${v} + its GraphicIndex`, () => NOVA_SPIN_BASE.explod],
-  boxSpin: [v => `a box to scoop: spïn ${v} + its kind`, () => NOVA_SPIN_BASE.box],
+  boxSpin: [v => `spïn ${v} + its kind, a box to scoop`, () => NOVA_SPIN_BASE.box],
   asteroidSpin: [v => `an asteroid: spïn ${v} + the röid's number minus 128`, () => NOVA_SPIN_BASE.asteroid],
   stellarSpin: [v => `a stellar: spïn ${v} + its Type`, () => NOVA_SPIN_BASE.stellar],
   shotSnd: [v => `a weapon's sound: snd ${v} + its Sound`],
   explodSnd: [v => `an explosion's sound: snd ${v} + its SoundIndex`],
-  combatRatings: [v => `the least kills for each combat rating: ${v.join(', ')}`, () => NOVA_COMBAT_RATINGS],
+  combatRatings: [v => `the least kills for each combat rating (${v.join(', ')})`, () => NOVA_COMBAT_RATINGS],
   nebulaPict: [v => `a nebula's pictures: PICT ${v} + 7 × the nëbu's number minus 128, and the six after`, () => novaNebulaPictIds({ id: 128 })[0]],
   nebulaFit: [() => "a nebula's picture: the last of its seven no wider and no taller than its rectangle (QDGetPictureBounds), else the first"],
-  nebulaPicts: [v => `pictures to a nebula: ${v}`, () => novaNebulaPictIds({ id: 128 }).length],
+  nebulaPicts: [v => `${v} pictures to a nebula`, () => novaNebulaPictIds({ id: 128 }).length],
 };
 // The resource type each figure is a base for, so a number in prose ("spïn 400 + n") can be linked to it.
 const NOVA_FIGURE_RES = {
@@ -988,7 +988,7 @@ function novaRuleSites(prog) {
 /* ---- an instruction, for reading -------------------------------------------
 
    mac-ppc.js spells an instruction as LLVM does, registers as bare numbers
-   (`addi 4, 4, 3000`), which is what program_check compares it with. The Code
+   (`addi 4, 4, 3000`), the form program_check compares. The Code
    view shows it with each register named (`addi r4, r4, 3000`) and a
    branch's target as the address it goes to, and beside it what it does
    in plain terms (`r4 = r4 + 3000`). */
@@ -1082,13 +1082,13 @@ function novaOpGloss(prog, ops, i) {
     case 'mflr': return `${r(op.rd)} = the return address`;
     case 'mtlr': return `the return address = ${r(op.rd)}`;
     case 'mtctr': return `the count register = ${r(op.rd)}`;
-    case 'stwu': if (op.ra === 1 && op.rt === 1) return `make room on the stack: ${-op.d} bytes`; break;
+    case 'stwu': if (op.ra === 1 && op.rt === 1) return `make ${-op.d} bytes of room on the stack`; break;
     case 'stmw': return `save ${r(op.rt)} to r31 on the stack`;
     case 'lmw': return `restore ${r(op.rt)} to r31 from the stack`;
     case 'nop': return 'nothing';
     case 'lfs': case 'lfd': return `${f(op.rt)} = the ${op.mn === 'lfs' ? 4 : 8}-byte number at ${at(op.ra, op.d)}`;
     case 'stfs': case 'stfd': return `the ${op.mn === 'stfs' ? 4 : 8}-byte number at ${at(op.ra, op.d)} = ${f(op.rt)}`;
-    case 'bdnz': return `count down; if not 0, go to ${target}`;
+    case 'bdnz': return `count down, and go to ${target} unless the count is 0`;
   }
   if (bytes) return op.mn[0] === 'l' ? `${r(op.rt)} = the ${bytes} byte${bytes > 1 ? 's' : ''} at ${at(op.ra, op.d)}` : `the ${bytes} byte${bytes > 1 ? 's' : ''} at ${at(op.ra, op.d)} = ${r(op.rt)}`;
   const xb = { lwzx: 4, stwx: 4, lhax: 2, lhzx: 2, sthx: 2, lbzx: 1, stbx: 1 }[op.mn];

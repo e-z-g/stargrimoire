@@ -1136,7 +1136,7 @@ function novaEscortFireUnprovoked(w, s) {
 /* ---- firing ------------------------------------------------------------------ */
 
 /* FireAIShipWeapon 0x8873d: the weapon chosen, ready and loaded, fired
-   as many times as it fires at once -- a turret at a target in reach and
+   as many times as it fires together -- a turret at a target in reach and
    not in a blind spot, a quadrant turret within 45 degrees of its side, a
    forward gun straight ahead -- its ammunition or fuel spent, its recoil
    pushing the ship back, then reloaded: Reload over its count for each
@@ -1469,7 +1469,7 @@ function novaShotHits(w) {
       const dx = Math.trunc(t.x) - Math.trunc(sh.x), dy = Math.trunc(t.y) - Math.trunc(sh.y);
       if (dx * dx + dy * dy <= r * r) { novaShipHit(w, sh, t, true); hit = true; break; }
     }
-    // the asteroids too, by the bare radius, but for a shot that passes them (Seeker 0x0001)
+    // the asteroids too, by the bare radius, unless the shot passes them (Seeker 0x0001)
     if (!hit && !(W.seeker & 1)) for (let i = 0; i < 16; i++) {
       const a = w.roids[i];
       if (!a.active) continue;
@@ -1646,7 +1646,7 @@ function novaDeathThroes(w, s) {
 /* ---- explosions -------------------------------------------------------- */
 
 /* CreateExplosion 0x3f698: a bööm (0 to 63), or a big one (1000 to 1063)
-   with smaller ones round it, scattered over its blast. SpawnExplod
+   with smaller ones around it, scattered over its blast. SpawnExplod
    0x3f5dc has up to 32; HandleExplods 0x2f5d2 plays each, after its
    wait, at FrameAdvance / 100 frames a step. */
 function novaCreateExplosion(w, x, y, boom, blast, sound) {
@@ -1730,7 +1730,7 @@ function novaShipFire(w, s) {
 /* HandleShip 0x35141, in the death throes: a përs's ship of Flags 0x0002,
    of no government or one without Flags 0x0100, launches a pod as the
    throes reach half their length; and from then on a class's PodCount
-   pods, the first at once and then one every DeathDelay ÷ PodCount × 0.4
+   pods, the first immediately and then one every DeathDelay ÷ PodCount × 0.4
    steps (whole numbers, at least 10), counted on the frame counter. */
 function novaShipPods(w, s) {
   const D = w.D, c = novaClassFight(D, s.cls), half = c.deathDelay * 0.5;
@@ -2376,7 +2376,7 @@ function novaDocking(w, s, t) {
 
 /* AIAddFighterToParent 0x802a5: a fighter landed is one more in its
    carrier's bay for its class (a bay empty till then starts its reload
-   over), and is gone. */
+   over), and the fighter is removed. */
 function novaFighterAboard(w, f) {
   const D = w.D, c = w.ships[f.leader];
   if (c) for (const r of c.weap) {
@@ -2618,7 +2618,7 @@ function novaFireGunUntargeted(w, s) {
   if (pick >= 0) s.lastW = pick;
   if (s.lastW !== -1) s.latch = true;
 }
-// CalcObjectLeadAngle 0x2b18e: the lead on a moving object, for unguided shots, rockets of no guidance (4, 7, 8, 9) and the like.
+// CalcObjectLeadAngle 0x2b18e: the lead on a moving object for a weapon of Guidance -1, 4, 7, 8 or 9. Any other weapon aims straight at it.
 function novaObjectLeadAngle(s, pos, vel, W) {
   let a = novaBearing(s.x, s.y, pos.x, pos.y);
   if (!W || ![-1, 4, 7, 8, 9].includes(W.guid)) return a;

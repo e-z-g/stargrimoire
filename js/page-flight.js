@@ -80,7 +80,7 @@ function flightSync() {
 function flightListed() {
   const sel = VIEW.sel;
   if (VIEW.mode !== 'system' || FLIGHT.sys === null) return false;
-  if (sel && sel.kind === 'stellar') { const w = FLIGHT.world; return !!(w && w.defence && w.defence.has(sel.id)); }
+  if (sel && sel.kind === 'stellar') { const w = FLIGHT.world; return !!(w && w.defense && w.defense.has(sel.id)); }
   return !sel || (sel.kind === 'system' && sel.id === FLIGHT.sys);
 }
 
@@ -343,7 +343,7 @@ function flightPanel(sys) {
 function defenceControl(sp, sys) {
   const w = FLIGHT.world;
   if (!FLIGHT.on || VIEW.mode !== 'system' || !w || FLIGHT.sys !== sys) return '';
-  const d = w.defence && w.defence.get(sp.id);
+  const d = w.defense && w.defense.get(sp.id);
   if (!d) return `<button data-flight="defend:${sp.id}" title="Launch its defense ships as it does when hailed and refused">Deploy defenses</button>`;
   const out = novaDefenceOut(w, sp.id);
   return `${out} out and ${d.left} left.${d.left > 0 ? (out ? ' One more comes whenever fewer than a wave are out.' : ' No more come now that none are out.') : ''}`;

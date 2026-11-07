@@ -127,7 +127,7 @@ else {
   off[1] ^= 1;   // the first word xored as by the key 0xB36B210F
   const version = b => new DataView(S.novaPilotCrypt(b).buffer).getInt16(0);
   if (version(off) === version(raw)) fail('a key one bit off reads the same version');
-  else console.log(`a key one bit off: version ${version(off)} in place of ${version(raw)}`);
+  else console.log(`a key one bit off gives version ${version(off)} in place of ${version(raw)}`);
 }
 
 // ---- Robert's ship copied (novaPilotShip, novaShipCopy), against sums worked by hand from his outfits in
@@ -150,13 +150,13 @@ if (robert && haveRelease('1.0.10')) {
   const bad = differs(back), others = Object.keys(back).filter(k => !(k in copy.change) && JSON.stringify(back[k]) !== JSON.stringify(cls[k]));
   if (copy.from !== 380 || copy.name !== 'Aurora Thunderforge') fail(`Robert's ship: shïp ${copy.from}, "${copy.name}"`);
   if (bad.length) fail(`Robert's ship copied: ${bad.map(k => `${k} ${JSON.stringify(back[k])}`).join('; ')}`);
-  if (others.length) fail(`Robert's ship copied: fields not the class's: ${others.join(', ')}`);
+  if (others.length) fail(`Robert's ship copied with fields not the class's (${others.join(', ')})`);
   let free = 128; while (g.list('shïp').some(e => e.id === free)) free++;
   if (res[0].id !== free || res[1].type !== 'shän' || res[1].id !== free) fail(`Robert's ship copied as ${res.map(r => r.type + ' ' + r.id).join(', ')}, not ${free}`);
   const m = S.NOVA_PILOT_SHIP_ADDS.find(a => a[0] === 'Maneuver');
   m[2] = 1; const bent = S.novaPilotShip(g, save); m[2] = 0.1;
   if (!differs(bent.change).includes('Maneuver')) fail('a copy adding Maneuver\'s ModVal whole passed');
-  if (!bad.length && !others.length) console.log(`Robert's ship copied as shïp ${res[0].id}: ${Object.keys(want).length} fields as worked by hand, the rest the class's; Maneuver bent to ${bent.change.Maneuver} found`);
+  if (!bad.length && !others.length) console.log(`Robert's ship copied as shïp ${res[0].id}, ${Object.keys(want).length} fields as worked by hand and the rest the class's. Maneuver bent to ${bent.change.Maneuver} is found`);
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

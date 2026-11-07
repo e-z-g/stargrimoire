@@ -8,7 +8,7 @@
    looked up by type and id and comes from whichever file was added last
    that has it.
 
-   WHERE THE FILES COME FROM. The Mac releases have their data in resource
+   THE FILES' SOURCES. The Mac releases have their data in resource
    forks: 1.0.2, 1.0.8 and 1.0.10 as StuffIt archives, whose forks
    mac-stuffit.js extracts; 1.1.1 for Mac OS X as `.ndat` files whose DATA
    fork is a resource fork, so a browser can read them straight from a
@@ -163,7 +163,7 @@ function novaArchiveFiles(bytes, depth = 0) {
     const name = e.name.replace(/\r$/, '');
     if (name === 'Icon' || name.startsWith('._') || name === '.DS_Store') continue;
     // an archive in the archive, as EstarGuars' SAE_1of2.sit.bin is a MacBinary StuffIt in a
-    // StuffIt: decompressed now, so as to see inside it, and its files in its place, in its folder
+    // StuffIt: decompressed now to see inside it, and its files in its place, in its folder
     if (depth < 3 && /\.(sit|sitx|zip|cpt|rar|sea)(\.(bin|hqx))?$/i.test(name)) {
       let inner = null;
       try { inner = novaArchiveIn(own ? e.read('data') : zip ? zipFork(bytes, e, 'data') : sitx ? stuffItXFork(bytes, e, 'data') : stuffItFork(bytes, e, 'data')); } catch (err) { inner = null; }

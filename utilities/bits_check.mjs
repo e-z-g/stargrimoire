@@ -71,7 +71,7 @@ for (const v of Object.keys(RELEASES)) {
     } catch (err) { fail(`${v} ${e.where}: ${err.message}`); }
   }
   const sets = exprs.filter(e => e.kind === 'set').length;
-  console.log(`${v}: ${exprs.length - sets} tests and ${sets} set expressions read, ${choices} with a choice; ${otherwise.length} set expressions the game reads differently from how they are written${otherwise.length ? ': ' + otherwise.slice(0, 6).join('; ') : ''}`);
+  console.log(`${v}: ${exprs.length - sets} tests and ${sets} set expressions read, ${choices} with a choice. ${otherwise.length} set expressions the game reads differently from how they are written${otherwise.length ? ' (' + otherwise.slice(0, 6).join('; ') + ')' : ''}`);
   // The catalog: every bit an expression names is in it, and b147 is named after Take Polaris Home.
   const cat = S.novaBitCatalog(game);
   const named = new Set();
@@ -80,10 +80,10 @@ for (const v of Object.keys(RELEASES)) {
     else for (const o of S.ncbSetOps(e.text)) if (o.letter === 'B') named.add(o.n);
   }
   const missing = [...named].filter(n => !cat.has(n));
-  if (missing.length) fail(`${v}: bits the files use and not in the catalog: ${missing.slice(0, 8).join(', ')}`);
+  if (missing.length) fail(`${v}: bits the files use and not in the catalog (${missing.slice(0, 8).join(', ')})`);
   const b147 = cat.get(147);
   if (!b147 || !/Take Polaris Home/.test(b147.name || '') || !b147.refs.some(r => r.type === 'sÿst' && r.effect === 'on'))
-    fail(`${v}: b147 is not named after Take Polaris Home with a system's visibility needing it: ${JSON.stringify(b147 && b147.name)}`);
-  console.log(`${v}: ${cat.size} bits in use, ${[...cat.values()].filter(b => b.name).length} of them changed by something; b147 "${b147 && b147.name}"`);
+    fail(`${v}: b147 is not named after Take Polaris Home with a system's visibility needing it (${JSON.stringify(b147 && b147.name)})`);
+  console.log(`${v}: ${cat.size} bits in use, ${[...cat.values()].filter(b => b.name).length} of them changed by something, and b147 "${b147 && b147.name}"`);
 }
 process.exit(fails ? 1 : 0);

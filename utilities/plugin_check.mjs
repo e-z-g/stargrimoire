@@ -100,7 +100,7 @@ for (const v of versions) games[v] = openRelease(S, v, new Set(['data']));
   if (!longMovie) fail('a Movie changed to 32 characters is written with no 0 after it');
   const s1 = games[versions[0]].get('sÿst', 128).bytes;
   if (same(S.novaRecordBytes('sÿst', { xPos: S.novaRecord('sÿst', s1).xPos + 1 }, s1), s1)) fail('a changed xPos wrote the same bytes');
-  console.log(`${records} records in ${versions.join(', ')} written back as read; ${edits} single fields changed alone`);
+  console.log(`${records} records in ${versions.join(', ')} written back as read, and ${edits} single fields changed alone`);
 }
 
 // ---- 2. .rez ------------------------------------------------------------
@@ -211,7 +211,7 @@ print(json.dumps(out))
     const broken = Uint8Array.from(probe.out); broken[24 + 12 * (probe.res.length + 1) + 13] ^= 1;
     const r0 = resourcesOf(S.novaOpenRez(broken))[0];
     if (same(r0.data, probe.res[0].data)) fail('a byte changed in a written .rez was not seen');
-    console.log(`${identical} of ${rezes} .rez files written again byte for byte, and the other ${other} laid out by other tools than EVNEW; ${agree} of ${written.length} written read back as given, by the page and by rez.py`);
+    console.log(`${identical} of ${rezes} .rez files written again byte for byte, and the other ${other} laid out by other tools than EVNEW. ${agree} of ${written.length} written read back as given, by the page and by rez.py`);
     if (identical + other < rezes) fail(`${rezes - identical - other} .rez files laid out as EVNEW lays them did not come out byte for byte`);
     if (identical < 100) fail(`only ${identical} .rez files written again byte for byte`);
   }
@@ -266,7 +266,7 @@ if (versions.length >= 2) {
     checked++;
     if (!x || x.name !== y.name || !same(x.bytes, y.bytes)) wrong++;
   }
-  if (wrong) fail(`${a} with the plug-in made from ${a} to ${b}: ${wrong} of ${checked} records not ${b}'s`);
+  if (wrong) fail(`${a} with the plug-in made from ${a} to ${b} has ${wrong} of ${checked} records not ${b}'s`);
   if (!res.length) fail(`no record changed from ${a} to ${b}`);
   console.log(`${a} to ${b}: a plug-in of ${res.length} records makes all ${checked} records ${b}'s`);
 
@@ -327,8 +327,8 @@ if (versions.length >= 2) {
     const two = [cheat('50M_Credits_Cheat.zip'), cheat('AllTheCashYouNeed.zip')];
     const real = held('two credit cheats', two);
     if (flat(real).length !== 1) fail(`two credit cheats: ${JSON.stringify(flat(real))}`);
-    console.log(`records two plug-ins share: the made-up ones' and ${flat(real).join('')}`);
-  } else console.log('records two plug-ins share: the made-up ones only (no copy of EVN.zip in reference/)');
+    console.log(`records two plug-ins share, the made-up ones' and ${flat(real).join('')}`);
+  } else console.log('records two plug-ins share, the made-up ones only (no copy of EVN.zip in reference/)');
 }
 
 process.exit(fails ? 1 : 0);

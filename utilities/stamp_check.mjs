@@ -1,5 +1,5 @@
 // index.html's script tags have the hash of what they load (utilities/stamp.mjs): fails on any
-// script without a tag or with a stale one, and is first shown to fail on a tag broken on purpose.
+// script without a tag or with a stale one. It is first shown to fail on a tag broken on purpose.
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './load.mjs';
@@ -13,6 +13,6 @@ let fails = 0;
 const broken = html.replace(/(src="js\/[^"?]+\?v=)[0-9a-f]{8}/, '$1deadbeef');
 if (!stale(broken).length) { console.log('FAIL the check does not see a tag broken on purpose'); fails++; }
 const bad = stale(html);
-if (bad.length) { console.log(`FAIL ${bad.length} of ${tags.length} script tags stale or untagged: ${bad.join(', ')}; run node utilities/stamp.mjs`); fails++; }
+if (bad.length) { console.log(`FAIL ${bad.length} of ${tags.length} script tags stale or untagged (${bad.join(', ')}). Run node utilities/stamp.mjs`); fails++; }
 else console.log(`${tags.length} script tags, each with its file's hash`);
 process.exit(fails ? 1 : 0);

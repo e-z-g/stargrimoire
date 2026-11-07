@@ -34,7 +34,7 @@ eq('Pirate005Di', note('Pirate005Di'), ['Pirate', '005Di', false, false, '']);
 eq('Wild Geese 7aI - link', note('Wild Geese 7aI - link to Pirate storyline'), ['Wild Geese', '7aI', false, false, '- link to Pirate storyline']);
 eq('Fed46(if done GLi-tech)', note('Fed46(if done GLi-tech)'), ['Fed', '46', false, false, '(if done GLi-tech)']);
 eq('no step', note('Polaris Spinoff'), ['Polaris Spinoff', null, false, false, '']);
-eq('the same storyline however spelt', ['Vell-os', 'Vellos', 'Rebel  II'].map(t => S.novaStoryNote(t + '3').key), ['vellos', 'vellos', 'rebelii']);
+eq('the same storyline however spelled', ['Vell-os', 'Vellos', 'Rebel  II'].map(t => S.novaStoryNote(t + '3').key), ['vellos', 'vellos', 'rebelii']);
 
 // ---- every release ------------------------------------------------------
 const WIKI = path.join(REF, 'wiki/evnova-miraheze/pages.jsonl');
@@ -52,13 +52,13 @@ for (const v of Object.keys(RELEASES)) {
     }
     if (m.rec.ShipCount > 0 && /^code /.test(S.novaMissionPlace(u, 'ship', m.rec.ShipSyst).text)) problems.push(`mïsn ${m.id} ShipSyst ${m.rec.ShipSyst}`);
   }
-  if (problems.length) fail(`${v}: ${problems.length} place codes the Bible does not give or that name nothing: ${problems.slice(0, 6).join('; ')}`);
+  if (problems.length) fail(`${v}: ${problems.length} place codes the Bible does not give or that name nothing (${problems.slice(0, 6).join('; ')})`);
   // a LAST mission leads nowhere further in its storyline
   const onward = [...M.byId.values()].filter(m => m.story && m.story.last).filter(m => m.next.some(id => { const o = M.byId.get(id); return o.story && o.story.key === m.story.key && (o.story.num ?? 0) > m.story.num; }));
-  if (onward.length) fail(`${v}: LAST missions leading further on in their storyline: ${onward.map(m => m.id).join(', ')}`);
+  if (onward.length) fail(`${v}: LAST missions leading further on in their storyline (${onward.map(m => m.id).join(', ')})`);
   const noted = [...M.byId.values()].filter(m => m.story).length;
   const links = [...M.byId.values()].reduce((a, m) => a + m.next.length, 0);
-  console.log(`${v}: ${M.byId.size} missions, ${noted} with a note, in ${M.stories.size} storylines; ${links} links from one mission to the next; every place code read`);
+  console.log(`${v}: ${M.byId.size} missions, ${noted} with a note, in ${M.stories.size} storylines, ${links} links from one mission to the next, and every place code read`);
 
   if (v !== '1.1.1') continue;
   if (!fs.existsSync(WIKI)) { console.log('SKIP the wiki: no reference/wiki'); continue; }
@@ -85,7 +85,7 @@ for (const v of Object.keys(RELEASES)) {
   }
   const AGREE = 320;
   if (agree < AGREE) fail(`the wiki: ${agree} of ${tried} bit names match the notes, fewer than the ${AGREE} that did`);
-  console.log(`the wiki: ${agree} of ${tried} bit names that give a storyline's step match the notes; the others:\n  ${differ.join('\n  ')}`);
+  console.log(`the wiki: ${agree} of ${tried} bit names that give a storyline's step match the notes. The others are below.\n  ${differ.join('\n  ')}`);
 }
 // The storyline charts (novaStoryLayout): every mission placed once, no two in one place, every line that is
 // not marked back going down a row, and a line marked back only where following lines alone would loop.

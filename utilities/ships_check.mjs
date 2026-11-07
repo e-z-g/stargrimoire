@@ -63,9 +63,9 @@ for (const v of Object.keys(RELEASES)) {
       }
     }
   }
-  if (noShan.length) fail(`${v}: ${noShan.length} ships have no shän: ${noShan.slice(0, 8).join(', ')}`);
-  if (problems.length) fail(`${v}: ${problems.length} layers do not have the frames the Bible gives: ${problems.slice(0, 6).join('; ')}`);
-  else console.log(`${v}: ${ships.length} ships, every shän's sprites there with the frames the Bible gives (${[...kinds].map(([k, n]) => `${n} ${k}`).join(', ')}; weapon glows: ${[...weapCounts].map(([k, n]) => `${n} ${k}`).join(', ') || 'none'})`);
+  if (noShan.length) fail(`${v}: ${noShan.length} ships have no shän (${noShan.slice(0, 8).join(', ')})`);
+  if (problems.length) fail(`${v}: ${problems.length} layers do not have the frames the Bible gives (${problems.slice(0, 6).join('; ')})`);
+  else console.log(`${v}: ${ships.length} ships, every shän's sprites there with the frames the Bible gives (${[...kinds].map(([k, n]) => `${n} ${k}`).join(', ')}, and weapon glows ${[...weapCounts].map(([k, n]) => `${n} ${k}`).join(', ') || 'none'})`);
 
   const tally = { 3000: { own: 0, shared: 0, none: [] }, 5000: { own: 0, shared: 0, none: [] } };
   for (const ship of ships) for (const base of [3000, 5000]) {
@@ -75,7 +75,7 @@ for (const v of Object.keys(RELEASES)) {
     else tally[base].shared++;
   }
   const line = b => `${tally[b].own} own, ${tally[b].shared} shared, ${tally[b].none.length} none`;
-  console.log(`${v}: target pictures ${line(3000)}; pictures beside the description ${line(5000)}` +
+  console.log(`${v}: target pictures ${line(3000)}, and pictures beside the description ${line(5000)}` +
               (tally[5000].none.length ? ` (none: ${tally[5000].none.slice(0, 12).join(', ')}${tally[5000].none.length > 12 ? ' …' : ''})` : ''));
 }
 
@@ -83,10 +83,10 @@ for (const v of Object.keys(RELEASES)) {
 const govt = [[-1, -1, -1], [128, 128, 128], [383, 383, 383], [1150, -1, 150], [2150, 150, -1], [500, -1, -1]];
 for (const [v, combat, attrs] of govt) {
   const g = S.novaShipGovts(v);
-  if (g.combat !== combat || g.attrs !== attrs) fail(`InherentGovt ${v}: combat ${g.combat}, attributes ${g.attrs}; the Bible gives ${combat}, ${attrs}`);
+  if (g.combat !== combat || g.attrs !== attrs) fail(`InherentGovt ${v}: combat ${g.combat} and attributes ${g.attrs}, where the Bible gives ${combat} and ${attrs}`);
 }
 const days = [[1, 1], [99, 1], [100, 2], [199, 2], [200, 3], [5000, 3], [0, null]];
-for (const [m, d] of days) if (S.novaShipJumpDays(m) !== d) fail(`Mass ${m}: ${S.novaShipJumpDays(m)} days; the Bible gives ${d}`);
+for (const [m, d] of days) if (S.novaShipJumpDays(m) !== d) fail(`Mass ${m}: ${S.novaShipJumpDays(m)} days, where the Bible gives ${d}`);
 if (!fails) console.log(`rules: InherentGovt's ranges and Mass to jump days as the Bible gives them`);
 
 // The negative control: a glow one frame short must be caught.

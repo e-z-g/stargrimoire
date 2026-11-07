@@ -30,7 +30,7 @@ for (const n of want) {
   if (Buffer.from(f.read()).equals(fs.readFileSync(path.join(DIR, n)))) same++;
   else fail(`${n} reads differently from hdiutil's copy`);
 }
-console.log(`${files.length} Nova files in the image; ${same} of ${want.length} .ndat byte for byte hdiutil's, in ${Date.now() - t0} ms`);
+console.log(`${files.length} Nova files in the image, ${same} of ${want.length} .ndat byte for byte hdiutil's, in ${Date.now() - t0} ms`);
 
 // the negative control
 const part = S.udifPartitions(bytes).find(p => /Apple_HFS/.test(p.name));
@@ -48,9 +48,9 @@ try {
     if (!Buffer.from(a).equals(Buffer.from(b))) changed++;
   }
 } catch (e) { refused = e.message; }
-if (refused) console.log(`a byte changed in each compressed chunk: the volume cannot be read (${refused})`);
+if (refused) console.log(`with a byte changed in each compressed chunk the volume cannot be read (${refused})`);
 else if (!changed) fail('a byte changed in every compressed chunk reads back as nothing changed');
-else console.log(`a byte changed in each compressed chunk: ${changed} file${changed === 1 ? '' : 's'} read differently or not at all`);
+else console.log(`with a byte changed in each compressed chunk ${changed} file${changed === 1 ? '' : 's'} read differently or not at all`);
 if (good.length !== one.size) fail('Nova Data 1 is not its catalog length');
 
 // 1.1 beta 2.10.7: its image has an installer package (pkgFiles); each .rez read through the image, the package and
@@ -59,7 +59,7 @@ if (good.length !== one.size) fail('Nova Data 1 is not its catalog length');
 {
   const BETA = path.join(REF, 'game', 'EVNova_1.1_b2.10.7_Mac.dmg');
   const PKG = path.join(REF, 'unpacked', 'game', 'EVNova_1.1_b2.10.7_Mac', 'Install EV Nova 1.1_b2.10.7', 'EV Nova 1.1_b2.10.7.pkg');
-  if (!fs.existsSync(BETA) || !fs.existsSync(PKG)) console.log('SKIP 1.1 beta 2.10.7: its image or its package is not in reference/');
+  if (!fs.existsSync(BETA) || !fs.existsSync(PKG)) console.log('SKIP 1.1 beta 2.10.7, its image or its package not in reference/');
   else {
     const t1 = Date.now(), beta = S.novaArchiveFiles(new Uint8Array(fs.readFileSync(BETA)));
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'stargrimoire-pkg-'));
@@ -73,7 +73,7 @@ if (good.length !== one.size) fail('Nova Data 1 is not its catalog length');
       else if (Buffer.from(f.read()).equals(fs.readFileSync(path.join(dir, n)))) same++;
       else fail(`1.1 beta: ${n} reads differently from cpio's copy`);
     }
-    console.log(`1.1 beta 2.10.7: ${beta.length} Nova files through its image's package; ${same} of ${theirs.length} .rez byte for byte cpio's, in ${Date.now() - t1} ms`);
+    console.log(`1.1 beta 2.10.7: ${beta.length} Nova files through its image's package, ${same} of ${theirs.length} .rez byte for byte cpio's, in ${Date.now() - t1} ms`);
     fs.rmSync(tmp, { recursive: true, force: true });
     const pk = new Uint8Array(fs.readFileSync(PKG)), spoilt = pk.slice();
     spoilt[Math.floor(pk.length * 0.5)] ^= 0x55;

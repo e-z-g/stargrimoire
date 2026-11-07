@@ -103,6 +103,6 @@ for (const v of Object.keys(RELEASES)) {
   const bad = overlaps(places, widths, got, TRY);
   if (bad.length) fail(`${v}: ${bad.slice(0, 4).join('; ')}`);
   const at = s => got.filter(g => g.from <= s).length;
-  console.log(`${v}: ${places.length} names placed in ${ms} ms, none meeting another or a dot at ${TRY.length} zooms; shown at 37% ${at(0.37)}, 90% ${at(0.9)}, 150% ${at(1.5)}, 200% ${at(2)}, 300% ${at(3)}, 500% ${at(5)}`);
+  console.log(`${v}: ${places.length} names placed in ${ms} ms, none meeting another or a dot at ${TRY.length} zooms. Shown at 37% ${at(0.37)}, 90% ${at(0.9)}, 150% ${at(1.5)}, 200% ${at(2)}, 300% ${at(3)}, 500% ${at(5)}`);
 }
 process.exit(fails ? 1 : 0);

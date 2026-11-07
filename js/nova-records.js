@@ -6,7 +6,7 @@
    novaRecord(type, bytes) reads one; novaLayout(type) gives where each field
    sits, which is what the check compares with the templates.
 
-   WHERE THE TABLES CAME FROM. Written from the Nova Bible (Part II), with
+   THE TABLES' SOURCES. Written from the Nova Bible (Part II), with
    the field order and widths as Ambrosia's ResEdit templates give them
    -- the `Templates` file in 1.0.10's Documentation folder. The names are
    the Bible's where it has one. utilities/records_check.mjs checks each table

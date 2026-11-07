@@ -141,8 +141,8 @@ for (const v of ['1.0.10', '1.1.1']) {
       if (!control && s.type === 'rlëD') control = { ours: ours.frames[0], theirs: Buffer.from(t.frames[0]) };
     });
   }
-  if (bad.length) { fails++; console.log(`FAIL ${v}: ${bad.length} of ${sprites.length} sprites differ: ${bad.slice(0, 5).join('; ')}`); }
-  else console.log(`${v}: ${sprites.length} sprites, ${frames} frames, every pixel as ResForge draws it; ${indexed} frame indexes as the decoder finds them`);
+  if (bad.length) { fails++; console.log(`FAIL ${v}: ${bad.length} of ${sprites.length} sprites differ (${bad.slice(0, 5).join('; ')})`); }
+  else console.log(`${v}: ${sprites.length} sprites, ${frames} frames, every pixel as ResForge draws it, and ${indexed} frame indexes as the decoder finds them`);
 
   // The negative control: one pixel changed must be caught.
   if (control) {

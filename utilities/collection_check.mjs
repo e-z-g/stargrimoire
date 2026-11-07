@@ -10,7 +10,7 @@
 // file once, Polycon v2's Nova Files all eleven of its parts; every Nova plug-in must have the
 // description beside it that the page fetches, and every description
 // must read as the add-on page's, with its title, size and author, Created
-// and Downloads (a few have no text under them, and are counted). Two controls on copies of the zip's listing: a row's size
+// and Downloads (a few have no text under them and are counted). Two controls on copies of the zip's listing: a row's size
 // changed and a row renamed must each be found. Without the listings or
 // the copies it skips.
 import fs from 'node:fs';
@@ -80,7 +80,7 @@ for (const c of S.NOVA_COLLECTIONS) {
 // Every Nova plug-in has its description, and each reads as the add-on page's.
 if (nova) {
   const none = nova.entries.filter(e => !e.about);
-  if (none.length) fail(`${none.length} Nova plug-ins with no description: ${none.slice(0, 3).map(e => e.path).join(', ')}`);
+  if (none.length) fail(`${none.length} Nova plug-ins with no description (${none.slice(0, 3).map(e => e.path).join(', ')})`);
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-collection-'));
   execFileSync('unzip', ['-q', '-o', EVN, 'EVN/*.txt', '-d', TMP], { stdio: 'ignore' });
   let read = 0, bare = 0;
@@ -89,7 +89,7 @@ if (nova) {
     const p = decodeURIComponent(e.about.slice(e.about.indexOf('/EVN.zip/') + 9));
     if (!fs.existsSync(path.join(TMP, p))) { fail(`${e.path}: its description ${p} is not in the zip`); continue; }
     const a = S.novaCollectionAbout(fs.readFileSync(path.join(TMP, p), 'utf8'));
-    if (a.head.length < 4 || !/^Created: /.test(a.head[2]) || !/^Downloads: /.test(a.head[3])) fail(`${p} does not read as the add-on page's: ${JSON.stringify(a.head)}`);
+    if (a.head.length < 4 || !/^Created: /.test(a.head[2]) || !/^Downloads: /.test(a.head[3])) fail(`${p} does not read as the add-on page's (${JSON.stringify(a.head)})`);
     else { read++; if (!a.text) bare++; }
   }
   fs.rmSync(TMP, { recursive: true, force: true });

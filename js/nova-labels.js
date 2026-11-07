@@ -46,7 +46,7 @@ function labelsMeetUntil(a, b, breaks) {
   return top >= LABEL_FAR ? Infinity : top;
 }
 
-/* Every name's side and the zoom it is shown from. items: in order of
+/* Every name's side and the least zoom that shows it. items: in order of
    importance, each { sides: [box, ...], breaks, at, near } -- at is its
    point in map units, near how many pixels out from where the point is
    drawn any of its sides reaches at any zoom (Infinity when that grows

@@ -104,7 +104,7 @@ for (const v of Object.keys(RELEASES)) {
       if (n !== size) off.push(`${type} ${e.id} is ${n}`);
     }
   }
-  if (off.length) fail(`${v}: records not the size of their table (${off.length}): ${off.slice(0, 6).join('; ')}`);
+  if (off.length) fail(`${v}: records not the size of their table (${off.length}, among them ${off.slice(0, 6).join('; ')})`);
   else console.log(`sizes: every record in ${v} is the size of its table`);
 }
 
@@ -208,9 +208,9 @@ else {
         }
       }
     }
-    if (wrong) fail(`${type}: ${wrong} of ${checked} values differ from the dump: ${firstWrong.join('; ')}`);
+    if (wrong) fail(`${type}: ${wrong} of ${checked} values differ from the dump (${firstWrong.join('; ')})`);
     else console.log(`values: ${type}: ${sec.recs.length} records, ${checked} values, all as the dump has them` +
-                     (notInDump.length ? ` (not in the dump: ${notInDump.join(', ')})` : ''));
+                     (notInDump.length ? ` (${notInDump.join(', ')} not in the dump)` : ''));
   }
 }
 

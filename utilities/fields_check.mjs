@@ -44,7 +44,7 @@ console.log(`${notes} field notes, ${cites} routines cited, each a routine of Ma
 // address ("HandleShip 0x33581", "LoadObjectData (0x79285)", "DamageShip's
 // reactions (0x3b3f3", the address on the next line or not), the routine's
 // start or a place in it: each name must be a routine of 1.1.1, and the address inside
-// it, before the next routine's start. Flags 0x0008 and the like are not routines.
+// it, before the next routine's start. A citation such as Flags 0x0008 is not a routine's.
 const starts = [...new Set(syms.values())].sort((a, b) => a - b);
 const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
 if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot distinguish a place in a routine from one outside it');
@@ -83,7 +83,7 @@ console.log(`${bitFields.size} fields of control bits, each as its note has it`)
 // release: each must give words, for a field in its table. What the shipped
 // records come to is counted where it is worth knowing: codes the program reads
 // as never offered or as where the mission is accepted, records named that are
-// not in the files, flag bits no use of was found for.
+// not in the files, and flag bits with no use found.
 const WATCH = /never offered|where it is accepted|not in the files|no use found|no landing finishes it|no such string|hangs the game|nothing reads it/;
 let reads = 0;
 for (const [type, fields] of Object.entries(S.NOVA_FIELD_READS)) for (const field of Object.keys(fields))

@@ -183,7 +183,7 @@ function ncbRead(text, A) {
 }
 
 /* Whether a test is true for a state ({ bits, registered, days, male,
-   outfits, explored }; a part left out reads as 0, but registered as
+   outfits, explored }; a part left out reads as 0 and registered as
    true), as the game reads it (ncbRead). */
 function ncbTest(text, state) {
   const st = state || {};
@@ -298,7 +298,7 @@ function ncbTestNeeds(text) {
 /* SET EXPRESSIONS, as Mac 1.1.1 reads them (EvalMissionBitSetString 0x99dc5,
    EvalSetExp 0x150fc). The string is read a character at a time, its end
    included. A letter of !ACDEFGHKLMNPQSTUXY^ (either case) is the operation
-   to come and starts its number afresh; B does the same but retains a ! or ^
+   to come and starts its number again from 0; B does the same but retains a ! or ^
    already read (so !b5 clears and ^b5 toggles); a digit adds to the number,
    in 16 bits; R draws Rand(2) for a choice. Any other character ends the
    token: the operation is carried out on its number, if there is one, and

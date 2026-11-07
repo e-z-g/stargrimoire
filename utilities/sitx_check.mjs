@@ -53,7 +53,7 @@ for (const f of files) {
     forks++;
     if (nf.plugin) {
       try { const g = S.novaGame(); g.add(nf, fork); plugins++; resources += S.NOVA_REC_TYPES.reduce((a, [t]) => a + g.list(t).length, 0) + g.list('sÿst').length + g.list('shïp').length + g.list('mïsn').length + g.list('spöb').length; }
-      catch (e) { fail(`${f}: ${nf.path}: not read as a plug-in: ${e.message}`); }
+      catch (e) { fail(`${f}: ${nf.path} not read as a plug-in (${e.message})`); }
     }
   }
 }
@@ -70,6 +70,6 @@ if (fs.existsSync(ESTAR)) {
   if (inner.length !== 14 || !n) fail(`EstarGuars: ${inner.length} plug-ins out of its .sit.bin archives, none with star systems`);
   nested = `EstarGuars: ${inner.length} plug-ins out of its three .sit.bin archives, ${n} systems in ${which}`;
 }
-if (unread.length > 5) fail(`${unread.length} archives not read, where unar cannot read five: ${unread.join('; ')}`);
-console.log(`${files.length} StuffIt X archives among the Nova plug-ins: ${forks} files byte identical to unar, ${plugins} read as plug-ins (${resources} records); not read, as unar does not read them: ${unread.join('; ')}; ${nested} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+if (unread.length > 5) fail(`${unread.length} archives not read, where unar cannot read five (${unread.join('; ')})`);
+console.log(`${files.length} StuffIt X archives among the Nova plug-ins, ${forks} files byte identical to unar and ${plugins} read as plug-ins (${resources} records). Not read, as unar does not read them, ${unread.join('; ')}. ${nested} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
 process.exit(fails ? 1 : 0);

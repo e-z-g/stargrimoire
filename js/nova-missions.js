@@ -20,7 +20,7 @@
    more is in the files: AvailStel 127, below every stellar id, on seven
    "Silent Mission"s that others start with Sxxx and nothing offers.
 
-   LEADS TO. One mission leads to another when it starts it (S in a set
+   THE NEXT MISSIONS. One mission leads to another when it starts it (S in a set
    expression), or turns on a bit the other's AvailBits needs on (as the
    game reads it), the bit that the fewest missions turn on: of the bits a
    mission needs, the rarest marks the step it waits for, while a bit many
@@ -89,7 +89,7 @@ function novaMissionPlace(u, field, v) {
     const words = { '-1': 'any system', '-6': 'any system', '-2': "TravelStel's system", '-3': "ReturnStel's system" };
     if (words[v]) return { text: words[v] };
     if (v >= 128 && v <= 2175) return { text: 'system', system: v };
-    if (v >= 5000 && v <= 9998) return { text: 'the system, or one linked to it:', system: 128 + v - 5000 };
+    if (v >= 5000 && v <= 9998) return { text: 'within one jump of', system: 128 + v - 5000 };
     return govts('systems') || { text: 'nowhere' };
   }
   return { text: 'code ' + v };

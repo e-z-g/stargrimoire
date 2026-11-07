@@ -100,7 +100,7 @@ if (intel) {
     return { on, off };
   };
   const real = listed(0), control = listed(2);
-  console.log(`1.1.1: of the routines a note's link rings a line in, ${real.on} are in fieldtrace's list and ${real.off} are not. Two bytes off the places, ${control.on} and ${control.off}`);
+  console.log(`1.1.1: of the routines a note's link rings a line in, ${real.on} are in fieldtrace's list and ${real.off} are missing from it. Two bytes off the places, ${control.on} and ${control.off}`);
   if (real.on < 150 || real.on < 3 * real.off) fail(`1.1.1: too few of the lines found are in routines fieldtrace lists (${real.on} to ${real.off})`);
   if (control.on * 4 > real.on) fail(`1.1.1: two bytes off the places still finds ${control.on} listed routines against ${real.on}, so the match does not come from the places`);
 }

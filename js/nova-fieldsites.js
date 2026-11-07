@@ -236,8 +236,8 @@ function novaFieldCopies(prog) {
 }
 
 /* The globals a record's handle is kept in: where a routine that requests
-   a resource by type stores the handle it gets back in a global's first
-   word (ActivateCharResource keeps the chär it takes by name). A routine
+   a resource by type stores the handle it receives in a global's first
+   word (ActivateCharResource stores the chär it requests by name). A routine
    that loads the handle from there, and the record through it, reads the
    record as surely as the one that requested it. Map type -> Set of the
    globals' names, two loads deep ('0x330464:2'). Cached. */
@@ -319,7 +319,7 @@ function novaHandedIn(prog, routine) {
     });
   }
   // only a register the routine reads before it writes it is an argument:
-  // another is a caller's own, left there
+  // another is a caller's, left there
   const used = novaArgsRead(prog, routine), out = new Map();
   agreed.forEach((v, j) => { if (v && used.has(3 + j)) out.set(3 + j, v); });
   return out.size ? out : null;

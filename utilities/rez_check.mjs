@@ -73,7 +73,7 @@ try {
     resources += ours.length;
     if (onlyOurs.length || onlyTheirs.length || ours.length !== py.length)
       fail(`${r.zip}: ${r.path}: ${onlyOurs.length} resources read only here, ${onlyTheirs.length} only by rez.py` +
-           (onlyOurs[0] ? `; e.g. ${onlyOurs[0].slice(0, 3).join(' ')}` : ''));
+           (onlyOurs[0] ? `, among them ${onlyOurs[0].slice(0, 3).join(' ')}` : ''));
     else same++;
   }
   console.log(`${same} of ${rezes.length} .rez files, ${resources} resources, read as rez.py reads them`);
@@ -95,7 +95,7 @@ try {
       const gone = m.list(type).filter(e => !g.has(type, e.id)).length;
       if (diff || only || gone) rows.push(`${type} ${eq} same, ${diff} changed, ${only} new, ${gone} gone`);
     }
-    console.log(`the Community Edition against 1.1.1, where they differ: ${rows.join('; ') || 'nowhere'}`);
+    console.log(`the Community Edition against 1.1.1, where they differ (${rows.join('; ') || 'nowhere'})`);
   }
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });

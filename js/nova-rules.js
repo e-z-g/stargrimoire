@@ -1,12 +1,12 @@
 /* nova-rules.js -- written by utilities/rules_build.mjs from the code it
-   lists; run that after changing js/nova-flight.js or js/nova-fight.js.
+   lists. Run that after changing js/nova-flight.js or js/nova-fight.js.
    =========================================================================
 
    Each number in the flying and battle code that is also in the Mac 1.1.1
-   routine its comments cite: [file, line, number, routine]
+   routine its comments cite, as [file, line, number, routine]
    (how they are found is in utilities/rules.mjs). The Code view has them
    by routine, each linked to the instruction holding it and to the line of
-   the site's code that uses it; program_check fails while this list is not
+   the site's code that uses it. program_check fails while this list is not
    the one the code gives.
 
    GENERIC TO EV NOVA, NO DOM. */

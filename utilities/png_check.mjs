@@ -79,5 +79,5 @@ if (last) {
   if (against(readPng(buf), w, h, other)) found++; else fail('a pixel changed was not found');
 }
 fs.rmSync(TMP, { recursive: true, force: true });
-console.log(`${fails ? fails + ' failed' : 'every PNG written reads back as written'}: ${made} of 4 images${sips ? ', each read by sips' : ''}; ${found} of 2 controls found`);
+console.log(`${fails ? fails + ' failed' : 'every PNG written reads back as written'}: ${made} of 4 images${sips ? ', each read by sips' : ''}, and ${found} of 2 controls found`);
 process.exit(fails ? 1 : 0);

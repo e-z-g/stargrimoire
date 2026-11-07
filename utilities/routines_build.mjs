@@ -15,4 +15,4 @@ const pefs = [['1.0.10', program('EV_Nova_1.0.10.sit')], ['1.0.8', program('EV_N
 const names = citedRoutines(S), releases = routinePlaces(S, mac, pefs, names);
 fs.writeFileSync(path.join(ROOT, 'js/nova-routines.js'), routinesFile(releases));
 for (const [v, , at] of releases) console.log(`${v}: ${at.size} of the ${names.length} routines cited`);
-console.log(`not matched in 1.0.10: ${names.filter(n => !releases[0][2].has(n)).join(', ')} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+console.log(`not matched in 1.0.10 (${names.filter(n => !releases[0][2].has(n)).join(', ')}, ${((Date.now() - t0) / 1000).toFixed(1)} s)`);

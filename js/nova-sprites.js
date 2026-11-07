@@ -65,7 +65,7 @@ function novaRleFrameAt(b, h, p, f) {
     if (y < 0) throw new Error(`frame ${f} draws before its first row`);
     if (n % px) throw new Error(`frame ${f}: a count of ${n} bytes is not whole ${h.depth}-bit pixels`);
     const count = n / px;
-    if (x + count > W) throw new Error(`frame ${f}, row ${y}: runs past the width`);
+    if (x + count > W) throw new Error(`frame ${f}, row ${y} runs past the width`);
     if (op === 3) { x += count; continue; }
     if (op === 2) {
       if (p + n > b.length) throw new Error(`frame ${f} runs past the end of the sprite`);

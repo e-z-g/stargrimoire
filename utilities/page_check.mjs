@@ -1024,7 +1024,7 @@ try {
         return out;
       })()`);
         // The battle: Copy the saved ship puts the copy first in the hangar and chosen; Custom ship with
-        // nothing chosen asks for a choice, and with the Aurora Thunderforge chosen opens a copy's fields to change.
+        // nothing chosen shows a request to choose, and with the Aurora Thunderforge chosen opens a copy's fields to change.
         const wait = ms => new Promise(r => setTimeout(r, ms));
         await p.evaluate('battleShow()');
         for (let i = 0; i < 240 && !await p.evaluate("!!flightData() && !!BATTLE.hangar && !PUMPING"); i++) await wait(250);

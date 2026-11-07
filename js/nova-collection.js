@@ -25,7 +25,7 @@ const NOVA_COLLECTION_NOT = /\.(txt|pdf|docx?|rtf|html?|exe|rar|7z|gz|png|jpe?g|
 
 const NOVA_COLLECTIONS = [
   { key: 'nova', label: 'Nova plug-ins', item: 'EscapeVelocityPluginCollection', zip: 'EVN.zip', within: /^EVN\/(Plugins|Cheats)\//, strip: 'EVN/',
-    note: "Ambrosia's add-on files for EV Nova, kept whole: the plug-ins and the cheats. A plug-in's description is the add-on page's, as written." },
+    note: "Ambrosia's add-on files for EV Nova kept whole, with the plug-ins and the cheats. A plug-in's description is the add-on page's, as written." },
   { key: 'extras', label: 'Conversions', item: 'EscapeVelocityPluginCollection', within: /^Extras\/(?!Plugin Converters\/)/, strip: 'Extras/', packages: true,
     note: 'The total conversions kept beside them, and the ports of EV and EV Override that the two sets of ports need.' },
   { key: 'ev', label: 'EV ports', item: 'ev_20250301', within: /^(Plugins|Cheats|Scenarios)\//,

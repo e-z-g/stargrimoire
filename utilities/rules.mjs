@@ -1,12 +1,12 @@
 // The numbers the flying and battle code uses, each found in the routine of
 // Mac 1.1.1 that its comments cite: the scan that utilities/rules_build.mjs
-// writes into js/nova-rules.js and program_check compares that file with.
+// writes into js/nova-rules.js, the file program_check compares.
 //
 // A routine is cited as its name and its Intel address ("HandleShip
 // 0x33581", "LoadObjectData (0x79285)", "DamageShip's reactions (0x3b3f3",
 // the address on the next line or not), on the line itself or in
 // the comments since the last function ended (a comment opening a line
-// outside any function, after code, starts afresh); a number is a decimal
+// outside any function, after code, starts a new run); a number is a decimal
 // in the code (not in a comment, a string or a shift's count), negative
 // where its minus is not a subtraction's, skipped when it is below 5 or an
 // id or angle every routine has (128, 255, 256, 360), and below 10 unless
@@ -66,14 +66,14 @@ export function scanRules(S, prog) {
 // js/nova-rules.js as it should be.
 export function rulesFile(rules) {
   return `/* nova-rules.js -- written by utilities/rules_build.mjs from the code it
-   lists; run that after changing js/nova-flight.js or js/nova-fight.js.
+   lists. Run that after changing js/nova-flight.js or js/nova-fight.js.
    =========================================================================
 
    Each number in the flying and battle code that is also in the Mac 1.1.1
-   routine its comments cite: [file, line, number, routine]
+   routine its comments cite, as [file, line, number, routine]
    (how they are found is in utilities/rules.mjs). The Code view has them
    by routine, each linked to the instruction holding it and to the line of
-   the site's code that uses it; program_check fails while this list is not
+   the site's code that uses it. program_check fails while this list is not
    the one the code gives.
 
    GENERIC TO EV NOVA, NO DOM. */

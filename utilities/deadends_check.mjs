@@ -54,11 +54,11 @@ for (const v of ['1.0.2', '1.0.8', '1.0.10', '1.1.1']) {
     states += r.states;
     if (r.stuck) found.push(`${s.name} (${r.after.length})`);
   }
-  console.log(`${v}: ${S.novaMissions(g).stories.size} storylines, ${states} states, dead ends in ${found.length}: ${found.join(', ')}; ` +
-    `bits left on: ${held.map(h => `b${h.bit} by mïsn ${h.mission}`).join(', ')}; ${pod.length} missions an escape pod can lose (${Date.now() - t} ms)`);
+  console.log(`${v}: ${S.novaMissions(g).stories.size} storylines, ${states} states, dead ends in ${found.length} (${found.join(', ')}). ` +
+    `Bits left on are ${held.map(h => `b${h.bit} by mïsn ${h.mission}`).join(', ')}. ${pod.length} missions an escape pod can lose (${Date.now() - t} ms)`);
   const lost = id => pod.find(o => o.mission === id);
-  if (v === '1.0.2' ? lost(600) : !(lost(600) && lost(600).bits.some(b => b.bit === 285) && lost(600).by.includes(160))) fail(`${v}: mïsn 600 and b285 ${v === '1.0.2' ? 'found, though 1.0.2 has no mïsn 600 to lose' : 'not found'}: ${JSON.stringify(lost(600))}`);
-  if (!(lost(887) && lost(887).end === 'polaris') || !(lost(882) && lost(882).starts.includes(885))) fail(`${v}: the Polaris finale's losses: ${JSON.stringify([lost(882), lost(887)])}`);
+  if (v === '1.0.2' ? lost(600) : !(lost(600) && lost(600).bits.some(b => b.bit === 285) && lost(600).by.includes(160))) fail(`${v}: mïsn 600 and b285 ${v === '1.0.2' ? 'found, though 1.0.2 has no mïsn 600 to lose' : 'not found'} (${JSON.stringify(lost(600))})`);
+  if (!(lost(887) && lost(887).end === 'polaris') || !(lost(882) && lost(882).starts.includes(885))) fail(`${v}: the Polaris finale's losses (${JSON.stringify([lost(882), lost(887)])})`);
   if (v === '1.0.2' ? holds(held, 266, 511) : !holds(held, 266, 511)) fail(`${v}: mïsn 266 and b511 ${v === '1.0.2' ? 'found, though 1.0.2 turns it on only on success' : 'not found'}`);
 }
 
@@ -69,7 +69,7 @@ if (g10) {
   const g = changed(g10, 'mïsn', 345, { AvailBits: `(${m345.AvailBits}) & !b${x}`, OnAccept: `b${x}` }), broken = S.novaStoryDeadEnds(g, storyNamed(g, 'Rebel I'), S.novaReach(g));
   if (as.stuck) fail(`1.0.10: Rebel I has ${as.stuck} stuck states as shipped`);
   if (!broken.after.some(a => a.what === 'abort' && a.mission === 345)) fail(`1.0.10: Rebel I has no dead end after aborting a mïsn 345 that turns on b${x}, which it needs off`);
-  else console.log(`1.0.10: Rebel I with mïsn 345 turning on b${x}, which no record mentions and it needs off: ${broken.stuck} stuck states, after ${broken.after.map(a => a.what + ' ' + (a.mission ?? a.missions)).join(', ')}`);
+  else console.log(`1.0.10: Rebel I with mïsn 345 turning on b${x}, which no record mentions and it needs off, has ${broken.stuck} stuck states after ${broken.after.map(a => a.what + ' ' + (a.mission ?? a.missions)).join(', ')}`);
   const g266 = changed(g10, 'mïsn', 266, { OnAccept: '' });
   if (holds(S.novaHeldBits(g266, S.novaReach(g266)), 266, 511)) fail('1.0.10: b511 still found with mïsn 266\'s OnAccept emptied');
 }
@@ -93,7 +93,7 @@ if (g10) {
     if ((S.novaStoryDeadEnds(g10, s, reach).stuck > 0) !== (two.stuck > 0)) differ.push(s.name);
   }
   if (differ.length) fail(`1.0.10: two missions at a time finds something different in ${differ.join(', ')}`);
-  console.log(`1.0.10: two missions at a time, ${n} storylines, dead ends in the same ones (too large to search that way: ${past.join(', ') || 'none'})`);
+  console.log(`1.0.10: two missions at a time, ${n} storylines, dead ends in the same ones (too large to search that way, ${past.join(', ') || 'none'})`);
 }
 
 console.log(`deadends: ${fails ? fails + ' failures' : 'ok'} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);

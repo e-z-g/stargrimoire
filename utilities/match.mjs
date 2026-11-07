@@ -1,6 +1,6 @@
 // Where the routines named in Mac 1.1.1 are in the programs of 1.0.2, 1.0.8
 // and 1.0.10, which have no names: what utilities/routines_build.mjs writes into
-// js/nova-routines.js and program_check compares that file with.
+// js/nova-routines.js, the file program_check compares.
 //
 // 1.1.1 was built by GCC and 1.0.x by CodeWarrior, so no instruction is the
 // same; what a routine does survives, and each is described by it, in order:
@@ -10,7 +10,7 @@
 // comparison's as either compiler writes it), the offsets of the record
 // fields it reads and writes through a pointer, and what it hands back (a
 // small number, a register, a call's result, or a value worked out).
-// Each pair of routines is scored on all of that at once: how much of it the
+// Each pair of routines is scored on all of that together: how much of it the
 // two share (each thing weighed by how rare it is in both programs), how
 // alike their mix of instructions is, whether their sizes and numbers of
 // calls are near enough (a call to a small routine that calls nothing not
@@ -253,14 +253,14 @@ export function routinesFile(releases) {
   const names = [...new Set(order.flatMap(([, , at]) => [...at.keys()]))].sort();
   const hex = v => '0x' + v.toString(16);
   return `/* nova-routines.js -- written by utilities/routines_build.mjs, whose comments give
-   how the routines were matched; run it after changing which routines the
+   how the routines were matched. Run it after changing which routines the
    field notes (js/nova-fields.js) or the rules (js/nova-rules.js) cite.
    =========================================================================
 
    Where each routine the field notes and the rules cite, by the name Mac
    1.1.1 gives it, is in the programs of 1.0.2, 1.0.8 and 1.0.10, which have
    no names: NOVA_ROUTINES.releases is each release and the length of its
-   program's code, by which the page identifies it; NOVA_ROUTINES.at[name] is the
+   program's code, by which the page identifies it. NOVA_ROUTINES.at[name] is the
    routine's address in each, in that order, 0 where it was not matched.
    program_check fails while this is not what the matcher gives. */
 

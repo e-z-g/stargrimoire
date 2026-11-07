@@ -22,7 +22,7 @@
    Type in the other branch (the copy from the resource into memory at
    0x124b00 is what shows which memory field is which).
 
-   DEFENCE FLEETS. DefCount above 1000 means waves; the program stores the
+   Defense FLEETS. DefCount above 1000 means waves; the program stores the
    total as DefCount / 10 - 100, or DefCount / 10 - 1000 above 10000
    (0x124fb4), which is the Bible's "minus 1 from the first digit". The
    wave size, the last digit, is the Bible's.
@@ -271,7 +271,7 @@ function novaCommodityPrices(spob) {
   });
 }
 
-/* The defence fleet: { dude, total, wave } or null. */
+/* The defense fleet: { dude, total, wave } or null. */
 function novaDefense(spob) {
   if (spob.DefenseDude < 128) return null;
   const v = spob.DefCount;

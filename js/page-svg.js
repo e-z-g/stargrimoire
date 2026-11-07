@@ -2,7 +2,7 @@
    that the map can be saved as a drawing as well as a picture (the
    maintainer's request, 30 September 2026). It accepts the calls the map's
    drawing makes (page-map.js, draw) and no others: paths of lines, arcs and
-   rounded corners, strokes and fills in plain colours or a linear gradient,
+   rounded corners, strokes and fills in plain colors or a linear gradient,
    dashes, text, pictures, the transform, save and restore. A path's points
    are transformed as they are added, as a canvas does; text and pictures
    have the transform as it stands. Pictures are embedded as PNG.
@@ -15,7 +15,7 @@ function svgContext(w, h) {
   const out = [], defs = [];
   const num = v => (Math.round(v * 100) / 100).toString();
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-  // a CSS colour as an SVG colour and an opacity, for readers that do not take rgba()
+  // a CSS color as an SVG color and an opacity, for readers that do not take rgba()
   const colour = c => {
     const m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/.exec(String(c).trim());
     return m ? [`rgb(${m[1]},${m[2]},${m[3]})`, m[4] === undefined ? 1 : +m[4]] : [String(c), 1];

@@ -34,13 +34,13 @@
 //     it again; hiding the details gives the map the panel's room, and
 //     showing them gives it back;
 //   - a nebula chosen in the panel from a view zoomed in elsewhere is
-//     reached without the view swinging away; the links coloured by jumps
+//     reached without the view swinging away; the links colored by jumps
 //     from Sol reach most systems and the key shows it, and the key goes when
-//     the colouring does; every nebula moves with the subway map;
+//     the coloring does; every nebula moves with the subway map;
 //   - a route chosen in the panel from Sol to the system furthest from it
 //     is that many jumps, every step a shown link, and in the address;
 //     within 2 jumps of Sol lights only the places that near; the systems
-//     in one colour, or by radar interference with those without it grey
+//     in one color, or by radar interference with those without it gray
 //     and a key; systems with a shipyard lit, and only they; the map saved
 //     as a picture is a PNG; the hypergates and wormholes drawn, from Sol its
 //     wormhole's way to every other random one and from Kania none, Kania's
@@ -306,7 +306,7 @@ try {
             Object.assign(dots, { back: LAYOUT.kind, backHash: location.hash, backBar: !!barEnds(PLACE_OF.get(ml.id)) });
             return { off, lookOnly, byHash, heading, mixed, dots };
           })()`);
-          // A route, a reach, government colours off and the map saved as a picture.
+          // A route, a reach, government colors off and the map saved as a picture.
           out.features = await p.evaluate(`(async () => {
             const gatesFirst = GATE_LINES;
             history.replaceState(null, '', '#galaxy&system=130'); applyHash(); await new Promise(r => setTimeout(r, 100));
@@ -384,7 +384,7 @@ try {
             return { route, reach, govt, figure, light, saved, gates, bits, cleared: !/route/.test(location.hash) };
           })()`);
           await shot('features');
-          // Earth's defences deployed into Sol's ships: its first wave out, the panel counting them
+          // Earth's defenses deployed into Sol's ships: its first wave out, the panel counting them
           out.defend = await p.evaluate(`(async () => {
             const wait = ms => new Promise(r => setTimeout(r, ms));
             history.replaceState(null, '', '#system=130'); applyHash(); await wait(100);
@@ -560,7 +560,7 @@ try {
             for (const f of log) { const t = Math.max(0, Math.min(1, ((f.x - c0.x) * vx + (f.y - c0.y) * vy) / L2)); worst = Math.max(worst, Math.hypot(f.x - c0.x - t * vx, f.y - c0.y - t * vy) / view); }
             return { id: n.id, frames: log.length, worst, sel: VIEW.sel };
           })()`);
-          // The links coloured by government and by jumps from Sol, the names
+          // The links colored by government and by jumps from Sol, the names
           // hidden, and the nebulae moved with the subway map.
           out.options = await p.evaluate(`(async () => {
             const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -752,8 +752,8 @@ try {
           !ft.route.gatedSteps || !(ft.route.gated < ft.route.gateJumps) || !ft.route.byGate || !ft.route.named)
         fail(`${dev.name}: the route from Sol to its furthest system: ${JSON.stringify(ft)}`);
       if (ft.reach.lit !== ft.reach.near || ft.reach.lit >= ft.reach.all || ft.reach.lit < 2) fail(`${dev.name}: within 2 jumps of Sol: ${JSON.stringify(ft.reach)}`);
-      if (!ft.govt.on || !ft.govt.off) fail(`${dev.name}: the systems in one colour: ${JSON.stringify(ft.govt)}`);
-      if (!ft.figure.none || !ft.figure.some || !ft.figure.key) fail(`${dev.name}: the systems coloured by radar interference: ${JSON.stringify(ft.figure)}`);
+      if (!ft.govt.on || !ft.govt.off) fail(`${dev.name}: the systems in one color: ${JSON.stringify(ft.govt)}`);
+      if (!ft.figure.none || !ft.figure.some || !ft.figure.key) fail(`${dev.name}: the systems colored by radar interference: ${JSON.stringify(ft.figure)}`);
       if (ft.light.lit !== ft.light.yards || !(ft.light.lit > 0 && ft.light.lit < ft.light.all) || !ft.light.key) fail(`${dev.name}: only systems with a shipyard lit: ${JSON.stringify(ft.light)}`);
       if (!ft.saved || ft.saved.type !== 'image/png' || !(ft.saved.size > 10000) || !/\.png$/.test(ft.saved.name)) fail(`${dev.name}: the map saved as a picture: ${JSON.stringify(ft.saved)}`);
       const gt = ft.gates;
@@ -762,7 +762,7 @@ try {
       if (!bt.link || bt.title !== 'b147' || !bt.setter || !bt.needs || bt.mode !== 'bits' || bt.typed !== 'b147' || !bt.changed || !bt.still || !bt.off || !bt.back)
         fail(`${dev.name}: b147 from Sol's visibility: ${JSON.stringify(bt)}`);
       console.log(`${dev.name}: ${gt.links} ways by hypergate or wormhole drawn, and ${gt.random} from Sol's wormhole to random others`);
-      console.log(`${dev.name}: a route from Sol of ${ft.route.jumps} jumps; from Kania to ${ft.route.gateTo} ${ft.route.gateJumps} jumps, or ${ft.route.gated} steps by hypergate; ${ft.reach.lit} of ${ft.reach.all} places within 2 jumps of Sol lit; the systems in one colour and by radar interference; ${ft.light.lit} places with a shipyard lit; the map saved as a ${Math.round(ft.saved.size / 1024)} KB PNG`);
+      console.log(`${dev.name}: a route from Sol of ${ft.route.jumps} jumps; from Kania to ${ft.route.gateTo} ${ft.route.gateJumps} jumps, or ${ft.route.gated} steps by hypergate; ${ft.reach.lit} of ${ft.reach.all} places within 2 jumps of Sol lit; the systems in one color and by radar interference; ${ft.light.lit} places with a shipyard lit; the map saved as a ${Math.round(ft.saved.size / 1024)} KB PNG`);
       const dt = so.dots;
       if (dt.kind !== 'heading-dots' || !/&subway=heading,dots$/.test(decodeURIComponent(dt.hash)) || dt.stats.bars !== 0 || dt.bar || dt.sel !== 'false,false' || dt.back !== 'heading' || !/&subway=heading$/.test(dt.backHash) || !dt.backBar)
         fail(`${dev.name}: busy stations as points, from the address, and bars again from the switch: ${JSON.stringify(dt)}`);
@@ -798,7 +798,7 @@ try {
         fail(`${dev.name}: the mission Take Polaris Home and its storyline: ${JSON.stringify(sy)}`);
       const df = o.defend;
       if (!df.button || !(df.out >= 1) || !(df.left <= 594) || df.homes !== df.out || JSON.stringify(df.govts) !== '[128]' || JSON.stringify(df.ai) !== '[3]')
-        fail(`${dev.name}: deploying Earth's defences: ${JSON.stringify(df)}`);
+        fail(`${dev.name}: deploying Earth's defenses: ${JSON.stringify(df)}`);
       const kp = o.keep;
       if (kp.box === false || !(kp.top > 0) || kp.after !== kp.top || !kp.open || kp.listed || kp.fresh !== 0 || !kp.systemListed
           || JSON.stringify(kp.short) !== '[true,false]' || JSON.stringify(kp.full) !== '[false,true,"1"]' || JSON.stringify(kp.back) !== '[true,false]')

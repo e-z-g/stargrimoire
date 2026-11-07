@@ -738,7 +738,7 @@ function novaSetupShips(w) {
   }
 }
 
-/* DEFENCE FLEETS. A stellar's defence ships come out from its hail dialog
+/* Defense FLEETS. A stellar's defense ships come out from its hail dialog
    (DoPlanetCommDialog 0x97814), novaDeployDefence here: with a DefCount up
    to 1000, all it has left at once; above, the last digit of DefCount, a
    wave, taken from what is left. Each frame a stellar with one of its
@@ -788,7 +788,7 @@ function novaDeployDefence(w, sp) {
   for (let i = 0; i < n; i++) if (novaSpawnDefender(w, sp)) out++;
   return out;
 }
-// EnterMoreShips's defence part: one more ship for the first stellar, in the system's order, that is defending and short.
+// EnterMoreShips's defense part: one more ship for the first stellar, in the system's order, that is defending and short.
 function novaDefenceTopUp(w) {
   if (!w.defence) return;
   for (const id of w.si.nav) {
@@ -808,7 +808,7 @@ function novaDefenceFlags(w) {
    ships here, except those escorting the player, are fewer than AvgShips,
    Rand(500) gives 1 for one of the system's fleets, if it has any and
    Rand(100) falls within their odds, and otherwise 0 or 1 for a düde's
-   ship. Then, whatever came, the defence fleets (novaDefenceTopUp). */
+   ship. Then, whatever came, the defense fleets (novaDefenceTopUp). */
 function novaEnterMoreShips(w) {
   novaArrivals(w);
   novaDefenceTopUp(w);
@@ -889,8 +889,8 @@ function novaFlightStep(w) {
   w.t++;
 }
 /* HandleShipDisplay 0x2b58f, ionized: at a factor of 0.33 or more the
-   ship is tinted its ionization's colour, 14 to 18 of 32 (a factor x 24
-   x 0.01 held to 16 to 24, minus 2, plus Rand(5)); not ionized, its colour
+   ship is tinted its ionization's color, 14 to 18 of 32 (a factor x 24
+   x 0.01 held to 16 to 24, minus 2, plus Rand(5)); not ionized, its color
    is cleared. The tint is put over the murk's, which is not done here
    (it is 0), so the ionization's always shows. */
 function novaIonTint(w, s) {
@@ -1057,7 +1057,7 @@ function novaBraveTraderAI(w, s) {
   if (s.state === 0) novaTravelOrLeave(w, s);
   novaTraderFight(w, s, true);
 }
-/* InterceptorAI 0x8c895 without its targets: idle, travelling or going
+/* InterceptorAI 0x8c895 without its targets: idle, traveling or going
    into a gate, and not coasting, it picks a ship at random to go and look
    at (one not an interceptor, not just looked at, not coming out of a
    gate); with none, idle, it heads for a stellar neither gate nor wormhole

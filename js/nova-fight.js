@@ -52,7 +52,7 @@ function novaFightData(D) {
       subIdx: r.SubCount > 0 && r.SubType >= 128 && r.SubType <= 383 ? r.SubType - 128 : -1, subTheta: r.SubTheta === -1 ? 0 : r.SubTheta,
       partLifeMin: r.PartLifeMin, partLifeMax: r.PartLifeMax, partColor: r.PartColor, partVel: f32(r.PartVel * 0.01),
       hitPartLife: r.HitPartLife, hitPartVel: f32(r.HitPartVel * 0.01), hitPartColor: r.HitPartColor,
-      // and eight variants of the trail particles' speed and colour, each PartVel or PartColor x 0.6 to 1.4, drawn at loading (here from a fixed seed: they change no draws)
+      // and eight variants of the trail particles' speed and color, each PartVel or PartColor x 0.6 to 1.4, drawn at loading (here from a fixed seed: they change no draws)
       partVels: [], partColors: [],
       burstCount: r.BurstCount > 0 ? r.BurstCount : -1, burstReload: r.BurstReload,
       jam: (r.JamVuln || [0, 0, 0, 0]).map(v => Math.min(100, Math.max(0, v))),
@@ -536,7 +536,7 @@ function novaOddsRetreat(w, s, g) {
 }
 
 /* WarshipAI 0x8b729 (PirateWarshipAI 0x8c2d2 is the same for this): pick
-   a target when idle or travelling and attack it; turn back from a dead
+   a target when idle or traveling and attack it; turn back from a dead
    or disabled one without destroying weapons; retreat when the odds turn
    (government Flags 0x0010), when the shields fall under the ship's
    cowardice, or out of ammunition (class Flags2 0x0080). */
@@ -582,7 +582,7 @@ function novaWarshipAI(w, s) {
   if (s.state === 4 && novaOutOfAmmo(w, s) === 2) Object.assign(s, { state: 0, mode: 0, primary: -1, sec: -1 });
 }
 
-/* InterceptorAI 0x8c895: idle or travelling, a target picked as a warship
+/* InterceptorAI 0x8c895: idle or traveling, a target picked as a warship
    picks it, else a ship at random to go and look at; the rest as in
    nova-flight.js, and retreat by the odds (government Flags 0x0100). */
 function novaInterceptorFight(w, s) {
@@ -896,14 +896,14 @@ function novaFireTurret(w, s) {
   if (c !== -1) { s.lastW = c; s.latch = true; }
 }
 /* HandleShipPointDefense 0x392c4, for a ship not jumping: its first point
-   defence weapon (guidance 9, a shot, or 10, a beam) that is loaded,
+   defense weapon (guidance 9, a shot, or 10, a beam) that is loaded,
    ready and not hidden by a cloak (Flags2 0x4000 fires cloaked) fires at
    the nearest homing shot aimed at the ship or its lead (not one lost,
    nor of Flags 0x0080) within its reach and outside the ship's blind
    spots; with none, at the nearest ship of a class with Flags2 0x0008 that
    attacks the ship or its lead. The reach is 1.5 times a shot's range, a
    beam's BeamLength. A shot at a ship is moved among the ordinary shots,
-   to hit ships; one at a shot stays among the point defence, to hit
+   to hit ships; one at a shot stays among the point defense, to hit
    homing shots. Then the reload, the ammunition and the burst, as
    FireAIShipWeapon counts them. */
 function novaPointDefense(w, s) {
@@ -974,12 +974,12 @@ function novaPointDefense(w, s) {
   r.reload = f32(W.burstReload);
   if ((W.flags3 & 1) && A >= 0 && A <= 255) r.ammo--;
 }
-/* What a point defence shot or beam does to a homing shot
+/* What a point defense shot or beam does to a homing shot
    (PointDefenseCollisionHandler 0x37776, and HandleBeams): one of no
-   Durability left is gone, and an explosion left where the point defence
+   Durability left is gone, and an explosion left where the point defense
    shot was or the homing shot is, of the type numbered as the firer's
    place among the ships (as written); else its Durability minus the
-   point defence's MassDmg and half its EnergyDmg. */
+   point defense's MassDmg and half its EnergyDmg. */
 function novaPointDefenseHit(w, W, sh, x, y, owner) {
   if (sh.dur < 1) { sh.life = 0; sh.hit = true; novaSpawnExplod(w, x, y, owner, 0); }
   else sh.dur = ((sh.dur - (W.mass + Math.trunc(W.energy / 2))) << 16) >> 16;
@@ -1271,7 +1271,7 @@ function novaSpawnShot(w, owner, target, i, isSub) {
   if (W.ammoType === -999 && s && !isSub) { s.shield = 0; s.armor = 0; novaSetDisabled(D, s); }
   sh.jam = W.jam.map(v => (v > 0 ? w.rand(v + 1) : 0));
   w.shots[slot] = sh;
-  // its layer (SpawnShot): guided shots, point defence, a turret's of a class with Flags3 0x0040, and the rest
+  // its layer (SpawnShot): guided shots, point defense, a turret's of a class with Flags3 0x0040, and the rest
   novaPutInLayer(w, 'h', slot, g === 1 ? 'guided' : g === 9 ? 'pd' : g === 4 && s && (s.cls.flags3 & 0x40) ? 'turret' : 'shot');
   return slot;
 }
@@ -1427,7 +1427,7 @@ function novaShotHits(w) {
       }
     }
   }
-  // the point defence shots: against the asteroids as any shot, then against the homing shots by their boxes alone
+  // the point defense shots: against the asteroids as any shot, then against the homing shots by their boxes alone
   for (let ai = 0; ai < 16; ai++) {
     const a = w.roids[ai];
     if (!a.active) continue;
@@ -1441,7 +1441,7 @@ function novaShotHits(w) {
   }
   for (const pi of L.pd) {
     const p = w.shots[pi];
-    // (a point defence shot hidden by a hit goes on through the homing shots it overlaps in the same pass, as the program's loop does)
+    // (a point defense shot hidden by a hit goes on through the homing shots it overlaps in the same pass, as the program's loop does)
     if (!p || p.hit) continue;
     const PW = novaWeapOf(D, p.w), ps = novaFightSprite(D, novaSpinSprite(D, PW.spin));
     if (!ps) continue;
@@ -1864,7 +1864,7 @@ function novaHandleBeams(w) {
     const c = novaClassFight(D, s.cls), fp = c.framesPer, rot = Math.trunc(((s.frame || 0) % fp) * (360 / fp));
     let ang = rot;
     const o = novaExitPoint(w, s, b.et, b.exit);
-    // a point defence beam at a homing shot: held on it while it lasts, wearing it down each step, and hitting nothing else
+    // a point defense beam at a homing shot: held on it while it lasts, wearing it down each step, and hitting nothing else
     if (W.guid === 10 && b.pd === 1) {
       const sh = b.target !== -1 ? w.shots[b.target] : null;
       if (!sh || sh.life < 0) { b.life = -1; b.target = -1; }
@@ -2416,7 +2416,7 @@ function novaMoveParticles(w) {
   w.parts = w.parts.filter(p => { if (--p.life <= 0) return false; p.x += p.vx; p.y += p.vy; return true; });
 }
 /* SpawnShotSubmunitions 0x3f1d5: SubCount shots of the SubType, from the
-   shot, a generation deeper (none past SubLimit); a point-defence shot's
+   shot, a generation deeper (none past SubLimit); a point-defense shot's
    aimed at its target, one with Flags2 0x0010 at the nearest ship it can
    hit (else the ship hit, else straight on); SubTheta above 0 scatters
    each within that many degrees, below 0 fans them that far apart. */

@@ -53,7 +53,7 @@ const NOVA_SHIP_FLAGS = [
 ];
 const NOVA_SHIP_FLAGS2 = [
   [0x0001, 'Swarms'], [0x0002, 'Prefers standoff attacks'], [0x0004, 'Cannot be targeted'],
-  [0x0008, 'Point defence fires on it'], [0x0010, 'No fighter voices'], [0x0020, 'Jumps without slowing down'],
+  [0x0008, 'Point defense fires on it'], [0x0010, 'No fighter voices'], [0x0020, 'Jumps without slowing down'],
   [0x0040, 'Inertialess'], [0x0080, 'Runs away or docks when out of ammunition'],
   [0x0100, 'Cloaks in burst reload'], [0x0200, 'Cloaks when running away'], [0x0400, 'Cloaks when jumping'],
   [0x0800, 'Cloaks when flying around'], [0x1000, 'Uncloaks only close to its target'],

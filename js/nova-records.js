@@ -19,7 +19,7 @@
      h16   word of flag bits (HWRD), kept as a number, shown in hex
      i32   signed long (DLNG)
      h32   long of flag bits (HLNG)
-     rgb   long holding an HTML-style 0xRRGGBB colour (an HLNG)
+     rgb   long holding an HTML-style 0xRRGGBB color (an HLNG)
      str   fixed-width C string, `n` bytes, NUL-padded (Cnnn)
      cstr  C string of any length, to its NUL (CSTR)
      pad   `n` bytes the templates call Unused
@@ -335,7 +335,7 @@ function novaAll(game, type) {
   return game.list(type).map(e => novaGet(game, type, e.id));
 }
 
-/* How a field's value reads in a table of fields: flags in hex, colours as
+/* How a field's value reads in a table of fields: flags in hex, colors as
    #RRGGBB, strings quoted only when empty. */
 function novaFieldText(kind, v) {
   if (v === undefined) return '';

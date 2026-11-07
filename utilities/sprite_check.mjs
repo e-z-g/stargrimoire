@@ -87,7 +87,7 @@ function oracle(o, sprites) {
 }
 
 // Where two frames first differ, or null. Pixels with alpha 0 are compared
-// on alpha alone: what colour a transparent pixel has is not the sprite.
+// on alpha alone: what color a transparent pixel has is not the sprite.
 function firstDiff(a, b) {
   for (let i = 0; i < a.length; i += 4) {
     if (a[i + 3] !== b[i + 3]) return i / 4;

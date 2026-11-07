@@ -8,7 +8,7 @@
    standing in each, the missions under way, the control bits, the stellars
    you have dominated, your escorts and your combat rating -- and 129, the
    rest of the game as you left it: strict play, your gender, nickname and
-   paint, the defence fleets the stellars have left, which persons are
+   paint, the defense fleets the stellars have left, which persons are
    alive and which have a grudge against you, disasters, events under way,
    prices, stellars destroyed and the ranks you have. Your name is the
    file's, and your ship's name is record 129's resource name.
@@ -79,7 +79,7 @@ const NOVA_PILOT_LAYOUT = {
     ['version', 0x0000, 's16'],
     ['strict', 0x0002, 's16'],           // 1: made for strict play
     ['gender', 0x0004, 's16'],           // 1: male
-    ['defense', 0x0006, 's16', 2048],    // each stellar's defence ships left (+0x466)
+    ['defense', 0x0006, 's16', 2048],    // each stellar's defense ships left (+0x466)
     ['alive', 0x1006, 's16', 1024],      // each person: still to be met (+0x620)
     ['grudge', 0x1806, 's16', 1024],     // each person: a grudge against you (+0x621)
     ['at2006', 0x2006, 's16', 64],

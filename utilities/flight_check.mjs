@@ -351,7 +351,7 @@ if (haveRelease('1.0.10')) {
   S.novaIonize(io, { ion: 100, blast: 100, ionColor: 0x1200 }, { x: 50, y: 0 });
   const blast = io.ion;
   S.novaIonize(io, { ion: 10, blast: 0, ionColor: 0x34 }, null);
-  eq('ionized by a blast 50 of 100 off, then a hit of 10: 75 + 10, the colours or-ed', [blast, io.ion, io.ionColor], [75, 85, 0x1234]);
+  eq('ionized by a blast 50 of 100 off, then a hit of 10: 75 + 10, the colors or-ed', [blast, io.ion, io.ionColor], [75, 85, 0x1234]);
   io.ion = ionMax / 2;
   eq('turning slowed by half at half its IonizeMax', S.novaShipTurn(io), Math.fround(turn0 * 0.5));
   io.ion = ionMax * 3;

@@ -9,11 +9,11 @@
    the busiest regions are the most crowded. Each system is moved so that
    its distance to every other is its number of jumps times the typical
    link: stress majorization (Gansner, Koren and North, "Graph drawing by
-   stress majorization", 2004), with a pull of every system towards its true
+   stress majorization", 2004), with a pull of every system toward its true
    position so that the galaxy's shape is kept.
 
    PLACING. Each system is put on a grid point, busiest first, at the free
-   point nearest its evened position; no two share a point or a neighbouring
+   point nearest its evened position; no two share a point or a neighboring
    one. Then each in turn moves to the nearby point that best balances what
    Stott, Rodgers, Martinez-Ovando and Walker weigh ("Automatic metro map
    layout using multicriteria optimization", 2011): links at a multiple of
@@ -40,7 +40,7 @@
    way through is routed through the fewest others, which are then
    routed again (rip-up and reroute, as circuit boards are routed). Last,
    that paper's local search: each link routed again alone, and each system
-   tried at its eight neighbouring points with its links routed again,
+   tried at its eight neighboring points with its links routed again,
    kept where the drawing costs less.
 
    THE 22.5-DEGREE MAP is the 45-degree one loosened off its grid
@@ -54,7 +54,7 @@
    September 2026) draws every piece of every link within 45 degrees of the
    way the link really runs from one end to the other, so that no line
    sets off the wrong way or doubles back: the evening out pulls harder
-   towards the true galaxy, a place is charged heavily for each of its
+   toward the true galaxy, a place is charged heavily for each of its
    links turned further than that, the router uses only the directions
    within it, and so does the 22.5-degree stage. A few links at crowded
    places cannot be kept within 45 degrees: each is drawn as close to its heading as
@@ -151,7 +151,7 @@ function subwayModule() {
      only one line runs through a place, the placing charges that pair for the angle it makes;
      the router charges a link for the turn from its partner's last step to its
      first, `through` times a bend's cost, so that of two ways equally short the one that runs
-     on from its neighbour is taken. */
+     on from its neighbor is taken. */
   const SUBWAY_LINES = { apart: 2 * Math.PI / 3, turn: [0, 1, 1.5, 2, 3] };
   // A kind of map is its switches joined by '-', in this order: names, fine, mixed, heading, dots, side;
   // '45' is none. side, on the map with headings kept with room for names, puts no name
@@ -160,7 +160,7 @@ function subwayModule() {
   const subwayFlags = kind => { const f = String(kind || '45').split('-'); return { names: f.includes('names'), fine: f.includes('fine') || f.includes('mixed'), mixed: f.includes('mixed'), heading: f.includes('heading'), dots: f.includes('dots'), side: f.includes('side') }; };
   // How far apart two directions are, 0 to pi.
   const subwayAngDiff = (a, b) => { const d = Math.abs(a - b) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d; };
-  // Whether (dx, dy), along link e from its first end towards its second, is within the link's heading.
+  // Whether (dx, dy), along link e from its first end toward its second, is within the link's heading.
   const subwayHeadingOk = (heading, e, dx, dy, slack = 0) => subwayAngDiff(Math.atan2(dy, dx), heading[e]) <= SUBWAY_HEADING.cone + slack + 1e-9;
   /* How far the direction phi is outside what steps of 45 degrees that keep
      the heading th can reach: the two such directions either side of th, or
@@ -334,7 +334,7 @@ function subwayModule() {
 
   /* The grid points a place's name covers: w of them in the place's row, from
      one point beside it (side 1 or -1) or two (2 or -2), to the right for a
-     positive side; or in the row above (3) or below (-3), centred on it. */
+     positive side; or in the row above (3) or below (-3), centered on it. */
   function subwayNameCells(i, j, side, w) {
     if (!side || !w) return [];
     const out = [];
@@ -466,7 +466,7 @@ function subwayModule() {
     links.forEach((_, e) => track(e, true)); tracking = true;
 
     const angDiff = (a, b) => { const d = Math.abs(a - b) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d; };
-    // v's neighbours, clockwise as placed, with one of them (mover) at (mi, mj), in their true order
+    // v's neighbors, clockwise as placed, with one of them (mover) at (mi, mj), in their true order
     const orderKept = (v, i, j, mover, mi, mj) => {
       const l = adj[v];
       // a bar's links keep their order by their ports
@@ -559,7 +559,7 @@ function subwayModule() {
       }
       // on the map with headings kept, a near place it is not linked to turned more than 45
       // degrees from the way it truly lies (the evening out had put Journey's End west of Kerella, its
-      // neighbour two jumps away, where it truly lies south-east, 28 September 2026)
+      // neighbor two jumps away, where it truly lies south-east, 28 September 2026)
       if (neighbours) for (const { w, ang, linked } of neighbours[v]) {
         if (linked) continue;
         const x = angDiff(Math.atan2(gj[w] - j, gi[w] - i), ang) - SUBWAY_HEADING.cone;
@@ -644,7 +644,7 @@ function subwayModule() {
           }
         };
         for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) consider(gi[v] + di, gj[v] + dj);
-        // on the map with headings kept, also where its true position is as seen from each of its neighbours,
+        // on the map with headings kept, also where its true position is as seen from each of its neighbors,
         // and round that: a place turned right round is too far from its true side for the steps above
         if (neighbours) for (const { w, dx, dy } of neighbours[v]) {
           const ci = Math.round(gi[w] - dx), cj = Math.round(gj[w] - dy);
@@ -1070,7 +1070,7 @@ function subwayModule() {
         const seq = route(e, false);
         if (seq && cost(e, seq) < c0 - 1e-9) { commit(e, seq); rerouted++; } else commit(e, old);
       }
-      // each system at its eight neighbouring points, its links routed again
+      // each system at its eight neighboring points, its links routed again
       for (let v = 0; v < n; v++) {
         const X = inc[v].map(x => x.e);
         if (!X.length || barOf(v)) continue;
@@ -1202,7 +1202,7 @@ function subwayModule() {
      off (30 degrees), or past its heading, is not made.
      Nearer its true direction is not among the reasons, as the 22.5-degree
      stage cannot bring a link there: a straight link's direction is its
-     places', and turning one that far moves its neighbours, whose links
+     places', and turning one that far moves its neighbors, whose links
      hold theirs, until they cannot all be straight. Tried on the map with
      headings kept, 29 September 2026, on the 59 of its 588 links
      more than 30 degrees off: let go together, one of sixty was kept, and
@@ -1249,7 +1249,7 @@ function subwayModule() {
      the order right, left, above, below, the corners and between; its kept
      room costs half a step less; and a smaller name costs more than any
      spot at full size. A name out to the side has its nearer end at
-     its distance, one straight above or below its nearer edge, centred, and
+     its distance, one straight above or below its nearer edge, centered, and
      one out at a slant its nearer corner, so that it sits snug in the corner
      between its place's lines, or its middle (the maintainer found one a step out, on 28
      September 2026, that had room half a step in). The places with the
@@ -1747,9 +1747,9 @@ function subwayModule() {
     // the places in each nebula (three or more), to be kept within its size
     const groups = (nebulae || []).map(r => { const members = pos.map((p, i) => i).filter(i => pos[i].x >= r.x && pos[i].x <= r.x + r.w && pos[i].y >= r.y && pos[i].y <= r.y + r.h); const mx = members.reduce((a, i) => a + pos[i].x, 0) / (members.length || 1), my = members.reduce((a, i) => a + pos[i].y, 0) / (members.length || 1); return { members, off: members.map(i => ({ x: (pos[i].x - mx) / D, y: (pos[i].y - my) / D })), w: 0.8 * r.w / D, h: 0.8 * r.h / D, gap: SUBWAY_NEBULA_GAP * Math.min(r.w, r.h) / D }; })
       .filter(g => g.members.length >= 3);
-    // on the map with room for names and headings kept, each place's neighbours -- those
+    // on the map with room for names and headings kept, each place's neighbors -- those
     // it is linked to, and its twelve nearest others within two and a half typical links, however many
-    // jumps away (one and a half typical links and eight neighbours turned 49 of the 3,826 pairs
+    // jumps away (one and a half typical links and eight neighbors turned 49 of the 3,826 pairs
     // that near past 45 degrees; these settings turn 41) -- with the way each
     // truly lies from it and how far, in grid steps (on the maps without room for names they packed
     // the densest nebula so close that three links found no way)
@@ -1962,7 +1962,7 @@ function subwayModule() {
         if (!r.side) return null;
         const sd = r.side[i], off = (Math.abs(sd) - 0.4) * r.step, w = r.textW[i] * r.step, h = 0.72 * r.step;
         if (Math.abs(sd) === 3) {
-          // centred on the cells it covers, which for an even count sit half a step right of the place
+          // centered on the cells it covers, which for an even count sit half a step right of the place
           const mid = r.at[i].x + (((r.width[i] - 1) % 2) / 2) * r.step;
           return { side: sd, align: 'center', x: mid, y: r.at[i].y + (sd > 0 ? -r.step : r.step), w, h };
         }

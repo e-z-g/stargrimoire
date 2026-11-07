@@ -160,7 +160,7 @@ function novaMissions(game) {
    every mission of the storyline that leads to it (the longest such path
    from one nothing leads to; a loop is cut where it closes, and the edge
    that closes it is marked back); each row is ordered by the mean place
-   of its neighbours, a few sweeps down and up, to keep lines short
+   of its neighbors, a few sweeps down and up, to keep lines short
    (Sugiyama, Tagawa and Toda's layered drawing, doc/credits.md). */
 function novaStoryLayout(missions) {
   const ids = missions.map(m => m.id), inS = new Set(ids), byId = new Map(missions.map(m => [m.id, m]));

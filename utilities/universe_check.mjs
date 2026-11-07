@@ -20,7 +20,7 @@ eq('DefCount 1082', S.novaDefense({ DefenseDude: 128, DefCount: 1082 }), { dude:
 eq('DefCount 2005', S.novaDefense({ DefenseDude: 128, DefCount: 2005 }), { dude: 128, total: 100, wave: 5 });
 eq('DefCount 12345', S.novaDefense({ DefenseDude: 128, DefCount: 12345 }), { dude: 128, total: 234, wave: 5 });
 eq('DefCount 1000', S.novaDefense({ DefenseDude: 128, DefCount: 1000 }), { dude: 128, total: 1000, wave: null });
-eq('no defence', S.novaDefense({ DefenseDude: -1, DefCount: 5 }), null);
+eq('no defense', S.novaDefense({ DefenseDude: -1, DefCount: 5 }), null);
 // The Bible's test examples.
 const st = bits => ({ bits: new Set(bits) });
 eq('b13 & (b15 | !b72)', [st([13]), st([13, 72]), st([13, 15, 72])].map(s => S.ncbTest('b13 & (b15 | !b72)', s)), [true, false, true]);

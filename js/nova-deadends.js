@@ -36,7 +36,7 @@
    a lock made by another storyline is not seen here; the next pass finds
    that kind. Its ends are those of its missions that no other mission of it follows
    and that can be finished (with none, a mission of it that can still be taken). A state
-   from which no end can be reached, once the storyline has begun, is stuck; each is labelled by the last thing done in the
+   from which no end can be reached, once the storyline has begun, is stuck; each is labeled by the last thing done in the
    storyline on the way there.
 
    A BIT LEFT ON FOR GOOD (novaHeldBits). A bit a mission turns on when

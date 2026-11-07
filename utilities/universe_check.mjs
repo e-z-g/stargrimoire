@@ -54,7 +54,7 @@ eq('dësc bit set', S.novaDescText(t, st([1])), 'This is a great and terrific ex
 eq('dësc bit clear', S.novaDescText(t, st([])), 'This is a lousy, terrible example.');
 eq('dësc negated', S.novaDescText('{!b2 "yes"}', st([])), 'yes');
 eq('dësc gender', [S.novaDescText('a {G "man" "woman"}', { male: true }), S.novaDescText('a {G "man" "woman"}', {})], ['a man', 'a woman']);
-// Mac 0x1b4300: Flags 0x01, and destroyed exactly when Flags 0x80 is set.
+// Mac 0x1b4300: Flags 0x01, and the stellar counts as destroyed exactly when Flags 0x80 is set.
 eq('can land', [S.novaCanLand({ Flags: 1 }), S.novaCanLand({ Flags: 0x81 }), S.novaCanLand({ Flags: 0x81 }, true), S.novaCanLand({ Flags: 1 }, true), S.novaCanLand({ Flags: 0 })], [true, false, true, false, false]);
 // Stellar animation, Mac 1.1.1 HandleStellarSprites (Intel 0x2e6f1): the frame shown after each 30th of a second.
 const frames = (spob, count, n, engaged = false, script = [], a = S.novaStellarAnimState()) => {
@@ -154,7 +154,7 @@ for (const v of Object.keys(RELEASES)) {
     }
   }
   const odd = [...tags.keys()].filter(k => k !== 'b' && k !== 'G');
-  if (odd.length) problems.push(`stellar descriptions contain choices the page does not make: ${odd.slice(0, 4).join(' ')}`);
+  if (odd.length) problems.push(`stellar descriptions contain choices the page does not make (${odd.slice(0, 4).join(' ')})`);
   for (const n of u.nebulae) if (!n.picts.some(p => game.has('PICT', p.id))) problems.push(`nëbu ${n.id} has no picture`);
   // the picture drawn into a rectangle (MapDialogUpdate): the last no wider and no taller, else the first
   for (const n of u.nebulae) {
@@ -211,10 +211,10 @@ for (const v of Object.keys(RELEASES)) {
   const places = new Set(u.systems.map(s => s.x + ',' + s.y));
   const gates = S.novaShownGates(u, shown), every = S.novaShownGates(u, S.novaShownSystems(u, null));
   console.log(`${v}: ${u.systems.length} systems at ${places.size} places, ${shown.size} shown at a new game with ${links.length} links` +
-              ` (${links.filter(l => l.oneWay).length} one way); ${u.stellars.size} stellars, ${sprites} sprites decoded,` +
-              ` ${pictures} of ${landable} landing pictures, ${descs} descriptions; ${u.nebulae.length} nebulae;` +
-              ` ${mixed} tests mix & and |; outfits sold somewhere ${soldSomewhere} of ${S.novaAll(game, 'oütf').length}; ${otherwise.length} tests the game reads differently from how they are written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}; ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed;` +
-              ` ${S.novaPlanetWeapons(game).length} planet-type weapons; at a new game ${gates.links.length} ways by gate` +
+              ` (${links.filter(l => l.oneWay).length} one way). ${u.stellars.size} stellars, ${sprites} sprites decoded,` +
+              ` ${pictures} of ${landable} landing pictures and ${descs} descriptions. ${u.nebulae.length} nebulae.` +
+              ` ${mixed} tests mix & and |. Outfits sold somewhere ${soldSomewhere} of ${S.novaAll(game, 'oütf').length}. ${otherwise.length} tests the game reads differently from how they are written${otherwise.length ? ` (${otherwise.join(', ')})` : ''}. ${[...u.stellars.values()].filter(S.novaCanHail).length} stellars can be hailed.` +
+              ` ${S.novaPlanetWeapons(game).length} planet-type weapons. At a new game ${gates.links.length} ways by gate` +
               ` (${gates.links.filter(l => l.oneWay).length} one way), ${gates.random.length} random wormholes, ${gates.dead.length} gates leading nowhere,` +
               ` with every version ${every.links.length} (${every.links.filter(l => l.oneWay).length}), ${every.random.length} and ${every.dead.length}`);
 }
@@ -230,7 +230,7 @@ else {
   for (const f of data) game.add(f, f.read());
   const u = S.novaUniverse(game);
   if (data.length !== 19 || plugins.length !== 4 || u.systems.length < 1000) fail(`Starfleet Adventures' zip: ${data.length} data files, ${plugins.length} plug-ins, ${u.systems.length} systems`);
-  console.log(`Starfleet Adventures' zip of MacBinary copies: ${files.length} files, ${data.length} of them data, ${plugins.length} plug-ins; ${u.systems.length} systems`);
+  console.log(`Starfleet Adventures' zip of MacBinary copies has ${files.length} files, ${data.length} of them data, ${plugins.length} plug-ins, and ${u.systems.length} systems`);
 }
 // And one in Mac form: 1.0.10 with every file in its Nova Files renamed, so
 // that only its Mac type shows which part of the game it is.
@@ -242,6 +242,6 @@ if (haveRelease('1.0.10')) {
   const got = roles(S.novaArchiveFiles(bytes));
   S.parseStuffItArchive = parse;
   if (got !== want) fail(`1.0.10 renamed: the parts ${got}, expected ${want}`);
-  else console.log(`1.0.10 with its Nova Files renamed: each file the same part by its Mac type`);
+  else console.log(`1.0.10 with its Nova Files renamed reads each file as the same part by its Mac type`);
 }
 process.exit(fails ? 1 : 0);

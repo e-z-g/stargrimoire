@@ -1024,7 +1024,7 @@ try {
         return out;
       })()`);
         // The battle: Copy the saved ship puts the copy first in the hangar and chosen; Custom ship with
-        // nothing chosen says to choose, and with the Aurora Thunderforge chosen opens a copy's fields to change.
+        // nothing chosen asks for a choice, and with the Aurora Thunderforge chosen opens a copy's fields to change.
         const wait = ms => new Promise(r => setTimeout(r, ms));
         await p.evaluate('battleShow()');
         for (let i = 0; i < 240 && !await p.evaluate("!!flightData() && !!BATTLE.hangar && !PUMPING"); i++) await wait(250);
@@ -1067,7 +1067,7 @@ try {
   }
 
   // The ships, from 1.0.10's archive, whose ships files the page reads only
-  // when the ships are first looked at.
+  // when the ships view first opens.
   const sit = RELEASES['1.0.10'].sit;
   if (!haveRelease('1.0.10')) console.log('SKIP the ships: no 1.0.10 in reference/');
   else for (const dev of [{ name: 'desktop', width: 1280, height: 800, scale: 1 }, { name: 'phone', width: 412, height: 915, scale: 2.6, mobile: true }]) {

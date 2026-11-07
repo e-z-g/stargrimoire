@@ -19,7 +19,7 @@
 //    their Nova files read, "rEV Escort Sell" among them, its DLOG list
 //    given past its map's end (part 5).
 // 2. lsar: every StuffIt archive's files, as the page's reader reads them,
-//    against `lsar -j`, ':' in lsar's names read as the '/' it stands for. The
+//    against `lsar -j`, ':' in lsar's names read as the '/' it means. The
 //    three LSAR_DIFFERS are lsar's: two read a Mac Roman ƒ as Cyrillic, one
 //    has a single file where its folder has four.
 // 3. unar: every fork in StuffIt methods 2, 3 and 5, decompressed by the page
@@ -27,8 +27,8 @@
 //    writes), byte for byte; and one of them with a byte bent must differ.
 // 4. formats: every Nova file read from the Compact Pro, RAR, ZipIt and
 //    StuffIt X Deflate files is a file unar extracts; a bent RAR is rejected.
-// 5. rez: a .rez list read where the one before it ends, and rejected when the
-//    entry there is another type.
+// 5. rez: a .rez list read where the one before it ends. The reader rejects it when
+//    the entry there is another type.
 //
 // Without EVN.zip it skips; without lsar or unar, parts 2 and 3 do. It runs for
 // some minutes, the files read one at a time out of a 1.1 GB zip.
@@ -83,7 +83,7 @@ for (const name of names) {
 if (opened !== OPENED) fail(`${opened} of the ${names.length} files open, where ${OPENED} did`);
 if (saves.length !== SAVES) fail(`${saves.length} archives of save files alone, where ${SAVES} were`);
 console.log(`save files alone: ${saves.length} archives, ${saves.join(', ')}`);
-console.log(`opened: ${opened} of ${names.length} files open as the page opens them; the rest, by why:`);
+console.log(`opened: ${opened} of ${names.length} files open as the page opens them. The rest are below by why.`);
 for (const [k, list] of Object.entries(shut).sort((a, b) => b[1].length - a[1].length)) console.log(`  ${String(list.length).padStart(3)}  ${k}`);
 
 // ---- 1b. joined ------------------------------------------------------------
@@ -111,9 +111,9 @@ else {
     if (JSON.stringify(ours) === JSON.stringify(theirs)) same++; else differ.push(name.slice(4));
   }
   const unknown = differ.filter(n => !LSAR_DIFFERS.includes(n)), gone = LSAR_DIFFERS.filter(n => !differ.includes(n));
-  if (unknown.length) fail(`StuffIt archives listed differently from lsar: ${unknown.slice(0, 8).join(', ')}`);
-  if (gone.length) console.log(`  (lsar now matches on ${gone.join(', ')}: LSAR_DIFFERS can lose it)`);
-  console.log(`lsar: ${same} of ${stuffIts.length} StuffIt archives list the same files; ${differ.length} do not, lsar's misreadings`);
+  if (unknown.length) fail(`StuffIt archives listed differently from lsar (${unknown.slice(0, 8).join(', ')})`);
+  if (gone.length) console.log(`  (lsar matches on ${gone.join(', ')}, so LSAR_DIFFERS can lose it)`);
+  console.log(`lsar: ${same} of ${stuffIts.length} StuffIt archives list the same files. lsar misreads the other ${differ.length}`);
 }
 
 // ---- 3. unar ---------------------------------------------------------------
@@ -134,7 +134,7 @@ else {
       const f = find(path.join(dir, 'out'), which === 'rsrc' ? e.name + '.rsrc' : e.name);
       const want = f && (which === 'rsrc' ? appleDouble(fs.readFileSync(f)) : fs.readFileSync(f));
       let got = null;
-      try { got = S.stuffItFork(b, e, which); } catch (err) { fail(`${name.slice(4)}, ${e.name}'s ${which} fork: ${err.message}`); continue; }
+      try { got = S.stuffItFork(b, e, which); } catch (err) { fail(`${name.slice(4)}, ${e.name}'s ${which} fork (${err.message})`); continue; }
       if (!want) { fail(`${name.slice(4)}: unar gave no ${which} fork for ${e.name}`); continue; }
       if (got.length === want.length && got.every((v, i) => v === want[i])) sameForks++;
       else fail(`${name.slice(4)}, ${e.name}'s ${which} fork (method ${which === 'rsrc' ? e.rsrcMethod : e.dataMethod}) is not unar's`);
@@ -147,9 +147,9 @@ else {
     copy[at] ^= 0x5A;
     let out = null;
     try { out = S.stuffItFork(copy, bent.e, bent.which); } catch (e) { out = null; }
-    if (out && out.length === bent.want.length && out.every((v, i) => v === bent.want[i])) fail('a bent stream decompressed to unar\'s bytes all the same: the comparison sees nothing');
+    if (out && out.length === bent.want.length && out.every((v, i) => v === bent.want[i])) fail('a bent stream decompressed to unar\'s bytes all the same, so the comparison sees nothing');
   } else fail('no fork in methods 2, 3 or 5 to bend');
-  console.log(`unar: ${sameForks} of ${forks} forks in StuffIt methods 2, 3 and 5 byte for byte unar's` + (bent ? '; a bent one is caught' : ''));
+  console.log(`unar: ${sameForks} of ${forks} forks in StuffIt methods 2, 3 and 5 byte for byte unar's` + (bent ? ', and a bent one is caught' : ''));
 }
 // ---- 4. Compact Pro, RAR, a ZipIt self-extractor, StuffIt X's Deflate -----
 // Every Nova file the page reads out of the files in these formats, each the
@@ -191,7 +191,7 @@ else {
   let refused = '';
   try { S.parseRarArchive(bent).entries.find(e => e.name === entry.name).read('data'); } catch (e) { refused = e.message; }
   if (!refused) fail('a byte bent in a RAR stream was accepted');
-  console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? '; a bent RAR stream is rejected' : ''));
+  console.log(`formats: ${same} of ${files} Nova files read from Compact Pro, RAR, a ZipIt self-extractor and StuffIt X's Deflate are files unar extracts` + (refused ? ', and a bent RAR stream is rejected' : ''));
 }
 
 // ---- 5. a .rez list where the one before it ends ---------------------------
@@ -212,7 +212,7 @@ else {
   try { S.novaOpenFork(broken); } catch (err) { refused = err.message; }
   if (!/DLOG/.test(types) || !/vers/.test(types)) fail(`Get Rich Quick!: its types read as ${types}`);
   else if (!refused) fail('Get Rich Quick! with its DLOG entry naming another type was read all the same');
-  else console.log(`rez: Get Rich Quick!'s ${types} read, DLOG and vers where the list before ends; with the DLOG entry naming another type, rejected`);
+  else console.log(`rez: Get Rich Quick!'s ${types} read, DLOG and vers where the list before ends, and rejected with the DLOG entry naming another type`);
 }
 fs.rmSync(TMP, { recursive: true, force: true });
 process.exit(fails ? 1 : 0);

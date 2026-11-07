@@ -162,7 +162,7 @@ function novaHoldsPilot(fork) {
 function novaReadPilot(fork, name) {
   const key = novaTypeKey('NpïL'), list = fork.resourcesByType[key] || [];
   const rec = id => list.find(e => e.id === id);
-  if (!rec(128) || !rec(129)) throw new Error(`${name} is not a save file: it has no NpïL 128 and 129`);
+  if (!rec(128) || !rec(129)) throw new Error(`${name} is not a save file. It has no NpïL 128 and 129`);
   const bytes = {};
   for (const id of [128, 129]) {
     bytes[id] = novaPilotCrypt(fork.dataOf(key, rec(id)));
@@ -170,7 +170,7 @@ function novaReadPilot(fork, name) {
   }
   const game = novaPilotFields(bytes[129], 0, NOVA_PILOT_LAYOUT[129]);
   // LoadPilotData stops with one error at 107 and with another at anything else up to 299
-  if (game.version <= 299) throw new Error(`${name} is a save file of version ${game.version}, which the game does not open: it opens 300 and above`);
+  if (game.version <= 299) throw new Error(`${name} is a save file of version ${game.version}, which the game does not open. The game opens 300 and above`);
   return { name, shipName: rec(129).name.trim(), pilot: novaPilotFields(bytes[128], 0, NOVA_PILOT_LAYOUT[128]), game };
 }
 
@@ -213,7 +213,7 @@ function novaPilotState(p, U) {
    whose kinds a ship not yours has from its stock outfits (cloaking 17,
    fuel 18, targeting 30, scooping 31, jamming 33 to 36, quicker jumps
    37, self-repair 49, boarding 25). Everything else is the class's.
-   `left` lists the weapons, and the outfits of those kinds, that had no slot. */
+   The weapons and the outfits of those kinds that had no slot are in `left`. */
 const NOVA_PILOT_SHIP_ADDS = [['Holds', 2, 1], ['Shield', 4, 1], ['Armor', 6, 1], ['Accel', 7, 1], ['Speed', 8, 1], ['Maneuver', 9, 0.1],
   ['Fuel', 12, 1], ['ShieldRech', 5, 1], ['ArmorRech', 29, 1], ['Deionize', 39, 1], ['IonizeMax', 40, 1]];
 const NOVA_STOCK_OUTFIT_KINDS = new Set([17, 18, 25, 30, 31, 33, 34, 35, 36, 37, 49]);

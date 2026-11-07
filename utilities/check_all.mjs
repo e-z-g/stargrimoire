@@ -2,7 +2,7 @@
 //
 //   node utilities/check_all.mjs            # all of them
 //   node utilities/check_all.mjs records    # the ones whose names include a word
-//   node utilities/check_all.mjs --quick    # all but the slow two, for while working
+//   node utilities/check_all.mjs --quick    # every check except the slow ones, for while working
 //   node utilities/check_all.mjs --fresh    # every check run, none taken as before
 //
 // --quick leaves out subway and page, about 11 of a full run's 13 minutes,
@@ -14,7 +14,7 @@
 // starts, and the run is kept in ~/.cache/stargrimoire-checks against them
 // (a file of up to 4 MB by its contents, a larger one by its size and
 // time). A check that loads the site's scripts through load.mjs's site()
-// still loads them all, but is taken to read only those it can reach: a
+// still loads them all and is taken to read only those it can reach: a
 // script whose names (scriptGlobals) appear in the check, in a module of
 // utilities/ it imports, or in a script it reaches; and of index.html only
 // its list of scripts, not their stamps. The table shows "same" for such a
@@ -102,13 +102,13 @@ const CHECKS = [
   ['universe', 'the map\'s rules, and every release read through them'],
   ['bits', 'control-bit set expressions read as Mac 1.1.1 reads them, and every one in every release'],
   ['missions', 'storylines from Ambrosia\'s notes, place codes, and the wiki as a check'],
-  ['deadends', 'where a storyline can be left with no way forward: the b511 lock found by reading, and broken copies caught'],
+  ['deadends', 'where a storyline can be left with no way forward (the b511 lock found by reading, and broken copies caught)'],
   ['compare', 'what changed between releases, against the resources\' bytes'],
-  ['fields', 'the field notes and the code\'s comments: every routine they cite is Mac 1.1.1\'s, at its address or a place in it'],
+  ['fields', 'every routine the field notes and the code\'s comments cite is Mac 1.1.1\'s, at its address or a place in it'],
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
-  ['fieldsites', 'where a field note\'s routine reads the field: the places checked against the workbench\'s fieldtrace.py, a store broken on purpose'],
-  ['pilot', 'save files decrypted and read: the layout against FlipNpil run by the workbench\'s flipnpil.py, the decryption against evnova-utils\' simpleCrypt'],
+  ['fieldsites', 'where a field note\'s routine reads the field, checked against the workbench\'s fieldtrace.py and a store broken on purpose'],
+  ['pilot', 'save files decrypted and read, the layout checked against FlipNpil run by the workbench\'s flipnpil.py and the decryption against evnova-utils\' simpleCrypt'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['corpus', 'every record in archive.org\'s collection of Nova plug-ins written back as read, and every field of them read'],
   ['sitx', 'the Nova plug-ins that are StuffIt X, opened as the page opens them and checked against unar'],
@@ -118,7 +118,7 @@ const CHECKS = [
   ['ships', 'the Bible\'s rules for ships, and every release\'s ships read through them'],
   ['flight', 'ships in flight: worked figures from Mac 1.1.1\'s code, and the records\' odds'],
   ['subway', 'the subway maps: 45 and 22.5 degrees, room for names, the same map twice'],
-  ['labels', 'names placed once for every zoom: none goes, moves or meets another'],
+  ['labels', 'names placed once for every zoom, none of them going, moving or meeting another'],
   ['page', 'index.html in headless Chrome'],
 ];
 const SLOW = ['subway', 'unpack', 'corpus', 'page'];
@@ -154,5 +154,5 @@ for (const [name, what] of run) {
 }
 console.log('');
 for (const r of rows) console.log(`${r.status.padEnd(5)} ${r.name.padEnd(9)} ${String(r.secs).padStart(6)} s  ${r.what}`);
-if (quick) console.log(`\n--quick: ${SLOW.join(' and ')} not run; run without it before landing.`);
+if (quick) console.log(`\n--quick: ${SLOW.join(' and ')} not run. Run without it before landing.`);
 process.exit(rows.some(r => r.status === 'FAIL') ? 1 : 0);

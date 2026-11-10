@@ -462,9 +462,10 @@ function novaShownGates(u, shown) {
    shipyard (0x08) and a bar (0x40); refuel, landing on one that is not
    uninhabited, which is where the program offers fuel (Mac 1.1.1
    DrawPlanetButtons and PlayerLandOnStellar); and every service, all four
-   on one stellar where the player can refuel. */
+   among the stellars where the player can refuel. */
 function novaSystemServices(u, sys) {
   const out = { inhabited: false, land: false, refuel: false, every: false, commodity: false, outfit: false, shipyard: false, bar: false };
+  let fueled = 0;
   for (const id of sys.stellars) {
     const sp = u.stellars.get(id);
     if (!sp) continue;
@@ -472,12 +473,13 @@ function novaSystemServices(u, sys) {
     if (!(f & 0x20) && !gate) out.inhabited = true;
     if (!novaCanLand(sp) || gate) continue;
     out.land = true;
-    if (!(f & 0x20)) { out.refuel = true; if ((f & 0x4e) === 0x4e) out.every = true; }
+    if (!(f & 0x20)) { out.refuel = true; fueled |= f & 0x4e; }
     if (f & 0x02) out.commodity = true;
     if (f & 0x04) out.outfit = true;
     if (f & 0x08) out.shipyard = true;
     if (f & 0x40) out.bar = true;
   }
+  out.every = fueled === 0x4e;
   return out;
 }
 

@@ -1052,7 +1052,7 @@ function renderLegend() {
   if (f) { const max = figureMax(f.field); parts.push(ramp(`${f.what} (none in gray)`, t => figureT(1 + t * (max - 1), max), 1 + f.unit, max + f.unit)); }
   if (SYS_STYLE === 'metro') {
     const dot = (white, ring) => `<svg width="18" height="18" viewBox="-9 -9 18 18" style="vertical-align:middle"><circle r="${white + ring + 1}" fill="#04060a"/><circle r="${white + ring}" fill="#8a94a6"/><circle r="${white}" fill="#f2f4f8"/></svg>`;
-    parts.push(`<div>${dot(5.5, 2)} An outfitter or a shipyard</div><div>${dot(3.3, 1.25)} A stellar to land on</div><div>${dot(2, 1)} None to land on</div>`);
+    parts.push(`<div>${dot(5.5, 2)} Fuel, a shipyard, an outfitter, a commodity exchange and a bar</div><div>${dot(3.3, 1.25)} Fuel</div><div>${dot(2, 1)} No fuel</div>`);
   }
   if (REACH && !jumpMap()) parts.push(`<div>Select a system to light what is within ${REACH} jump${REACH === 1 ? '' : 's'} of it</div>`);
   if (LIGHT !== 'all' && U) {
@@ -1103,9 +1103,9 @@ const LIGHT_TESTS = {
   shipyard: s => services(s).shipyard, bar: s => services(s).bar,
   asteroids: s => s.rec.Asteroids > 0, interference: s => s.rec.Interference > 0,
 };
-// A metro station's size by what its system offers: 2 an outfitter or a shipyard, 1 a stellar to
-// land on and neither, 0 none to land on
-const stationTier = s => { const v = services(s); return v.outfit || v.shipyard ? 2 : v.land ? 1 : 0; };
+// A metro station's size by what its system offers: 2 a stellar with every service, 1 a stellar to
+// refuel at, 0 none
+const stationTier = s => { const v = services(s); return v.every ? 2 : v.refuel ? 1 : 0; };
 const sysUnlit = s => LIGHT !== 'all' && !LIGHT_TESTS[LIGHT](s);
 const placeUnlit = p => LIGHT !== 'all' && p.ids.every(id => sysUnlit(U.byId.get(id)));
 

@@ -78,8 +78,8 @@ const subMix = () => (LAYOUT.base ? 1 : LAYOUT.mix);
    2026), red at one jump to blue at the furthest: turbo (Mikhailov, 2019),
    d3-scale-chromatic's fit of it, between 0.1 and 0.9, where every color
    is at least 3:1 against the black of the map. */
-// SYS_STYLE: how a system is marked: 'dots', colored by DOTS_BY; 'metro', a white stop, or where
-// three links or more meet a larger one ringed, as metro maps mark stations; 'none'
+// SYS_STYLE: how a system is marked: 'dots', colored by DOTS_BY; 'metro', a white station sized by
+// what the system offers (stationTier); 'none'
 // PLAIN_NAMES: the systems' names as metro maps set them (the maintainer's request, 30 September 2026):
 // one size, never made smaller to fit, semibold, white, outlined in the background's color
 // NEB_STYLE: the nebulae as their pictures, as plain shapes (nebulaShape), or not at all; NEBULAE, drawn at all
@@ -1050,6 +1050,10 @@ function renderLegend() {
   }
   const f = SYS_STYLE === 'dots' && DOT_FIGURES[DOTS_BY];
   if (f) { const max = figureMax(f.field); parts.push(ramp(`${f.what} (none in gray)`, t => figureT(1 + t * (max - 1), max), 1 + f.unit, max + f.unit)); }
+  if (SYS_STYLE === 'metro') {
+    const dot = (white, ring) => `<svg width="18" height="18" viewBox="-9 -9 18 18" style="vertical-align:middle"><circle r="${white + ring + 1}" fill="#04060a"/><circle r="${white + ring}" fill="#8a94a6"/><circle r="${white}" fill="#f2f4f8"/></svg>`;
+    parts.push(`<div>${dot(5.5, 2)} An outfitter or a shipyard</div><div>${dot(3.3, 1.25)} A stellar to land on</div><div>${dot(2, 1)} None to land on</div>`);
+  }
   if (REACH && !jumpMap()) parts.push(`<div>Select a system to light what is within ${REACH} jump${REACH === 1 ? '' : 's'} of it</div>`);
   if (LIGHT !== 'all' && U) {
     const shown = U.systems.filter(s => SHOWN.has(s.id));
@@ -1099,6 +1103,9 @@ const LIGHT_TESTS = {
   shipyard: s => services(s).shipyard, bar: s => services(s).bar,
   asteroids: s => s.rec.Asteroids > 0, interference: s => s.rec.Interference > 0,
 };
+// A metro station's size by what its system offers: 2 an outfitter or a shipyard, 1 a stellar to
+// land on and neither, 0 none to land on
+const stationTier = s => { const v = services(s); return v.outfit || v.shipyard ? 2 : v.land ? 1 : 0; };
 const sysUnlit = s => LIGHT !== 'all' && !LIGHT_TESTS[LIGHT](s);
 const placeUnlit = p => LIGHT !== 'all' && p.ids.every(id => sysUnlit(U.byId.get(id)));
 
@@ -1350,8 +1357,6 @@ function drawGateMarks(ctx, d, r) {
 // maintainer found Age of the Council's Kelin a bar with two links shown, its other three hidden
 // (30 September 2026). Drawn as a dot, its lines run on from the bar's points into the dot.
 let BAR_KEPT = null;
-// how many places the links shown at p go to
-function placeLinks(p) { barKept(p); return BAR_KEPT.ways.has(p) ? BAR_KEPT.ways.get(p).size : 0; }
 function barKept(p) {
   if (!BAR_KEPT || BAR_KEPT.places !== PLACES || BAR_KEPT.links !== LINKS) {
     const ways = new Map();
@@ -1365,7 +1370,7 @@ function barKept(p) {
       const A = [...m.values()].sort((x, y) => x - y);
       if (A.length >= 4 && !subwayPortFit(A, subwayBarPorts(0, 1), Math.PI / 4)) kept.add(q);
     }
-    BAR_KEPT = { places: PLACES, links: LINKS, kept, ways };
+    BAR_KEPT = { places: PLACES, links: LINKS, kept };
   }
   return BAR_KEPT.kept.has(p);
 }
@@ -1397,11 +1402,10 @@ function drawDots(ctx) {
     ctx.globalAlpha = (1 - d.t) * (dimOther && d.sys.govt !== VIEW.govt ? 0.25 : 1) * (placeFaint(d.p) ? FAINT : 1);
     // the mark itself, unless the systems are drawn not at all (the maintainer found the dots in the
     // way of the lines on a big galaxy zoomed out, 30 September 2026); the rings around it are drawn
-    // either way. As metro stations (the maintainer's request, the same day): white, a small stop on a
-    // line, and where three links or more meet a larger one in a ring the color of the background,
-    // so that the lines stop short of it; and around the white a ring in the color Systems colored
-    // gives, its government's or a figure's, thin for a stop and thicker where three links or more
-    // meet, and outside it a thin ring of the background (the maintainer's request, 30 September 2026)
+    // either way. As metro stations (the maintainer's request, the same day): white, sized by what
+    // the system offers (stationTier), and around the white a ring in the color Systems colored
+    // gives, its government's or a figure's, thicker on the largest, and outside it a thin ring of the
+    // background, so that the lines stop short of it (the maintainer's request, 30 September 2026)
     if (SYS_STYLE === 'dots') {
       markPath(ctx, d, r);
       ctx.fillStyle = dotFill(d.sys);
@@ -1409,7 +1413,7 @@ function drawDots(ctx) {
       ctx.strokeStyle = 'rgba(225,232,242,0.75)';
       ctx.stroke();
     } else if (SYS_STYLE === 'metro') {
-      const busy = placeLinks(d.p) >= 3, white = busy ? r + 0.5 : Math.max(2, 0.6 * r), ring = busy ? 2 : 1.25;
+      const tier = stationTier(d.sys), white = [Math.max(1.5, 0.4 * r), Math.max(2, 0.65 * r), r + 0.5][tier], ring = [1, 1.25, 2][tier];
       markPath(ctx, d, white + ring + 1); ctx.fillStyle = '#04060a'; ctx.fill();
       markPath(ctx, d, white + ring); ctx.fillStyle = dotFill(d.sys); ctx.fill();
       markPath(ctx, d, white); ctx.fillStyle = '#f2f4f8'; ctx.fill();

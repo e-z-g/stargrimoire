@@ -111,7 +111,7 @@ function subwayAddress(kind) { const f = subwayFlags(kind); return Object.keys(S
 const LOOK_WORDS = [['names', 'optPlainNames'], ['stations', 'optMetroSys'], ['links', 'optFlatLinks'], ['nebulae', 'optPlainNeb']];
 /* Map options are kept in the browser's storage, as last set by hand, for the next visit; an
    address naming a view sets the subway map's options itself (applyHash). */
-const OPTS_STORE = 'stargrimoire-map-options', OPTS_SELECTS = ['linkSel', 'dotSel', 'litSel'];
+const OPTS_STORE = 'stargrimoire-map-options', OPTS_SELECTS = ['linkSel', 'dotSel'];
 function subwayFromAddress(text) { const w = (text || '').split(','); return subwayKind(Object.fromEntries(Object.entries(SUBWAY_WORDS).map(([k, v]) => [k, w.includes(v)]))); }
 
 const $ = id => document.getElementById(id);
@@ -1055,9 +1055,11 @@ function renderLegend() {
     parts.push(`<div>${dot(5.5, 2)} All Services Available</div><div>${dot(3.3, 1.25)} Refuel Available</div><div>${dot(2, 1)} Uninhabited</div>`);
   }
   if (REACH && !jumpMap()) parts.push(`<div>Select a system to light what is within ${REACH} jump${REACH === 1 ? '' : 's'} of it</div>`);
-  if (LIGHT !== 'all' && U) {
+  if (LIGHT.size && U) {
     const shown = U.systems.filter(s => SHOWN.has(s.id));
-    parts.push(`<div>${shown.filter(s => !sysUnlit(s)).length} of ${shown.length} systems lit (${esc($('litSel').selectedOptions[0].textContent)})</div>`);
+    const keys = Object.keys(LIGHT_COLORS).filter(k => LIGHT.has(k));
+    parts.push(`<div>${shown.filter(s => !sysUnlit(s)).length} of ${shown.length} systems lit${keys.length > 1 ? (LIGHT_ALL ? ', matching all of these' : ', matching any of these') : ''}</div>` +
+      keys.map(k => `<div><span class="swatch" style="background:${LIGHT_COLORS[k]}"></span> ${esc($('lit-' + k).closest('label').textContent.trim())}</div>`).join(''));
   }
   el.hidden = !parts.length;
   el.innerHTML = parts.join('<div class="gap"></div>');
@@ -1091,10 +1093,16 @@ function dotFill(sys) {
   return v > 0 ? turbo(figureT(v, figureMax(f.field))) : NONE_DOT;
 }
 
-/* Only the systems that pass a test (LIGHT) lit, and the rest faint: what
-   their stellars offer (novaSystemServices), or whether they have
-   asteroids or radar interference; a link is lit when both its ends are. */
-let LIGHT = 'all';
+/* Only the systems that pass the tests ticked under Light up (LIGHT) lit, and
+   the rest faint: what their stellars offer (novaSystemServices), or whether
+   they have asteroids or radar interference. A system is lit when it passes
+   any of them, or with LIGHT_ALL every one, and a lit system is ringed in
+   the colors of those it passes. A link is lit when both its ends are. */
+let LIGHT = new Set(), LIGHT_ALL = false;
+const LIGHT_COLORS = {
+  inhabited: '#4fc3f7', uninhabited: '#8d99ae', land: '#ffb74d', refuel: '#ffee58', every: '#f06292',
+  shipyard: '#ef5350', outfit: '#ba68c8', commodity: '#66bb6a', bar: '#26a69a', asteroids: '#a1887f', interference: '#7986cb',
+};
 const SERVICES = new WeakMap();
 const services = sys => { if (!SERVICES.has(sys)) SERVICES.set(sys, novaSystemServices(U, sys)); return SERVICES.get(sys); };
 const LIGHT_TESTS = {
@@ -1106,8 +1114,15 @@ const LIGHT_TESTS = {
 // A metro station's size by what its system offers: 2 every service among the stellars to refuel
 // at, 1 a stellar to refuel at, 0 none
 const stationTier = s => { const v = services(s); return v.every ? 2 : v.refuel ? 1 : 0; };
-const sysUnlit = s => LIGHT !== 'all' && !LIGHT_TESTS[LIGHT](s);
-const placeUnlit = p => LIGHT !== 'all' && p.ids.every(id => sysUnlit(U.byId.get(id)));
+// the ticked tests a system passes, in the order of LIGHT_COLORS
+const sysLights = s => Object.keys(LIGHT_COLORS).filter(k => LIGHT.has(k) && LIGHT_TESTS[k](s));
+const sysUnlit = s => { if (!LIGHT.size) return false; const n = sysLights(s).length; return LIGHT_ALL ? n < LIGHT.size : !n; };
+const placeUnlit = p => !!LIGHT.size && p.ids.every(id => sysUnlit(U.byId.get(id)));
+// The tests ticked under Light up, from their switches (lit-<test>).
+function lightRead() {
+  LIGHT = new Set(Object.keys(LIGHT_COLORS).filter(k => $('lit-' + k).checked));
+  LIGHT_ALL = $('optLitAll').checked;
+}
 
 /* Only what is within REACH jumps of the selected system (jumpSource) lit,
    and the rest faint; REACH null lights everything. */
@@ -1229,7 +1244,7 @@ function drawLinks(ctx) {
     }
   };
   // beyond the reach chosen, faint, under the rest
-  const far = new Set(reachMap() || LIGHT !== 'all' ? segs.filter(s => linkFaint(s.l)) : []);
+  const far = new Set(reachMap() || LIGHT.size ? segs.filter(s => linkFaint(s.l)) : []);
   if (far.size) { ctx.globalAlpha = FAINT; paint([...far]); ctx.globalAlpha = 1; }
   paint(segs.filter(s => !far.has(s)));
   // the route, over everything
@@ -1417,6 +1432,19 @@ function drawDots(ctx) {
       markPath(ctx, d, white + ring + 1); ctx.fillStyle = '#04060a'; ctx.fill();
       markPath(ctx, d, white + ring); ctx.fillStyle = dotFill(d.sys); ctx.fill();
       markPath(ctx, d, white); ctx.fillStyle = '#f2f4f8'; ctx.fill();
+    }
+    // a lit system ringed in the colors of the tests it passes, a share of the ring each, or on a
+    // bar a ring each, one outside the other
+    const lights = LIGHT.size && !placeUnlit(d.p) ? sysLights(d.sys) : [];
+    if (lights.length) {
+      const e = barEnds(d.p), R = r + 5, step = Math.PI * 2 / lights.length;
+      ctx.lineWidth = 2.5;
+      lights.forEach((k, i) => {
+        if (e) markPath(ctx, d, R + 3 * i);
+        else { ctx.beginPath(); ctx.arc(d.x, d.y, R, -Math.PI / 2 + i * step, -Math.PI / 2 + (i + 1) * step); }
+        ctx.strokeStyle = LIGHT_COLORS[k]; ctx.stroke();
+      });
+      ctx.lineWidth = 1;
     }
     // a system on the route ringed in the route's gold
     if (onRoute(d.p)) { markPath(ctx, d, r + 2.5); ctx.strokeStyle = '#ffcf4a'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1; }
@@ -2043,7 +2071,7 @@ function optsRestore() {
     for (const [id, v] of Object.entries(kept.checks || {})) { const el = $(id); if (el && el.type === 'checkbox') el.checked = !!v; }
     for (const id of OPTS_SELECTS) { const v = (kept.values || {})[id]; if ([...$(id).options].some(o => o.value === v)) $(id).value = v; }
     NAMES = $('optNames').checked; STELLARS = $('optStellars').checked; GATE_LINES = $('optGates').checked;
-    LINKS_BY = $('linkSel').value; DOTS_BY = $('dotSel').value; LIGHT = $('litSel').value;
+    LINKS_BY = $('linkSel').value; DOTS_BY = $('dotSel').value; lightRead();
     LAYOUT.want = subwayChosen();
   }
   subwayLook();
@@ -3204,7 +3232,8 @@ function wireTools() {
   document.addEventListener('webkitfullscreenchange', fullChanged);
   $('optGates').onchange = () => { GATE_LINES = $('optGates').checked; renderPanel(); redraw(); };
   $('dotSel').onchange = () => { DOTS_BY = $('dotSel').value; renderLegend(); redraw(); };
-  $('litSel').onchange = () => { LIGHT = $('litSel').value; renderLegend(); redraw(); };
+  for (const k of [...Object.keys(LIGHT_COLORS), 'LitAll']) $(k === 'LitAll' ? 'optLitAll' : 'lit-' + k).onchange = () => { lightRead(); renderLegend(); redraw(); };
+  for (const k of Object.keys(LIGHT_COLORS)) $('lit-' + k).closest('label').querySelector('.swatch').style.background = LIGHT_COLORS[k];
   $('optReach').oninput = () => { const v = parseInt($('optReach').value, 10); REACH = v >= 1 ? v : null; renderLegend(); redraw(); };
   // the whole map, large: a PNG with every name (wholeMapSize), up to four times as sharp as the
   // map's pixels while within 32 million pixels, and never less sharp. One larger than that, as a

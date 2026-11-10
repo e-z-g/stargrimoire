@@ -114,6 +114,8 @@ code { font: 12.5px/1.3 ui-monospace, Menlo, monospace; color: var(--text); }
 #opts label.under2 { margin-left: 44px; }
 #opts label.under3 { margin-left: 66px; }
 #opts label[hidden] { display: none; }
+#opts .optHead { margin-top: 2px; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
 #opts label:has(input:disabled) { opacity: .45; cursor: default; }
 #opts input[type=checkbox] { margin: 0; }
 #opts input[type=number] { width: 4.2em; }
@@ -581,20 +583,19 @@ details.inline .list { margin-top: 4px; }
       </select></label>
       <label><input type="checkbox" id="optNebulae" checked> Nebulae</label>
       <label><input type="checkbox" id="optGates"> Hypergates and wormholes</label>
-      <label>Light up <select id="litSel" title="Which systems are lit. The rest are faint.">
-        <option value="all">every system</option>
-        <option value="inhabited">inhabited systems</option>
-        <option value="uninhabited">uninhabited systems</option>
-        <option value="land">systems with a place to land</option>
-        <option value="refuel">systems where refueling is available</option>
-        <option value="every">systems with all services available</option>
-        <option value="shipyard">systems with a shipyard</option>
-        <option value="outfit">systems with an outfitter</option>
-        <option value="commodity">systems with a commodity exchange</option>
-        <option value="bar">systems with a bar</option>
-        <option value="asteroids">systems with asteroids</option>
-        <option value="interference">systems with radar interference</option>
-      </select></label>
+      <div class="optHead">Light up, the rest faint</div>
+      <label class="under"><input type="checkbox" id="lit-inhabited"><span class="swatch"></span> Inhabited systems</label>
+      <label class="under"><input type="checkbox" id="lit-uninhabited"><span class="swatch"></span> Uninhabited systems</label>
+      <label class="under"><input type="checkbox" id="lit-land"><span class="swatch"></span> Systems with a place to land</label>
+      <label class="under"><input type="checkbox" id="lit-refuel"><span class="swatch"></span> Systems where refueling is available</label>
+      <label class="under"><input type="checkbox" id="lit-every"><span class="swatch"></span> Systems with all services available</label>
+      <label class="under"><input type="checkbox" id="lit-shipyard"><span class="swatch"></span> Systems with a shipyard</label>
+      <label class="under"><input type="checkbox" id="lit-outfit"><span class="swatch"></span> Systems with an outfitter</label>
+      <label class="under"><input type="checkbox" id="lit-commodity"><span class="swatch"></span> Systems with a commodity exchange</label>
+      <label class="under"><input type="checkbox" id="lit-bar"><span class="swatch"></span> Systems with a bar</label>
+      <label class="under"><input type="checkbox" id="lit-asteroids"><span class="swatch"></span> Systems with asteroids</label>
+      <label class="under"><input type="checkbox" id="lit-interference"><span class="swatch"></span> Systems with radar interference</label>
+      <label class="under"><input type="checkbox" id="optLitAll"> Only systems that match every one ticked</label>
       <label>Only within <input type="number" id="optReach" min="1" max="99" step="1" placeholder="any" inputmode="numeric" title="Leave empty for everything"> jumps of the selected system</label>
       <label>Links <select id="linkSel" title="How the map colors the links">
         <option value="plain">in one color</option>
@@ -673,7 +674,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/page-collection.js?v=49f1c7cd"></script>
 <script src="js/page-plugin.js?v=76f22a8a"></script>
 <script src="js/page-svg.js?v=7ca07422"></script>
-<script src="js/page-map.js?v=1a0b2427"></script>
+<script src="js/page-map.js?v=64f1276b"></script>
 <script src="js/page-pilot.js?v=d61220db"></script>
 <script src="js/page-ships.js?v=7db7c573"></script>
 <script src="js/page-flight.js?v=ccaa9f92"></script>

@@ -349,10 +349,10 @@ try {
             const figure = { none: dotFill(quiet) === NONE_DOT, some: !!loud && dotFill(loud) !== NONE_DOT, key: !$('legend').hidden && /interference/i.test($('legend').textContent) };
             pick('govt');
             // systems with a shipyard lit, and only they
-            $('litSel').value = 'shipyard'; $('litSel').onchange();
+            $('lit-shipyard').checked = true; $('lit-shipyard').onchange();
             const yards = new Set(shownSys.filter(s => novaSystemServices(U, s).shipyard).map(s => PLACE_OF.get(s.id)));
             const light = { lit: PLACES.filter(p => !placeFaint(p)).length, yards: yards.size, all: PLACES.length, key: /lit/.test($('legend').textContent) };
-            $('litSel').value = 'all'; $('litSel').onchange();
+            $('lit-shipyard').checked = false; $('lit-shipyard').onchange();
             let saved = null; const was = dlBlob; dlBlob = (b, n) => { saved = { size: b.size, type: b.type, name: n }; };
             $('saveImg').click(); for (let i = 0; i < 60 && !saved; i++) await new Promise(r => setTimeout(r, 50)); dlBlob = was;
             setRoute(null, null);

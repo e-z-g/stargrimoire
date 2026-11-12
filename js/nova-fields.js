@@ -262,7 +262,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HyperSpawnFleet', 0x41c8d]],
     },
     Quote: {
-      note: 'Above 0: when the fleet jumps in while the player is there the game shows a string picked at random from the STR# of this number. Each # in it becomes a random digit. 0 or less: none.',
+      note: 'Above 0: when the fleet jumps in while the player is there the game shows a string picked at random from the STR# of this number. Each # in it becomes a random digit (the first never 0). 0 or less: none.',
       code: [['HyperSpawnFleet', 0x41c8d], ['GetRandomIndString', 0x72ef7], ['DisplayComm', 0x90201]],
     },
     Flags: {
@@ -679,7 +679,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerDockRequest', 0x66691], ['PlayerMeetsRequirements', 0x776f]],
     },
     InhJam: {
-      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). Another ship adds the jamming outfits among its class\'s DefaultItems. The game halves that ship\'s total when the ship\'s government has Flags 0x0080. The player\'s ship adds the player\'s jamming outfits. Below 0 counts as 0.',
+      note: 'Jamming of types 1 to 4 for every ship whose class\'s attributes government it is (shïp InherentGovt). Another ship adds the jamming outfits among its class\'s DefaultItems. The game halves that ship\'s total when the ship\'s government has Flags 0x0080. The player\'s ship adds the player\'s jamming outfits (once for each kind carried). Below 0 counts as 0 and above 100 as 100.',
       code: [['ShipECM', 0x3aff]],
     },
     MediumName: {
@@ -930,7 +930,7 @@ const NOVA_FIELD_NOTES = {
   },
   'oütf': {
     ModType: {
-      note: 'What it does. The amount is in ModVal and ModType2 to ModType4 work the same way. 1: the weapon wëap ModVal. 2: tons of hold (below 0 it uses hold space). 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge (ModVal ÷ 1,000 a frame). 6: armor points. 7: acceleration (÷ 10,000). 8: top speed (÷ 100). 9: turn (÷ 100 degrees a frame). 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps. -1 maps every inhabited system and -1000 - n the systems of governments of class n. 17: a cloak. In its ModVal 0x0002 shows on radar, 0x0004 drops the shields immediately, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use, 0x0f00 ÷ 0x100 is its shield use, and 0x1000 cloaks the ships in formation with it. 18: a fuel scoop (as FuelRegen). 19: auto-refueling. 20: auto-eject. 21: the player\'s record below 0 set to 0 in the systems of gövt ModVal or in every system for -1. 22: days per jump. 23: how far from the middle of the system the player can jump (1,000 + ModVal). 24: anti-interference (-100 to 100 in all). 25: the player\'s capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these the player carries. 28: murk. 29: armor recharge (÷ 1,000 a frame). 30: a cloak scanner. 31: a mining scoop. 32: ModVal extra jumps per jump. The game counts it once for each kind aboard and not for each one. 33 to 36: jamming of types 1 to 4. 37: jumping without slowing. 38: inertialess. 39: deionization (÷ 100). 40: ionization capacity. 41: gravity does not pull the player. 42: deadly stellars do not harm the player. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship with it aboard repairs itself to just over the point of disabling. For another ship 32 and 49 count among its class\'s DefaultItems.',
+      note: 'What it does. The amount is in ModVal and ModType2 to ModType4 work the same way. 1: the weapon wëap ModVal. 2: tons of hold (below 0 it uses hold space). 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge (ModVal ÷ 1,000 a frame). 6: armor points. 7: acceleration (÷ 10,000). 8: top speed (÷ 100). 9: turn (÷ 100 degrees a frame). 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps. -1 maps every inhabited system and -1000 - n the systems of governments of class n. 17: a cloak. In its ModVal 0x0002 shows on radar, 0x0004 drops the shields immediately, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use, 0x0f00 ÷ 0x100 is its shield use, and 0x1000 cloaks the ships in formation with it. 18: a fuel scoop (as FuelRegen). 19: auto-refueling. 20: auto-eject. 21: the player\'s record below 0 set to 0 in the systems of gövt ModVal or in every system for -1. 22: days per jump. 23: how far from the middle of the system the player can jump (1,000 + ModVal). 24: anti-interference (-100 to 100 in all). 25: the player\'s capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these the player carries. 28: murk. 29: armor recharge (÷ 1,000 a frame). 30: a cloak scanner. 31: a mining scoop. 32: ModVal extra jumps per jump. The game counts it once for each kind aboard and not for each one. 33 to 36: jamming of types 1 to 4. The game counts it once for each kind the player carries and not for each one. 37: jumping without slowing. 38: inertialess. 39: deionization (÷ 100). 40: ionization capacity. 41: gravity does not pull the player. 42: deadly stellars do not harm the player. 43: paint. 44: a reinforcement inhibitor. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. 49: now and then (1 in 500 frames) a disabled ship with it aboard repairs itself to just over the point of disabling. For another ship 32 and 49 count among its class\'s DefaultItems.',
       code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581]],
     },
     ModVal: {
@@ -1394,7 +1394,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CronEventHandler', 0x3874f], ['Rand', 0xa4c76]],
     },
     Duration: {
-      note: 'Days it runs once started (after PreHoldoff). It sets OnStart as it starts and OnEnd as it ends. 0: both on the same day. Below 0: it never starts.',
+      note: 'Days it runs once started (after PreHoldoff). It sets OnStart as it starts and OnEnd as it ends. 0: both on the same day. It then sets OnEnd again the next day unless it has a PostHoldoff and no PreHoldoff. Below 0: it never starts.',
       code: [['CronEventHandler', 0x3874f], ['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     PreHoldoff: {
@@ -1402,7 +1402,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CronEventHandler', 0x3874f]],
     },
     PostHoldoff: {
-      note: 'Days after it ends before the game may draw it again. 0 or less: from the next day.',
+      note: '0 or less: the game may draw it again from the day after it ends. Above 0: once a run of 1 day or more ends the program counts down PreHoldoff days and not this. It then sets OnStart and OnEnd again and the next day OnEnd once more. The game may draw it again PreHoldoff days after that. With PreHoldoff 0 or less it sets OnEnd every day from then on and never ends. Its Contrib bits and news then stay on for good. An event that lasts 0 days waits PostHoldoff days only when its PreHoldoff is 0 or less.',
       code: [['CronEventHandler', 0x3874f]],
     },
     IndNewsStr: {
@@ -1438,7 +1438,7 @@ const NOVA_FIELD_NOTES = {
       code: [['RandomizeNewsDialog', 0x48238], ['GetRandomIndString', 0x72ef7]],
     },
     Contrib: {
-      note: 'Added to the player\'s bits while the event is running. That is from the end of its PreHoldoff until it ends and not in its PostHoldoff. The player\'s bits come from the ship class, every outfit the player carries, every ränk the player holds, and every crön event that is running. The Require of a shïp, mïsn, crön, or gövt passes when the bits include every bit it sets. So do an oütf\'s Requires.',
+      note: 'Added to the player\'s bits while the event is running. That is from the end of its PreHoldoff until it ends and not in its PostHoldoff (but see PostHoldoff). The player\'s bits come from the ship class, every outfit the player carries, every ränk the player holds, and every crön event that is running. The Require of a shïp, mïsn, crön, or gövt passes when the bits include every bit it sets. So do an oütf\'s Requires.',
       code: [['CronEventHandler', 0x3874f], ['GetPlayerContributeBits', 0x76b2], ['PlayerMeetsRequirements', 0x776f]],
     },
   },
@@ -1472,8 +1472,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     MinStatus: {
-      note: 'In its hail dialog it treats the player as hated while the player\'s record in its system is below this. At 32767 it always does and at -32767 it never does. Releasing it once dominated puts the player\'s record there just below this.',
-      code: [['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9]],
+      note: 'The player may land on it only while the player\'s record in its system is at least this. At 32767 never and at -32767 always. A stellar with no government always lets the player land. So do one the player has dominated or just bribed, one a mission of the player\'s goes to (TravelStel or ReturnStel), and one while the player has a ränk with Flags 0x0200 of its government or an ally. In its hail dialog it treats the player as hated while the player\'s record is below this. The radar then shows it orange (red while the record is below 0). Releasing it once dominated puts the player\'s record there just below this.',
+      code: [['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9], ['ColorCodeStellar', 0xaa26]],
     },
     CustPicID: {
       note: 'The picture when the player lands. 128 and up: that PICT. Below 128: PICT 10000 + Type. For a hypergate it is where the frames split when it is from 1 to the frame count minus 2. The frames below this number are the opening frames.',

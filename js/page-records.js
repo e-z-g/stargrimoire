@@ -271,7 +271,7 @@ const REC_BODY = {
   },
   'öops'(r) {
     return `<table class="kv">
-        ${kvRow('Where', r.Stellar >= 128 ? stellarRef(r.Stellar) : 'a stellar drawn at random')}
+        ${kvRow('Where', r.Stellar >= 128 ? stellarRef(r.Stellar) : r.Stellar === -1 ? 'a stellar drawn at random' : 'nowhere (it never starts)')}
         ${kvRow('Happens when', testLine(r.ActivateOn))}
       </table>`;
   },

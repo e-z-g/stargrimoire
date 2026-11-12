@@ -198,12 +198,12 @@ const NOVA_FIELD_NOTES = {
       code: [['DisasterHandler', 0x41ab9], ['EvalMissionBitTestString', 0x9959e]],
     },
     Stellar: {
-      note: 'Where the disaster strikes. 128 and up: that spöb. Anything else: a stellar drawn at random when it starts. The stellar must be there now and have Flags 0x20 clear.',
-      code: [['DisasterHandler', 0x41ab9], ['Rand', 0xa4c76]],
+      note: 'Where the disaster strikes. 128 and up: that spöb. -1: a stellar drawn at random each time it starts. That stellar must be there now and have Flags 0x20 clear. Any other value: the disaster never starts. The bar\'s news shows a disaster with -2 at every stellar. No disaster with -2 ever starts.',
+      code: [['DisasterHandler', 0x41ab9], ['Rand', 0xa4c76], ['RandomizeNewsDialog', 0x48238]],
     },
     Duration: {
-      note: 'How many days it lasts once started. Below 0: it never ends.',
-      code: [['DisasterHandler', 0x41ab9]],
+      note: 'How many days it lasts once started. The bar\'s news shows it on each day but the last. 0 or less: it has no effect. It may start again from the next day.',
+      code: [['LoadObjectData', 0x771b0], ['DisasterHandler', 0x41ab9]],
     },
   },
   'düde': {
@@ -1866,8 +1866,8 @@ const NOVA_FIELD_READS = {
   'öops': {
     Commodity: (v, r, g) => v >= 0 && v <= 5 ? novaString(g, 4000, v, 9000) ?? `standard commodity ${v}` : 'none',
     Freq: v => v <= 0 ? 'never' : `${Math.min(v, 100)} in 100 a day`,
-    Stellar: (v, r, g) => v >= 128 ? novaRefText(g, 'spöb', v) : 'a stellar drawn at random',
-    Duration: v => v < 0 ? 'never ends' : `${v} day${v === 1 ? '' : 's'}`,
+    Stellar: (v, r, g) => v >= 128 ? novaRefText(g, 'spöb', v) : v === -1 ? 'a stellar drawn at random' : 'never starts',
+    Duration: v => v <= 0 ? 'no effect' : `${v} day${v === 1 ? '' : 's'}`,
   },
   'düde': {
     AIType: v => ({ 1: 'WimpyTraderAI', 2: 'BraveTraderAI', 3: 'WarshipAI', 4: 'InterceptorAI' })[v] || (v > 4 ? 'EscortAI' : "the class's InherentAI"),

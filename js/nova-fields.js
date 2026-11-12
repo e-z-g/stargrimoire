@@ -548,16 +548,16 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     Cost: {
-      note: 'The shipyard\'s price is this minus a trade-in and never below 0. The trade-in is a quarter of the player\'s current ship\'s Cost and half the Cost of each outfit the player carries. Some outfits do not count. The PriceMod of every rank the player holds with a government allied to the stellar\'s multiplies each amount (the trade-in twice over). At a stellar of TechLevel 5 or less a ship of lower TechLevel costs 3% less for each level between (from 100 credits). The trade-in again counts that twice. The game rounds each amount down to 10 credits above 100, 100 above 10,000, and 1,000 above 100,000.',
+      note: 'The shipyard\'s price is this minus a trade-in and never below 0. The trade-in is a quarter of the player\'s current ship\'s Cost and half the Cost of each outfit the player carries. Some outfits do not count. The PriceMod of every rank the player holds with a government allied to the stellar\'s multiplies each amount (the trade-in twice over). At a stellar of TechLevel 5 or less a ship of lower TechLevel costs 3% less for each level between (from 100 credits). The trade-in again counts that twice. The game rounds each amount down to 10 credits above 100, 100 above 10,000, and 1,000 above 100,000. Hiring an escort of this class costs a tenth of that price with no trade-in. A hired escort then costs a hundredth of Cost (without the PriceMods) at each landing and for each day of each jump. An escort the player cannot pay leaves the player.',
       bible: 'the price is the new ship\'s Cost less 25% of the original cost of your current ship and upgrades; it says nothing of outfits at half, nor of the PriceMods and TechLevel.',
-      code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerShipTradeInPrice', 0xb079], ['ApplyPriceAndTechnologyFlux', 0x4e6cd], ['DoPortDialog', 0x5f911]],
+      code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerShipTradeInPrice', 0xb079], ['ApplyPriceAndTechnologyFlux', 0x4e6cd], ['DoPortDialog', 0x5f911], ['DoShipyardDialog', 0x5e679], ['DoEscortPayment', 0x40111]],
     },
     BuyRandom: {
       note: 'The chance in 100 that it is for sale on a given day. It is for sale while BuyRandom is at least a number from 1 to 100 drawn for its class each day. 0: never.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['Rand', 0xa4c76]],
     },
     HireRandom: {
-      note: 'The chance in 100 that it is for hire on a given day. It is for hire while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy the program skips the draw and every class above 0 is for hire every day. That is the state in which the program sends its nag ship (Captain Hector).',
+      note: 'The chance in 100 that it is for hire on a given day. It is for hire while HireRandom is at least a number from 1 to 100 drawn for its class each day. 0: never. In an unregistered copy the program skips the draw and every class above 0 is for hire every day. That is the state in which the program sends its nag ship (Captain Hector). Each time the player hires one the program draws the class\'s number again. So the class may still be for hire that day.',
       bible: 'says nothing of the unregistered copy.',
       code: [['SetupPortAvailableShipTypes', 0xbbe3], ['IncrementGameTime', 0xb516], ['SpawnNagShip', 0x5fdb]],
     },
@@ -566,7 +566,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CalcShipCanBuy', 0x4f5eb], ['PlayerMeetsRequirements', 0x776f], ['SetupPortAvailableShipTypes', 0xbbe3], ['GetPlayerContributeBits', 0x76b2]],
     },
     UpgradeTo: {
-      note: 'The ship class an escort of this class that you own (not a hired one) becomes when you have marked it in the escort dialog ("Will be upgraded at next shipyard") and land at a shipyard with its EscUpgrdCost in hand. Below 128: you cannot upgrade it ("This ship class cannot be upgraded.").',
+      note: 'The ship class an escort of this class becomes. The escort dialog offers the upgrade only while the Availability test of the UpgradeTo class passes. The player marks it there ("Will be upgraded at next shipyard"). It changes class when the player lands at a shipyard with its EscUpgrdCost in hand. Hired escorts can be upgraded too. An escort that a mission gave cannot. Each two escorts sold or upgraded at one landing take a day. Below 128: the escort cannot be upgraded ("This ship class cannot be upgraded.").',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['LoadObjectData', 0x771b0]],
     },
     EscUpgrdCost: {
@@ -574,7 +574,7 @@ const NOVA_FIELD_NOTES = {
       code: [['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     EscSellValue: {
-      note: 'Credits paid to the player for an escort of this class marked "Will be sold off at next shipyard" when the player lands at a shipyard. The escort then leaves. This applies only to escorts the player owns and not to hired or disabled ones. 0 or less: a tenth of its Cost.',
+      note: 'Credits paid to the player for an escort of this class marked "Will be sold off at next shipyard" when the player lands at a shipyard. The escort then leaves. This applies only to escorts the player owns and not to hired or disabled ones. Each two escorts sold or upgraded at one landing take a day. 0 or less: a tenth of its Cost.',
       code: [['DoEscortDialog', 0x951ee], ['DoEscortLand', 0x4031f], ['EscortDialogUpdate', 0x94a1b]],
     },
     DefaultItems: {
@@ -1330,7 +1330,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['GovtAllies', 0x4e3d]],
     },
     PriceMod: {
-      note: 'A percentage. At a stellar whose government is an ally of this rank\'s it multiplies the shipyard\'s prices while the player holds it. With several such ranks each one\'s applies in turn. Outfit and commodity prices do not change. 0 or less: 100.',
+      note: 'A percentage. At a stellar whose government is an ally of this rank\'s it multiplies the shipyard\'s prices while the player holds it. That includes the price of hiring an escort. With several such ranks each one\'s applies in turn. Outfit and commodity prices do not change. 0 or less: 100.',
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911]],
     },
     Salary: {

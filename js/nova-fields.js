@@ -614,7 +614,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleVoiceSound', 0x31e20]],
     },
     Flags: {
-      note: '0x0001: every government not its ally and every independent ship is its enemy (Enemies). 0x0004: its warships attack the player whenever they see the player. 0x0008: shots from the player and the player\'s fleet do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full depending on their aggression or at the share a përs sets. Without it they fight on. 0x0040: its warships leave the player alone. The shots of the player\'s fleet and its ships do not hit each other. 0x0080: the game halves the jamming of its ships other than the player\'s (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships accept bribes. 0x2000: its freighters accept bribes. 0x4000: its stellars accept bribes. 0x0400: the player cannot hail its ships. 0x0800: its ships are derelicts. They are always disabled and no one\'s ally or enemy. Nothing the player does to them brings a penalty. 0x1000: its warships fly the pirate warship AI and plunder before they destroy. 0x0002: its warships also attack the player in other governments\' and independent systems when the record there is below -2 × CrimeTol. 0x0020: other governments\' warships do not come to help its ships when something attacks them. 0x8000: its ships demand a bigger bribe of 10,000 + 1,000 × a random number up to the player\'s credits ÷ 10,000. Otherwise the bribe is 3,000 + 1,000 × a random number up to the player\'s credits ÷ 2,000,000. Its stellars demand half as much again and always accept one. A bribe is at most a third of the player\'s credits.',
+      note: '0x0001: every government not its ally and every independent ship is its enemy (Enemies). Its warships also attack the player. They leave the player alone in its systems while the player\'s record there is above 0. They also leave the player alone while the player has a ränk with Flags 0x0100 of this government or an ally. 0x0004: its warships attack the player whenever they see the player. 0x0008: shots from the player and the player\'s fleet do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full depending on their aggression or at the share a përs sets. Without it they fight on. 0x0040: its warships leave the player alone. The shots of the player\'s fleet and its ships do not hit each other. 0x0080: the game halves the jamming of its ships other than the player\'s (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. 0x0200: its warships accept bribes. 0x2000: its freighters accept bribes. 0x4000: its stellars accept bribes. 0x0400: the player cannot hail its ships. 0x0800: its ships are derelicts. They are always disabled and no one\'s ally or enemy. Nothing the player does to them brings a penalty. 0x1000: its warships fly the pirate warship AI and plunder before they destroy. They take no bribes. 0x0002: its warships also attack the player in other governments\' and independent systems when the record there is below -2 × CrimeTol. 0x0020: no warship comes to help its ships when something attacks them. That includes this government\'s warships. 0x8000: its ships demand a bigger bribe of 10,000 + 1,000 × a random number up to the player\'s credits ÷ 10,000. Otherwise the bribe is 3,000 + 1,000 × a random number up to the player\'s credits ÷ 2,000,000. The game multiplies a ship\'s bribe by a random 0.8 to 1.2 that is sometimes 0.5 lower or higher. A stellar demands 3,000 + 1,000 × a random number up to the player\'s credits ÷ 1,000,000. Its stellars demand half as much again and always accept one. A bribe is at most a third of the player\'s credits. The game rounds it down to a thousand. A ship\'s bribe is from 1,000 to 20,000 and a stellar\'s from 1,000 to 900,000.',
       code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
@@ -627,24 +627,24 @@ const NOVA_FIELD_NOTES = {
       code: [['SelectWarshipTarget', 0x89d5e], ['DrawLegalStatusString', 0xd43f], ['DamageShip', 0x3a807]],
     },
     SmugPenalty: {
-      note: 'How far the player\'s record with it falls when one of its ships catches the player smuggling (ScanMask). It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
+      note: 'How far the player\'s record falls when one of its ships finds a jünk or an outfit its ScanMask covers. Mission cargo brings no penalty. 0: its ships never scan the player. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     DisabPenalty: {
-      note: 'How far the player\'s record with it falls when the player disables one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
+      note: 'How far the player\'s record falls when the player disables one of its ships. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     BoardPenalty: {
-      note: 'How far the player\'s record with it falls when the player boards one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
+      note: 'How far the player\'s record falls when the player boards one of its ships. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
       code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
     },
     KillPenalty: {
-      note: 'How far the player\'s record with it falls when the player destroys one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+      note: 'How far the player\'s record falls when the player destroys one of its ships. Demanding tribute from one of its stellars and destroying one also bring it. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
+      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a], ['DoPlanetCommDialog', 0x96949], ['CheckShotProximities', 0x371bc]],
     },
     ShootPenalty: {
-      note: 'How far the player\'s record with it falls when the player fires on one of its ships. It falls by half this where it happens and the change spreads to other systems from there. The game drops very small changes and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+      note: 'The game never uses it. Firing on one of its ships brings no penalty. Only SmugPenalty, DisabPenalty, BoardPenalty, and KillPenalty change the player\'s record.',
+      code: [['SlapWithPenalty', 0x9bbc]],
     },
     Classes: {
       note: 'Up to four class numbers (0 and up). Below 0: none. Other governments\' Allies and Enemies, missions, and other records use them to refer to it.',
@@ -663,7 +663,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2]],
     },
     ScanMask: {
-      note: 'Its scans find a mission\'s cargo, a jünk, or an outfit whose ScanMask shares a bit with this. Finding one counts as smuggling and brings ScanFine and SmugPenalty.',
+      note: 'Its scans find a mission\'s cargo, a jünk, or an outfit whose ScanMask shares a bit with this. Only its warships and interceptors scan (AIType 3 and 4) and only while its SmugPenalty is not 0. A jünk or outfit found brings ScanFine and SmugPenalty. Mission cargo found brings ScanFine only. An outfit counts only while the player carries no such jünk.',
       code: [['ScanPlayer', 0x7e46e]],
     },
     CommName: {
@@ -708,12 +708,12 @@ const NOVA_FIELD_NOTES = {
       code: [['ResetPlayer', 0x1d40d], ['ResetPlayerRecord', 0x1db70], ['DoNewPilot', 0x18b0a], ['HandlePlayer', 0x68390]],
     },
     ScanFine: {
-      note: 'The fine when one of its ships fines the player after a scan. 1 and up: that many credits. 0: a warning only. Below 0: that percentage of the player\'s credits rounded down to the hundred (at least 1).',
+      note: 'The fine when one of its ships fines the player after a scan. 1 and up: that many credits. 0: a warning only. Below 0: that percentage of the player\'s credits rounded down to the hundred (at least 1). For an outfit found it is no fine.',
       code: [['ScanPlayer', 0x7e46e]],
     },
     MaxOdds: {
-      note: 'The game stores it as MaxOdds ÷ 100 (at least 0.01). A warship of this government runs once the odds against it pass that. While a reinforcement fleet is on its way it runs at twice that. A ship calls a system\'s reinforcement fleet of this government at half of it.',
-      code: [['LoadObjectData', 0x771b0], ['WarshipAI', 0x8b729], ['AICallForReinforcements', 0x7f5a1]],
+      note: 'The game stores it as MaxOdds ÷ 100 (at least 0.01). A warship of this government runs once the odds against it pass that. While a reinforcement fleet is on its way it runs at twice that. A ship calls a system\'s reinforcement fleet of this government at half of it. A warship of this government also never picks a target (the player included) whose side is stronger than MaxOdds × the warship\'s side.',
+      code: [['LoadObjectData', 0x771b0], ['WarshipAI', 0x8b729], ['AICallForReinforcements', 0x7f5a1], ['SelectWarshipTarget', 0x89d5e]],
     },
   },
   'mïsn': {

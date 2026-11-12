@@ -169,7 +169,7 @@ const NOVA_FIELD_NOTES = {
     },
     ScanMask: {
       note: 'A ship of a government whose ScanMask shares a bit with this may scan the player while the player carries it. That counts as smuggling. The player\'s record with that government drops and the player pays its ScanFine. The ship\'s message uses the cargo\'s LCName.',
-      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
+      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e]],
     },
     LCName: {
       note: 'Its name in the middle of a sentence. It appears in the ship\'s information and when a scan catches the player with it (ScanMask). The trade screen shows the resource\'s name instead.',
@@ -628,23 +628,23 @@ const NOVA_FIELD_NOTES = {
     },
     SmugPenalty: {
       note: 'How far the player\'s record falls when one of its ships finds a jünk or an outfit its ScanMask covers. Mission cargo brings no penalty. 0: its ships never scan the player. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+      code: [['LoadObjectData', 0x771b0], ['ScanPlayer', 0x7e46e], ['RecursivePenaltySlap', 0x980a]],
     },
     DisabPenalty: {
       note: 'How far the player\'s record falls when the player disables one of its ships. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
     },
     BoardPenalty: {
       note: 'How far the player\'s record falls when the player boards one of its ships. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a]],
+      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
     },
     KillPenalty: {
       note: 'How far the player\'s record falls when the player destroys one of its ships. Demanding tribute from one of its stellars and destroying one also bring it. In the systems of this government and its allies the record falls by this. In the systems of any other government it rises by half of that government\'s penalty of the same kind. In independent systems it falls by a quarter of this (with Flags 0x0001 it rises by half of this). The change starts in the system where it happens and spreads along the links. Each jump multiplies it by 0.65. The game drops changes under 1 and limits the record to -32,000 to 32,000.',
-      code: [['SlapWithPenalty', 0x9bbc], ['RecursivePenaltySlap', 0x980a], ['DoPlanetCommDialog', 0x96949], ['CheckShotProximities', 0x371bc]],
+      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
     },
     ShootPenalty: {
       note: 'The game never uses it. Firing on one of its ships brings no penalty. Only SmugPenalty, DisabPenalty, BoardPenalty, and KillPenalty change the player\'s record.',
-      code: [['SlapWithPenalty', 0x9bbc]],
+      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
     },
     Classes: {
       note: 'Up to four class numbers (0 and up). Below 0: none. Other governments\' Allies and Enemies, missions, and other records use them to refer to it.',
@@ -997,7 +997,7 @@ const NOVA_FIELD_NOTES = {
     },
     ScanMask: {
       note: 'A ship of a government whose ScanMask shares a bit with this may scan the player while the player carries one. That counts as smuggling. The player\'s record with that government drops and the player pays its ScanFine. The ship\'s message gives the outfit\'s name.',
-      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e], ['SlapWithPenalty', 0x9bbc]],
+      code: [['ResetPlayerPrecalcedValues', 0xc357], ['ScanPlayer', 0x7e46e]],
     },
     RequireGovt: {
       note: 'Where its Requires apply when the player is landed. -1: everywhere. 128 to 383: at stellars of that gövt or its allies. 1128 to 1383: those and independent stellars. 2128 to 2383: everywhere but stellars of that gövt or its allies. 3128 to 3383: everywhere but those and independent stellars. Anything else: everywhere.',
@@ -1323,15 +1323,15 @@ const NOVA_FIELD_NOTES = {
   'ränk': {
     Weight: {
       note: 'Of the ranks the player holds that have a ConvName the heaviest gives <PRK> in the game\'s texts. Of those with a ShortName the heaviest gives <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
-      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0, ['DeactivateRank', 0x4541e], ['DoCommDialog', 0x956d5]]],
+      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0], ['DeactivateRank', 0x4541e], ['DoCommDialog', 0x956d5]],
     },
     Govt: {
       note: 'Its government. 128 and up: that gövt. Below 128: none. Its PriceMod and Flags 0x0004, 0x0040, 0x0100, and 0x0200 apply at the stellars and ships of every government allied with it (GovtAllies and this one too). Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['SlapWithPenalty', 0x9bbc], ['ResetPlayerPrecalcedValues', 0xc357], ['GovtAllies', 0x4e3d]],
     },
     PriceMod: {
-      note: 'A percentage. At a stellar whose government is an ally of this rank\'s it multiplies prices while the player holds it. With several such ranks each one\'s applies in turn. 0 or less: 100.',
-      code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911], ['ApplyPriceAndTechnologyFlux', 0x4e6cd]],
+      note: 'A percentage. At a stellar whose government is an ally of this rank\'s it multiplies the shipyard\'s prices while the player holds it. With several such ranks each one\'s applies in turn. Outfit and commodity prices do not change. 0 or less: 100.',
+      code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911]],
     },
     Salary: {
       note: 'Credits added each day while the player holds it and the player\'s credits are below SalaryCap or SalaryCap is 0 or less. Below 0: the player loses that much but never drops below 0 credits.',

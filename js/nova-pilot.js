@@ -49,13 +49,14 @@ function novaPilotCrypt(bytes) {
 /* Each record's fields: [name, offset, kind, count], kind s16, s32, u8, a
    C string or a Pascal one (cstr, pstr, count its room) or a group of repeated fields (count
    times NOVA_PILOT_GROUPS[kind]). A field LoadPilotData does not read is
-   named for its place (at0010). */
+   named for what WritePilotData puts there, or where that is 0 for its
+   place (at2006). */
 const NOVA_PILOT_LAYOUT = {
   128: [
     ['stellar', 0x0000, 's16'],          // the ship's last stellar (+0x92), its system yours
     ['shipClass', 0x0002, 's16'],
     ['cargo', 0x0004, 's16', 6],         // tons of each commodity
-    ['at0010', 0x0010, 's16'],
+    ['shield', 0x0010, 's16'],           // the ship's shield (+0x54), written and never read
     ['fuel', 0x0012, 's16'],             // 100 a jump
     ['month', 0x0014, 's16'], ['day', 0x0016, 's16'], ['year', 0x0018, 's16'],
     ['explored', 0x001a, 's16', 2048],   // by system: 0 or less not, 1 seen, 2 landed in
@@ -72,7 +73,7 @@ const NOVA_PILOT_LAYOUT = {
     ['fighters', 0xe7ae, 's16', 64],     // -1 none, else a class
     ['upgrade', 0xe82e, 's16', 64],      // each escort: marked for upgrade
     ['sale', 0xe8ae, 's16', 64],         // each captured escort: marked for sale
-    ['fighterBay', 0xe92e, 's16', 64],   // each fighter's +0xc922
+    ['fighterVoice', 0xe92e, 's16', 64], // each fighter's voice, 0 or 1 (+0xc922, gövt VoiceType)
     ['kills', 0xe9ae, 's32'],            // the combat rating (playerKills)
   ],
   129: [
@@ -83,17 +84,17 @@ const NOVA_PILOT_LAYOUT = {
     ['alive', 0x1006, 's16', 1024],      // each person: still to be met (+0x620)
     ['grudge', 0x1806, 's16', 1024],     // each person: a grudge against you (+0x621)
     ['at2006', 0x2006, 's16', 64],
-    ['stellar2a', 0x2086, 's16', 2048],  // each stellar's +0x2a
+    ['daysDominated', 0x2086, 's16', 2048], // each stellar: days since the player dominated it (+0x2a), never read
     ['seenIntro', 0x3086, 'u8'],
     ['disasterDays', 0x3088, 's16', 256],
     ['disasterAt', 0x3288, 's16', 256],  // the stellar a disaster is at, -1 none
     ['junk', 0x3488, 's16', 128],        // tons of each jünk
     ['at3580', 0x3580, 'u8', 8],
-    ['globalPriceFlux', 0x3588, 's16', 2],
-    ['localPriceFlux', 0x358c, 's16', 2],
+    ['globalPriceFlux', 0x3588, 's16', 2], // 85 to 115, each landing and jump 1 up, 1 down or the same
+    ['localPriceFlux', 0x358c, 's16', 2],  // 90 to 110 at random each jump. No price reads either
     ['cronDuration', 0x3590, 's16', 512],
     ['cronHoldoff', 0x3990, 's16', 512],
-    ['system0c4', 0x3d90, 's16', 2048],  // each system's +0xc4
+    ['reinforceDays', 0x3d90, 's16', 2048], // each system: days before it can call reinforcements again (+0xc4)
     ['destroyed', 0x4d90, 's16', 2048],  // each stellar: days until it is rebuilt, 0 or less not destroyed
     ['escortOrders', 0x5d90, 's16', 4],
     ['nickname', 0x5d98, 'pstr', 64],

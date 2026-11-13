@@ -414,8 +414,8 @@ const NOVA_FIELD_NOTES = {
       bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
     },
     Flags2: {
-      note: '0x0001: its ships swarm. They also cloak and uncloak twice as fast. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: the player cannot target it. The targeting keys and mouse pass it over and AI ships fire no missiles or turrets at it. A ship with a cloak scanner whose ModVal has 0x0004 (oütf ModType 30) can target it all the same. 0x0008: point defense fires on it. 0x0010: as the player\'s escort it does not reply to orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor, and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), or while flying about (0x0800). 0x1000: it stays cloaked while attacking until within 165 of its target on both axes or while mining. 0x2000: it cloaks while idle. 0x4000: it cloaks immediately when a ship it is not fighting attacks it. Its burst weapons go into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
-      code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['ShipCanTargetUntargetableShips', 0x238f]],
+      note: '0x0001: its ships swarm. They also cloak and uncloak twice as fast. 0x0002: they hold off at 0.85 of their longest reach. That reach counts a homing weapon at 0.85 of the weapon\'s and a rocket at half. A rear quadrant turret (wëap Guidance 8) counts for none. 0x0004: the player cannot target it. The targeting keys and mouse pass it over and AI ships fire no missiles or turrets at it. A ship with a cloak scanner whose ModVal has 0x0004 (oütf ModType 30) can target it all the same. 0x0008: point defense fires on it. 0x0010: as the player\'s escort it does not reply to orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor, and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), or while flying about (0x0800). 0x1000: it stays cloaked while attacking until within 165 of its target on both axes or while mining. 0x2000: it cloaks while idle. 0x4000: it cloaks immediately when a ship it is not fighting attacks it. Its burst weapons go into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
+      code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['ShipCanTargetUntargetableShips', 0x238f], ['ShipMaxWeaponRange', 0xbafd]],
     },
     PodCount: {
       note: 'How many escape pods its ships launch as they break up (DeathDelay). The first goes immediately. Then one goes every DeathDelay ÷ PodCount × 0.4 frames and at least 10 frames apart. 0 or less: none.',
@@ -1043,16 +1043,16 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['BeamDrawCallback', 0x37952]],
     },
     MaxAmmo: {
-      note: 'Above 0: the most ammunition the player can carry for it is MaxAmmo × the launchers aboard whatever the ammunition outfit\'s Max. 0 or less: the outfit\'s Max.',
-      code: [['HasMaxOfItem', 0x4512]],
+      note: 'Above 0: the most ammunition the player can carry for it is MaxAmmo × the launchers aboard whatever the ammunition outfit\'s Max. 0 or less: the outfit\'s Max. For a fighter bay the fighters out in space count toward it too.',
+      code: [['HasMaxOfItem', 0x4512], ['CanBuyFighter', 0x5a82]],
     },
     MassDmg: {
-      note: 'Damage to the armor of a ship hit once its shields are down (immediately with Flags 0x0020). One comes off for each Decay period passed. A beam removes it from an asteroid\'s strength too (× 10 with Flags2 0x8000). Against a shot point defense removes this plus half its EnergyDmg from the shot\'s Durability.',
-      code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleBeams', 0x30295], ['PointDefenseCollisionHandler', 0x37776]],
+      note: 'Damage to the armor of a ship hit once its shields are down (immediately with Flags 0x0020). One comes off for each Decay period passed. A beam removes it from an asteroid\'s strength too (× 10 with Flags2 0x8000). Against a shot point defense removes this plus half its EnergyDmg from the shot\'s Durability. Another ship fires the ready gun with the most MassDmg once its target\'s shields are below 0. A warship or interceptor gives up a disabled target unless one of its weapons can destroy it. Such a weapon has MassDmg above 0 and ammunition, is not homing, and lacks Flags2 0x1000.',
+      code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleBeams', 0x30295], ['PointDefenseCollisionHandler', 0x37776], ['AIFireGun', 0x7feb6], ['AIHasDestroyingWeapons', 0x7fc7c]],
     },
     EnergyDmg: {
-      note: 'Damage to the shields of a ship hit. One comes off for each Decay period passed. The shields go no lower than a tenth of their capacity below 0. A shot (not a beam) removes it from an asteroid\'s strength (× 10 with Flags2 0x8000).',
-      code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleAsteroidHit', 0x36637]],
+      note: 'Damage to the shields of a ship hit. One comes off for each Decay period passed. The shields go no lower than a tenth of their capacity below 0. A shot (not a beam) removes it from an asteroid\'s strength (× 10 with Flags2 0x8000). Another ship fires the ready gun with the most EnergyDmg while its target\'s shields are 0 or more. It fires no homing shot while those already on their way to the target could deal 1.05 × its shields and armor. Each counts for half its MassDmg and EnergyDmg together.',
+      code: [['DamageShip', 0x3a807], ['HandleShipHit', 0x36a45], ['HandleAsteroidHit', 0x36637], ['AIFireGun', 0x7feb6], ['CalculateTargetedDamage', 0x3a153]],
       bible: 'Flags2 0x8000: weapon does x10 mass damage to asteroids.',
     },
     Guidance: {
@@ -1076,8 +1076,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['CreateExplosion', 0x3f698]],
     },
     ProxRadius: {
-      note: 'The reach of its proximity fuse plus a third of the target\'s sprite. An armed shot (ProxSafety) goes off when it comes that near. 0: only a hit.',
-      code: [['CheckShotProximities', 0x371bc]],
+      note: 'The reach of its proximity fuse plus a third of the target\'s sprite. An armed shot (ProxSafety) goes off when it comes that near. 0: only a hit. Another ship fires a rocket (Guidance 6) with a fuse only at a target more than 2.5 × ProxRadius away on both axes.',
+      code: [['CheckShotProximities', 0x371bc], ['AIFireGun', 0x7feb6]],
     },
     BlastRadius: {
       note: 'Every other ship within this distance on each axis of where it goes off receives its full damage with Impact and Ionization. The blast spares the firer. The player\'s blast hurts the player unless Flags 0x0100. 0: none.',
@@ -1201,8 +1201,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
     },
     GuidedTurn: {
-      note: 'A homing shot turns a tenth of this in degrees each step from 15 steps old.',
-      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
+      note: 'A homing shot turns a tenth of this in degrees each step from 15 steps old. Another ship fires one with 20 or less only at a target turning 3 or less. It fires the lowest-numbered homing weapon it can use with the target in reach.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc], ['SuitableMissileType', 0x34e1], ['AIFireMissile', 0x8115d]],
     },
     Impact: {
       note: 'Pushes the ship it hits away from the hit by Impact ÷ that ship\'s Mass but no faster than its top speed. The player\'s ship can reach 1.8 × its top speed that way with its afterburner on in a system where no stellar has Gravity. Below 0 it pulls the ship toward the hit instead. The pull does not work while the firing ship is within 50 of it on either axis. A ship that is jumping does not move. Nor does a ship of Mass 0 or less and a planet-type ship (shïp Flags 0x0400).',

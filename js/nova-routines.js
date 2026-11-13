@@ -25,6 +25,7 @@ const NOVA_ROUTINES = {
     AIDoesShipLikePlayer: [0x10dc90, 0x10df50, 0x10df80],
     AIEvalHopelessChase: [0x10f1c0, 0x10f4a0, 0x10f4d0],
     AIFightThreatToParent: [0x10eae0, 0x10eda0, 0x10edd0],
+    AIFindShipToPlunder: [0x110640, 0x1108a0, 0x1108d0],
     AIFireGun: [0x10b530, 0x10b720, 0x10b750],
     AIFireMissile: [0x10b290, 0x10b4a0, 0x10b4d0],
     AIFireTurret: [0x10aea0, 0x10b0b0, 0x10b0e0],

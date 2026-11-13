@@ -776,8 +776,8 @@ const NOVA_FIELD_NOTES = {
       code: [['MissionObjectivesCheck', 0x9e79e], ['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['HandlePlayerBoardAttempt', 0x65000], ['LowLevelAIHandler', 0x851da], ['QuickMissionFailure', 0x99d1b], ['ShipVisibleToShip', 0x971c], ['SetupShipsInSystem', 0x42b61], ['IsDisabled', 0x2ce6]],
     },
     ShipBehav: {
-      note: 'How the mission\'s ships act. 0: each attacks the player as it appears. 1: they fly with the player as escorts do while not disabled. 2: they attack stellars of governments that are their enemies while the stellars still stand. Anything else: they fly by their AI.',
-      code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6]],
+      note: 'How the mission\'s ships act. 0: each attacks the player as it appears. 1: they fly with the player as escorts do while not disabled. The player cannot release them in the hail dialog or pay them wages. The player info does not count them as escorts. 2: they attack stellars of governments that are their enemies while the stellars still stand. Anything else: they fly by their AI.',
+      code: [['MissionDudeSpawn', 0x3cd3b], ['AIMakeShipAttackPlayer', 0x89c3e], ['AIDispatch', 0x8fb52], ['DeathStarAI', 0x8c125], ['EscortAI', 0x838d2], ['IsDisabled', 0x2ce6], ['DrawCommDialogButtons', 0x28c43], ['DoEscortPayment', 0x40111], ['PlayerInfoDialogUpdate', 0x5244f]],
     },
     ShipCount: {
       note: 'How many ships the mission has. ShipSyst and ShipStart set where they go. 0 or less: none. With ShipSyst -6 and ShipBehav 1 the game does not place again those already with the player.',
@@ -854,16 +854,16 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadCurrentMissionData', 0xa0a38], ['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['DoShipCloak', 0xde73], ['GenericRandomShipSpawn', 0x3c89f]],
     },
     AuxShipCount: {
-      note: 'How many ships of AuxShipDude the mission sends after the player in the systems AuxShipSyst allows. 70 to 139 steps after the player enters such a system (or lifts off) as many as remain minus those already there come in from hyperspace. Each one that comes reduces what remains. With the mission\'s Flags 0x0010 the full number comes again in each system. 0 or less: none.',
-      code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['SpecificDudeSpawn', 0x3d0eb]],
+      note: 'How many ships of AuxShipDude the mission sends after the player in the systems AuxShipSyst allows. 70 to 139 steps after the player enters such a system (or lifts off) as many as remain minus those already there come in from hyperspace. Each one that comes reduces what remains. Those still in the system when the player leaves count as remaining again. With the mission\'s Flags 0x0010 the full number comes again in each system and after each landing. 0 or less: none.',
+      code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['MissionHandlePlayerEnteredNewSystem', 0x99f11], ['SpecificDudeSpawn', 0x3d0eb], ['DeleteAllComputerShips', 0x3bf5f], ['PlayerLandOnStellar', 0x631c4]],
     },
     AuxShipDude: {
       note: 'The düde for the aux ships (128 to 639). Anything else: none. The game then ignores AuxShipCount.',
       code: [['LoadCurrentMissionData', 0xa0a38], ['EnterMoreShips', 0x43459], ['SpecificDudeSpawn', 0x3d0eb]],
     },
     AuxShipSyst: {
-      note: 'Where the aux ships come. -1 or -6: any system. -2: TravelStel\'s stellar\'s system. -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. The government numbers AvailStel accepts (9999, 10000 + n, and the others) give systems of those governments. There a government with Flags 0x0001 counts every government not its ally as an enemy. Anything else: none.',
-      code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48]],
+      note: 'Where the aux ships come. -1 or -6: any system. With -1 they do not come into a system the player reaches through a hypergate or wormhole. -2: TravelStel\'s stellar\'s system. -3: ReturnStel\'s. 128 to 2175: that sÿst. 5000 + n: sÿst 128 + n or a system linked to it. The government numbers AvailStel accepts (9999, 10000 + n, and the others) give systems of those governments. There a government with Flags 0x0001 counts every government not its ally as an enemy. Anything else: none.',
+      code: [['ValidAuxShipSystem', 0x992b5], ['EnterMoreShips', 0x43459], ['GovtAllies', 0x4e3d], ['GovtEnemies', 0x4f22], ['GovtSharedClass', 0x6e48], ['HandlePlayerDockRequest', 0x66691]],
     },
     ScanMask: {
       note: 'A ship of a government whose ScanMask shares a bit with this may scan the player while the mission\'s cargo is aboard. With Flags 0x0020 the mission then fails ("Your ship has been scanned - mission failed."). Otherwise it is smuggling and the player pays a fine.',

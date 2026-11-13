@@ -300,8 +300,8 @@ const NOVA_FIELD_NOTES = {
       code: [['PropagateMissionBitEffects', 0x99676], ['EvalMissionBitTestString', 0x9959e], ['FindActiveCoLocatedSystem', 0x4be0], ['HandleStellarSystemVisibility', 0x32aa5]],
     },
     Interference: {
-      note: 'The chance in 100 each step that jamming blanks the player\'s status display. The ship\'s anti-interference comes off it and the result stays between 0 and 100. It is also the chance in 100 that a guided shot with Seeker 0x0008 fired here becomes confused.',
-      code: [['HandleStatus', 0x494d7], ['ShipAntiInterference', 0x5f2c], ['SpawnShot', 0x3e550]],
+      note: 'The chance in 100 each step that jamming blanks the player\'s status display. The ship\'s anti-interference comes off it and the result stays between 0 and 100. At 30 frames a second a guided shot with Seeker 0x0008 fired here becomes confused with a chance of Interference in 100. At 60 frames a second the chance is half that. The star map calls 1 to 33 light interference, 34 to 66 moderate, and anything above 66 heavy.',
+      code: [['HandleStatus', 0x494d7], ['ShipAntiInterference', 0x5f2c], ['SpawnShot', 0x3e550], ['MapDialogUpdate', 0xf5d1]],
     },
     Murk: {
       note: 'How murky the system is. A value below 0 counts as 0. Each ModType 28 outfit the player carries adds its ModVal once for every copy. The total stays between 0 and 100. Murk shades the ships in the system.',
@@ -363,7 +363,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipShieldCapacity', 0x2995]],
     },
     Accel: {
-      note: 'Accel ÷ 10,000 is its acceleration each 30th of a second. The player\'s ship adds each ModType 7 outfit\'s ModVal ÷ 10,000. For another ship the game multiplies it by its skill (SkillVar) × its government\'s SkillMult ÷ 100 and then by 2. It drops to a third while it is in another ship\'s tractor beam. Ionization reduces it by at most 70% (IonizeMax). Flags 0x0400 makes it 0. A ship caught in a tractor beam matches the speed of the ship that fired it by a quarter of the player\'s acceleration each 30th of a second whoever fired the beam.',
+      note: 'Accel ÷ 10,000 × 2 is its acceleration each 30th of a second. The player\'s ship adds each ModType 7 outfit\'s ModVal ÷ 10,000 before the doubling. For another ship the game multiplies Accel ÷ 10,000 by its skill (SkillVar) × its government\'s SkillMult ÷ 100 and then by 2. In another ship\'s tractor beam the game multiplies by 0.333 in place of the 2. That leaves a sixth of the usual. Ionization reduces it by at most 70% (IonizeMax). Flags 0x0400 makes it 0. A ship caught in a tractor beam matches the speed of the ship that fired it by a quarter of the player\'s acceleration each 30th of a second whoever fired the beam.',
       code: [['LoadObjectData', 0x771b0], ['ShipAccelRate', 0x353b], ['HandleShip', 0x33581]],
     },
     Speed: {
@@ -392,7 +392,7 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     DeathDelay: {
-      note: 'How many steps its ships need to break up once their armor is gone. Small explosions (Explode1) show over them 1 in 8 steps while 60 or more steps remain, 1 in 4 from 40, 1 in 2 from 20, and then every step. At the end a ship of Mass 100 or more without Flags 0x0400 blasts every ship within Mass × 0.075 + 50 for Mass × 0.0375 + 25 damage. The blast can disable but not kill. Then Explode2 shows and the ship is gone.',
+      note: 'How many steps its ships need to break up once their armor is gone. The player\'s ship needs 3 × DeathDelay. Small explosions (Explode1) show over them 1 in 8 steps while 60 or more steps remain, 1 in 4 from 40, 1 in 2 from 20, and then every step. At the end a ship of Mass 100 or more without Flags 0x0400 blasts every ship within Mass × 0.075 + 50 for Mass × 0.0375 + 25 damage. The blast can neither destroy a ship nor disable one. Then Explode2 shows and the ship is gone.',
       code: [['HandleShipDisplay', 0x2b514], ['DamageShip', 0x3a807], ['CreateExplosion', 0x3f698]],
       bible: '0 to 59: the ship disintegrates for this number of frames and then disappears in a single fireball. 60 and up: then a huge explosion, its size proportional to the ship\'s mass.',
     },
@@ -414,8 +414,8 @@ const NOVA_FIELD_NOTES = {
       bible: '0x0001, slow jumping (75% normal speed); 0x0002, semi-fast (125%); 0x0004, fast (150%).',
     },
     Flags2: {
-      note: '0x0001: its ships swarm. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: the player cannot target it. The targeting keys and mouse pass it over and AI ships fire no missiles or turrets at it. 0x0008: point defense fires on it. 0x0010: as the player\'s escort it does not reply to orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor, and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), or while flying about (0x0800). 0x1000: it stays cloaked while attacking until within 165 of its target on both axes or while mining. 0x2000: it cloaks while idle. 0x4000: it cloaks immediately when a ship it is not fighting attacks it. Its burst weapons go into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
-      code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807]],
+      note: '0x0001: its ships swarm. They also cloak and uncloak twice as fast. 0x0002: they hold off at 0.85 of their longest reach. 0x0004: the player cannot target it. The targeting keys and mouse pass it over and AI ships fire no missiles or turrets at it. A ship with a cloak scanner whose ModVal has 0x0004 (oütf ModType 30) can target it all the same. 0x0008: point defense fires on it. 0x0010: as the player\'s escort it does not reply to orders. 0x0020: it jumps without slowing down. 0x0040: it is inertialess. 0x0080: the warship, interceptor, and escort AIs change its orders when it is out of ammunition. 0x0100 to 0x0800: as an AI ship it cloaks while a weapon is in burst reload (0x0100), while running away (0x0200), while jumping (0x0400), or while flying about (0x0800). 0x1000: it stays cloaked while attacking until within 165 of its target on both axes or while mining. 0x2000: it cloaks while idle. 0x4000: it cloaks immediately when a ship it is not fighting attacks it. Its burst weapons go into their burst reload. An escort in formation behind a cloaked lead cloaks too.',
+      code: [['AIDoSwarming', 0x80250], ['HighLevelAIHandler', 0x8d453], ['FindNearestShipToPlayer', 0x923f], ['HandleMouse', 0x37fba], ['AIFireMissile', 0x8115d], ['AIFireTurret', 0x80ad3], ['HandleShipPointDefense', 0x392c4], ['IssueNewEscortCommand', 0x660d5], ['SpeakVoiceMessage', 0x44558], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['AIShipIsOutOfAmmo', 0x7f71f], ['AIHandleCloaking', 0x833e1], ['DamageShip', 0x3a807], ['HandleShipDisplay', 0x2b514], ['ShipCanTargetUntargetableShips', 0x238f]],
     },
     PodCount: {
       note: 'How many escape pods its ships launch as they break up (DeathDelay). The first goes immediately. Then one goes every DeathDelay ÷ PodCount × 0.4 frames and at least 10 frames apart. 0 or less: none.',
@@ -423,7 +423,7 @@ const NOVA_FIELD_NOTES = {
       bible: 'At a rate of one per second.',
     },
     Mass: {
-      note: 'It sets how many days a jump lasts. Under 100: 1 day. 100 to 199: 2 days. From 200: 3 days. The player\'s ship adds each ModType 22 outfit\'s ModVal to the days (at least 1). From 100 it shows as a larger blip on the radar. A tractor beam catches it only when the firing ship\'s Mass is at least ¾ of this. With 0 or less or with Flags 0x0400 no beam catches it. The game tests only a ship of 100 or more for giving up a hopeless chase.',
+      note: 'It sets how many days a jump lasts. Under 100: 1 day. 100 to 199: 2 days. From 200: 3 days. The player\'s ship adds each ModType 22 outfit\'s ModVal to the days (at least 1). From 100 it shows as a larger blip on the player\'s radar while a density scanner (oütf ModType 13) is aboard. A tractor beam catches it only when the firing ship\'s Mass is at least ¾ of this. With 0 or less or with Flags 0x0400 no beam catches it. The game tests only a ship of 100 or more for giving up a hopeless chase.',
       code: [['ShipHyperTransitTime', 0x43d0], ['DrawStatusRadar', 0x496e0], ['HandleBeams', 0x30295], ['AIEvalHopelessChase', 0x80ea9]],
     },
     InherentAI: {
@@ -483,8 +483,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['ShipArmorRechargeRate', 0x2e0e], ['IsDisabled', 0x2ce6], ['HandleShip', 0x33581]],
     },
     SkillVar: {
-      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100. For a ship other than the player\'s it multiplies Accel and Speed. A fleet\'s or përs\'s ship draws it from shïp 128\'s SkillVar before the game gives it its actual class.',
-      code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['Rand', 0xa4c76]],
+      note: 'A ship\'s skill is (100 - SkillVar + a number from 0 to 2 × SkillVar drawn at random) ÷ 100. For a ship other than the player\'s it multiplies Accel and Speed. Loading counts a SkillVar below 1 as 1 and one above 50 as 50. Only the random ships of a system\'s düdes and a mission\'s ships draw the skill from their class. Every other ship draws it from shïp 128\'s SkillVar before the game gives it its actual class. That covers fleets, përs, hired escorts, stellars\' defense ships, a mission\'s AuxShipDude ships, fighters launched from a bay, and captured ships.',
+      code: [['RandomSkillLevel', 0x6922], ['GenericRandomShipSpawn', 0x3c89f], ['RandomShipSpawn', 0x3c0f3], ['MissionDudeSpawn', 0x3cd3b], ['LoadObjectData', 0x771b0], ['Rand', 0xa4c76]],
       bible: 'This affects acceleration and turn rate for each ship. Values from 1 to 50% are valid.',
     },
     Deionize: {
@@ -536,7 +536,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['KeyCarriedShipTypeOnboard', 0x399c], ['HandleShipDisplay', 0x2b514], ['WeaponHasAmmo', 0xb95a]],
     },
     EscortType: {
-      note: 'Its group among the player\'s escorts. 0: fighter. 1: medium. 2: warship. 3: freighter. For anything else loading picks 3 for an InherentAI of 2 or less and otherwise 0 below Mass 50, 1 below 200, or 2 from 200. The group also gives the class 80 (fighter), 90 (medium), or 100. A turret\'s shot rolls from 1 to its firer\'s number. It misses a ship that is not disabled when the roll is over the target\'s number.',
+      note: 'Its group among the player\'s escorts. 0: fighter. 1: medium. 2: warship. 3: freighter. For anything else loading picks 3 for an InherentAI of 2 or less and otherwise 0 below Mass 50, 1 below 200, or 2 from 200. The group also gives the class 80 (fighter), 90 (medium), or 100. A shot of a turret (Guidance 4) or point-defense gun (Guidance 9) rolls from 1 to its firer\'s number. It misses a ship that is not disabled when the roll is over the target\'s number.',
       code: [['LoadObjectData', 0x771b0], ['DrawEscortMenuInFrame', 0x56268], ['ShotCanHitShip', 0x4477e]],
     },
     AppearOn: {
@@ -930,8 +930,8 @@ const NOVA_FIELD_NOTES = {
   },
   'oütf': {
     ModType: {
-      note: 'What it does. The amount is in ModVal and ModType2 to ModType4 work the same way. 1: the weapon wëap ModVal. 2: tons of hold (below 0 it uses hold space). 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge (ModVal ÷ 1,000 a frame). 6: armor points. 7: acceleration (÷ 10,000). 8: top speed (÷ 100). 9: turn (÷ 100 degrees a frame). 11: an escape pod. 12: fuel. 13: a density scanner. 14: IFF. 15: an afterburner burning ModVal fuel a second. 16: a map of the systems within ModVal jumps. -1 maps every inhabited system and -1000 - n the systems of governments of class n. 17: a cloak. In its ModVal 0x0002 shows on radar, 0x0004 drops the shields immediately, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use, 0x0f00 ÷ 0x100 is its shield use, and 0x1000 cloaks the ships in formation with it. 18: a fuel scoop (as FuelRegen). 19: auto-refueling. 20: auto-eject. 21: the player\'s record below 0 set to 0 in the systems of gövt ModVal or in every system for -1. 22: days per jump. 23: how far from the middle of the system the player can jump (1,000 + ModVal). 24: anti-interference (-100 to 100 in all). 25: the player\'s capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these the player carries. 28: murk. 29: armor recharge (÷ 1,000 a frame). 30: a cloak scanner. 31: a mining scoop. 32: ModVal extra jumps per jump. The game counts it once for each kind aboard and not for each one. 33 to 36: jamming of types 1 to 4. The game counts it once for each kind the player carries and not for each one. 37: jumping without slowing. 38: inertialess. 39: deionization (÷ 100). 40: ionization capacity. 41: gravity does not pull the player. 42: deadly stellars do not harm the player. 43: paint. 44: a reinforcement inhibitor. Once the player has carried it no reinforcement fleet comes (sÿst ReinfFleet) until the game quits. That lasts even after the player sells it or opens another pilot. ModVal -1: none at all. Otherwise none of a government with ModVal among its Classes and none that such a government\'s ships call. A call it blocks still stops the system\'s ships from calling again until the next day. 45 and 46: more guns and turrets. 47 and 50: bombs. 48: an IFF scrambler. Once the player has carried it the warships of each government with ModVal among its Classes do not pick the player as a target. Its ships treat the player as a friend in the hail dialog and when they call for help. Its armed stellars do not fire on the player. Its stellars\' hail dialogs do not treat the player as hated (spöb MinStatus). That lasts until the game quits even after the player sells it or opens another pilot. 49: now and then (1 in 500 frames) a disabled ship with it aboard repairs itself to just over the point of disabling. For another ship 32 and 49 count among its class\'s DefaultItems.',
-      code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581], ['AICallForReinforcements', 0x7f5a1], ['InitObjects', 0x1c2e5], ['SelectWarshipTarget', 0x89d5e], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToStellar', 0x9ef7], ['DoPlanetCommDialog', 0x96949]],
+      note: 'What it does. The amount is in ModVal and ModType2 to ModType4 work the same way. 1: the weapon wëap ModVal. 2: tons of hold (below 0 it uses hold space). 3: ammunition for wëap ModVal. 4: shield points. 5: shield recharge (ModVal ÷ 1,000 a frame). 6: armor points. 7: acceleration (÷ 10,000). 8: top speed (÷ 100). 9: turn (÷ 100 degrees a frame). 11: an escape pod. 12: fuel. 13: a density scanner. On the player\'s radar ships of Mass 100 or more then show larger. 14: IFF. 15: an afterburner burning ModVal fuel a second. With several kinds aboard the highest-numbered one counts. 16: a map of the systems within ModVal jumps. -1 maps every inhabited system and -1000 - n the systems of governments of class n. 17: a cloak. In its ModVal 0x0002 shows on radar, 0x0004 drops the shields immediately, 0x0008 drops when hit, 0x00f0 ÷ 0x10 is its fuel use, 0x0f00 ÷ 0x100 is its shield use, and 0x1000 cloaks the ships in formation with it. 18: a fuel scoop (as FuelRegen). 19: auto-refueling. 20: auto-eject. 21: the player\'s record below 0 set to 0 in the systems of gövt ModVal or in every system for -1. 22: days per jump. 23: how far from the middle of the system the player can jump (1,000 + ModVal for each one carried). A system whose only stellars are hypergates and wormholes has no such limit. 24: anti-interference (-100 to 100 in all). 25: the player\'s capture odds (shïp Crew). 27: the Max of oütf ModVal × how many of these the player carries. 28: murk. 29: armor recharge (÷ 1,000 a frame). 30: a cloak scanner. In its ModVal 0x0001 shows cloaked ships on the player\'s radar and 0x0002 shows them on screen (for another ship it lets the ship see them). 0x0004 allows targeting ships with shïp Flags2 0x0004 and 0x0008 allows targeting cloaked ships. 31: a mining scoop. 32: ModVal extra jumps per jump. The game counts it once for each kind aboard and not for each one. 33 to 36: jamming of types 1 to 4. The game counts it once for each kind the player carries and not for each one. 37: jumping without slowing. 38: inertialess. 39: deionization (÷ 100). 40: ionization capacity. 41: gravity does not pull the player. 42: deadly stellars do not harm the player. 43: paint. 44: a reinforcement inhibitor. Once the player has carried it no reinforcement fleet comes (sÿst ReinfFleet) until the game quits. That lasts even after the player sells it or opens another pilot. ModVal -1: none at all. Otherwise none of a government with ModVal among its Classes and none that such a government\'s ships call. A call it blocks still stops the system\'s ships from calling again until the next day. 45 and 46: more guns and turrets. The game counts each kind once whatever the number carried. 47 and 50: bombs. Each goes off about 300 steps after it comes aboard. The count starts again whenever the player\'s outfits or cargo change. 47 destroys the player\'s ship and then shows dësc ModVal if ModVal is above 0. 50 removes every one of itself and shows bööm ModVal - 128 for a ModVal from 128 to 191. It then leaves the armor just above the point of disabling. 47 goes off in place of 50 when both are aboard. 48: an IFF scrambler. Once the player has carried it the warships of each government with ModVal among its Classes do not pick the player as a target. Its ships treat the player as a friend in the hail dialog and when they call for help. Its armed stellars do not fire on the player. Its stellars\' hail dialogs do not treat the player as hated (spöb MinStatus). That lasts until the game quits even after the player sells it or opens another pilot. 49: a disabled ship with it aboard repairs itself to just over the point of disabling with a chance of 1 in 500 each 30th of a second. The player\'s ship first waits 300 steps after it becomes disabled. For another ship 17, 18, 30, 31, 32, 33 to 36, 37, and 49 count among its class\'s DefaultItems. Such a ship\'s cloak uses no fuel.',
+      code: [['LoadObjectData', 0x771b0], ['ShipTotalHolds', 0x5cb3], ['ShipShieldCapacity', 0x2995], ['ShipShieldRechargeRate', 0x2abb], ['ShipAccelRate', 0x353b], ['ShipMaxSpeed', 0x36f2], ['ShipTurnRate', 0x32f7], ['HasEscapePod', 0xb83d], ['ShipFuelCapacity', 0x2f21], ['HasDensityScanner', 0x42c0], ['HasIFF', 0x4348], ['ShipAfterburnerFuelUsage', 0x7a82], ['GrantOutfitItem', 0x44d4f], ['AutoSetExploration', 0xdaba], ['HasAreaCloak', 0x3d49], ['ShipCloakVisibleOnRadar', 0x40f8], ['CloakZeroesShields', 0x3e9d], ['ShipDecloaksWhenHit', 0x3f68], ['CloakFuelUsage', 0x3e25], ['CloakShieldUsage', 0x4033], ['ShipFuelGenRate', 0x2ffb], ['DoAutoRefuel', 0x41bc5], ['HasAutoEject', 0x3a14], ['ShipHyperTransitTime', 0x43d0], ['ShipHyperSafeDist', 0x4485], ['ShipAntiInterference', 0x5f2c], ['SetPlunderValues', 0x92219], ['HasMaxOfItem', 0x4512], ['PlayerEffectiveMurk', 0x6f8f], ['ShipCanSeeCloakedShips', 0x41a9], ['ShipCanTargetCloakedShips', 0x2466], ['ShipCanTargetUntargetableShips', 0x238f], ['ShipCanScoop', 0x75c7], ['ShipJumpsPerJump', 0x77b4], ['ShipECM', 0x3aff], ['ShipCanExpiditeJumps', 0x7872], ['ShipIsInertialess', 0x79c2], ['ShipDeionizationRate', 0x6ec3], ['ShipIonizationFactor', 0x3225], ['ShipResistsGravity', 0x7b10], ['ShipResistsDeadlyStellars', 0x7bbe], ['ResetPlayerPrecalcedValues', 0xc357], ['HandlePlayer', 0x68390], ['ShipCanSelfRepair', 0x9134], ['HandleShip', 0x33581], ['AICallForReinforcements', 0x7f5a1], ['InitObjects', 0x1c2e5], ['SelectWarshipTarget', 0x89d5e], ['AIDoesShipLikePlayer', 0x82177], ['IsThreatToStellar', 0x9ef7], ['DoPlanetCommDialog', 0x96949]],
     },
     ModVal: {
       note: 'How much of the effect ModType sets. See there. For ModType 1, 3, and 21 the game stores the id minus 128.',
@@ -956,7 +956,7 @@ const NOVA_FIELD_NOTES = {
       code: [['HasMaxOfItem', 0x4512], ['CanBuyOutfitItem', 0x4e7c4]],
     },
     Flags: {
-      note: '0x0001: a fixed gun. 0x0002: a turret. Both count against the ship\'s MaxGun and MaxTur. 0x0004: it stays with the player when the player buys or captures another ship and the ship\'s trade-in leaves it out. With 0x0004 or 0x0020 it also stays when a mission changes the player\'s ship. 0x0008: the player cannot sell it. 0x0010: the game removes the player\'s stock of it when the player leaves the outfitter. 0x0100: not offered unless the player\'s bits meet its Requires or the player has one. 0x4000: not offered unless its Availability test passes or the player has one. 0x0200: its price is Cost × the player\'s ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of the player\'s ship class\'s. 0x0800: any outfitter shows it while the player has one. 0x1000: while it is on offer the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among the player\'s ranks in the player info instead of among the rest. The program reads no other bit.',
+      note: '0x0001: a fixed gun. 0x0002: a turret. Both count against the ship\'s MaxGun and MaxTur. 0x0004: it stays with the player when the player buys or captures another ship and the ship\'s trade-in leaves it out. With 0x0004 or 0x0020 it also stays when a mission changes the player\'s ship. 0x0008: the player cannot sell it. 0x0010: the game removes the player\'s stock of it when the player leaves the outfitter. 0x0100: not offered unless the player\'s bits meet its Requires or the player has one. 0x4000: not offered unless its Availability test passes or the player has one. 0x0200: its price is Cost × the player\'s ship class\'s Mass when that is more. 0x0400: its Mass is that percentage of the player\'s ship class\'s Mass. It never falls below the outfit\'s Mass field. 0x0800: any outfitter shows it while the player has one. 0x1000: while it is on offer the outfitter offers no higher-numbered item of the same DispWeight. 0x2000: shown among the player\'s ranks in the player info instead of among the rest. The program reads no other bit.',
       code: [['HasMaxOfItem', 0x4512], ['LoadObjectData', 0x771b0], ['DoShipyardDialog', 0x5e679], ['PlayerShipTradeInPrice', 0xb079], ['EvalSetExp', 0x150fc], ['DoOutfitDialog', 0x5bacf], ['SetupPortAvailableItems', 0xbedb], ['AdjustedItemCost', 0x5869], ['AdjustedItemMass', 0x2889], ['SetupPlayerInfoText', 0x53cb8]],
     },
     Cost: {
@@ -1084,11 +1084,11 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {
-      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) instead of following their heading. 0x0004: they start from the first frame. 0x0008: the game picks a homing one only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire together and reload together. 0x0080: point defense ignores its shots. 0x0100: its blast does not hurt the player. 0x1000 to 0x4000: a turret blind ahead (0x1000), abeam (0x2000), or astern (0x4000). 0x8000: a shot goes off with its blast when its life ends. 0x0010: its Sound loops. 0x0200 and 0x0400: small or big smoke (SmokeSet). 0x0800: the smoke lasts longer. 0x0002: the player fires it with the second trigger. Another ship that picks one continues firing it step after step. For primary weapons that ship picks again each time.',
+      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) instead of following their heading. 0x0004: they start from the first frame. 0x0008: the game picks a homing one only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire together and reload together. 0x0080: point defense ignores its shots. 0x0100: its blast does not hurt the player. 0x1000 to 0x4000: as a turret it cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). The ship class\'s Flags add the same. 0x8000: a shot goes off with its blast when its life ends. 0x0010: its Sound loops. 0x0200 and 0x0400: small or big smoke (SmokeSet). 0x0800: the smoke lasts longer. 0x0002: the player fires it with the second trigger. Another ship that picks one continues firing it step after step. For primary weapons that ship picks again each time.',
       code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['HandleShip', 0x33581], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
     },
     Seeker: {
-      note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship is fully ionized. The rest apply to a homing shot. 0x0002: an asteroid ahead decoys it. 0x0008: the system\'s interference can make it lose its target when fired and spiral. 0x0010: jamming turns it away. 0x4000: it loses its target once that is more than 45° off its nose within 250. 0x8000: when jammed or lost it now and then turns on its firing ship.',
+      note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship has any ionization. The rest apply to a homing shot. 0x0002: an asteroid ahead decoys it. 0x0008: the system\'s interference can make it lose its target when fired and spiral. 0x0010: jamming turns it away. 0x4000: it loses its target once that is more than 45° off its nose within 250. 0x8000: when jammed or lost it now and then turns on its firing ship.',
       code: [['HandleShotGuidance', 0x320dc], ['SpawnShot', 0x3e550], ['HandleBeams', 0x30295], ['HandleShip', 0x33581]],
     },
     Decay: {
@@ -1124,8 +1124,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShot', 0x35586], ['HandleBeams', 0x30295]],
     },
     Falloff: {
-      note: 'How fast a decaying beam fades (Decay). A beam with a BeamLength and 0 or less here fades over 16.',
-      code: [['LoadObjectData', 0x771b0], ['HandleBeams', 0x30295]],
+      note: 'A beam with Decay above 0 fades for 15 - Falloff frames after its Count and strikes as it fades. Loading turns 0 or less into 16 for a beam with a BeamLength. Such a beam does not fade. A lightning beam has 0 (LiDensity). A shot with Falloff above 0 fades out over 32 ÷ Falloff steps once fewer than 32 steps of its life remain. Below 0 it fades in over 32 ÷ |Falloff| steps from firing.',
+      code: [['LoadObjectData', 0x771b0], ['HandleBeams', 0x30295], ['HandleShot', 0x35586]],
     },
     SubType: {
       note: 'The weapon of its submunitions (SubCount). 128 to 383: that wëap. Anything else: none. Its reach adds to this one\'s.',
@@ -1157,8 +1157,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45]],
     },
     Recoil: {
-      note: 'Pushes the firing ship back by Recoil ÷ its Mass each time it fires. Below 0: forward. 0 or -1: none.',
-      code: [['FireAIShipWeapon', 0x8873d]],
+      note: 'Pushes the firing ship back by Recoil ÷ its Mass each time it fires. Below -1 it pushes another ship forward. The player\'s ship moves only for a Recoil above 0. 0 and -1: none.',
+      code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702]],
     },
     ExitType: {
       note: 'Which of the shän\'s four sets of exit points its shots use. They use the points in turn (or the one nearest the target with Flags3 0x0010). 0: guns. 1: turrets. 2: guided. 3: beams. Anything else: the middle of the ship.',
@@ -1193,8 +1193,8 @@ const NOVA_FIELD_NOTES = {
       code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702]],
     },
     Count: {
-      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100. Its submunitions extend that reach.',
-      code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586]],
+      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100. Its submunitions extend that reach. A beam lasts Count frames and strikes in each. At a higher frame rate it therefore strikes more often in a second.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586], ['SpawnBeam', 0x44ff3]],
     },
     Speed: {
       note: 'A shot moves Speed ÷ 100 units a step along its heading. With Count this sets its reach.',
@@ -1205,7 +1205,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
     },
     Impact: {
-      note: 'Pushes the ship it hits unless that ship is jumping.',
+      note: 'Pushes the ship it hits away from the hit by Impact ÷ that ship\'s Mass but no faster than its top speed. The player\'s ship can reach 1.8 × its top speed that way with its afterburner on in a system where no stellar has Gravity. Below 0 it pulls the ship toward the hit instead. The pull does not work while the firing ship is within 50 of it on either axis. A ship that is jumping does not move. Nor does a ship of Mass 0 or less and a planet-type ship (shïp Flags 0x0400).',
       code: [['DamageShip', 0x3a807]],
     },
     Ionization: {
@@ -1213,8 +1213,8 @@ const NOVA_FIELD_NOTES = {
       code: [['IonizeShip', 0x8409]],
     },
     SubCount: {
-      note: 'How many shots of SubType come from a shot as it breaks up.',
-      code: [['SpawnShotSubmunitions', 0x3f1d5]],
+      note: 'How many shots of SubType a shot releases. It releases them when its proximity fuse sets it off (ProxRadius). It releases them when its life ends too unless Flags2 0x0020. A shot that strikes a ship directly releases none.',
+      code: [['SpawnShotSubmunitions', 0x3f1d5], ['HandleShipHit', 0x36a45], ['HandleShot', 0x35586]],
     },
     SubTheta: {
       note: 'Above 0: each submunition leaves at random within this many degrees of the shot\'s heading. Below 0: the submunitions fan out this far apart.',
@@ -1620,6 +1620,7 @@ function novaModValRead(game, t, v) {
   if (t === 15) return `${v} fuel a second`;
   if (t === 23) return `${v > 0 ? '+' : ''}${v} added to the 1,000 from the middle`;
   if (t === 39) return `${novaNum(v * 0.3)} a second`;
+  if (t === 30) return novaBitsRead(v & 15, { 1: 'cloaked ships on radar', 2: 'cloaked ships seen', 4: 'untargetable ships targeted', 8: 'cloaked ships targeted' });
   if (t === 17) return novaBitsRead(v & 0x100e, { 2: 'on radar', 4: 'drops shields', 8: 'drops when hit', 0x1000: 'area' }) + ` · fuel ${(v >> 4) & 15} · shield ${(v >> 8) & 15}`;
   return t === -1 || t === 0 ? 'not read' : `${v}`;
 }
@@ -1744,7 +1745,7 @@ const NOVA_FIELD_SHORT = {
     MaxAmmo: 'Most ammunition per launcher', MassDmg: 'Armor damage', EnergyDmg: 'Shield damage', Guidance: 'How it flies and fires', AmmoType: 'What a shot uses', Graphic: 'Shot sprite',
     Inaccuracy: 'Spread of its shots', ExplodType: 'Explosion where it hits', ProxRadius: 'Proximity fuse reach', BlastRadius: 'Blast reach', Flags: 'Frames, shields, firing together, and more',
     Seeker: 'Asteroids, ionization, decoys, and jamming', Decay: 'Damage lost as it flies', Particles: 'Trail particles', PartVel: 'Trail particle speed', PartLifeMin: 'Shortest trail particle life',
-    PartLifeMax: 'Longest trail particle life', PartColor: 'Trail particle color', BeamLength: 'Beam reach', BeamWidth: 'Beam width or steps a frame', Falloff: 'Beam fade', SubType: 'Submunition weapon',
+    PartLifeMax: 'Longest trail particle life', PartColor: 'Trail particle color', BeamLength: 'Beam reach', BeamWidth: 'Beam width or steps a frame', Falloff: 'How fast it fades', SubType: 'Submunition weapon',
     ProxSafety: 'Steps before it arms', Flags2: 'Frames, hits, submunitions, planet-type, and more', HitParticles: 'Particles where it hits', HitPartLife: 'Hit particle life', HitPartVel: 'Hit particle speed',
     HitPartColor: 'Hit particle color', Recoil: 'Push back on the firer', ExitType: 'Which exit points', BurstCount: 'Shots a burst', BurstReload: 'Reload after a burst', JamVuln: 'How jamming affects it',
     Flags3: 'Ammunition, single shots, and exit point', Durability: 'What point defense wears down', IonizeColor: 'Color of an ionized ship', Reload: 'Steps between shots', Count: 'Steps a shot lasts',
@@ -2042,12 +2043,12 @@ const NOVA_FIELD_READS = {
     Flags3: v => novaBitsRead(v, { 1: 'ammunition a burst', 2: 'translucent', 4: 'one shot at a time', 0x10: 'nearest exit', 0x20: 'exclusive',
       0x8: 'not read', 0x40: 'not read', 0x80: 'not read', 0x100: 'not read', 0x200: 'not read', 0x400: 'not read', 0x800: 'not read', 0x1000: 'not read', 0x2000: 'not read', 0x4000: 'not read', 0x8000: 'not read' }),
     SubType: (v, r, g) => r.SubCount > 0 && v >= 128 && v <= 383 ? novaRefText(g, 'wëap', v) : 'none',
-    Recoil: v => v > 0 ? `${v} back divided by the ship's Mass` : v < -1 ? `${-v} forward divided by the ship's Mass` : 'none',
+    Recoil: v => v > 0 ? `${v} back divided by the ship's Mass` : v < -1 ? `${-v} forward divided by the ship's Mass (not the player's ship)` : 'none',
     ExitType: v => ({ 0: 'gun points', 1: 'turret points', 2: 'guided points', 3: 'beam points' })[v] || 'the middle',
     BurstCount: (v, r) => v > 0 ? `${v} shots${r.Flags & 0x40 ? '' : ' a weapon'} and then ${r.BurstReload}` : 'no bursts',
     Durability: v => v > 0 ? `${v}` : 'none: the first hit',
     Decay: v => v > 0 ? `1 damage every ${v} steps` : 'none',
-    Count: (v, r) => `${v} steps with a reach of ${Math.trunc(v * r.Speed / 100)}`,
+    Count: (v, r) => [0, 3, 10].includes(r.Guidance) ? `${v} frames` : `${v} steps with a reach of ${Math.trunc(v * r.Speed / 100)}`,
     GuidedTurn: v => `${v / 10}° a step`,
     SubTheta: v => v > 0 ? `within ${v}° at random` : v < 0 ? `fanned ${-v}° apart` : 'straight on',
     SubLimit: v => v < 1 ? 'no limit' : `${v} generations`,

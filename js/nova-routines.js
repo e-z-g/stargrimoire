@@ -283,6 +283,7 @@ const NOVA_ROUTINES = {
     ShipCanScoop: [0x1af4b0, 0x1b2690, 0x1b2b40],
     ShipCanSeeCloakedShips: [0x1a6e20, 0x1a9f10, 0x1aa350],
     ShipCanSelfRepair: [0x1b0ee0, 0x1b4040, 0x1b4550],
+    ShipCanTargetCloakedShips: [0x1af340, 0x1b2520, 0x1b29d0],
     ShipCanTargetUntargetableShips: [0x1af1d0, 0x1b23b0, 0x1b2860],
     ShipCloakVisibleOnRadar: [0x1a6ce0, 0x1a9dd0, 0x1aa210],
     ShipCollisionHandler: [0x153a90, 0x155070, 0x155130],

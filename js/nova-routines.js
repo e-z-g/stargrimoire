@@ -71,6 +71,7 @@ const NOVA_ROUTINES = {
     CloakShieldUsage: [0x1a6bb0, 0x1a9ca0, 0x1aa0e0],
     CloakZeroesShields: [0x1a6950, 0x1a9a40, 0x1a9e80],
     ColorCodeStellar: [0x1a7e60, 0x1ab000, 0x1ab440],
+    ColorCodeSystem: [0x1a80e0, 0x1ab280, 0x1ab6c0],
     CommFilter: [0x11d820, 0x11dbb0, 0x11dc00],
     CreateAsteroids: [0x17c780, 0x17ebe0, 0x17f070],
     CreateExplosion: [0x17c210, 0x17e650, 0x17eae0],

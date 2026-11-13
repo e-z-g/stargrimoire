@@ -1452,8 +1452,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['FindNearestStellar', 0x276c]],
     },
     Type: {
-      note: 'Its picture. Its sprite is spïn 1000 + Type and its landing picture is PICT 10000 + Type unless CustPicID is 128 or more.',
-      code: [['LoadObjectData', 0x771b0], ['HandleStellarSprites', 0x2e6f1], ['PreloadPortDialog', 0x4e5c7]],
+      note: 'Its picture. Its sprite is spïn 1000 + Type and its landing picture is PICT 10000 + Type unless CustPicID is 128 or more. The kind its hail dialog shows is STR 7000 + Type. Without that STR it is STR# 1100\'s string Type + 1. Its circle on the radar is larger for a sprite 90 or more wide and larger again from 200.',
+      code: [['LoadObjectData', 0x771b0], ['HandleStellarSprites', 0x2e6f1], ['PreloadPortDialog', 0x4e5c7], ['DoPlanetCommDialog', 0x96949], ['DrawStatusRadar', 0x496e0]],
     },
     Flags: {
       note: '0x01: the player can land or dock. 0x80: only while destroyed. 0x02: a commodity exchange. 0x04: an outfitter. 0x08: a shipyard. 0x40: a bar. 0x10: a station. Being a station changes the words of hails, landing, and advice. 0x20: uninhabited. The player cannot hail it and it gives no missions and no services. The next 24 bits are the six commodities\' prices with a nibble each from the top. 1: low. 2: medium. 4: high. Only the first bit set counts. 0: not traded.',
@@ -1472,8 +1472,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SetupPortAvailableShipTypes', 0xbbe3]],
     },
     MinStatus: {
-      note: 'The player may land on it only while the player\'s record in its system is at least this. At 32767 never and at -32767 always. A stellar with no government always lets the player land. So do one the player has dominated or just bribed, one a mission of the player\'s goes to (TravelStel or ReturnStel), and one while the player has a ränk with Flags 0x0200 of its government or an ally. In its hail dialog it treats the player as hated while the player\'s record is below this. The radar then shows it orange (red while the record is below 0). Releasing it once dominated puts the player\'s record there just below this.',
-      code: [['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9], ['ColorCodeStellar', 0xaa26]],
+      note: 'The player may land on it only while the player\'s record in its system is at least this. At 32767 never and at -32767 always. A stellar with no government always lets the player land. So do one the player has dominated or just bribed, one a mission of the player\'s goes to (TravelStel or ReturnStel), and one while the player has a ränk with Flags 0x0200 of its government or an ally. In its hail dialog it treats the player as hated while the player\'s record is below this. The radar then shows it orange (red while the record is below 0). Releasing it once dominated puts the player\'s record there just below this. The star map colors an explored system by its landable stellars. Green means the player has dominated one. Blue means the player may land on one. Orange means the player may land on none while the record there is 0 or more. Red means the record is below 0.',
+      code: [['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949], ['PlanetCommFilter', 0x911a9], ['ColorCodeStellar', 0xaa26], ['ColorCodeSystem', 0xd672]],
     },
     CustPicID: {
       note: 'The picture when the player lands. 128 and up: that PICT. Below 128: PICT 10000 + Type. For a hypergate it is where the frames split when it is from 1 to the frame count minus 2. The frames below this number are the opening frames.',
@@ -1540,24 +1540,24 @@ const NOVA_FIELD_NOTES = {
       code: [['HandlePlayerDockRequest', 0x66691], ['HandlePlayerDockApproach', 0x647a6], ['DoPlanetCommDialog', 0x96949]],
     },
     Gravity: {
-      note: 'While the player is in its system it pulls every ship in the system toward the stellar however far. Each step the pull is Gravity × the game speed ÷ the square of the distance in hundreds of units. The square counts as at least 30. Below 0: it pushes instead. 0: nothing. Inertialess ships do not feel it and neither do ship classes with Flags3 0x0020 or the player\'s ship if an outfit with ModType 41 is aboard.',
-      code: [['HandleGravity', 0x39bc3], ['ApplyGravity', 0x7c5a], ['ShipResistsGravity', 0x7b10]],
+      note: 'While the player is in its system it pulls every ship in the system toward the stellar however far. Each step the pull is Gravity × the game speed ÷ the square of the distance in hundreds of units. The square counts as at least 30. Below 0: it pushes instead. 0: nothing. Inertialess ships do not feel it and neither do ship classes with Flags3 0x0020 or the player\'s ship if an outfit with ModType 41 is aboard. The star map lists gravity shear among the system\'s navigation hazards while one of its stellars has Gravity.',
+      code: [['HandleGravity', 0x39bc3], ['ApplyGravity', 0x7c5a], ['ShipResistsGravity', 0x7b10], ['MapDialogUpdate', 0xf5d1]],
     },
     Weapon: {
       note: 'Below 128: none. It does not fire once destroyed. It fires on the player and the player\'s escorts while the player\'s record in the system is below -CrimeTol of its government (or of the system\'s when it has none). With that government\'s Flags 0x0001 it fires once the record is below 0. It also fires on them while the combat government of the player\'s ship (shïp InherentGovt) is that government\'s enemy. It does not fire on the player once the player has dominated it or just bribed it. Nor does it while the player has a ränk with Flags 0x0100 of its government or an ally. It fires on other ships whose government is its government\'s enemy.',
       code: [['LoadObjectData', 0x771b0], ['HandleStellarWeapons', 0x2ef3a]],
     },
     Strength: {
-      note: 'Its strength to start with and its most. 0 or less: it is never destroyed.',
-      code: [['LoadObjectData', 0x771b0], ['StellarIsDestroyed', 0x4e14]],
+      note: 'Its strength to start with and its most. It returns to it on regenerating. 0 or less: it is never destroyed. Ships that attack stellars (mïsn ShipBehav 2) pass it over.',
+      code: [['LoadObjectData', 0x771b0], ['StellarIsDestroyed', 0x4e14], ['IncrementGameTime', 0xb516], ['DeathStarAI', 0x8c125]],
     },
     DeadType: {
-      note: 'With a value above 255 or below 0 it uses its Type.',
-      code: [['LoadObjectData', 0x771b0]],
+      note: 'Its picture while destroyed. Its sprite is then spïn 1000 + DeadType. With a value above 255 or below 0 it uses its Type.',
+      code: [['LoadObjectData', 0x771b0], ['HandleStellarSprites', 0x2e6f1], ['HandleStellarSystemVisibility', 0x32aa5]],
     },
     ExplodType: {
-      note: 'Below 0: none.',
-      code: [['LoadObjectData', 0x771b0]],
+      note: 'The explosion when it blows up (as wëap ExplodType). A planet-type weapon that destroys it sets it off. So does a control-bit set (Y) while the player is in its system. Below 0: none.',
+      code: [['LoadObjectData', 0x771b0], ['CheckShotProximities', 0x371bc], ['EvalSetExp', 0x150fc]],
     },
   },
 };

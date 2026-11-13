@@ -402,9 +402,9 @@ const novaNow = w => 2 * w.t;   // TickCount, in 60ths
 // frameCounter (PlayGame 0x457ba): a step at a time, after 1024 back to 0
 const novaFrameCounter = w => w.t % 1025;
 /* HandleShipDisplay 0x2b58f, a ship that folds (shän Flags 0x02, not
-   banking): unfolding (fold 1) or folding (-1) a set every AnimDelay steps,
-   between the first set and the last; one that folds to fire (0x80)
-   unfolds again 45 ticks after it last fired. */
+   banking): toward the last set (fold 1) or the first (-1) a set every
+   AnimDelay steps; one that fires from the first set (0x80) heads back to
+   the last 45 ticks after it last fired. */
 function novaFoldStep(w, s) {
   const c = s.cls;
   if ((c.shanFlags & 1) || !(c.shanFlags & 2)) return;
@@ -991,7 +991,7 @@ function novaAI(w, s) {
   if (s.formLead) novaFormation(w, s, false);
   if (s.disabled && s.jump > 0) s.jump = -1;
   let think = true;
-  // a ship that folds (shän Flags 0x02) unfolds when idle, and folds to jump; one that folds to fire (0x80) only 45 ticks after it last fired
+  // a ship that folds (shän Flags 0x02) goes to its last set when idle and to its first to jump; one that fires from the first set (0x80) goes to the last only 45 ticks after it last fired
   const fold = (s.cls.shanFlags & 2) !== 0, rested = !(s.cls.shanFlags & 0x80) || novaNow(w) >= s.lastFire + 45;
   if (s.jump < -900) {
     s.state = 8; s.mode = 10;

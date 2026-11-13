@@ -1144,7 +1144,7 @@ function novaEscortFireUnprovoked(w, s) {
 function novaFireShipWeapon(w, s) {
   const D = w.D, i = s.lastW, r = s.wi.get(i), W = novaWeapOf(D, i);
   s.lastFire = novaNow(w);
-  // a ship that folds to fire (shän Flags 0x02 and 0x80) fires only folded, folding first
+  // a ship that fires from its first set (shän Flags 0x02 and 0x80) fires only there, going back to it first
   if ((s.cls.shanFlags & 2) && (s.cls.shanFlags & 0x80) && s.foldFrame > 0 && s.cls.sets > 1) { s.fold = -1; return; }
   if (!r || !W || r.reload > 0 || r.count <= 0) return;
   const n = novaMaxShots(w, s, W, r);

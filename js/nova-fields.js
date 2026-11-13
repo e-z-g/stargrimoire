@@ -24,7 +24,7 @@ const NOVA_FIELD_NOTES = {
   'nëbu': {
     XPos: { note: 'With YPos it gives the top left corner of its rectangle on the galaxy map. The map draws its picture there.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f]] },
     YPos: { note: 'With XPos it gives the top left corner of its rectangle on the map.', code: [['MapDialogUpdate', 0xf5d1]] },
-    XSize: { note: 'Its rectangle\'s width on the map. A system is in the nebula when its place lies inside the rectangle at least 8 in from its edges.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f]] },
+    XSize: { note: 'Its rectangle\'s width on the map. A system is in the nebula when its place lies inside the rectangle at least 8 in from its edges. With a width or a height of 0 or less the nebula is never there.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f], ['PropagateMissionBitEffects', 0x99676]] },
     YSize: { note: 'Its rectangle\'s height on the map. See XSize.', code: [['MapDialogUpdate', 0xf5d1], ['ExploreNebulaeFromSystem', 0x508f]] },
     ActiveOn: { note: 'A test of control bits. While it fails the map does not draw the nebula and flying into it does nothing. Empty: no test.', code: [['PropagateMissionBitEffects', 0x99676], ['ExploreNebulaeFromSystem', 0x508f], ['MapDialogUpdate', 0xf5d1]] },
     OnExplore: { note: 'Control bits set the first time the player arrives in a system inside it while it is active. Empty: none.', code: [['ExploreNebulaeFromSystem', 0x508f], ['EvalMissionBitSetString', 0x99dc5]] },
@@ -58,8 +58,8 @@ const NOVA_FIELD_NOTES = {
     GraphicIndex: { note: 'Its picture is spïn 400 + n.', code: [['SpawnExplod', 0x3f5dc], ['HandleExplods', 0x2f5d2]] },
   },
   'röid': {
-    Strength: { note: 'How much damage breaks it (a shot\'s EnergyDmg or a beam\'s MassDmg). At least 1.', code: [['LoadObjectData', 0x771b0], ['HandleAsteroidHit', 0x36637], ['HandleBeams', 0x30295]] },
-    SpinRate: { note: 'It turns SpinRate ÷ 100 frames a step. Each asteroid turns at 80% to 120% of that in either direction.', code: [['SpawnAsteroid', 0x3a233], ['HandleAsteroids', 0x361ac]] },
+    Strength: { note: 'How much damage breaks it (a shot\'s EnergyDmg or a beam\'s MassDmg). At least 1.', code: [['LoadObjectData', 0x771b0], ['HandleAsteroidHit', 0x36637], ['HandleBeams', 0x30295], ['SpawnAsteroid', 0x3a233], ['SpawnSubAsteroid', 0x3fbc7]] },
+    SpinRate: { note: 'It turns SpinRate ÷ 100 frames a step. Each asteroid turns at 80% to 120% of that in either direction.', code: [['SpawnAsteroid', 0x3a233], ['SpawnSubAsteroid', 0x3fbc7], ['HandleAsteroids', 0x361ac]] },
     YieldType: { note: 'What it leaves when broken. 0 to 6: a commodity. 1000 to 1127: a jünk. Anything else: nothing. Each box the player scoops up is a ton of it.', code: [['LoadObjectData', 0x771b0], ['DestroyAsteroid', 0xadc9], ['SpawnScoopableBox', 0x3e3c5]] },
     YieldQty: { note: 'How many boxes it leaves (YieldQty × 0.5 to 1.5). Below 0: none.', code: [['DestroyAsteroid', 0xadc9]] },
     PartCount: { note: 'Particles thrown out when it breaks. 0 or less: none.', code: [['DestroyAsteroid', 0xadc9], ['SpawnParticles', 0x44b70]] },
@@ -182,8 +182,8 @@ const NOVA_FIELD_NOTES = {
   },
   'öops': {
     Commodity: {
-      note: 'Which of the six standard commodities (0 to 5) the disaster changes. While the disaster lasts that commodity\'s price at its stellar is its base price plus PriceDelta whatever the stellar\'s demand. The price is at least 5.',
-      code: [['DoTradeDialog', 0x5dbe1]],
+      note: 'Which of the six standard commodities (0 to 5) the disaster changes. Above 5 counts as 5 and below 0 as none. While the disaster lasts that commodity\'s price at its stellar is its base price plus PriceDelta whatever the stellar\'s demand. The price is at least 5. The commodity exchange marks the price Higher or Lower by PriceDelta\'s sign. The bar\'s news reports it raised or lowered. Advice from a hailed ship can report the price there as very low or very high.',
+      code: [['DoTradeDialog', 0x5dbe1], ['LoadObjectData', 0x771b0], ['TradeDialogUpdate', 0x4ceea], ['RandomizeNewsDialog', 0x48238], ['LoadAdvice', 0x9133c]],
     },
     PriceDelta: {
       note: 'Added to the Commodity\'s base price at the stricken stellar while the disaster lasts. The price stays at 5 or more.',
@@ -224,8 +224,8 @@ const NOVA_FIELD_NOTES = {
       code: [['SelectShipFieldFromDude', 0x65c2], ['Rand', 0xa4c76]],
     },
     Booty: {
-      note: 'What the player finds when boarding one of its ships. 0x0001 to 0x0020: the six commodities in order. The game picks one of those set at random. The player finds between half its Holds and all of its Holds in tons of it. 0x0040: credits. That is 2.5% of its class\'s Cost (or up to just under 5% for a class costing 81,000 or more) and at least 1,000. Without it only a përs\'s ship has credits (half to all of the përs\'s Credits). A bit above 0x0040 set with none of 0x0001 to 0x0020 hangs the game when the player boards. The program draws a commodity forever.',
-      code: [['SetPlunderValues', 0x92219], ['Rand', 0xa4c76]],
+      note: 'What the player finds when boarding one of its ships. 0x0001 to 0x0020: the six commodities in order. The game picks one of those set at random. The player finds between half its Holds and all of its Holds in tons of it. 0x0040: credits. That is 2.5% of its class\'s Cost (or up to just under 5% for a class costing 81,000 or more) and at least 1,000. Without it only a përs\'s ship has credits (half to all of the përs\'s Credits). A bit above 0x0040 set with none of 0x0001 to 0x0020 hangs the game when the player boards. The program draws a commodity forever. 0x0100: its ships and the player\'s side cannot hit each other. The player\'s side is the player\'s ship, its escorts, and their fighters.',
+      code: [['SetPlunderValues', 0x92219], ['Rand', 0xa4c76], ['ShotCanHitShip', 0x4477e], ['HandleBeams', 0x30295]],
     },
     InfoTypes: {
       note: 'What its ships reply when the player hails them. The game picks one of the kinds set at random. 0x1000: a stellar where one of the six commodities has a low or high price (a good place to trade it). 0x2000: the price of a commodity at a stellar where a disaster is under way. 0x4000: a string from STR# 7500 plus the low twelve bits. The program never draws the number that picks it. So the reply is the first string until the player hails a stellar and almost never another one afterwards. 0x8000: one of strings 1 to 5 of STR# 7000 + (its gövt - 128) for a trading ship (an AI of 2 or less) and 6 to 10 for others. A plug-in\'s \'STR \' 10010 + 10 × (gövt - 128) + 0 to 4 (or 10015 + …) comes first. None of these: STR# 2002\'s string 175.',
@@ -308,8 +308,8 @@ const NOVA_FIELD_NOTES = {
       code: [['PlayerEffectiveMurk', 0x6f8f], ['HandleShipDisplay', 0x2b514], ['HandleSpriteMurkiness', 0x2b42f]],
     },
     Asteroids: {
-      note: 'How many asteroids are around the player (up to 16). The game places them when the player arrives and adds one at the edge of the screen whenever there are fewer. 0 or less: none.',
-      code: [['CreateAsteroids', 0x3fa05], ['SpawnAsteroid', 0x3a233]],
+      note: 'How many asteroids are around the player. Loading multiplies it by the game window\'s width ÷ 640 up to 16. The game places them when the player arrives and adds one at the edge of the screen whenever there are fewer. 0 or less: none. The star map calls 1 to 3 a sparse asteroid field, 4 to 6 moderate, and anything above 6 dense.',
+      code: [['LoadObjectData', 0x771b0], ['CreateAsteroids', 0x3fa05], ['SpawnAsteroid', 0x3a233], ['MapDialogUpdate', 0xf5d1]],
     },
     AstTypes: {
       note: 'Which röid types the asteroids are. The game draws them at random among those set. Bit 0x0001 is röid 128, 0x0002 is röid 129, and so on to 0x8000 (röid 143). 0: no asteroids.',
@@ -328,8 +328,8 @@ const NOVA_FIELD_NOTES = {
       code: [['SetupShipsInSystem', 0x42b61], ['EnterMoreShips', 0x43459], ['HyperShipSpawn', 0x4291a], ['SpawnPerson', 0x408d5], ['SpawnFleet', 0x42704], ['RandomShipSpawn', 0x3c0f3], ['Rand', 0xa4c76]],
     },
     Person: {
-      note: 'Up to eight përs that may be here as well as those AvgShips brings. Each comes when the player enters with a chance of its PersonProb in 100. No one may have destroyed or captured it and its ActivateOn test must pass.',
-      code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['EvalMissionBitTestString', 0x9959e]],
+      note: 'Up to eight përs that may be here as well as those AvgShips brings. Only përs 128 to 1150 count. Each comes when the player enters with a chance of its PersonProb in 100. No one may have destroyed or captured it and its ActivateOn test must pass.',
+      code: [['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['EvalMissionBitTestString', 0x9959e], ['LoadObjectData', 0x771b0]],
     },
     PersonProb: {
       note: 'The chance in 100 that the Person beside it comes when the player enters.',
@@ -614,13 +614,13 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['HandleVoiceSound', 0x31e20], ['LaunchFighter', 0x3d62d], ['DoShipCapture', 0x41120], ['AIShipCapturedByPlayer', 0x89693], ['EscortAI', 0x838d2]],
     },
     Flags: {
-      note: '0x0001: every government not its ally and every independent ship is its enemy (Enemies). Its warships also attack the player. They leave the player alone in its systems while the player\'s record there is above 0. They also leave the player alone while the player has a ränk with Flags 0x0100 of this government or an ally. Only warships of this government come to help its ships. Its armed stellars fire on the player while the player\'s record there is below 0. In its systems the status display shows N/A in place of the player\'s legal status. When the player harms a ship with no government the record in its systems rises by half its penalty of that kind. 0x0004: its warships and interceptors attack the player whenever they see the player. 0x0008: shots from the player and the player\'s fleet do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full depending on their aggression or at the share a përs sets. They also run below half their shields once the odds against them pass MaxOdds. Without it they fight on. 0x0040: its warships and interceptors leave the player alone. The shots of the player\'s fleet and its ships do not hit each other. 0x0080: the game halves the jamming of its ships other than the player\'s (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. Its interceptors (AIType 4) run below half their shields once the odds against them pass MaxOdds. 0x0200: its warships accept bribes. 0x2000: its freighters accept bribes. 0x4000: its stellars accept bribes. 0x0400: the player cannot hail its ships. 0x0800: its ships are derelicts. They are always disabled and no one\'s ally or enemy. Nothing the player does to them brings a penalty. No warship comes to help them. The player cannot capture them. Those the game places as the player enters sit still. A përs\'s ship of it starts with no shields. 0x1000: its warships fly the pirate warship AI and plunder before they destroy. They take no bribes. They turn down the player\'s request for help. The target display marks its ships with "p". 0x0002: its warships also attack the player in other governments\' and independent systems when the record there is below -2 × CrimeTol. Its warships also come to help ships of a government that is neither its ally nor its enemy and ships with no government when something attacks them. Without it they help only the ships of this government and its allies. When the player harms a ship with no government the record in its systems falls by half its penalty of that kind (unless it also has 0x0001). 0x0020: no warship comes to help its ships when something attacks them. That includes this government\'s warships. 0x8000: its ships demand a bigger bribe of 10,000 + 1,000 × a random number up to the player\'s credits ÷ 10,000. Otherwise the bribe is 3,000 + 1,000 × a random number up to the player\'s credits ÷ 2,000,000. The game multiplies a ship\'s bribe by a random 0.8 to 1.2 that is sometimes 0.5 lower or higher. A stellar demands 3,000 + 1,000 × a random number up to the player\'s credits ÷ 1,000,000. Its stellars demand half as much again and always accept one. A bribe is at most a third of the player\'s credits. The game rounds it down to a thousand. A ship\'s bribe is from 1,000 to 20,000 and a stellar\'s from 1,000 to 900,000.',
-      code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['InterceptorAI', 0x8c895], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823], ['DrawLegalStatusString', 0xd43f], ['IsThreatToStellar', 0x9ef7], ['RecursivePenaltySlap', 0x980a], ['DoPlunderDialog', 0x9302b], ['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['DrawStatusTarg', 0x4ace1]],
+      note: '0x0001: every government not its ally and every independent ship is its enemy (Enemies). Its warships also attack the player. They leave the player alone in its systems while the player\'s record there is above 0. They also leave the player alone while the player has a ränk with Flags 0x0100 of this government or an ally. Only warships of this government come to help its ships. Its armed stellars fire on the player while the player\'s record there is below 0. In its systems the status display shows N/A in place of the player\'s legal status. When the player harms a ship with no government the record in its systems rises by half its penalty of that kind. 0x0004: its warships and interceptors attack the player whenever they see the player. 0x0008: shots from the player and the player\'s fleet do not hit its ships. 0x0010: its warships run when their shields fall below 30% or 15% of full depending on their aggression or at the share a përs sets. They also run below half their shields once the odds against them pass MaxOdds. Without it they fight on. 0x0040: its warships and interceptors leave the player alone. The shots of the player\'s fleet and its ships do not hit each other. 0x0080: the game halves the jamming of its ships other than the player\'s (InhJam). 0x0100: a përs\'s ship of it launches no escape pod. Its interceptors (AIType 4) run below half their shields once the odds against them pass MaxOdds. 0x0200: its warships accept bribes. 0x2000: its freighters accept bribes. 0x4000: its stellars accept bribes. 0x0400: the player cannot hail its ships. 0x0800: its ships are derelicts. They are always disabled and no one\'s ally or enemy. Nothing the player does to them brings a penalty. No warship comes to help them. The player cannot capture them. Those the game places as the player enters sit still. They show no engine glow. A përs\'s ship of it starts with no shields. 0x1000: its warships fly the pirate warship AI and plunder before they destroy. They take no bribes. They turn down the player\'s request for help. The target display marks its ships with "p". 0x0002: its warships also attack the player in other governments\' and independent systems when the record there is below -2 × CrimeTol. Its warships also come to help ships of a government that is neither its ally nor its enemy and ships with no government when something attacks them. Without it they help only the ships of this government and its allies. When the player harms a ship with no government the record in its systems falls by half its penalty of that kind (unless it also has 0x0001). 0x0020: no warship comes to help its ships when something attacks them. That includes this government\'s warships. 0x8000: its ships demand a bigger bribe of 10,000 + 1,000 × a random number up to the player\'s credits ÷ 10,000. Otherwise the bribe is 3,000 + 1,000 × a random number up to the player\'s credits ÷ 2,000,000. The game multiplies a ship\'s bribe by a random 0.8 to 1.2 that is sometimes 0.5 lower or higher. A stellar demands 3,000 + 1,000 × a random number up to the player\'s credits ÷ 1,000,000. Its stellars demand half as much again and always accept one. A bribe is at most a third of the player\'s credits. The game rounds it down to a thousand. A ship\'s bribe is from 1,000 to 20,000 and a stellar\'s from 1,000 to 900,000.',
+      code: [['GovtEnemies', 0x4f22], ['WarshipAI', 0x8b729], ['AIMakeShipAttackPlayer', 0x89c3e], ['ShotCanHitShip', 0x4477e], ['ShipECM', 0x3aff], ['HandleShip', 0x33581], ['DoCommDialog', 0x956d5], ['DoPlanetCommDialog', 0x96949], ['HandlePlayerCommunication', 0x61f48], ['IsDisabled', 0x2ce6], ['GovtAllies', 0x4e3d], ['SlapWithPenalty', 0x9bbc], ['AIDispatch', 0x8fb52], ['PirateWarshipAI', 0x8c2d2], ['InterceptorAI', 0x8c895], ['SelectWarshipTarget', 0x89d5e], ['DoGoodSamaritan', 0x82823], ['DrawLegalStatusString', 0xd43f], ['IsThreatToStellar', 0x9ef7], ['RecursivePenaltySlap', 0x980a], ['DoPlunderDialog', 0x9302b], ['SetupShipsInSystem', 0x42b61], ['SpawnPerson', 0x408d5], ['DrawStatusTarg', 0x4ace1], ['GenericRandomShipSpawn', 0x3c89f], ['ShipIsDerelict', 0x8225], ['SetPlunderValues', 0x92219]],
       bible: '0x0010: warships of this govt will retreat when their shields drop below 25%. 0x0080: freighters (AI types 1 and 2) have 50% of the standard InherentJam value for warships.',
     },
     Flags2: {
       note: '0x0001: the hail dialog offers no request for help with its ships. 0x0002 and 0x0004: how its systems count in drawing the political boundaries on the map. 0x0008: its ships do not signal for help. 0x0010: its ships help the player by repairing or refueling free of charge (as does a ränk with Flags 0x0800 held with an ally). 0x0020 to 0x0080 set where its ships go. 0x0020: never to a hypergate. 0x0040: to a hypergate whenever the system has one. 0x0080: to a wormhole whenever the system has one (without it never to a wormhole). Its mission ships always reach the player\'s system through a hypergate with 0x0040. Without it they do half the time and never with 0x0020. They always come through a wormhole with 0x0080 and otherwise one time in four.',
-      code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCommPayment', 0x920f3], ['SelectRandomStellarDest', 0x805de], ['HandlePlayerDockRequest', 0x66691]],
+      code: [['CommFilter', 0x908ed], ['AddSystemInfluenceToMap', 0x11592], ['AICallForHelp', 0x82ffb], ['DoCommDialog', 0x956d5], ['DoShipCommPayment', 0x920f3], ['SelectRandomStellarDest', 0x805de], ['HandlePlayerDockRequest', 0x66691], ['DrawCommDialogButtons', 0x28c43]],
     },
     CrimeTol: {
       note: 'Whether its warships attack the player depends on the player\'s record in the current system. In systems it governs they attack below -CrimeTol. In an ally\'s they attack below -1.5 × CrimeTol. In an enemy\'s they attack above CrimeTol. Elsewhere they attack only with Flags 0x0002 and below -2 × CrimeTol. A warship makes this test only within 600 × its aggression of the player on both axes. Most ships get an aggression of 0, 2, or 3 at random. So one in three never attacks the player for the player\'s record. The player\'s hired escorts have 2 and a përs\'s ship has its Aggress. The status display shows the player\'s legal status in its systems in steps. There is one for a record of 0 and one for a record below 0. It drops a step more at -1, -4, -16, -64, -256, -1,024, and -4,096 × CrimeTol. It rises a step above 0 and at 4, 16, 64, 256, and 1,024 × CrimeTol. Where the player has dominated stellars it shows that instead. A system with no government uses gövt 128\'s CrimeTol. Armed stellars of this government fire on the player while the record is below -CrimeTol.',
@@ -643,8 +643,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
     },
     ShootPenalty: {
-      note: 'The game never uses it. Firing on one of its ships brings no penalty. Only SmugPenalty, DisabPenalty, BoardPenalty, and KillPenalty change the player\'s record.',
-      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a]],
+      note: 'Firing on one of its ships brings no penalty. Only SmugPenalty, DisabPenalty, BoardPenalty, and KillPenalty change the player\'s record. A shot or beam the player aims at another ship can strike one of its ships instead. With ShootPenalty 0 or less that ship turns on the player only one time in four. It never does so while the player\'s target is its enemy. It also does so only after enough such hits.',
+      code: [['LoadObjectData', 0x771b0], ['RecursivePenaltySlap', 0x980a], ['DamageShip', 0x3a807]],
     },
     Classes: {
       note: 'Up to four class numbers (0 and up). Below 0: none. Other governments\' Allies and Enemies, missions, and other records use them to refer to it.',
@@ -1291,8 +1291,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
     },
     ShieldMod: {
-      note: 'Above 0: the ship\'s shields and armor are ShieldMod percent of its class\'s. 0 or less: as its class\'s.',
-      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5]],
+      note: 'Above 0: the ship\'s shields and armor are ShieldMod percent of its class\'s. 0: as its class\'s. Below 0: the game refills the ship\'s shields and armor every frame. The target display then shows only its government in place of its shields and armor.',
+      code: [['LoadObjectData', 0x771b0], ['SpawnPerson', 0x408d5], ['ShipShieldCapacity', 0x2995], ['ShipArmorCapacity', 0x2bc0], ['HandleShip', 0x33581], ['DrawStatusTarg', 0x4ace1]],
     },
     HailQuote: {
       note: 'The message this person\'s ship sends when it hails the player. It is the STR resource numbered HailQuote + 4999 where there is one and otherwise entry HailQuote of STR# 7101. -1: it does not hail. It hails 1 time in 140 each step as Flags allows. It must be in sight and not dying, jumping, or leaving, and 2,700 ticks must have passed since its last hail.',
@@ -1322,8 +1322,8 @@ const NOVA_FIELD_NOTES = {
   },
   'ränk': {
     Weight: {
-      note: 'Of the ranks the player holds that have a ConvName the heaviest gives <PRK> in the game\'s texts. Of those with a ShortName the heaviest gives <SRK>. Flags 0x0010 sets it against the other ranks of the same government.',
-      code: [['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0], ['DeactivateRank', 0x4541e], ['DoCommDialog', 0x956d5]],
+      note: 'Of the ranks the player holds that have a ConvName the heaviest gives <PRK> in the game\'s texts. Of those with a ShortName the heaviest gives <SRK>. Flags 0x0010 sets it against the other ranks of the same government. The player info shows the heaviest ranks first.',
+      code: [['SetupPlayerInfoText', 0x53cb8], ['MungeBriefing', 0x9c11d], ['ActivateRank', 0x452f0], ['LoadObjectData', 0x771b0], ['DeactivateRank', 0x4541e], ['DoCommDialog', 0x956d5]],
     },
     Govt: {
       note: 'Its government. 128 and up: that gövt. Below 128: none. Its PriceMod and Flags 0x0004, 0x0040, 0x0100, and 0x0200 apply at the stellars and ships of every government allied with it (GovtAllies and this one too). Flags 0x0001 and 0x0010 set it against the other ranks of this government.',
@@ -1334,8 +1334,8 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['DoPortDialog', 0x5f911]],
     },
     Salary: {
-      note: 'Credits added each day while the player holds it and the player\'s credits are below SalaryCap or SalaryCap is 0 or less. Below 0: the player loses that much but never drops below 0 credits.',
-      code: [['IncrementGameTime', 0xb516]],
+      note: 'Credits added each day while the player holds it and the player\'s credits are below SalaryCap or SalaryCap is 0 or less. Below 0: the player loses that much but never drops below 0 credits. While the player receives it the player info counts it in the daily Income.',
+      code: [['IncrementGameTime', 0xb516], ['PlayerInfoDialogUpdate', 0x5244f]],
     },
     SalaryCap: {
       note: 'The player receives Salary only while the player\'s credits are below this. 0 or less: always.',
@@ -1354,7 +1354,7 @@ const NOVA_FIELD_NOTES = {
       code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
     },
     ShortName: {
-      note: 'What replaces <SRK> in the game\'s texts while this is the heaviest rank the player holds with one (Weight).',
+      note: 'What replaces <SRK> in the game\'s texts while this is the heaviest rank the player holds with one (Weight). A text can also name a government as <PRKn> and <SRKn> for gövt n. The game fills both with ShortNames and crosses them over. <PRKn> becomes the heaviest ShortName the player holds with the government in the same text\'s <SRK> token. <SRKn> becomes the one for the government in its <PRK> token. Without the other token either becomes STR# 2002\'s 341st string. dësc 5066 names gövt 128 in both.',
       code: [['MungeBriefing', 0x9c11d], ['LoadObjectData', 0x771b0]],
     },
   },
@@ -1426,8 +1426,8 @@ const NOVA_FIELD_NOTES = {
       code: [['TerminateCron', 0x38467], ['EvalMissionBitSetString', 0x99dc5]],
     },
     Require: {
-      note: 'It starts only when the Contributes bits of the player\'s ship and outfits include every bit set here.',
-      code: [['CronEventHandler', 0x3874f], ['PlayerMeetsRequirements', 0x776f]],
+      note: 'It starts only when the Contributes bits of the player\'s ship and outfits include every bit set here. Flags 0x0001 and 0x0002 test it again before each repeat.',
+      code: [['CronEventHandler', 0x3874f], ['PlayerMeetsRequirements', 0x776f], ['ActivateCron', 0x385db], ['TerminateCron', 0x38467]],
     },
     NewsGovt: {
       note: 'Up to four governments. While it runs the GovtNewsStr beside one becomes the event\'s news at a stellar of a government allied with it (or of that government). The last one that applies counts. Below 128: none.',

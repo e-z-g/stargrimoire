@@ -8,7 +8,8 @@
    of both games, `evNote` of Escape Velocity alone and `evoNote` of
    Override alone. `ev` and `evo` list the addresses in each program of the
    instructions the note was read from, and the Code view opens at each.
-   `bits` has a note for each bit of a flags field, by its mask. A field with
+   `bits` has a note for each bit of a flags field, by its mask, and `values`
+   one for each value of a field that picks among kinds. A field with
    `unread` is one that no instruction of that game's program reads after
    the loader copies it.
 
@@ -118,5 +119,55 @@ const ELDER_FIELD_NOTES = {
         0x0010: { evoNote: 'Bits 0x0010 to 0x0080 each jam one kind from 0 to 3 on every draw.', evo: [0x15ace0, 0x15ad0c, 0x15ad38, 0x15ad64, 0x15adc0] },
         0x0100: { evoNote: 'A ship with AI type 1 or 2 jams one step more weakly, so that every draw becomes one in two and one in two becomes never.', evo: [0x15ad9c, 0x15ada0] },
       } },
+  },
+  'oütf': {
+    MissionBit: { note: 'A mission bit that the outfit needs. With −1 the outfit needs none. The outfit is for sale only while the bit is set.', ev: [0x16764c, 0x16766c], evo: [0x15fdf4, 0x15fe14] },
+    Mass: { note: 'The tons of the ship’s free mass that each one fills. The free mass left is the ship class’s FreeMass minus Mass times the count of every outfit aboard. An outfit with a Mass over 0 is not for sale while its Mass is more than the free mass left. Ammunition taken from a boarded ship is loaded one at a time while its Mass fits.',
+      ev: [0x161cf8, 0x143bcc, 0x143be8, 0x143a28, 0x11389c], evo: [0x159bcc, 0x13a110, 0x13a12c, 0x139f70, 0x113f94] },
+    TechLevel: { note: 'The outfit is for sale at a stellar when this is no more than the stellar’s TechLevel or equals one of its three SpecialTech values. Where both levels are 5 or under and the outfit’s is the lower and the Cost is 100 or more the price falls by 3 percent for each level between them.',
+      ev: [0x1675dc, 0x167618, 0x142000, 0x14a928, 0x14a988], evo: [0x15fd3c, 0x15fd78, 0x1382f8, 0x1413bc, 0x141444] },
+    ModType: { note: 'What the outfit does. ModVal is its amount.', ev: [0x124418], evo: [0x116bb0],
+      values: {
+        1: { note: 'A weapon. ModVal is the weapon’s number. The ship has as many of that weapon as the player has of the outfit.', ev: [0x161bdc, 0x161a84], evo: [0x159ab0, 0x159958] },
+        2: { note: 'Adds ModVal tons to the cargo space for each one aboard. One with a ModVal under 0 can be bought only for a ship class that allows it and only while that many tons are empty.', ev: [0x1615a0, 0x1615c8, 0x143ce0, 0x143d74], evo: [0x159430, 0x159458, 0x159474, 0x13a224, 0x13a2b4] },
+        3: { note: 'Ammunition. ModVal is the weapon’s number. The weapon’s ammunition count is the player’s count of the outfit. For a weapon with Guidance 99 one is for sale only while the ships already launched and aboard are fewer than Max.', ev: [0x161c28, 0x161ae0, 0x143c04, 0x143c98], evo: [0x159afc, 0x1599b4, 0x13a148, 0x13a1dc] },
+        4: { note: 'Adds ModVal to the most the shield can be for each one aboard.', ev: [0x161f2c], evo: [0x159eb4] },
+        5: { note: 'Adds ModVal to the shield’s recharge for each one aboard.', ev: [0x162040], evo: [0x159fd4] },
+        6: { note: 'Adds ModVal to the most the armor can be for each one aboard.', ev: [0x162198], evo: [0x15a13c] },
+        7: { note: 'Adds ModVal ÷ 10000 to the acceleration for each one aboard.', ev: [0x16245c], evo: [0x15a480] },
+        8: { note: 'Adds ModVal ÷ 100 to the top speed for each one aboard.', ev: [0x1625a4], evo: [0x15a610] },
+        9: { note: 'Adds ModVal to the turn rate for each one aboard.', ev: [0x162310], evo: [0x15a2e0] },
+        10: { evNote: 'A shot with Guidance 2 that is aimed at the player turns 1 degree a frame toward the player in place of 4 while one is aboard.', ev: [0x162850, 0x1309e0, 0x1309f0], evoNote: 'A jammer. ModVal has eight bits. Bits 0x01 to 0x08 each jam one kind of guided weapon from 0 to 3 on one draw in two. Bits 0x10 to 0x80 each jam one kind on every draw. A weapon’s Seeker bits pick its kind.', evo: [0x15a9a8, 0x15a9ec, 0x15aaf0, 0x15ab34] },
+        11: { note: 'An escape pod. While one is aboard the eject keys or an outfit of kind 20 launch a pod from the player’s ship.', ev: [0x162684, 0x137ec4, 0x137edc], evo: [0x15a730, 0x12ddd4, 0x12ddf0] },
+        12: { note: 'Adds ModVal to the most fuel the ship can have for each one aboard.', ev: [0x162248], evo: [0x15a204] },
+        13: { note: 'While one is aboard the radar frames each stellar whose Flags have 0x0010 and each ship whose class has a Mass of 100 or more.', ev: [0x162918, 0x15d938, 0x15dc98, 0x15df58, 0x15df84], evo: [0x15aeb4, 0x1554f8, 0x155868, 0x155b28, 0x155b54] },
+        14: { note: 'While one is aboard the radar draws each stellar and each ship in a color picked by its government. With none every one has the same color.', ev: [0x16299c, 0x15d928, 0x15dc6c, 0x15df2c], evo: [0x15af64, 0x1554e8, 0x15583c, 0x155afc] },
+        15: { note: 'An afterburner. While its key is down and the ship has fuel and is not jumping the top speed is 1.8 times the ship’s and the thrust 2.75 times its acceleration. It uses 5 fuel on one frame in four.', ev: [0x16278c, 0x1381c8, 0x138204, 0x138238, 0x138278], evo: [0x15a890, 0x12e0cc, 0x12e10c, 0x12e150, 0x12e184] },
+        16: { note: 'A map. Buying one explores systems around the player’s. ModVal goes to the routine that marks them. The outfit is not kept and is for sale one time in each visit to an outfitter.', ev: [0x142034, 0x142054, 0x143da8], evo: [0x13831c, 0x13833c, 0x138368, 0x13a2e8] },
+        17: { note: 'A cloaking device. Its key starts the cloak while the ship has fuel. The shield drops to 0 and the screen changes to the color table numbered ModVal. While cloaked a shot aimed at the player does not turn and no ship picks the player as its target and 1 fuel goes on one frame in eight. The cloak ends when the fuel is gone.', ev: [0x162894, 0x13886c, 0x164e54, 0x164eb4, 0x164ee8, 0x130a2c, 0x106500, 0x138948, 0x138910], evo: [0x15ae04, 0x12e7d0, 0x15d444, 0x15d4c0, 0x15d4f4, 0x1238d8, 0x106c14, 0x12e8b4, 0x12e878] },
+        18: { note: 'Each one aboard adds 1 fuel on a frame where Random(ModVal) is 0. The fuel never passes the most the ship can have.', evoNote: 'With a ModVal under 0 the draw is Random(−ModVal) and it removes 1 fuel. Nothing changes while the ship is jumping.', ev: [0x136b10, 0x136b3c, 0x136aec], evo: [0x12c9d0, 0x12ca14, 0x12ca54, 0x12ca2c, 0x12cb70] },
+        19: { note: 'While one is aboard the landing routine fills the fuel up to the most the ship can have at 1 credit for each unit of fuel and stops at the credits the player has.', ev: [0x1221c8, 0x122260, 0x122274], evo: [0x16dc98, 0x16dcb4, 0x16ddb4, 0x16ddc8] },
+        20: { note: 'While one is aboard and the ship is breaking up with half its DeathDelay or 30 frames left the pod of kind 11 launches with no key.', ev: [0x162708, 0x137e7c, 0x137e68], evo: [0x15a7e0, 0x12dd80, 0x12dd64] },
+        21: { note: 'Buying one sets every legal record under 0 to 0 in the explored systems of government ModVal or in every explored system with a ModVal of −1. The outfit is not kept and is for sale one time in each visit to an outfitter. The loader subtracts 128 from a ModVal of 128 or more.', ev: [0x142080, 0x1420c0, 0x14211c, 0x142140, 0x1245f0, 0x124628, 0x143de4], evo: [0x138400, 0x13844c, 0x1384b4, 0x1384d8, 0x116ddc, 0x116e2c, 0x13a324] },
+        22: { note: 'Changes the days a jump lasts. A jump lasts 1 day and 1 more for a ship class with a Mass of 100 or more and 1 more again at 200 or more. Each one aboard adds ModVal and the sum is never under 1.', ev: [0x162ab0, 0x162aec, 0x162a58, 0x162a7c, 0x135e34], evo: [0x15b0ac, 0x15b0f4, 0x15b040, 0x15b064, 0x12bb40] },
+        24: { evoNote: 'Each one aboard lowers by ModVal the system’s Interference that the radar draws against.', evo: [0x1609b8, 0x1609ec, 0x15558c] },
+        25: { evoNote: 'Each one aboard adds ModVal to the player’s strength in the odds of capturing a boarded ship.', evo: [0x115268, 0x11529c, 0x115344] },
+        26: { evoNote: 'Buying one sets mission bit ModVal when that is under 1000 and clears bit ModVal − 1000 otherwise. The player’s count of the outfit rises by 1.', evo: [0x138570, 0x138598, 0x1385c0, 0x1385f0, 0x138614] },
+        23: { note: 'Changes how far out the player can start a jump. The ship must be more than 1000 from the system’s center. Each one aboard adds ModVal to that distance.', ev: [0x162b70, 0x162bac, 0x1356cc, 0x135710], evo: [0x15b184, 0x15b1cc, 0x12b3a0, 0x12b3ec] },
+      } },
+    ModType2: { evoNote: 'A second kind for the same outfit with the same values as ModType. ModVal2 is its amount. Every routine that looks for a kind looks at both. A record shorter than 38 bytes has none.', evo: [0x116d38, 0x116ce0, 0x116cf8] },
+    ModVal2: { evoNote: 'The amount for ModType2.', evo: [0x116d5c] },
+    ModVal: { note: 'The amount for the outfit’s ModType. Each ModType’s note has its use.', ev: [0x12443c], evo: [0x116bd4] },
+    Max: { note: 'The most of this outfit that the player can have. No more are for sale once the player’s count reaches it.', ev: [0x162e3c, 0x166b9c], evo: [0x15b3c8, 0x15f268] },
+    Flags: { evNote: 'Three bits are read.', evoNote: 'Five bits are read.', ev: [0x1244cc], evo: [0x116c58],
+      bits: {
+        0x0001: { note: 'The outfit counts as a fixed gun. No more are for sale once the player’s count of such outfits reaches the ship class’s MaxGun.', ev: [0x1244e4, 0x162e70, 0x162ed8, 0x162f04], evo: [0x15b3fc, 0x15b464, 0x15b490] },
+        0x0002: { note: 'The outfit counts as a turret. No more are for sale once the player’s count of such outfits reaches the ship class’s MaxTur.', ev: [0x124514, 0x162e9c, 0x162f28, 0x162f54], evo: [0x15b428, 0x15b4b4, 0x15b4e0] },
+        0x0008: { evoNote: 'The outfitter does not buy the outfit back.', evo: [0x1389bc, 0x1391ac, 0x13873c] },
+        0x0010: { evoNote: 'The outfit is removed from the player’s ship when the player leaves the outfitter.', evo: [0x138f5c, 0x138f6c, 0x138134] },
+        0x0004: { note: 'The outfit stays with the player when the player changes ship. Every other outfit is removed. Its Cost adds nothing to the worth of the player’s ship.', ev: [0x124544, 0x1446dc, 0x144658, 0x121e4c, 0x166378], evo: [0x116c70, 0x13abec, 0x13ab68, 0x16d544, 0x15e9e4] },
+      } },
+    Cost: { note: 'The price in credits before TechLevel’s discount. A price over 100000 is cut to a whole 1000 and one over 10000 to a whole 100 and one over 100 to a whole 10. Each one aboard adds 0.95 of its Cost to the worth of the player’s ship.',
+      ev: [0x142000, 0x14a9c4, 0x14a9dc, 0x14a9f4, 0x1663c4], evo: [0x1382f8, 0x141454, 0x14146c, 0x141484, 0x15ea54] },
   },
 };

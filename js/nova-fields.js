@@ -1056,20 +1056,20 @@ const NOVA_FIELD_NOTES = {
       bible: 'Flags2 0x8000: weapon does x10 mass damage to asteroids.',
     },
     Guidance: {
-      note: 'How it flies and fires. -1: a forward gun. 0: a beam. 1: homing (Seeker and GuidedTurn). 3: a turreted beam. 4: a turret. Both fire at the target in reach and out of the blind spots. 5: a bomb turning a degree a step to its course. 6: a rocket easing onto its heading. 7 and 8: front and rear quadrant turrets within 45° of the bow or stern. 9 and 10: point defense (shot and beam). They fire at homing shots coming at the ship or its lead and at ships of Flags2 0x0008 attacking them. 99: a fighter bay (AmmoType gives the ship class).',
-      code: [['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['HandleShipPointDefense', 0x392c4]],
+      note: 'How it flies and fires. -1: a forward gun. 0: a beam. 1: homing (Seeker and GuidedTurn). 3: a turreted beam. 4: a turret. Both fire at the target in reach and out of the blind spots. 5: a bomb turning a degree a step to its course. 6: a rocket easing onto its heading. 7 and 8: front and rear quadrant turrets within 45° of the bow or stern. 9 and 10: point defense (shot and beam). They fire at homing shots coming at the ship or its lead and at ships of Flags2 0x0008 attacking them. 99: a fighter bay (AmmoType gives the ship class). The player\'s turrets fire only with a target. With none in its arc the player\'s front quadrant turret fires straight ahead and the rear one does not fire. Another ship\'s quadrant turret measures the arc without wrapping past north. So a ship heading 10° does not fire its front quadrant turret at a target bearing 350°. The player cannot select point defense. A homing shot from the player counts as an attack on its target once it has flown 30 frames even if it never hits. Other ships fire within a shot\'s reach (Count) or a beam\'s BeamLength plus 32. Ships attacking a stellar need a planet-type weapon (Flags2 0x0400) of Guidance -1, 1, 4, 5, 6, or 7.',
+      code: [['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550], ['HandleShotGuidance', 0x320dc], ['HandleShipPointDefense', 0x392c4], ['FirePlayerWeapon', 0x62702], ['AIFireTurret', 0x80ad3], ['HandlePlayer', 0x68390], ['HandleShot', 0x35586], ['AIInGunRange', 0x7f9d5], ['DeathStarAI', 0x8c125], ['AIFirePlanetGun', 0x80536]],
     },
     AmmoType: {
-      note: 'What a shot uses. -1: nothing. 0 to 255: the ammunition stored for weapon 128 + n. -999: firing wrecks the firing ship and sets its shields and armor to 0. -1000 and below: (|AmmoType| - 1000) ÷ 10 fuel a shot. The weapon fires only with that much aboard. A fighter bay gives the ship class.',
-      code: [['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550]],
+      note: 'What a shot uses. -1: nothing. 0 to 255: the ammunition stored for weapon 128 + n. -999: firing wrecks the firing ship and sets its shields and armor to 0. -1000 and below: (|AmmoType| - 1000) ÷ 10 fuel a shot. The weapon fires only with that much aboard. A fighter bay gives the ship class. The player\'s ammunition for weapon 128 + n serves every weapon of that AmmoType. Other ships keep each weapon\'s ammunition apart. Another ship counts a weapon that burns fuel as spent once its fuel is below 10 × a shot\'s fuel. It then acts as out of ammunition (shïp Flags2 0x0080).',
+      code: [['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['SpawnShot', 0x3e550], ['AIShipIsOutOfAmmo', 0x7f71f]],
     },
     Graphic: {
       note: 'Its shots\' sprite (spïn 3000 + Graphic). Above 255: the weapon makes no shot.',
       code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586]],
     },
     Inaccuracy: {
-      note: 'Above 0: each shot leaves within that many degrees either side of its aim (only a bomb\'s picture). Below 0: it leaves that many degrees off the bow toward the side of its exit point. 0: straight.',
-      code: [['SpawnShot', 0x3e550], ['HandleShipPointDefense', 0x392c4]],
+      note: 'Above 0: each shot leaves within that many degrees either side of its aim (only a bomb\'s picture). Below 0: it leaves that many degrees off the bow toward the side of its exit point. 0: straight. A fighter bay turns each fighter up to Inaccuracy° either way from the carrier\'s heading.',
+      code: [['SpawnShot', 0x3e550], ['HandleShipPointDefense', 0x392c4], ['LaunchFighter', 0x3d62d]],
     },
     ExplodType: {
       note: 'The explosion where it hits or where it ends with Flags 0x8000. 0 to 63: bööm 128 + n. 1000 to 1063: the big kind spread over BlastRadius. Anything else: none.',
@@ -1084,8 +1084,8 @@ const NOVA_FIELD_NOTES = {
       code: [['HandleShipHit', 0x36a45], ['HandleShot', 0x35586], ['IonizeShip', 0x8409]],
     },
     Flags: {
-      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) instead of following their heading. 0x0004: they start from the first frame. 0x0008: the game picks a homing one only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire together and reload together. 0x0080: point defense ignores its shots. 0x0100: its blast does not hurt the player. 0x1000 to 0x4000: as a turret it cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). The ship class\'s Flags add the same. 0x8000: a shot goes off with its blast when its life ends. 0x0010: its Sound loops. 0x0200 and 0x0400: small or big smoke (SmokeSet). 0x0800: the smoke lasts longer. 0x0002: the player fires it with the second trigger. Another ship that picks one continues firing it step after step. For primary weapons that ship picks again each time.',
-      code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['HandleShip', 0x33581], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325]],
+      note: '0x0001: its shots\' frames advance in turn (one every BeamWidth steps) instead of following their heading. 0x0004: they start from the first frame. 0x0008: the game picks a homing one only against a target turning 3 or less. 0x0020: it goes through shields to the armor. 0x0040: all of them fire together and reload together. 0x0080: point defense ignores its shots. 0x0100: its blast does not hurt the player. 0x1000 to 0x4000: as a turret it cannot fire within 45° of ahead (0x1000), from 45° to 135° off (0x2000), or beyond 135° (0x4000). The ship class\'s Flags add the same. 0x8000: a shot goes off with its blast when its life ends. 0x0010: its Sound loops. 0x0200 and 0x0400: small or big smoke (SmokeSet). A beam strikes planet-type ships (shïp Flags 0x0400) only with 0x0400 and other ships only without it. 0x0800: the smoke lasts longer. The game drops the player\'s selected secondary weapon with 0x0800 once it is out of ammunition. 0x0002: the player fires it with the second trigger. Another ship that picks one continues firing it step after step. For primary weapons that ship picks again each time.',
+      code: [['SpawnShot', 0x3e550], ['HandleShot', 0x35586], ['HandleShip', 0x33581], ['SuitableMissileType', 0x34e1], ['DamageShip', 0x3a807], ['WeaponMaxSimultShots', 0x8350], ['HandleShipPointDefense', 0x392c4], ['HandleShipHit', 0x36a45], ['TurretBlindSpot', 0xb325], ['HandleBeams', 0x30295], ['HandlePlayer', 0x68390]],
     },
     Seeker: {
       note: '0x0001: its shots and beams pass over asteroids. 0x0020: not fired while its ship has any ionization. The rest apply to a homing shot. 0x0002: an asteroid ahead decoys it. 0x0008: the system\'s interference can make it lose its target when fired and spiral. 0x0010: jamming turns it away. 0x4000: it loses its target once that is more than 45° off its nose within 250. 0x8000: when jammed or lost it now and then turns on its firing ship.',
@@ -1116,7 +1116,7 @@ const NOVA_FIELD_NOTES = {
       code: [['LoadObjectData', 0x771b0], ['SpawnParticles', 0x44b70]],
     },
     BeamLength: {
-      note: 'A beam\'s reach. Every step it lasts it strikes the nearest ship whose middle is within this plus a third of its sprite and within a few degrees of the line. A turreted beam fires at a ship within this plus 32.',
+      note: 'A beam\'s reach. Every step it lasts it strikes the nearest ship whose middle is within this plus a third of its sprite and within a few degrees of the line. The game measures that angle without wrapping past north. So a beam aimed at 2° misses a ship bearing 358°. A turreted beam fires at a ship within this plus 32.',
       code: [['HandleBeams', 0x30295], ['FireAIShipWeapon', 0x8873d]],
     },
     BeamWidth: {
@@ -1136,7 +1136,7 @@ const NOVA_FIELD_NOTES = {
       code: [['CheckShotProximities', 0x371bc], ['HandleShot', 0x35586]],
     },
     Flags2: {
-      note: '0x0001: the first frame while not yet armed. 0x0002: the last frame held. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions aim at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: only the player\'s ship fires it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type. It hits only planet-type ships (shïp Flags 0x0400) and nothing else hits them. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defense reads it). 0x8000: × 10 damage to asteroids. 0x0040: the status display does not show its ammunition. 0x0800: not offered as the player\'s secondary weapon while out of ammunition. 0x2000: a beam drawn beneath the ships. Nothing reads 0x0004. An asteroid sets off its proximity fuse all the same.',
+      note: '0x0001: the first frame while not yet armed. 0x0002: the last frame held. 0x0008: a homing shot hits ships besides its target. 0x0010: submunitions aim at the nearest ship they can hit. 0x0020: no submunitions when a shot\'s life ends. 0x0080: fired only with a ship of the class\'s KeyCarried aboard. 0x0100: only the player\'s ship fires it. 0x0200: the ship\'s weapon sprite shows as it fires. 0x0400: planet-type. It hits only planet-type ships (shïp Flags 0x0400) and nothing else hits them. A beam goes by Flags 0x0400 instead. 0x1000: it disables but never destroys. 0x4000: fired while cloaked (as point defense reads it). 0x8000: × 10 damage to asteroids. 0x0040: the status display does not show its ammunition. 0x0800: not offered as the player\'s secondary weapon while out of ammunition. 0x2000: a beam drawn beneath the ships. Nothing reads 0x0004. An asteroid sets off its proximity fuse all the same.',
       code: [['HandleShot', 0x35586], ['ShotCanHitShip', 0x4477e], ['SpawnShotSubmunitions', 0x3f1d5], ['WeaponHasAmmo', 0xb95a], ['FireAIShipWeapon', 0x8873d], ['DamageShip', 0x3a807], ['HandleShipPointDefense', 0x392c4], ['HandleAsteroidHit', 0x36637], ['DrawStatusWeap', 0x4c00a], ['BeamDrawCallback', 0x37952], ['CheckShotProximities', 0x371bc], ['HandlePlayer', 0x68390]],
       bible: '0x0004: proximity detonator ignores asteroids.',
     },
@@ -1189,16 +1189,16 @@ const NOVA_FIELD_NOTES = {
       code: [['IonizeShip', 0x8409]],
     },
     Reload: {
-      note: 'Steps before it fires again shared among however many of it are aboard. Each shot fired waits Reload ÷ that many or the whole Reload with Flags 0x0040. At the end of a burst it waits BurstReload instead.',
-      code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702]],
+      note: 'Steps before it fires again shared among however many of it are aboard. Each shot fired waits Reload ÷ that many or the whole Reload with Flags 0x0040. At the end of a burst it waits BurstReload instead. A hit from the player on a ship it did not aim at adds 1.75 × Reload to that ship\'s anger. The ship turns on the player at 50 (gövt ShootPenalty). Its anger falls by 0.5 a frame.',
+      code: [['FireAIShipWeapon', 0x8873d], ['FirePlayerWeapon', 0x62702], ['HandleShipHit', 0x36a45], ['HandleShot', 0x35586]],
     },
     Count: {
-      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100. Its submunitions extend that reach. A beam lasts Count frames and strikes in each. At a higher frame rate it therefore strikes more often in a second.',
-      code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586], ['SpawnBeam', 0x44ff3]],
+      note: 'Steps a shot lasts. A shot\'s reach is Count × Speed ÷ 100. Its submunitions extend that reach. A beam lasts Count frames and strikes in each. At a higher frame rate it therefore strikes more often in a second. For a fighter bay it gives the steps a launched fighter flies on before it makes its first choice.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShot', 0x35586], ['SpawnBeam', 0x44ff3], ['LaunchFighter', 0x3d62d], ['HighLevelAIHandler', 0x8d453]],
     },
     Speed: {
-      note: 'A shot moves Speed ÷ 100 units a step along its heading. With Count this sets its reach.',
-      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc]],
+      note: 'A shot moves Speed ÷ 100 units a step along its heading. With Count this sets its reach. Turrets (Guidance 4, 7, and 8), point defense, and stellars aim ahead of a moving target. So do other ships turning to fire a forward gun or rocket. They aim at the target\'s place after the shot\'s flight time at Speed. The target\'s motion counts relative to the firing ship. A rocket\'s flight time allows for its slow start. A fighter bay launches each fighter at the carrier\'s velocity plus Speed ÷ 100 along its heading. The fighter goes no faster than its top speed.',
+      code: [['LoadObjectData', 0x771b0], ['HandleShotGuidance', 0x320dc], ['CalcLeadAngle', 0x2b025], ['CalcSpobLeadAngle', 0x2b2f0], ['LaunchFighter', 0x3d62d]],
     },
     GuidedTurn: {
       note: 'A homing shot turns a tenth of this in degrees each step from 15 steps old. Another ship fires one with 20 or less only at a target turning 3 or less. It fires the lowest-numbered homing weapon it can use with the target in reach.',

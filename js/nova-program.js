@@ -477,18 +477,98 @@ const NOVA_FIGURE_RES = {
 // The figures read from a program, by the address of the instruction holding each.
 function novaFiguresByAddr(prog, game) {
   const out = new Map();
-  for (const name of Object.keys(NOVA_FIGURE_WORDS)) {
+  const words = novaOlderGame(game) ? NOVA_OLDER_FIGURE_WORDS : NOVA_FIGURE_WORDS;
+  for (const name of Object.keys(words)) {
     const f = novaFigure(prog, name, game);
-    if (f) out.set(f.addr, NOVA_FIGURE_WORDS[name][0](f.value));
+    if (f) out.set(f.addr, words[name][0](f.value));
   }
   return out;
 }
 
-/* A figure by name; see the readers below. */
+/* A figure by name; see the readers below. Escape Velocity's and EV
+   Override's programs are read by NOVA_OLDER_FIGURES. */
+const novaOlderGame = game => !!(game && game.kind && game.kind() !== 'nova');
 function novaFigure(prog, name, game) {
-  const f = (prog.kind === 'macho' ? NOVA_MACHO_FIGURES : NOVA_FIGURES)[name];
+  const f = (novaOlderGame(game) ? NOVA_OLDER_FIGURES : prog.kind === 'macho' ? NOVA_MACHO_FIGURES : NOVA_FIGURES)[name];
   try { return f ? f(prog, game) : null; } catch (e) { return null; }
 }
+
+/* Escape Velocity 1.0.5's and EV Override 1.0.2's figures: where each number
+   in NOVA_OLDER (nova-universe.js) is in the program opened. Their programs
+   have no names, so each is found by the instructions around it, and a
+   figure is null where the number is not there. */
+const NOVA_OLDER_FIGURES = {
+  // Nova's readers that find the same in these programs, by the dialogs that call the description loader
+  descLoader(prog, game) { return NOVA_FIGURES.descLoader(prog, game); },
+  shipDesc(prog, game) { return NOVA_FIGURES.shipDesc(prog, game); },
+  escortDesc(prog, game) { return NOVA_FIGURES.escortDesc(prog, game); },
+  missionOffer(prog, game) { return NOVA_FIGURES.missionOffer(prog, game); },
+  barDesc(prog, game) { return NOVA_FIGURES.barDesc(prog, game); },
+  // a ship's pictures: the PICT base used where the shipyard's description base is, and the one the stellars' sprite loader uses
+  shipyardPict(prog, game) { return novaOlderBaseBeside(prog, game, 'PICT', NOVA_OLDER_FIGURES.shipDesc(prog, game)); },
+  shipTargetPict(prog, game) { return novaOlderBaseBeside(prog, game, 'PICT', NOVA_OLDER_FIGURES.stellarSpin(prog)); },
+  // the stellars' sprites: GetResource('spïn', n + 300) in a loop
+  stellarSpin(prog) {
+    for (const r of novaCallersOfImport(prog, 'GetResource')) {
+      const ops = prog.ops(r);
+      for (const { i } of novaCallsIn(prog, r, 'GetResource')) {
+        const t = novaSetterBefore(ops, i, 3), n = novaTraceArg(ops, i, 4, 6);
+        if (t && t.o.note === "'spïn'" && n && n.o.op.mn === 'addi' && n.o.op.imm === NOVA_OLDER.stellarSpin) return { value: n.o.op.imm, addr: n.o.addr, routine: r.start };
+      }
+    }
+    return null;
+  },
+  // the landing picture: a field compared with 128 and, in the other branch, the Type (at 10 in the copy) plus this
+  landingPict(prog) {
+    for (const r of prog.routines) {
+      if (r.glue) continue;
+      const ops = prog.ops(r);
+      for (let k = 1; k < ops.length; k++) {
+        const a = ops[k].op, ld = ops[k - 1].op;
+        if (!a || a.mn !== 'addi' || a.imm !== NOVA_OLDER.landingPict || !ld || ld.mn !== 'lha' || ld.d !== 10 || ld.rt !== a.ra) continue;
+        if (ops.slice(Math.max(0, k - 12), k).some(o => o.op && o.op.mn === 'cmpwi' && o.op.imm === 128)) return { value: a.imm, addr: ops[k].addr, routine: r.start };
+      }
+    }
+    return null;
+  },
+  // the stellar's description: the dësc base used in the routine that picks the landing picture
+  stellarDesc(prog, game) {
+    const land = NOVA_OLDER_FIGURES.landingPict(prog);
+    const b = land && novaProgramUses(prog, game).bases.find(x => x.res === 'dësc' && x.routine === land.routine);
+    return b ? { value: b.value, addr: b.addr, routine: b.routine } : null;
+  },
+  // the nebulae: GetPicture(9500 + 3n + i), the 3 a mulli
+  nebulaPict(prog) { const f = novaOlderNebula(prog); return f && f.base; },
+  nebulaPicts(prog) { const f = novaOlderNebula(prog); return f && f.per; },
+};
+function novaOlderBaseBeside(prog, game, res, f) {
+  const b = f && novaProgramUses(prog, game).bases.find(x => x.res === res && x.routine === f.routine);
+  return b ? { value: b.value, addr: b.addr, routine: b.routine } : null;
+}
+function novaOlderNebula(prog) {
+  if (prog.olderNebula !== undefined) return prog.olderNebula;
+  prog.olderNebula = null;
+  for (const r of novaCallersOfImport(prog, 'GetPicture')) {
+    const ops = prog.ops(r);
+    for (const { i } of novaCallsIn(prog, r, 'GetPicture')) {
+      const s = novaTraceArg(ops, i, 3, 6);
+      if (!s || s.o.op.mn !== 'addi' || s.o.op.imm !== NOVA_OLDER.nebulaPict) continue;
+      const m = ops.slice(Math.max(0, s.k - 4), s.k).find(o => o.op && o.op.mn === 'mulli' && o.op.imm > 1);
+      if (m) return (prog.olderNebula = { base: { value: s.o.op.imm, addr: s.o.addr, routine: r.start }, per: { value: m.op.imm, addr: m.addr, routine: r.start } });
+    }
+  }
+  return null;
+}
+const NOVA_OLDER_FIGURE_WORDS = {
+  shipDesc: NOVA_FIGURE_WORDS.shipDesc, escortDesc: NOVA_FIGURE_WORDS.escortDesc, missionOffer: NOVA_FIGURE_WORDS.missionOffer, barDesc: NOVA_FIGURE_WORDS.barDesc,
+  shipyardPict: NOVA_FIGURE_WORDS.shipyardPict,
+  shipTargetPict: [v => `PICT ${v} + the shïp's number minus 128, a ship's picture, which the stellars' sprite loader loads`],
+  stellarDesc: [v => `dësc ${v} + the spöb's number minus 128, a stellar's description`],
+  landingPict: [v => `PICT ${v} + its Type, a stellar's landing picture where CustPicID is under 128`],
+  stellarSpin: [v => `a stellar: spïn ${v} + its Type`],
+  nebulaPict: [v => `a nebula's pictures: PICT ${v} + ${NOVA_OLDER.nebulaPicts} × the nëbu's number minus 128, and the two after`],
+  nebulaPicts: [v => `${v} pictures to a nebula`],
+};
 const NOVA_FIGURES = {
   // The description loader: of the routines that make 'dësc', the one called most.
   descLoader(prog) {

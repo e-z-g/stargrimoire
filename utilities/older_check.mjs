@@ -17,6 +17,12 @@
 //      Nova's units, and change a few Armor, Flags, and FuelRegen values,
 //      so those are left out. Every other field must match, and with a
 //      template shifted by one word most must differ.
+//   4. The installer's program: every number the page states from it
+//      (NOVA_OLDER_FIGURES) found by the shape of its code, equal to the
+//      number in the page's code where it has one, and none found with the number bent.
+//   5. The map: every system, every link to a system, and every stellar in
+//      a system with the sprite and landing picture its numbers give, and a
+//      picture for every nebula.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -90,6 +96,34 @@ for (const g of GAMES) {
     if (all && shifted >= all * 0.5) fail(`${g.file}: a template shifted by a word still reads ${shifted} of ${all} as the port, so the comparison proves nothing`);
   } else console.log(`SKIP ${g.file}: its Nova port ${g.port[0]} is not in reference/`);
   console.log(`${g.file} has ${vise.entries.length} files and ${crcs} match their CRC. The page lists ${files.length} (${roles}). ${types} types and ${recs} records read through the templates, ${short} shorter than theirs. ${same} of ${all} ship fields read as the port has them, and ${shifted} with the template shifted a word.`);
+
+  // 4. the program's numbers: each found in the installer's program, and the site's where it has one
+  const src = S.novaArchiveProgram(S.novaArchiveIn(raw));
+  const prog = src && S.novaProgram(src.read(), src.readRsrc());
+  if (!prog) { fail(`${g.file}: no program found in the installer`); continue; }
+  const want = { ...S.NOVA_OLDER, stellarDesc: S.novaStellarDescId({ id: 128 }) };
+  const found = [];
+  for (const name of Object.keys(S.NOVA_OLDER_FIGURE_WORDS)) {
+    const f = S.novaFigure(prog, name, game);
+    if (!f) { fail(`${g.file}: ${name} is not found in the program`); continue; }
+    if (name in want && f.value !== want[name]) fail(`${g.file}: ${name} is ${f.value} in the program and ${want[name]} on the page`);
+    found.push(`${name} ${f.value} at 0x${f.addr.toString(16)}`);
+  }
+  // with the site's number bent, the readers that look for it find nothing
+  const kept = S.NOVA_OLDER.stellarSpin;
+  S.NOVA_OLDER.stellarSpin = kept + 1;
+  if (S.novaFigure(prog, 'stellarSpin', game)) fail(`${g.file}: stellarSpin is found with the site's number bent`);
+  S.NOVA_OLDER.stellarSpin = kept;
+
+  // 5. the map's universe: every system and link, and the pictures the numbers give in the files
+  const u = S.novaUniverse(game);
+  const links = u.systems.reduce((n, sy) => n + sy.links.length, 0), stray = u.systems.flatMap(sy => sy.links.filter(l => !u.byId.has(l)));
+  if (u.systems.length !== game.list('sÿst').length || !links || stray.length) fail(`${g.file}: ${u.systems.length} systems of ${game.list('sÿst').length}, ${links} links, ${stray.length} to no system`);
+  const placed = [...u.stellars.values()].filter(sp => u.inSystems.has(sp.id));
+  const noSpin = placed.filter(sp => !game.has('spïn', S.novaStellarSpin(sp))), noLand = placed.filter(sp => !game.has('PICT', S.novaLandingPict(sp)));
+  const noDesc = placed.filter(sp => !game.has('dësc', S.novaStellarDescId(sp))), noNeb = u.nebulae.filter(n => !n.picts.some(p => game.has('PICT', p.id)));
+  if (noSpin.length || noLand.length || noNeb.length) fail(`${g.file}: stellars with no sprite ${noSpin.map(x => x.id)}, no landing picture ${noLand.map(x => x.id)}, nebulae with no picture ${noNeb.map(x => x.id)}`);
+  console.log(`${g.file}'s program: ${found.join(', ')}. Its map: ${u.systems.length} systems, ${links} links, ${placed.length} stellars in systems, each with its sprite and landing picture, ${placed.length - noDesc.length} with a description, and ${u.nebulae.length} nebulae with pictures.`);
 }
 console.log(fails ? `${fails} failed` : 'older games: all passed');
 process.exit(fails ? 1 : 0);

@@ -206,7 +206,7 @@ async function openGameFiles(picked, opts = {}) {
   PENDING.push(...later);
   SHIP_FILES.push(...ships);
   if (fresh) pilotClose();
-  if (GAME.kind() === 'nova') mapStart(fresh); else olderStart();
+  mapStart(fresh);
   if (saves.length) pilotOpen(saves[saves.length - 1]);
   if (refused.length) setStatus(refused.join('; '), true);
   pumpPending(refused);
@@ -336,7 +336,8 @@ async function pumpPending(refused) {
     await nextPaint();
     try { GAME.add(f, await readFile(f)); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
     READING = null;
-    if (GAME.kind() === 'nova') { mapFilesChanged(); shipsFilesChanged(); battleFilesChanged(); } else olderFilesChanged();
+    mapFilesChanged(); shipsFilesChanged();
+    if (GAME.kind() === 'nova') battleFilesChanged(); else if (LIB.on) renderLibrary();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page
     if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }

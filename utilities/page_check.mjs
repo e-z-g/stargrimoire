@@ -73,7 +73,9 @@
 //     and a shipyard in its list goes to that stellar on the map, where
 //     the system's ships fly about thirty steps a second and Pause stops
 //     them -- on both screens, and on the phone the list gives way to the
-//     ship and back.
+//     ship and back;
+//   - Escape Velocity's and EV Override's installers: their map, Sol and a
+//     stellar's landing page, ships, program and Library (at the end).
 // SHOTS=<dir> saves a screenshot of each view.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -1296,33 +1298,61 @@ try {
     }
   }
 
-  // Escape Velocity's and EV Override's installers: the Library alone, the
-  // ships' table through the templates in their files, pictures drawn, and
-  // sounds and descriptions listed.
+  // Escape Velocity's and EV Override's installers: the map with every
+  // system and link, a system's panel and its stellars drawn masked, a
+  // stellar's landing page with its picture and its numbers linked to the
+  // program, the ships with their sprites turning and their pictures, the
+  // Code view of the installer's program, the Library's tables through the
+  // templates with descriptions, pictures and sounds, and Back to the map.
   const INST = 'reference/game/collections/EscapeVelocityPluginCollection/Installers';
-  for (const [file, kind, ships] of [['Escape_Velocity.bin', 'ev', 27], ['EVOverride.bin', 'evo', 48]]) {
+  for (const [file, kind, systems, ships] of [['Escape_Velocity.bin', 'ev', 108, 27], ['EVOverride.bin', 'evo', 311, 48]]) {
     if (!fs.existsSync(path.join(ROOT, INST, file))) { console.log(`SKIP ${file}: not in reference/`); continue; }
-    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INST + '/' + file), 'typeof LIB !== "undefined" && LIB.on && !PUMPING && PENDING.length === 0', 240000, { chrome,
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INST + '/' + file), 'typeof U !== "undefined" && U && !PUMPING && PENDING.length === 0', 240000, { chrome,
       then: async p => p.evaluate(`(async () => {
         const wait = ms => new Promise(r => setTimeout(r, ms));
+        const until = async (test, ms) => { for (let t = 0; t < ms && !test(); t += 100) await wait(100); return test(); };
         const o = { kind: GAME.kind(), hash: location.hash, views: [...document.querySelectorAll('#views [data-view]')].filter(a => !a.hidden).map(a => a.dataset.view),
-                    types: libTables().length, rows: document.querySelectorAll('#library tbody tr').length, cols: document.querySelectorAll('#library thead th').length };
+                    systems: U.systems.length, links: LINKS.length, program: !!program() };
+        const sys = U.systems.find(s => s.name === 'Sol');
+        show('system', { sys: sys.id }); await wait(2500);
+        o.sys = { stellars: sys.stellars.length, drawn: sys.stellars.filter(id => SPRITE_CACHE.get(novaStellarSpin(U.stellars.get(id)))).length, links: document.querySelectorAll('#panel a[data-sys]').length };
+        const sp = sys.stellars[0];
+        show('planet', { sys: sys.id, stellar: sp }); await until(() => /stellar=/.test(location.hash) && document.querySelector('#planet canvas'), 8000); await wait(200);
+        o.planet = { hash: location.hash, pict: !!document.querySelector('#planet canvas'), desc: !!document.querySelector('#planet .desc:not(.dim)'), code: document.querySelectorAll('#panel a.codeNum').length };
+        const ship = novaAll(GAME, 'shïp')[2].id;
+        shipsShow(ship); await until(() => document.querySelector('#shipView .shipPict canvas'), 6000); await wait(400);
+        const c = document.getElementById('olderShip'), px = c && c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let lit = 0; if (px) for (let k = 3; k < px.length; k += 4) if (px[k]) lit++;
+        o.ship = { rows: SHIPS.rows.length, thumbs: document.querySelectorAll('#shipRows canvas.done').length, lit, picts: document.querySelectorAll('#shipView .shipPict canvas').length, descs: document.querySelectorAll('#shipView .desc').length };
+        codeShow(null, null); await wait(800);
+        o.code = { on: CODE.on, routines: program() ? program().routines.length : 0 };
+        libShow('table', 'shïp'); await wait(300);
+        o.lib = { rows: document.querySelectorAll('#library tbody tr').length, cols: document.querySelectorAll('#library thead th').length, types: libTables().length };
         libShow('text'); await wait(50);
-        o.descs = document.querySelectorAll('#library details.libItem').length;
-        libShow('pict'); for (let i = 0; i < 60 && !document.querySelector('#library figure canvas'); i++) await wait(100);
-        o.pict = document.querySelectorAll('#library figure canvas').length;
-        libShow('snd'); for (let i = 0; i < 120 && !GAME.list('snd ').length; i++) await wait(250);
-        o.snd = document.querySelectorAll('#library button[data-lib-play]').length;
-        history.pushState(null, '', '#galaxy'); window.dispatchEvent(new PopStateEvent('popstate')); await wait(50);
-        o.after = { lib: LIB.on, app: !document.getElementById('app').hidden };
+        o.lib.descs = document.querySelectorAll('#library details.libItem').length;
+        o.lib.role = libRole('PICT', 10000).replace(/<[^>]*>/g, '');
+        libShow('pict'); await until(() => document.querySelector('#library figure canvas'), 6000);
+        o.lib.pict = document.querySelectorAll('#library figure canvas').length;
+        libShow('snd'); await until(() => document.querySelector('#library button[data-lib-play]'), 30000);
+        o.lib.snd = document.querySelectorAll('#library button[data-lib-play]').length;
+        history.pushState(null, '', '#galaxy'); window.dispatchEvent(new PopStateEvent('popstate')); await wait(300);
+        o.after = { lib: LIB.on, app: !document.getElementById('app').hidden, mode: VIEW.mode };
         return o;
       })()`) });
     for (const e of pageErrors(r.console)) fail(`${file}: ${describe(e)}`);
     const o = r.more;
-    if (!r.met || !o) { fail(`${file} did not open in the Library`); continue; }
-    if (o.kind !== kind || o.views.join() !== 'library' || o.rows !== ships || o.cols < 20 || !(o.types > 10) || !(o.descs > 100) || !(o.pict > 0) || !(o.snd > 0) || !o.after.lib || o.after.app)
-      fail(`${file}: ${JSON.stringify(o)}`);
-    else console.log(`${file}: ${o.kind}, the Library alone at ${o.hash}, ${o.types} tables, ${o.rows} ships of ${o.cols} columns, ${o.descs} descriptions, ${o.pict} pictures drawn, ${o.snd} sounds; the map's address keeps the Library`);
+    if (!r.met || !o) { fail(`${file} did not open`); continue; }
+    const bad = [];
+    if (o.kind !== kind || o.views.join() !== 'map,ships,code,library' || !o.program) bad.push('kind, views or program');
+    if (o.systems !== systems || !(o.links > systems)) bad.push('systems or links');
+    if (!(o.sys.stellars > 0) || o.sys.drawn < o.sys.stellars || !(o.sys.links > 0)) bad.push('Sol');
+    if (!o.planet.pict || !o.planet.desc || o.planet.code < 3 || !/stellar=/.test(o.planet.hash)) bad.push('the landing page');
+    if (o.ship.rows !== ships || !(o.ship.thumbs > ships / 2) || !(o.ship.lit > 50) || !(o.ship.picts > 0) || !(o.ship.descs > 0)) bad.push('the ships');
+    if (!o.code.on || !(o.code.routines > 500)) bad.push('the code');
+    if (o.lib.rows !== ships || o.lib.cols < 20 || !(o.lib.types > 10) || !(o.lib.descs > 100) || !/landing picture/.test(o.lib.role) || !(o.lib.pict > 0) || !(o.lib.snd > 0)) bad.push('the Library');
+    if (o.after.lib || !o.after.app || o.after.mode !== 'galaxy') bad.push('Back to the map');
+    if (bad.length) fail(`${file}: ${bad.join(', ')}: ${JSON.stringify(o)}`);
+    else console.log(`${file}: ${o.kind}, ${o.systems} systems and ${o.links} links, Sol's ${o.sys.stellars} stellars drawn, a landing page with ${o.planet.code} numbers linked to the program, ${o.ship.rows} ships with sprites and pictures, ${o.code.routines} routines, the Library's ${o.lib.types} tables, ${o.lib.descs} descriptions, ${o.lib.pict} pictures and ${o.lib.snd} sounds, and back to the galaxy`);
   }
 } finally {
   srv.close();

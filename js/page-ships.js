@@ -130,6 +130,7 @@ function shipsFilesChanged() {
   if (!SHIPS.on) return;
   renderShipList();
   if (SHIPS.id === null) { renderShip(); return; }
+  if (olderOn()) { olderShipShown(novaGet(GAME, 'shïp', SHIPS.id)); return; }
   // Drawn again whole only while its sprites were missing; otherwise only
   // the pictures, so a ship being turned is not reset.
   const partial = SHIP_ANIM ? !SHIP_ANIM.layers.every(l => l.spr && l.spr.kind === 'rle') : GAME.has('shän', SHIPS.id);
@@ -153,8 +154,7 @@ function shipsReset() {
 function shipRowsData() {
   const out = [];
   for (const e of GAME.list('shïp')) {
-    const r = GAME.get('shïp', e.id);
-    const rec = novaRecord('shïp', r.bytes), np = novaNameParts(e.name);
+    const rec = novaGet(GAME, 'shïp', e.id), np = novaNameParts(e.name);
     out.push({ id: e.id, name: np.name || 'shïp ' + e.id, note: np.note, sub: rec.Subtitle || '', weight: rec.DispWeight || 0 });
   }
   return out;
@@ -168,6 +168,7 @@ function shipRowsData() {
    row is named for its classes' names, and a search opens every look with
    a class that matches. */
 function shipLookOf(id) {
+  if (olderOn()) return olderShipLook(id);
   const b = GAME.get('shän', id);
   return b && b.bytes.length >= 2 ? i16be(b.bytes, 0) : null;
 }
@@ -241,6 +242,7 @@ function fillThumbs() {
     while (todo.length && performance.now() - t0 < 12) {
       const c = todo.shift();
       const id = +(c.parentNode.dataset.thumb || c.parentNode.dataset.ship);
+      if (olderOn()) { if (olderShipThumb(c, id)) c.classList.add('done'); continue; }
       const b = GAME.get('shän', id);
       if (!b) continue;
       const spr = shipSprite(i16be(b.bytes, 0));
@@ -273,6 +275,7 @@ function renderShip() {
     return;
   }
   const ship = novaGet(GAME, 'shïp', SHIPS.id);
+  if (olderOn()) { el.innerHTML = olderShipHtml(ship); el.scrollTop = 0; olderShipShown(ship); return; }
   const shan = novaGet(GAME, 'shän', SHIPS.id);
   el.innerHTML = shipHtml(ship, shan);
   el.scrollTop = 0;
@@ -281,6 +284,7 @@ function renderShip() {
 }
 
 function shipFilesNote() {
+  if (olderOn()) return '';
   if (SHIP_FILES.length || PENDING.some(f => f.role === 'ships')) return '<p class="note">Reading the ships files…</p>';
   if (!GAME.files.some(f => f.role === 'ships') && !GAME.list('shän').length) return '<p class="note">No ships files are open. Open the game\'s Nova Ships files with the rest to see the sprites and pictures.</p>';
   return '';
@@ -419,6 +423,7 @@ function renderShipPictures() {
 
 function stopShipAnim() {
   if (SHIP_ANIM) { cancelAnimationFrame(SHIP_ANIM.raf); SHIP_ANIM = null; }
+  if (typeof olderShipStop === 'function') olderShipStop();
 }
 
 function startShipAnim(ship, shan) {
@@ -652,7 +657,7 @@ function wireShips() {
   $('crumbs').addEventListener('click', onClick);
   $('shipSearch').addEventListener('input', () => { SHIPS.q = $('shipSearch').value; renderShipList(); });
   $('shipSort').addEventListener('change', () => { SHIPS.sort = $('shipSort').value; renderShipList(); });
-  document.addEventListener('pictready', () => { if (SHIPS.on) renderShipPictures(); });
+  document.addEventListener('pictready', () => { if (!SHIPS.on) return; if (olderOn()) { olderShipPictures(); fillThumbs(); } else renderShipPictures(); });
   window.addEventListener('keydown', e => {
     if (!SHIPS.on || e.target.closest('input, select, textarea')) return;
     const A = SHIP_ANIM;

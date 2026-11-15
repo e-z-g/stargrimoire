@@ -49,10 +49,10 @@ function libTables() {
 
 function libLink(type, id, label) {
   const name = esc(label);
-  if (GAME.kind() !== 'nova') return name;
   if (type === 'shïp') return `<a data-ship="${id}">${name}</a>`;
   if (type === 'sÿst') return U.byId.has(id) ? `<a data-sys="${id}">${name}</a>` : name;
   if (type === 'spöb') return U.inSystems.has(id) ? `<a data-stellar="${id}">${name}</a>` : name;
+  if (GAME.kind() !== 'nova') return name;
   if (type === 'mïsn') return `<a data-mission="${id}">${name}</a>`;
   if (NOVA_REC_WORD.has(type)) return `<a data-rec="${NOVA_REC_WORD.get(type)}.${id}">${name}</a>`;
   return name;
@@ -81,12 +81,13 @@ const LIB_BASES = {
   'PICT': [['outfitPict', 'oütf', "outfitter's picture of"], ['shipTargetPict', 'shïp', 'target display of'], ['shipyardPict', 'shïp', 'shipyard picture of']],
 };
 function libRole(res, id) {
-  if (GAME.kind() !== 'nova') return '';
-  const parts = [];
-  const race = libRace(res, id);
+  const parts = [], nova = GAME.kind() === 'nova';
+  const race = nova ? libRace(res, id) : '';
   if (race) parts.push(esc(race));
   let best = null;
-  for (const [name, type, what] of LIB_BASES[res] || []) {
+  for (const [name, type, novaWhat] of LIB_BASES[res] || []) {
+    // Escape Velocity's second ship picture is loaded with the stellars' sprites, and what it shows is not read
+    const what = !nova && name === 'shipTargetPict' ? "sprite loader's picture of" : novaWhat;
     const f = fig(name);
     if (!f || id < f.value || (best && best.f.value > f.value)) continue;
     const rec = GAME.get(type, 128 + id - f.value);
@@ -125,7 +126,6 @@ const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLo
 function libFromHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   if (!p.has('library')) {
-    if (GAME && GAME.kind() !== 'nova') { libShow(LIB.tab, LIB.type, { fromHash: true }); return true; }
     if (LIB.on) libLeave(true);
     return false;
   }
@@ -155,7 +155,6 @@ function libShow(tab, type, opts = {}) {
   if (!opts.fromHash && location.hash !== libHash()) history.pushState(null, '', libHash());
 }
 function libLeave(fromHash) {
-  if (GAME && GAME.kind() !== 'nova') return;
   LIB.on = false;
   $('library').hidden = true;
   $('app').hidden = false;
@@ -262,28 +261,6 @@ function libPlay(id) {
     LIB_AUDIO = new Audio(URL.createObjectURL(w.blob));
     LIB_AUDIO.play().catch(() => {});
   } catch (e) { setStatus(`snd ${id}: ${e.message}`, true); }
-}
-
-/* ---- Escape Velocity and EV Override ---------------------------------------- */
-
-/* A game of Nova's elders open: the map, ships, battle and code read Nova's
-   layouts and its program, so only the Library is shown. */
-function olderStart() {
-  U = null;
-  PICT_CACHE.clear();
-  $('start').hidden = true;
-  $('views').hidden = false;
-  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = a.dataset.view !== 'library'; });
-  for (const id of ['compareBtn', 'collectionBtn', 'pluginBtn']) $(id).hidden = true;
-  if (SHIPS.on) shipsLeave(true);
-  if (BATTLE.on) battleLeave(true);
-  if (CODE.on) codeLeave(true);
-  if (/(^#|&)library\b/.test(location.hash)) libFromHash(); else libShow(LIB.tab, LIB.type);
-}
-// More of its files read: the pictures that did not read before are tried again.
-function olderFilesChanged() {
-  for (const [k, v] of PICT_CACHE) if (!v || v === 'failed') PICT_CACHE.delete(k);
-  if (LIB.on) renderLibrary();
 }
 
 /* ---- wiring --------------------------------------------------------------- */

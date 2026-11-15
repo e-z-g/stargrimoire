@@ -66,6 +66,13 @@ function novaUniverse(game) {
   const stellars = new Map();
   for (const s of novaAll(game, 'spöb')) stellars.set(s.id, named(s));
 
+  // Escape Velocity's and EV Override's templates number the links and
+  // stellars one field at a time (Con1 to Con16, Nav1 to Nav4), and their
+  // systems have no visibility test.
+  const kind = game.kind ? game.kind() : 'nova';
+  const numbered = (r, f, n) => r[f] || Array.from({ length: n }, (_, i) => r[f + (i + 1)]).filter(v => v !== undefined);
+  if (kind !== 'nova') for (const s of stellars.values()) s.kind = kind;
+
   const systems = [];
   const byId = new Map();
   for (const r of novaAll(game, 'sÿst')) {
@@ -73,8 +80,8 @@ function novaUniverse(game) {
     try { test = { tree: ncbCompile(r.Visibility), mixed: ncbParseTest(r.Visibility).mixed }; } catch (e) { test = { tree: ncbCompile(r.Visibility), mixed: false, error: e.message }; }
     const sys = {
       id: r.id, name: novaNameParts(r.name).name, note: novaNameParts(r.name).note, x: r.xPos, y: r.yPos, govt: r.Govt,
-      links: (r.Con || []).filter(c => c >= 128),
-      stellars: (r.Nav || []).filter(n => n >= 128 && stellars.has(n)),
+      links: numbered(r, 'Con', 16).filter(c => c >= 128),
+      stellars: numbered(r, 'Nav', 4).filter(n => n >= 128 && stellars.has(n)),
       visibility: r.Visibility || '', test, rec: r,
     };
     systems.push(sys);
@@ -96,12 +103,12 @@ function novaUniverse(game) {
   }
 
   const nebulae = novaAll(game, 'nëbu').map(n => {
-    const ids = novaNebulaPictIds(n);
+    const ids = novaNebulaPictIds(n, kind);
     return { id: n.id, name: n.name, x: n.XPos, y: n.YPos, w: n.XSize, h: n.YSize,
              activeOn: n.ActiveOn || '', picts: ids.map(id => ({ id })), rec: n };
   });
 
-  return { game, systems, byId, stellars, inSystems, govts, nebulae };
+  return { game, kind, systems, byId, stellars, inSystems, govts, nebulae };
 }
 
 /* Which systems are on the map for a control-bit state; null for every
@@ -152,7 +159,15 @@ function novaSystemLinks(u, sys, shown) {
 
 function novaGovtColor(u, id) {
   const g = u.govts.get(id);
+  if (g && u.kind && u.kind !== 'nova') return novaOlderGovtColor(id);
   return g ? '#' + (g.Color & 0xFFFFFF).toString(16).padStart(6, '0') : null;
+}
+// Escape Velocity's and EV Override's governments have no color, so the map
+// colors each by its number, the hue turning a golden angle (137.5°) from one number to the next.
+function novaOlderGovtColor(id) {
+  const h = (((id - 128) * 137.508) % 360 + 360) % 360, s = 0.7, l = 0.6;
+  const f = n => { const k = (n + h / 30) % 12, c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(c * 255).toString(16).padStart(2, '0'); };
+  return '#' + f(0) + f(8) + f(4);
 }
 
 /* A PICT's frame (its header's picFrame, what QDGetPictureBounds gives):
@@ -173,14 +188,28 @@ function novaNebulaPict(u, neb, w, h) {
 }
 
 // A nebula's pictures, PICT 9500 + 7(n - 128) and the six after (1.1.1's DoSystemMap; novaFigure's nebulaPict and nebulaPicts).
-function novaNebulaPictIds(neb) { return Array.from({ length: 7 }, (_, i) => 9500 + 7 * (neb.id - 128) + i); }
+// Escape Velocity and EV Override keep three to a nebula (NOVA_OLDER).
+function novaNebulaPictIds(neb, kind = 'nova') {
+  const per = kind === 'nova' ? 7 : NOVA_OLDER.nebulaPicts;
+  return Array.from({ length: per }, (_, i) => 9500 + per * (neb.id - 128) + i);
+}
+/* The numbers Escape Velocity 1.0.5 and EV Override 1.0.2 add, read from
+   their PowerPC code (the code view's addresses for EV, then EV Override's).
+   The stellars' sprites are spïn 300 + n, loaded in a loop with GetResource
+   (0x12a170, 0x11d71c). A stellar's landing picture is its CustPicID when
+   that is 128 or more and otherwise PICT 10000 + its Type (0x140d50,
+   0x136f74). The copy of each spöb into memory (0x123844, 0x115e70) shows
+   which fields those are. The map's nebulae are PICT 9500 + 3n and the two
+   after, for n from 0 (0x13a06c, 0x130118). novaOlderFigure finds each of
+   these in the program opened. */
+const NOVA_OLDER = { stellarSpin: 300, landingPict: 10000, nebulaPict: 9500, nebulaPicts: 3 };
 /* The sprites the program numbers from a base: a weapon's shot, spïn 3000 +
    its Graphic; an explosion's, 400 + its GraphicIndex; the boxes', 500 + n;
    an asteroid's, 800 + n; a stellar's, 1000 + its Type (1.1.1's
    LoadSprites and LoadMasterStellarSprite; novaFigure's shotSpin ...
    stellarSpin, which program_check compares these with). */
 const NOVA_SPIN_BASE = { shot: 3000, explod: 400, box: 500, asteroid: 800, stellar: 1000 };
-function novaStellarSpin(spob) { return NOVA_SPIN_BASE.stellar + spob.Type; }
+function novaStellarSpin(spob) { return (spob.kind && spob.kind !== 'nova' ? NOVA_OLDER.stellarSpin : NOVA_SPIN_BASE.stellar) + spob.Type; }
 function novaLandingPict(spob) { return spob.CustPicID >= 128 ? spob.CustPicID : 10000 + spob.Type; }
 
 /* ANIMATION, read from Mac 1.1.1's HandleStellarSprites (the Intel half,

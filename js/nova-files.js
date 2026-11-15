@@ -268,9 +268,14 @@ function novaViseEntries(bytes) {
 /* The game's program in a release's archive or disk image: a classic Mac
    application (Finder type APPL, its code a PEF container in the data
    fork) named EV Nova, as 1.0.2 to 1.0.10 ship it, or an EV Nova.app's
-   Mach-O program, as 1.1.1 does. { name, path, size, read() } giving the
+   Mach-O program, as 1.1.1 does, or the Escape Velocity or EV Override
+   application in its installer. { name, path, size, read() } giving the
    data fork, or null. */
 function novaArchiveProgram(bytes) {
+  if (looksLikeVise(bytes)) {
+    const e = novaViseEntries(bytes).find(x => x.type === 'APPL' && /^(Escape Velocity|EV Override)$/.test(x.name) && x.dataLen > 100000);
+    return e ? { name: e.name, path: e.path, size: e.dataLen, read: () => e.read('data'), readRsrc: () => (e.rsrcLen > 0 ? e.read('rsrc') : null) } : null;
+  }
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes);
   if (zip || looksLikeStuffItX(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes)) return null;
   const cat = dmg ? udifFiles(bytes) : parseStuffItArchive(bytes);

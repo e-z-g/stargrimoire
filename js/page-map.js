@@ -27,7 +27,8 @@
 
    The page's script: DOM here. LOAD ORDER: after page-open.js, before
    page-ships.js, whose SHIPS, shipsReset and shipsFromHash it uses at run
-   time. */
+   time, and before page-older.js, whose panels for Escape Velocity and EV
+   Override it uses at run time. */
 
 let U = null;
 let SHOWN = new Set();
@@ -171,6 +172,11 @@ function stellarSprite(sp) {
       c.width = d.width; c.height = d.height;
       c.getContext('2d').putImageData(new ImageData(d.frames[0], d.width, d.height), 0, 0);
     } catch (e) { c = null; }
+  } else if (olderOn()) {
+    // Escape Velocity's and EV Override's: the first tile, with its mask (page-older.js)
+    const sheet = olderSheet(spinId);
+    if (!sheet) return null;
+    c = sheet.frame(0);
   } else if (GAME.has('PICT', spin.SpritesID)) {
     // A sprite sheet in a PICT: the first tile, without its mask.
     const sheet = pictImage(spin.SpritesID);
@@ -255,11 +261,15 @@ function stellarAnimLoop(now) {
 /* ---- starting, and more files ------------------------------------------ */
 
 function mapStart(fresh) {
-  pluginOnto(GAME);
+  // Escape Velocity and EV Override: the map, the ships, the code and the Library, and none of the tools that read Nova alone (page-older.js)
+  const older = GAME.kind() !== 'nova';
+  if (older) { $('pluginBtn').hidden = true; COMPARE = null; } else pluginOnto(GAME);
   U = novaUniverse(GAME);
-  if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
-  $('compareBtn').hidden = false;
-  $('collectionBtn').hidden = false;
+  if (older) OLDER_SHEETS.clear();
+  else if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
+  $('compareBtn').hidden = older;
+  $('collectionBtn').hidden = older;
+  olderControls(older);
   PICT_CACHE.clear();
   SPRITE_CACHE.clear();
   FRAME_CACHE.clear();
@@ -271,7 +281,7 @@ function mapStart(fresh) {
   MISSIONS = null;
   DEADENDS = null;
   REFS = null;
-  setTimeout(() => { if (!BITS && GAME) { bitCatalog(); renderPanel(); } }, 300);
+  if (!older) setTimeout(() => { if (!BITS && GAME && GAME.kind() === 'nova') { bitCatalog(); renderPanel(); } }, 300);
   // other files: the subway map is worked out again, the true positions shown meanwhile
   const kind = LAYOUT.want;
   Object.assign(LAYOUT, { kind: null, mix: 0, sub: null, base: null, subs: {}, pending: {} });
@@ -280,11 +290,12 @@ function mapStart(fresh) {
   shipsReset();
   flightReset();
   // the ships as the switches have them, kept from the last visit (page-flight.js loads after this)
-  FLIGHT.on = STELLARS && $('optShips').checked;
+  FLIGHT.on = !older && STELLARS && $('optShips').checked;
   battleReset();
   $('start').hidden = true;
   $('views').hidden = false;
-  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = false; });
+  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = older && a.dataset.view === 'battle'; });
+  if (LIB.on && older && !/(^#|&)library\b/.test(location.hash)) libLeave(true);
   if (!SHIPS.on) $('app').hidden = false;
   resizeCanvas();
   applyShowMode();
@@ -294,7 +305,7 @@ function mapStart(fresh) {
   }
   // An address in the ships (#ship=128) opens them over the galaxy.
   if (/(^#|&)(ships|ship=)/.test(location.hash)) { show('galaxy', { fromHash: true }, true); shipsFromHash(); }
-  else if (/(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
+  else if (!older && /(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
   else if (/(^#|&)code\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); codeFromHash(); }
   else if (/(^#|&)library\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); libFromHash(); }
   else if (!applyHash()) show('galaxy', {}, true);
@@ -311,7 +322,7 @@ function mapFilesChanged() {
 }
 
 function applyShowMode() {
-  SHOW_MODE = $('showSel').value;
+  SHOW_MODE = olderOn() ? 'all' : $('showSel').value;
   $('bitsIn').hidden = SHOW_MODE !== 'bits';
   // a save file's bits and gender (page-pilot.js), the bits typed in, or none
   const saved = SHOW_MODE === 'save' ? pilotState() : null;
@@ -2197,7 +2208,12 @@ function renderPanel() {
   // a hypergate's question ends once something else is chosen
   if (GATE_PICK && !(sel && sel.kind === 'stellar' && sel.id === GATE_PICK.spob)) gatePickEnd();
   let html;
-  if (sel && sel.kind === 'bit') html = bitPanel(sel.id);
+  if (olderOn()) html = VIEW.mode === 'planet' ? olderStellarPanel(U.stellars.get(VIEW.stellar))
+    : sel && sel.kind === 'stellar' ? olderStellarPanel(U.stellars.get(sel.id))
+    : sel && sel.kind === 'system' ? olderSystemPanel(U.byId.get(sel.id))
+    : sel && sel.kind === 'nebula' ? olderNebulaPanel(U.nebulae.find(n => n.id === sel.id))
+    : VIEW.mode === 'system' ? olderSystemPanel(U.byId.get(VIEW.sys)) : olderGalaxyPanel();
+  else if (sel && sel.kind === 'bit') html = bitPanel(sel.id);
   else if (sel && sel.kind === 'mission') html = missionPanel(sel.id);
   else if (sel && sel.kind === 'story') html = storyPanel(sel.id);
   else if (sel && sel.kind === 'rec') html = recPanel(sel.id);
@@ -2844,6 +2860,7 @@ function planetWeapons() {
 function renderPlanet() {
   const sp = U.stellars.get(VIEW.stellar), el = $('planet');
   if (!sp) return;
+  if (olderOn()) { olderRenderPlanet(sp, el); return; }
   const gate = sp.Flags2 & 0x3000, canLand = (sp.Flags & 1) && !gate;
   const parts = [];
   const d = descText(novaStellarDescId(sp));
@@ -3061,10 +3078,11 @@ function tapAt(sx, sy, dbl) {
 
 function wirePanel() {
   const onClick = e => {
-    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-rec],[data-gate-to],[data-gate-cancel],[data-flight],[data-ov]');
+    const a = e.target.closest('[data-sys],[data-stellar],[data-open],[data-land],[data-go],[data-govt],[data-nebula],[data-route-from],[data-route-to],[data-route-clear],[data-bit],[data-bit-back],[data-bit-map],[data-ship],[data-mission],[data-story],[data-rec],[data-gate-to],[data-gate-cancel],[data-flight],[data-ov],[data-view-lib]');
     if (!a) return;
     e.preventDefault();
     const d = a.dataset;
+    if (d.viewLib !== undefined) return libShow(LIB.tab, LIB.type);
     // a bit, a mission, a storyline or a record opens over the panel; Back goes to what was under it
     const over = (kind, id) => { VIEW.sel = { kind, id, back: VIEW.sel }; writeHash(); renderPanel(); redraw(); $('panel').scrollTop = 0; };
     if (d.bit !== undefined) return over('bit', +d.bit);
@@ -3238,8 +3256,8 @@ function wireTools() {
     if (SEARCH_INDEX && SEARCH_INDEX.game === GAME && SEARCH_INDEX.prog === program()) return SEARCH_INDEX.list;
     const list = [], add = (kind, id, name, what, order) => { if (name) list.push({ kind, id, name, what, order, low: name.toLowerCase() }); };
     for (const r of novaAll(GAME, 'shïp')) add('ship', r.id, novaNameParts(r.name).name, 'ship', 1);
-    for (const m of missionData().byId.values()) add('mission', m.id, m.name, 'mission' + (m.story ? ', ' + m.story.story : ''), 3);
-    NOVA_REC_TYPES.forEach(([t, w], i) => { for (const r of novaAll(GAME, t)) add('rec', `${w}.${r.id}`, novaNameParts(r.name).name, REC_ONE[t], 2 + i * 0.01); });
+    if (!olderOn()) for (const m of missionData().byId.values()) add('mission', m.id, m.name, 'mission' + (m.story ? ', ' + m.story.story : ''), 3);
+    if (!olderOn()) NOVA_REC_TYPES.forEach(([t, w], i) => { for (const r of novaAll(GAME, t)) add('rec', `${w}.${r.id}`, novaNameParts(r.name).name, REC_ONE[t], 2 + i * 0.01); });
     const p = program();
     if (p) for (const n of novaNamedRoutines(p, GAME)) if (!n.routine.glue) add('code', n.routine.start, n.name, 'in the program', 9);
     SEARCH_INDEX = { game: GAME, prog: p, list };
@@ -3279,7 +3297,7 @@ function wireTools() {
       // and everything else with a name: ships, missions, the records with panels, the program's named routines; a bit by its number
       for (const e of searchIndex()) if (e.low.includes(q)) hits.push({ ...e, rank: e.low.startsWith(q) ? 0 : 1 });
       const bit = /^b?(\d{1,4})$/.exec(q);
-      if (bit) hits.push({ kind: 'bit', id: +bit[1], name: 'b' + +bit[1], what: bitTitle(+bit[1]) || 'control bit', rank: 0, order: -1 });
+      if (bit && !olderOn()) hits.push({ kind: 'bit', id: +bit[1], name: 'b' + +bit[1], what: bitTitle(+bit[1]) || 'control bit', rank: 0, order: -1 });
       hits.sort((a, b) => a.rank - b.rank || (a.order || 0) - (b.order || 0) || a.name.localeCompare(b.name));
       hits = hits.slice(0, 20);
     }
@@ -3312,8 +3330,7 @@ function wireTools() {
   window.addEventListener('popstate', () => {
     if (SKIP_POP) { SKIP_POP = false; return; }
     settleEnd();
-    if (GAME && GAME.kind() !== 'nova') { libFromHash(); return; }
-    if (U && !libFromHash() && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
+    if (U && !libFromHash() && !codeFromHash() && !(GAME.kind() === 'nova' && battleFromHash()) && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
   });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
   wireGrip($('appGrip'), $('app'), 'stargrimoire-split-map');

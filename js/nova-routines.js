@@ -289,6 +289,7 @@ const NOVA_ROUTINES = {
     ShipAntiInterference: [0x1ad230, 0x1b03f0, 0x1b0830],
     ShipArmorCapacity: [0x1a4f20, 0x1a8010, 0x1a8450],
     ShipArmorRechargeRate: [0x1a50b0, 0x1a81a0, 0x1a85e0],
+    ShipCanCloak: [0x1a9d70, 0x1acef0, 0x1ad330],
     ShipCanExpiditeJumps: [0x1afab0, 0x1b2c10, 0x1b3120],
     ShipCanScoop: [0x1af4b0, 0x1b2690, 0x1b2b40],
     ShipCanSeeCloakedShips: [0x1a6e20, 0x1a9f10, 0x1aa350],

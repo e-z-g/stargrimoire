@@ -294,7 +294,6 @@ function mapStart(fresh) {
   battleReset();
   $('start').hidden = true;
   $('views').hidden = false;
-  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = older && a.dataset.view === 'battle'; });
   if (LIB.on && older && !/(^#|&)library\b/.test(location.hash)) libLeave(true);
   if (!SHIPS.on) $('app').hidden = false;
   resizeCanvas();
@@ -305,7 +304,7 @@ function mapStart(fresh) {
   }
   // An address in the ships (#ship=128) opens them over the galaxy.
   if (/(^#|&)(ships|ship=)/.test(location.hash)) { show('galaxy', { fromHash: true }, true); shipsFromHash(); }
-  else if (!older && /(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
+  else if (/(^#|&)battle\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); battleFromHash(); }
   else if (/(^#|&)code\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); codeFromHash(); }
   else if (/(^#|&)library\b/.test(location.hash)) { show('galaxy', { fromHash: true }, true); libFromHash(); }
   else if (!applyHash()) show('galaxy', {}, true);
@@ -3330,7 +3329,7 @@ function wireTools() {
   window.addEventListener('popstate', () => {
     if (SKIP_POP) { SKIP_POP = false; return; }
     settleEnd();
-    if (U && !libFromHash() && !codeFromHash() && !(GAME.kind() === 'nova' && battleFromHash()) && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
+    if (U && !libFromHash() && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
   });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));
   wireGrip($('appGrip'), $('app'), 'stargrimoire-split-map');

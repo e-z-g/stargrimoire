@@ -286,6 +286,98 @@ function olderShipStop() {
   OLDER_SHIP_ANIM = null;
 }
 
+/* ---- the battle ------------------------------------------------------------------ */
+
+/* The Battle view's parts for these games (page-battle.js), which fight by
+   nova-elder-fight.js. The two sides are the first two governments by
+   number that attack each other both ways (elderGovtHostile), given by
+   their indexes as the fight has them. In Override a government with flag
+   0x0800 is passed over, since its ships are derelicts. */
+function elderBattleGovts(D) {
+  const ok = D.govts.filter(g => g && !(D.evo && g.Flags & 0x800));
+  for (const a of ok) for (const b of ok) if (a.index < b.index && elderGovtHostile(D, a.index, b.index) && elderGovtHostile(D, b.index, a.index)) return [a.index, b.index];
+  return null;
+}
+// The classes a random battle draws from: AI type 3 or 4, able to move, with a weapon that does damage or a fighter bay.
+function elderBattleFighters(D) {
+  return [...D.classes.values()].filter(c => {
+    const k = c.cls;
+    const armed = k.WeapType.some((t, i) => { const W = k.WeapCount[i] > 0 && D.weaps[t]; return W && (W.MassDmg > 0 || W.EnergyDmg > 0 || W.Guidance === 99); });
+    return !c.missing && k.InherentAI >= 3 && k.Speed > 0 && armed;
+  });
+}
+// A ship tapped in the fight. The program has no names for its AI's states or types, so they are numbers.
+function elderBattleInspect(w, s, here) {
+  const D = w.D;
+  const name = x => `${esc(x.cls.name)} <span class="id">#${x.cls.id}</span>`;
+  const bar = (v, cap) => cap > 0 ? `${Math.max(0, Math.round(v))} of ${cap}` : '—';
+  const gone = here ? '' : (w.gone.find(g => g.ship === s) || {}).how || 'gone';
+  const t = elderShip(w, s.target);
+  const doing = !here ? esc(gone) : s.dying > 0 ? 'exploding' : s.disabled ? 'disabled' : `AI state ${s.state}` + (t ? ` ${name(t)}` : '');
+  const wr = s.weap.filter(r => r.count > 0).map(r => {
+    const W = D.weaps[r.i];
+    if (!W) return '';
+    const ammo = W.Guidance === 99 || W.AmmoType >= 0 ? r.ammo : '';
+    return `<tr><td>${esc(W.name)}${r.count > 1 ? ` ×${r.count}` : ''}</td><td>${ammo}</td><td>${r.reload > 0 ? Math.ceil(r.reload) : 'ready'}</td></tr>`;
+  }).join('');
+  return `<div class="battle-inspect"><div class="battle-row"><b>${name(s)}</b> <button data-battle-do="unpick" aria-label="Close">×</button></div>
+    <table class="kv"><tr><td>Doing</td><td>${doing}</td></tr>
+    <tr><td>Flies as</td><td>AI type ${s.ai}</td></tr>
+    <tr><td>Shield</td><td>${bar(s.shield, elderShieldCap(D, s))}</td></tr>
+    <tr><td>Armor</td><td>${bar(s.armor, elderArmorCap(D, s))}</td></tr>
+    <tr><td>Fuel</td><td>${Math.round(s.fuel)}</td></tr></table>
+    ${wr ? `<table class="kv"><tr><td>Weapon</td><td>Ammo</td><td>Reload</td></tr>${wr}</table>` : '<p class="note">No weapons.</p>'}</div>`;
+}
+
+/* The fight drawn. A ship is spïn 128 + its class's index at the frame of
+   its heading, ten degrees a frame. A shot is spïn 200 + its weapon's
+   Graphic at the frame of its angle, or with MiscFlags 0x0001 at a frame
+   that turns: the frame count's in Escape Velocity and the shot's
+   counter in Override. A beam is a line ProxRadius wide in the QuickDraw
+   color its Graphic picks (0x12fbc0, Override 0x1228ac): -2 red, -3 green,
+   -4 blue, -5 cyan, -6 magenta, -7 yellow, and -8, -9 and -10 red, green
+   and blue with a line half as wide over it in magenta, yellow and cyan.
+   An explosion is spïn 400 + its type, shown once its delay is over at
+   the frame its remaining life gives: the life, half of it or a quarter
+   (0x12cc9c). */
+const ELDER_BEAM_COLORS = { '-2': ['#dd0806'], '-3': ['#008011'], '-4': ['#0000d4'], '-5': ['#02abea'], '-6': ['#f20884'], '-7': ['#fcf305'],
+                            '-8': ['#dd0806', '#f20884'], '-9': ['#008011', '#fcf305'], '-10': ['#0000d4', '#02abea'] };
+function drawElderThings(ctx, w, at, z, alpha, mark, cw, ch) {
+  const sprite = (id, f, x, y, min, s) => {
+    const spr = shipSprite(id), img = spr ? shipFrame(spr, Math.max(0, Math.min(spr.count - 1, f))) : null;
+    let wd = (img ? img.width : 32) * z, ht = (img ? img.height : 32) * z;
+    const m = Math.max(wd, ht);
+    if (m < min) { wd *= min / m; ht *= min / m; }
+    if (x + wd < 0 || y + ht < 0 || x - wd > cw || y - ht > ch) return;
+    if (s && mark) mark(ctx, s, x, y, Math.max(wd, ht));
+    if (img) { ctx.imageSmoothingEnabled = wd < img.width; ctx.drawImage(img, x - wd / 2, y - ht / 2, wd, ht); }
+    else if (s) { ctx.beginPath(); ctx.arc(x, y, wd / 2, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(160,175,200,0.6)'; ctx.lineWidth = 1; ctx.stroke(); }
+  };
+  for (const s of w.ships) { const [x, y] = at(s.x, s.y); sprite(s.cls.sprite, elderShipFrame(s), x, y, MIN_SHIP, s); }
+  for (const sh of w.shots) {
+    if (!(sh.life > 0) || sh.wp.Graphic < 0) continue;
+    const [x, y] = at(sh.x, sh.y);
+    const f = sh.wp.MiscFlags & 0x1 ? (w.D.evo ? Math.min(35, sh.spin) : w.frame % 36) : Math.trunc(sh.angle / 10);
+    sprite(200 + sh.wp.Graphic, f, x, y, MIN_SHOT, null);
+  }
+  ctx.lineCap = 'butt';
+  for (const b of w.beams) {
+    const colors = b.shown && b.wp && ELDER_BEAM_COLORS[b.wp.Graphic];
+    if (!colors) continue;
+    const [x0, y0] = at(b.x, b.y), [x1, y1] = at(b.x2, b.y2);
+    colors.forEach((color, k) => {
+      ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, b.wp.ProxRadius * z * (k ? 0.5 : 1));
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    });
+  }
+  ctx.globalAlpha = 1;
+  for (const b of w.booms) {
+    if (b.life > ELDER_BOOM_FRAMES[b.type]) continue;
+    const [x, y] = at(b.x, b.y);
+    sprite(400 + b.type, b.life >> b.type, x, y, MIN_SHOT, null);
+  }
+}
+
 /* ---- Nova's switches, hidden for these games ------------------------------------- */
 
 // The switches that depend on Nova's field meanings: which systems a control bit shows, the ships in flight, the gates, the services.

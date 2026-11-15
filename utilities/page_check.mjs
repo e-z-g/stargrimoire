@@ -1335,6 +1335,24 @@ try {
         o.lib.pict = document.querySelectorAll('#library figure canvas').length;
         libShow('snd'); await until(() => document.querySelector('#library button[data-lib-play]'), 30000);
         o.lib.snd = document.querySelectorAll('#library button[data-lib-play]').length;
+        // the battle: a random one of 10 a side, fought and drawn, a ship's panel, and the address opened again
+        document.querySelector('#views [data-view=battle]').click();
+        await until(() => document.querySelector('#battleSide [data-battle-do="random"]'), 8000);
+        const side = document.getElementById('battleSide'), cv = document.getElementById('battleCanvas');
+        o.battle = { rows: document.querySelectorAll('#battleRows .shipRow').length, flies: [...side.querySelectorAll('[data-battle="ai"] option')].map(x => x.textContent).join(),
+                     nova: side.querySelectorAll('[data-battle="kills"], [data-battle-do="saved"], [data-battle-do="custom"]').length };
+        side.querySelector('[data-battle-do="random"]').click();
+        o.battle.n = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
+        o.battle.hash = location.hash;
+        side.querySelector('[data-battle-do="fight"]').click();
+        await until(() => BATTLE.w && BATTLE.w.frame > 200, 20000);
+        const w = BATTLE.w, px2 = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        let lit2 = 0; for (let k = 0; k < px2.length; k += 4) if (px2[k] + px2[k + 1] + px2[k + 2] > 60) lit2++;
+        const one = w && w.ships[0];
+        o.battle.fight = { elder: !!(w && w.elder), frame: w ? w.frame : 0, ships: w ? w.ships.length : 0, placed: BATTLE.placed.length, lit: lit2,
+                           panel: one ? elderBattleInspect(w, one, true).replace(/<[^>]*>/g, ' ').slice(0, 200) : '', status: (document.getElementById('battleLeft0') || {}).textContent };
+        BATTLE.speed = 8; await until(() => BATTLE.w.gone.length > 0 || BATTLE.w.frame > 6000, 60000);
+        o.battle.gone = BATTLE.w.gone.length; o.battle.frames = BATTLE.w.frame;
         history.pushState(null, '', '#galaxy'); window.dispatchEvent(new PopStateEvent('popstate')); await wait(300);
         o.after = { lib: LIB.on, app: !document.getElementById('app').hidden, mode: VIEW.mode };
         return o;
@@ -1343,16 +1361,18 @@ try {
     const o = r.more;
     if (!r.met || !o) { fail(`${file} did not open`); continue; }
     const bad = [];
-    if (o.kind !== kind || o.views.join() !== 'map,ships,code,library' || !o.program) bad.push('kind, views or program');
+    if (o.kind !== kind || o.views.join() !== 'map,ships,battle,code,library' || !o.program) bad.push('kind, views or program');
     if (o.systems !== systems || !(o.links > systems)) bad.push('systems or links');
     if (!(o.sys.stellars > 0) || o.sys.drawn < o.sys.stellars || !(o.sys.links > 0)) bad.push('Sol');
     if (!o.planet.pict || !o.planet.desc || o.planet.code < 3 || !/stellar=/.test(o.planet.hash)) bad.push('the landing page');
     if (o.ship.rows !== ships || !(o.ship.thumbs > ships / 2) || !(o.ship.lit > 50) || !(o.ship.picts > 0) || !(o.ship.descs > 0)) bad.push('the ships');
     if (!o.code.on || !(o.code.routines > 500)) bad.push('the code');
     if (o.lib.rows !== ships || o.lib.cols < 20 || !(o.lib.types > 10) || !(o.lib.descs > 100) || !/landing picture/.test(o.lib.role) || !(o.lib.pict > 0) || !(o.lib.snd > 0)) bad.push('the Library');
+    const bt = o.battle || {}, bf = bt.fight || {};
+    if (!(bt.rows > 5) || !/,AI type 1,/.test(bt.flies) || bt.nova || (bt.n || []).join() !== '10,10' || !/^#battle&ships=/.test(bt.hash) || !bf.elder || !(bf.frame > 200) || !(bf.ships > 0) || bf.placed !== 20 || !(bf.lit > 100) || !/Shield/.test(bf.panel) || !(bt.gone > 0)) bad.push('the battle');
     if (o.after.lib || !o.after.app || o.after.mode !== 'galaxy') bad.push('Back to the map');
     if (bad.length) fail(`${file}: ${bad.join(', ')}: ${JSON.stringify(o)}`);
-    else console.log(`${file}: ${o.kind}, ${o.systems} systems and ${o.links} links, Sol's ${o.sys.stellars} stellars drawn, a landing page with ${o.planet.code} numbers linked to the program, ${o.ship.rows} ships with sprites and pictures, ${o.code.routines} routines, the Library's ${o.lib.types} tables, ${o.lib.descs} descriptions, ${o.lib.pict} pictures and ${o.lib.snd} sounds, and back to the galaxy`);
+    else console.log(`${file}: ${o.kind}, ${o.systems} systems and ${o.links} links, Sol's ${o.sys.stellars} stellars drawn, a landing page with ${o.planet.code} numbers linked to the program, ${o.ship.rows} ships with sprites and pictures, a random battle of ${bt.n.join(' against ')} with ${bt.gone} gone by frame ${bt.frames}, ${o.code.routines} routines, the Library's ${o.lib.types} tables, ${o.lib.descs} descriptions, ${o.lib.pict} pictures and ${o.lib.snd} sounds, and back to the galaxy`);
   }
 } finally {
   srv.close();

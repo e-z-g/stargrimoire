@@ -50,6 +50,21 @@ const BATTLE_GAP = 120;            // between ships dropped together, in a colum
 // The least kills for each combat rating, whose names are STR# 138 (nova-fight.js).
 const BATTLE_RATINGS = NOVA_COMBAT_RATINGS;
 
+/* Escape Velocity and EV Override fight by their programs' rules
+   (nova-elder-fight.js): the same arena and hangar, with no combat rating
+   and no ship classes made here. At most 35 ships fly at a time, fighters
+   counted, as the programs have 35 slots for them. */
+let BATTLE_ELDER = null;
+// The records the fight reads: Nova's (flightData), or the older games' once per set of files.
+function battleData() {
+  if (!olderOn()) return flightData();
+  if (BATTLE_ELDER && BATTLE_ELDER.game === GAME) return BATTLE_ELDER;
+  if (!GAME || PENDING.length || READING || !GAME.list('shïp').length) return null;
+  return (BATTLE_ELDER = elderFightData(GAME));
+}
+// The ship in a slot of the fight, or null.
+const battleAt = (w, i) => (i >= 0 && (w.elder ? w.slots[i] : w.ships[i])) || null;
+
 /* ---- in and out of the view -------------------------------------------- */
 
 function battleFromHash() {
@@ -60,9 +75,9 @@ function battleFromHash() {
   return true;
 }
 // Other files: the battle goes with the records that made it.
-function battleReset() { BATTLE_IMAGES.clear(); BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
+function battleReset() { BATTLE_ELDER = null; BATTLE_IMAGES.clear(); BATTLE.pick = null; BATTLE.w = null; BATTLE.placed = []; BATTLE.setup = []; BATTLE.hangar = null; BATTLE.armed = null; if (BATTLE.on) battlePanel(); }
 // More files read: the ships may have come.
-function battleFilesChanged() { if (BATTLE.on) { battlePanel(); battleDraw(); } }
+function battleFilesChanged() { BATTLE_ELDER = null; if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
   if (SHIPS.on) shipsLeave(true);
   if (LIB.on) libLeave(true);
@@ -119,7 +134,7 @@ function battleLeave(fromHash) {
 /* ---- the panel: the sides and controls, then the hangar ------------------ */
 
 function battlePanel() {
-  const top = $('battleTop'), D = flightData();
+  const top = $('battleTop'), D = battleData();
   if (!D) {
     top.innerHTML = `<p class="note">${SHIP_FILES.length || PENDING.some(f => f.role === 'ships') ? 'Reading the ships…' : 'No ships files are open.'}</p>`;
     $('battleRows').innerHTML = '';
@@ -128,21 +143,24 @@ function battlePanel() {
   }
   if (BATTLE.want) battleTakeHash(D);
   BATTLE.govt = battleGovts(D);
-  if (!BATTLE.govt || !battleEmptySystem()) { top.innerHTML = '<p class="note">The files have no two governments that are enemies. There are no ships to fight.</p>'; $('battleRows').innerHTML = ''; BATTLE.hangar = null; return; }
+  if (!BATTLE.govt || !(D.elder || battleEmptySystem())) { top.innerHTML = '<p class="note">The files have no two governments that are enemies. There are no ships to fight.</p>'; $('battleRows').innerHTML = ''; BATTLE.hangar = null; return; }
   const w = BATTLE.w;
   const side = i => `<div class="battle-side" style="--side:${BATTLE_COLOURS[i]}">
       <div class="battle-row"><b>${i ? 'Right' : 'Left'}</b></div>
       <div class="battle-left" id="battleLeft${i}"></div></div>`;
   const speeds = FLIGHT_SPEEDS.map(v => `<button data-battle-do="speed:${v}" aria-pressed="${BATTLE.speed === v}">${v === 0.5 ? '½' : v}×</button>`).join('');
   const sides = [0, 1].map(i => BATTLE.setup.filter(e => e.side === i).length);
-  const names = novaStrings(GAME, 138), kills = BATTLE_RATINGS.includes(BATTLE.kills) ? BATTLE_RATINGS : [...BATTLE_RATINGS, BATTLE.kills].sort((a, b) => a - b);
+  const sizes = D.elder ? [5, 10, 17] : [5, 10, 20, 30];
+  if (!sizes.includes(BATTLE.side)) BATTLE.side = 10;
+  for (const o of document.querySelectorAll('[data-battle="ai"] option')) if (+o.value) o.textContent = D.elder ? `AI type ${o.value}` : NOVA_AI_TYPES[o.value];
+  const names = D.elder ? [] : novaStrings(GAME, 138), kills = BATTLE_RATINGS.includes(BATTLE.kills) ? BATTLE_RATINGS : [...BATTLE_RATINGS, BATTLE.kills].sort((a, b) => a - b);
   const rating = kills.map(k => { const lv = BATTLE_RATINGS.findLastIndex(v => v <= k);
     return `<option value="${k}"${k === BATTLE.kills ? ' selected' : ''}>${esc(names[lv] || `rating ${lv}`)} (${k.toLocaleString('en')} kills)</option>`; }).join('');
   top.innerHTML = `
-    <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${[5, 10, 20, 30].map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
-    <div class="battle-row"><span class="note">Combat rating</span> <select data-battle="kills" aria-label="Combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>
+    <div class="actions"><button data-battle-do="random">Random battle</button><label class="note"><select data-battle="side" aria-label="Ships a side in a random battle">${sizes.map(n => `<option${n === BATTLE.side ? ' selected' : ''}>${n}</option>`).join('')}</select> a side</label></div>
+    ${D.elder ? '' : `<div class="battle-row"><span class="note">Combat rating</span> <select data-battle="kills" aria-label="Combat rating">${rating}</select>${fig('combatRatings') ? ` <span class="note">${codeNum(fig('combatRatings'), 'as the program rates kills')}</span>` : ''}</div>`}
     <label class="battle-row"><input type="checkbox" data-battle="ammo"${BATTLE.ammo ? ' checked' : ''}> Ammunition never runs out</label>
-    <div class="actions">${PILOT ? '<button data-battle-do="saved">Copy the saved ship</button>' : ''}<button data-battle-do="custom">Custom ship</button></div>
+    ${D.elder ? '' : `<div class="actions">${PILOT ? '<button data-battle-do="saved">Copy the saved ship</button>' : ''}<button data-battle-do="custom">Custom ship</button></div>`}
     ${side(0)}${side(1)}
     <div class="actions">${w ? '<button data-battle-do="setup">Set up again</button>' : `<button data-battle-do="fight"${sides[0] && sides[1] ? '' : ' disabled'}>Fight</button>`}<button data-battle-do="clear"${BATTLE.setup.length || w ? '' : ' disabled'}>Clear</button></div>
     ${w ? `<div class="actions"><button data-battle-do="pause">${BATTLE.paused ? 'Go on' : 'Pause'}</button>${speeds}<button data-battle-do="follow" aria-pressed="${BATTLE.follow}">Follow</button></div>` : ''}
@@ -166,7 +184,7 @@ function battleHangar(D) {
     BATTLE.open = new Set();
     BATTLE.classes = [...D.classes.values()].filter(c => !c.missing && c.sprite > 0)
       .sort((a, b) => (b.rec.DispWeight || 0) - (a.rec.DispWeight || 0) || a.id - b.id);
-    for (const c of BATTLE.classes) c.made = !GAME.get('shïp', c.id, { under: true });
+    for (const c of BATTLE.classes) { c.made = !D.elder && !GAME.get('shïp', c.id, { under: true }); c.look = D.elder ? olderShipLook(c.sprite) : c.sprite; }
   }
   battleFilter();
 }
@@ -174,7 +192,7 @@ function battleFilter() {
   const all = BATTLE.classes || [], q = BATTLE.q.trim().toLowerCase();
   const match = c => !q || String(c.id) === q || (c.name + ' ' + (c.rec.Subtitle || '')).toLowerCase().includes(q);
   const groups = new Map();
-  for (const c of all) if (!c.made) { if (!groups.has(c.sprite)) groups.set(c.sprite, []); groups.get(c.sprite).push(c); }
+  for (const c of all) if (!c.made) { if (!groups.has(c.look)) groups.set(c.look, []); groups.get(c.look).push(c); }
   const row = (c, sub) => `<div class="shipRow battleShip${sub ? ' sub' : ''}" data-bcls="${c.id}">${sub ? '' : '<canvas class="thumb" width="44" height="44"></canvas>'}` +
     `<span class="nm">${esc(c.name)}${c.rec.Subtitle ? `<small>${esc(c.rec.Subtitle)}</small>` : ''}</span>` +
     `<a class="id" data-binfo="${c.id}" title="In the Ships view">${c.id}</a></div>`;
@@ -256,8 +274,8 @@ function battleStatus(force) {
   }
   const rows = [0, 1].map(i => {
     const placed = BATTLE.placed.filter(p => p.side === i);
-    const here = placed.filter(p => w.ships[p.slot] === p.ship), up = here.filter(p => !p.ship.disabled);
-    const gone = placed.filter(p => w.ships[p.slot] !== p.ship), dead = gone.filter(p => w.gone.some(g => g.ship === p.ship && g.how === 'destroyed')).length;
+    const here = placed.filter(p => battleAt(w, p.slot) === p.ship), up = here.filter(p => !p.ship.disabled);
+    const gone = placed.filter(p => battleAt(w, p.slot) !== p.ship), dead = gone.filter(p => w.gone.some(g => g.ship === p.ship && g.how === 'destroyed')).length;
     return { placed, here, up, dead, fled: gone.length - dead };
   });
   const key = rows.map(r => `${r.placed.length}/${r.up.length}/${r.here.length}/${r.dead}`).join(' ');
@@ -318,12 +336,12 @@ function battleKeepSetup(change) {
   const keep = BATTLE.setup;
   change();
   pluginChanged();
-  const D = flightData();
+  const D = battleData();
   BATTLE.setup = D ? keep.filter(e => D.classes.has(e.cls)) : [];
 }
 // Your ship as the save file has it, a copy of its class with the save's weapons and outfits (novaPilotShip).
 function battleCopyYours() {
-  const D = flightData(), got = PILOT && novaPilotShip(GAME, PILOT.save);
+  const D = battleData(), got = PILOT && novaPilotShip(GAME, PILOT.save);
   if (!D || !got) { BATTLE.note = 'The save file\'s ship class is not in the open files.'; battlePanel(); return; }
   const res = novaShipCopy(GAME, got.from, got.name, got.change);
   if (!res) { BATTLE.note = 'The files already use every ship number the game reads (128 to 895).'; battlePanel(); return; }
@@ -361,8 +379,8 @@ function battleDrop(clsId, x, y, n, ai = 3) {
     const yy = y + (k - (n - 1) / 2) * BATTLE_GAP;
     if (!BATTLE.w) BATTLE.setup.push({ cls: clsId, side, x, y: yy, ai });
     else {
-      const s = novaPlaceShip(BATTLE.w, clsId, BATTLE.govt[side], x, yy, ai, BATTLE_FACING[side]);
-      if (s) { s.frame = novaShipFrame(s); BATTLE.placed.push(battleStock({ side, slot: s.slot, ship: s })); }
+      const s = battlePlace(BATTLE.w, clsId, side, x, yy, ai);
+      if (s) { BATTLE.placed.push(battleStock({ side, slot: s.slot, ship: s })); }
     }
   }
   if (!BATTLE.w) battlePanel(); else battleStatus(true);
@@ -372,6 +390,7 @@ function battleDrop(clsId, x, y, n, ai = 3) {
    in other files the first two (by number) each the other's enemy, as
    GovtEnemies has it both ways round; null when there are none. */
 function battleGovts(D) {
+  if (D.elder) return elderBattleGovts(D);
   const ids = [...D.govts.keys()].filter(novaGovtOk).sort((a, b) => a - b);
   const named = name => ids.find(id => { const g = U.govts.get(id); return g && g.name === name; });
   const foes = (a, b) => a !== undefined && b !== undefined && novaGovtEnemies(D, a, b) && novaGovtEnemies(D, b, a);
@@ -388,21 +407,22 @@ function battleGovts(D) {
    so the two come out about even. They are scattered over the arena, the
    sides mixed, flying as the Flies as setting has it. */
 function battleRandom() {
-  const D = flightData();
+  const D = battleData();
   if (!D) return;
   if (!battleGovts(D)) return;
-  const fights = [...D.classes.values()].filter(c => {
+  const strength = c => D.elder ? c.cls.Shield + c.cls.Armor : novaClassFight(D, c).strength;
+  const fights = D.elder ? elderBattleFighters(D) : [...D.classes.values()].filter(c => {
     const f = novaClassFight(D, c);
     const armed = f.count.some((n, i) => { const W = n > 0 && novaWeapOf(D, i); return W && (W.mass > 0 || W.energy > 0 || W.guid === 99); });
     return !c.missing && c.ai >= 3 && c.speed > 0 && !(c.flags & 0x0400) && f.strength > 0 && armed;
   });
   if (!fights.length) return;
   const pick = l => l[Math.floor(Math.random() * l.length)];
-  const drawn = Array.from({ length: 2 * BATTLE.side }, () => pick(fights)).sort((a, b) => novaClassFight(D, b).strength - novaClassFight(D, a).strength);
+  const drawn = Array.from({ length: 2 * BATTLE.side }, () => pick(fights)).sort((a, b) => strength(b) - strength(a));
   const sides = [[], []], sum = [0, 0];
   for (const c of drawn) {
     const k = sides[0].length >= BATTLE.side ? 1 : sides[1].length >= BATTLE.side ? 0 : sum[0] <= sum[1] ? 0 : 1;
-    sides[k].push(c); sum[k] += novaClassFight(D, c).strength;
+    sides[k].push(c); sum[k] += strength(c);
   }
   BATTLE.w = null; BATTLE.placed = []; BATTLE.pick = null; BATTLE.follow = true;
   BATTLE.setup = [];
@@ -427,28 +447,36 @@ function battleEmptySystem() {
 /* The arena's ships put in empty space, each where it was set and facing
    the other side, and nothing else there; none retreats or leaves. */
 function battleFight() {
-  const D = flightData(), sys = battleEmptySystem();
-  if (!D || !sys || !BATTLE.govt) return;
-  const w = novaFlightWorld(D, sys, STATE, Math.floor(Math.random() * 0x7fffffff), battleView());
-  w.kills = BATTLE.kills;
-  for (let i = 0; i < 64; i++) w.ships[i] = null;
-  w.noArrivals = true;
-  w.noRetreat = true;
+  const D = battleData(), sys = D && !D.elder && battleEmptySystem(), seed = Math.floor(Math.random() * 0x7fffffff);
+  if (!D || !(D.elder || sys) || !BATTLE.govt) return;
+  const w = D.elder ? elderWorld(D, seed) : novaFlightWorld(D, sys, STATE, seed, battleView());
+  if (!D.elder) {
+    w.kills = BATTLE.kills;
+    for (let i = 0; i < 64; i++) w.ships[i] = null;
+    w.noArrivals = true;
+    w.noRetreat = true;
+  }
   BATTLE.w = w; BATTLE.placed = []; BATTLE.shown = '';
   for (const e of BATTLE.setup) {
-    const s = novaPlaceShip(w, e.cls, BATTLE.govt[e.side], e.x, e.y, e.ai, BATTLE_FACING[e.side]);
+    const s = battlePlace(w, e.cls, e.side, e.x, e.y, e.ai);
     if (s) BATTLE.placed.push(battleStock({ side: e.side, slot: s.slot, ship: s }));
   }
-  for (const s of w.ships) if (s) s.frame = novaShipFrame(s);
   BATTLE.follow = true;
   BATTLE.paused = false;
   battleRun();
+}
+// A ship of a class put into the fight for a side, facing the other, or null when the fight has no room for it.
+function battlePlace(w, clsId, side, x, y, ai) {
+  if (w.elder) { const c = w.D.classes.get(clsId); return c ? elderPlaceShip(w, c, BATTLE.govt[side], x, y, ai, BATTLE_FACING[side]) : null; }
+  const s = novaPlaceShip(w, clsId, BATTLE.govt[side], x, y, ai, BATTLE_FACING[side]);
+  if (s) s.frame = novaShipFrame(s);
+  return s;
 }
 // What a ship starts with, for Ammunition never runs out: each weapon's ammunition, and its fuel.
 function battleStock(p) { p.ammo = p.ship.weap.map(r => r.ammo); p.fuel = p.ship.fuel; return p; }
 function battleRefill(w) {
   for (const p of BATTLE.placed) {
-    if (w.ships[p.slot] !== p.ship) continue;
+    if (battleAt(w, p.slot) !== p.ship) continue;
     p.ship.weap.forEach((r, k) => { if (r.ammo < p.ammo[k]) r.ammo = p.ammo[k]; });
     if (p.ship.fuel < p.fuel) p.ship.fuel = p.fuel;
   }
@@ -456,7 +484,7 @@ function battleRefill(w) {
 const battleAiOk = ai => ai === 0 || ai in NOVA_AI_TYPES;
 // The arena's ship at a point on the screen, before the fight.
 function battleSetupAt(px, py) {
-  const D = flightData();
+  const D = battleData();
   if (!D || BATTLE.w) return -1;
   const c = BATTLE.cam;
   for (let i = BATTLE.setup.length - 1; i >= 0; i--) {
@@ -480,7 +508,7 @@ const battleFromScreen = (px, py) => [(px - BATTLE.cw / 2) / BATTLE.cam.s + BATT
 const BATTLE_STATES = { 4: 'attacking', 0xd: 'plundering', 0x10: 'attacking an asteroid' };
 // The fight's ship at a point on the screen, the nearest within its ring.
 function battleShipAt(px, py) {
-  const w = BATTLE.w, D = flightData();
+  const w = BATTLE.w, D = battleData();
   if (!w || !D) return null;
   let best = null, bd = Infinity;
   for (const s of w.ships) {
@@ -498,11 +526,12 @@ function battleInspect(force) {
   if (!force && performance.now() - BATTLE.pickShown < 100) return;
   BATTLE.pickShown = performance.now();
   if (!s || !w) { el.innerHTML = w ? '<p class="note">Tap a ship to see inside it.</p>' : ''; return; }
-  const D = w.D, here = w.ships[s.slot] === s;
+  const D = w.D, here = battleAt(w, s.slot) === s;
+  if (w.elder) { el.innerHTML = elderBattleInspect(w, s, here); return; }
   const name = x => `${esc(x.cls.name)} <span class="id">#${x.cls.id}</span>`;
   const bar = (v, cap) => cap > 0 ? `${Math.max(0, Math.round(v))} of ${cap}` : '—';
   const gone = here ? '' : (w.gone.find(g => g.ship === s) || {}).how || 'gone';
-  const t = s.primary >= 0 ? w.ships[s.primary] : null;
+  const t = battleAt(w, s.primary);
   const doing = !here ? esc(gone) : s.disabled ? 'disabled' : (BATTLE_STATES[s.state] || `AI state ${s.state}`) + (t ? ` ${name(t)}` : '');
   const wr = s.weap.filter(r => r.count > 0).map(r => {
     const W = novaWeapOf(D, r.i);
@@ -535,8 +564,8 @@ function battleLoop(now) {
     if (BATTLE.last) BATTLE.due = Math.min(BATTLE.due + (now - BATTLE.last) * 0.03 * BATTLE.speed, 4 * BATTLE.speed);
     BATTLE.last = now;
     for (; BATTLE.due >= 1; BATTLE.due--) {
-      BATTLE.w.view = battleView();
-      novaFlightStep(BATTLE.w);
+      if (BATTLE.w.elder) elderStep(BATTLE.w);
+      else { BATTLE.w.view = battleView(); novaFlightStep(BATTLE.w); }
       if (BATTLE.ammo) battleRefill(BATTLE.w);
     }
     battleStatus(false);
@@ -575,7 +604,7 @@ function battleResize() {
 function battleDraw() {
   const cv = $('battleCanvas');
   if (!cv || !BATTLE.on) return;
-  const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, W = BATTLE.cw, H = BATTLE.ch, c = BATTLE.cam, D = flightData();
+  const ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, W = BATTLE.cw, H = BATTLE.ch, c = BATTLE.cam, D = battleData();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   const [mx] = battleToScreen(0, 0), w = BATTLE.w;
@@ -619,17 +648,17 @@ function battleDraw() {
   // each ship of a side ringed in its color, faintly when disabled; one that joined (a fighter, a capture) in its lead's color
   const mark = (ctx2, s, x, y, size) => {
     let i = side.get(s);
-    if (i === undefined) { const l = s.leader >= 0 ? w.ships[s.leader] : null; i = l ? side.get(l) : undefined; }
+    if (i === undefined) { const l = battleAt(w, s.leader); i = l ? side.get(l) : undefined; }
     if (i !== undefined) ring(x, y, size, i, s.disabled);
   };
-  drawFlightThings(ctx, w, battleToScreen, c.s, 1, mark, W, H);
+  (w.elder ? drawElderThings : drawFlightThings)(ctx, w, battleToScreen, c.s, 1, mark, W, H);
   // the inspected ship ringed in white, and a line to its target
   const p = BATTLE.pick;
-  if (p && w.ships[p.slot] === p) {
+  if (p && battleAt(w, p.slot) === p) {
     const [x, y] = battleToScreen(p.x, p.y), spr = shipSprite(p.cls.sprite), m = Math.max(MIN_SHIP, (spr && spr.width ? Math.max(spr.width, spr.height) : 32) * c.s);
     ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(x, y, m * 0.62 + 6, 0, Math.PI * 2); ctx.stroke();
-    const t = p.primary >= 0 ? w.ships[p.primary] : null;
+    const t = battleAt(w, p.primary);
     if (t) { const [tx, ty] = battleToScreen(t.x, t.y); ctx.globalAlpha = 0.4; ctx.setLineDash([4, 6]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(tx, ty); ctx.stroke(); }
     ctx.restore();
   }
@@ -649,6 +678,7 @@ function wireBattle() {
     const b = e.target.closest('[data-battle-do]');
     if (b) { e.preventDefault(); battleDo(b.dataset.battleDo); }
   });
+  document.addEventListener('pictready', () => { if (BATTLE.on && olderOn() && BATTLE.hangar) { battleThumbs(BATTLE.hangar); battleDraw(); } });
   $('battleSearch').addEventListener('input', e => { BATTLE.q = e.target.value; battleFilter(); });
 
   const cv = $('battleCanvas'), pts = new Map();
@@ -663,7 +693,7 @@ function wireBattle() {
   const onArena = (cx, cy) => { const r = cv.getBoundingClientRect(); return cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom ? [cx - r.left, cy - r.top] : null; };
   const showGhost = (clsId, cx, cy) => {
     if (!ghost) { ghost = document.createElement('canvas'); ghost.className = 'battleGhost'; document.body.appendChild(ghost); }
-    const D = flightData(), cls = D && D.classes.get(clsId), img = cls && battleShipImage(cls, 90);
+    const D = battleData(), cls = D && D.classes.get(clsId), img = cls && battleShipImage(cls, 90);
     if (img && ghost.dataset.cls !== String(clsId)) {
       const k = Math.min(1, 72 / Math.max(img.width, img.height));
       ghost.width = Math.max(1, Math.round(img.width * k)); ghost.height = Math.max(1, Math.round(img.height * k));

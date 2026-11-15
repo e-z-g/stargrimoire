@@ -36,11 +36,14 @@ let SHIP_ANIM = null;             // the ship being shown, and its state
 
 function shipSprite(id) {
   if (!(id > 0)) return null;
+  // Escape Velocity's and EV Override's: spïn id's frames (page-older.js), in the shape of Nova's
+  if (olderOn()) { const sheet = olderSheet(id); return sheet ? { id, kind: 'rle', width: sheet.w, height: sheet.h, count: sheet.count, sheet } : null; }
   let s = SHIP_SPRITES.get(id);
   if (!s || s.kind === 'missing') { s = novaShipSprite(GAME, id); SHIP_SPRITES.set(id, s); }
   return s;
 }
 function shipFrame(spr, f) {
+  if (spr.sheet) return spr.sheet.frame(f);
   const k = spr.id + ':' + f;
   let c = SHIP_FRAMES.get(k);
   if (c) { SHIP_FRAMES.delete(k); SHIP_FRAMES.set(k, c); return c; }

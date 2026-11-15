@@ -337,7 +337,8 @@ async function pumpPending(refused) {
     try { GAME.add(f, await readFile(f)); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
     READING = null;
     mapFilesChanged(); shipsFilesChanged();
-    if (GAME.kind() === 'nova') battleFilesChanged(); else if (LIB.on) renderLibrary();
+    battleFilesChanged();
+    if (GAME.kind() !== 'nova' && LIB.on) renderLibrary();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page
     if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }

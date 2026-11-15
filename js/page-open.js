@@ -87,7 +87,7 @@ async function readPicked(files) {
    preprocessing needs its dictionary, 1 MB the page does not load
    otherwise: it comes from the address index.html has for it
    (#sitxEnglish), once, before the archive is read. */
-const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes) || looksLikeUdif(bytes);
+const isArchive = bytes => looksLikeStuffIt(bytes) || looksLikeStuffItX(bytes) || looksLikeZip(bytes) || looksLikeCompactPro(bytes) || looksLikeRar(bytes) || looksLikeUdif(bytes) || looksLikeVise(bytes);
 // A BinHex or MacBinary copy of an archive (a .sit.hqx, a .sitx.bin): the archive in its data fork.
 function unwrapArchive(bytes) {
   if (isArchive(bytes)) return bytes;
@@ -155,17 +155,23 @@ async function openGameFiles(picked, opts = {}) {
   // Plug-ins that come as alternatives or extras -- in several folders, or
   // beside a separate game outside a Nova Plug-ins folder -- are the
   // visitor's choice; the rest make up what the archive is.
-  const loose = found.filter(f => f.plugin && !/(^|\/)Nova Plug-?ins(\/|$)/i.test(f.folder));
+  const loose = found.filter(f => f.plugin && !/(^|\/)(Nova|EV) Plug-?ins(\/|$)/i.test(f.folder));
   const folders = new Set(loose.map(f => f.folder));
   if (loose.length && (folders.size > 1 || found.some(f => !f.plugin))) {
     const keep = await choosePlugins(loose);
     if (keep === null) { setStatus(''); return; }
     for (const f of loose) if (!keep.has(f)) found.splice(found.indexOf(f), 1);
   }
+  const fresh = found.some(f => f.role === 'data') || !GAME;
+  // Escape Velocity's and EV Override's files open only with files of the same game
+  const kinds = [...new Set(found.map(f => f.kind || 'nova'))];
+  if (kinds.length > 1 || (!fresh && kinds.length && kinds[0] !== GAME.kind())) {
+    setStatus(`Those files are ${kinds.map(k => NOVA_GAME_NAMES[k]).join(' and ')}'s${fresh ? '' : `, and the game open is ${NOVA_GAME_NAMES[GAME.kind()]}`}. Open one game's files at a time.`, true);
+    return;
+  }
   const now = found.filter(f => f.role === 'data' || f.plugin);
   const later = found.filter(f => f.role === 'graphics' || f.role === 'titles');
   const ships = found.filter(f => f.role === 'ships' || f.role === 'sounds');
-  const fresh = found.some(f => f.role === 'data') || !GAME;
   if (!now.length && !later.length && !ships.length) {
     setStatus(refused.join('; ') || 'Nothing in those files is part of EV Nova', true);
     return;
@@ -200,7 +206,7 @@ async function openGameFiles(picked, opts = {}) {
   PENDING.push(...later);
   SHIP_FILES.push(...ships);
   if (fresh) pilotClose();
-  mapStart(fresh);
+  if (GAME.kind() === 'nova') mapStart(fresh); else olderStart();
   if (saves.length) pilotOpen(saves[saves.length - 1]);
   if (refused.length) setStatus(refused.join('; '), true);
   pumpPending(refused);
@@ -330,9 +336,7 @@ async function pumpPending(refused) {
     await nextPaint();
     try { GAME.add(f, await readFile(f)); } catch (e) { (refused || []).push(f.name + ': ' + e.message); }
     READING = null;
-    mapFilesChanged();
-    shipsFilesChanged();
-    battleFilesChanged();
+    if (GAME.kind() === 'nova') { mapFilesChanged(); shipsFilesChanged(); battleFilesChanged(); } else olderFilesChanged();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page
     if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }

@@ -284,6 +284,7 @@ function mapStart(fresh) {
   battleReset();
   $('start').hidden = true;
   $('views').hidden = false;
+  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = false; });
   if (!SHIPS.on) $('app').hidden = false;
   resizeCanvas();
   applyShowMode();
@@ -3311,6 +3312,7 @@ function wireTools() {
   window.addEventListener('popstate', () => {
     if (SKIP_POP) { SKIP_POP = false; return; }
     settleEnd();
+    if (GAME && GAME.kind() !== 'nova') { libFromHash(); return; }
     if (U && !libFromHash() && !codeFromHash() && !battleFromHash() && !shipsFromHash()) { if (!applyHash()) show('galaxy', { fromHash: true }, true); }
   });
   new ResizeObserver(() => { if (!$('app').hidden) resizeCanvas(); }).observe($('stage'));

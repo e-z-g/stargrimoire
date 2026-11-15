@@ -97,6 +97,7 @@ const CHECKS = [
   ['stamp', 'every script index.html loads tagged with its contents\' hash, so no visitor is given an old one'],
   ['records', 'record tables against Ambrosia\'s templates and the ConText dump'],
   ['dmg', 'the 1.1.1 disk image read here against the files hdiutil copied out of it'],
+  ['older', 'every file in Escape Velocity\'s and EV Override\'s installers against its stored CRC, and their records read through their templates against the Nova ports'],
   ['rez', 'the .rez reader against the workbench\'s rez.py'],
   ['sprite', 'rlëD and rlë8 against ResForge, pixel for pixel'],
   ['universe', 'the map\'s rules, and every release read through them'],

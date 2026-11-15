@@ -54,6 +54,24 @@ function novaFileRole(name) {
 const NOVA_TYPE_ROLE = { 'ND?t': 'data', 'NGr?': 'graphics', 'NT?t': 'titles', 'NSh?': 'ships', 'NS?d': 'sounds' };
 const NOVA_BASE_NAME = /^Nova (Data|Graphics|Titles|Ships|Sounds) ?\d*(\.(ndat|rez))?$/i;
 
+/* Escape Velocity (1996) and EV Override (2000), Nova's elders, by their
+   files' Mac types (as the 1.0.5 and 1.0.2 installers have them): which
+   game, and the part of it or a plug-in. Their records have the same type
+   codes as Nova's but other layouts, which the templates (TMPL) in their
+   files give: EV Data has them, and EV Override's are the installer's
+   Override Templates. */
+const NOVA_OLDER_TYPE = {
+  'MD?t': ['ev', 'data'], 'MGr?': ['ev', 'graphics'], 'MS?d': ['ev', 'sounds'], 'Mp?f': ['ev', null],
+  'OD?t': ['evo', 'data'], 'OGr?': ['evo', 'graphics'], 'OS?d': ['evo', 'sounds'], 'Op?f': ['evo', null],
+};
+// The same by name, for a copy that has lost its type.
+function novaOlderByName(name) {
+  const m = /^(EV|Override) (Data|Graphics|Titles|Sounds|Music)( \d+)?$/.exec(name);
+  if (!m) return null;
+  return [m[1] === 'EV' ? 'ev' : 'evo', ({ Data: 'data', Graphics: 'graphics', Titles: 'graphics', Sounds: 'sounds', Music: 'sounds' })[m[2]]];
+}
+const NOVA_GAME_NAMES = { nova: 'EV Nova', ev: 'Escape Velocity', evo: 'EV Override' };
+
 /* THE WINDOWS FORMAT, `.rez`, which is also how plug-ins are passed round
    today. Read as EVNEW's CPlugIn::Load reads it, and checked by
    utilities/rez_check.mjs against evnova-workbench's tools/rez.py, a reader written from that
@@ -135,7 +153,7 @@ function novaOpenFork(bytes) {
    X, read here). */
 // An archive's bytes as an archive the page reads: itself, or the one in a MacBinary or BinHex copy's data fork; else null.
 function novaArchiveIn(bytes) {
-  const is = b => looksLikeStuffIt(b) || looksLikeStuffItX(b) || looksLikeZip(b) || looksLikeCompactPro(b) || looksLikeRar(b);
+  const is = b => looksLikeStuffIt(b) || looksLikeStuffItX(b) || looksLikeZip(b) || looksLikeCompactPro(b) || looksLikeRar(b) || looksLikeVise(b);
   if (is(bytes)) return bytes;
   let w = null;
   try { w = sniffMacContainer(bytes); } catch (e) { return null; }
@@ -145,13 +163,16 @@ function novaArchiveFiles(bytes, depth = 0) {
   const zip = looksLikeZip(bytes), dmg = !zip && looksLikeUdif(bytes), sitx = !zip && !dmg && looksLikeStuffItX(bytes);
   // Compact Pro and RAR give entries that read themselves, as a disk image's do
   const cpt = !zip && !dmg && !sitx && looksLikeCompactPro(bytes), rar = !zip && !dmg && !sitx && !cpt && looksLikeRar(bytes);
-  const own = dmg || cpt || rar;
+  const vise = !zip && !dmg && !sitx && !cpt && !rar && looksLikeVise(bytes);
+  const own = dmg || cpt || rar || vise;
   const cat = zip ? parseZipArchive(bytes) : dmg ? udifFiles(bytes) : sitx ? parseStuffItXArchive(bytes) :
-    cpt ? parseCompactProArchive(bytes) : rar ? parseRarArchive(bytes) : parseStuffItArchive(bytes);
+    cpt ? parseCompactProArchive(bytes) : rar ? parseRarArchive(bytes) : vise ? novaViseEntries(bytes) : parseStuffItArchive(bytes);
   const out = [];
   let all = Array.isArray(cat) ? cat : cat.entries;
   // an installer package on an image (1.1 beta 2.10.7's): the files of its payloads in its place
   if (dmg) all = all.flatMap(e => (!e.isFolder && /\.pkg$/i.test(e.name) && e.dataLen > 0 ? pkgFiles(e.read('data')) : [e]));
+  // EV's or EV Override's files: their parts and plug-ins by Mac type, and EV Override's templates
+  const older = all.map(e => !e.isFolder && NOVA_OLDER_TYPE[e.type]).find(Boolean);
   const gameDirs = new Set();
   for (const e of all) {
     const parts = (e.path || e.name).replace(/\/$/, '').split('/');
@@ -174,6 +195,14 @@ function novaArchiveFiles(bytes, depth = 0) {
       }
     }
     const hasRsrc = zip ? e.rsrc.length > 0 : e.rsrcLen > 0;   // (a StuffIt X entry is shaped as a StuffIt one)
+    const olderOne = NOVA_OLDER_TYPE[e.type] || (older && e.type === 'rsrc' && /Templates$/.test(name) && [older[0], 'data']);
+    if (olderOne && hasRsrc) {
+      const [kind, role] = olderOne, parts = (e.path || e.name).split('/');
+      const read = () => (own ? e.read('rsrc') : zip ? zipFork(bytes, e, 'rsrc') : sitx ? stuffItXFork(bytes, e, 'rsrc') : stuffItFork(bytes, e, 'rsrc'));
+      out.push({ name, path: e.path || e.name, folder: parts.slice(0, -1).join('/'), plugin: !role, role, kind,
+                 size: zip ? e.rsrc.length : e.rsrcLen, read, unpack: own || sitx ? null : { archive: bytes, entry: e, which: 'rsrc', zip, wrapped: false } });
+      continue;
+    }
     if (/\.app\/Contents\/(MacOS|Frameworks|PlugIns)\//.test(e.path || '')) continue;
     const forkOf = which => (own ? e.read(which) : zip ? zipFork(bytes, e, which) : sitx ? stuffItXFork(bytes, e, which) : stuffItFork(bytes, e, which));
     const parts = (e.path || e.name).split('/');
@@ -223,6 +252,17 @@ function novaArchiveFiles(bytes, depth = 0) {
                unpack: own || sitx ? null : { archive: bytes, entry: e, which, zip, wrapped } });
   }
   return out;
+}
+
+/* An Installer VISE archive's files as archive entries that read themselves
+   (as a disk image's do): each fork decompressed the first time a page reads it. */
+function novaViseEntries(bytes) {
+  const archive = parseViseArchive(bytes);
+  return archive.entries.map(e => {
+    let forks = null;
+    const read = which => { if (!forks) forks = viseExtract(archive, e); return which === 'rsrc' ? forks.rsrc : forks.data; };
+    return { name: e.name, path: e.path, isFolder: false, type: e.type, creator: e.creator, dataLen: e.dataLen, rsrcLen: e.rsrcLen, read };
+  });
 }
 
 /* The game's program in a release's archive or disk image: a classic Mac
@@ -287,6 +327,8 @@ function novaLooseFile(name, bytes) {
   if (!fork || !fork.length) return null;
   try { novaOpenFork(fork); } catch (e) { return null; }
   const base = ((wrapped && wrapped.name) || name).replace(/\.(ndat|bin|hqx|rsrc|rez)$/i, '');
+  const older = (wrapped && NOVA_OLDER_TYPE[wrapped.type]) || novaOlderByName(base);
+  if (older) return { name: base, path: name, folder: '', plugin: !older[1], role: older[1], kind: older[0], size: fork.length, read: () => fork };
   const plugin = !NOVA_BASE_NAME.test(base);
   return { name: base, path: name, folder: '', plugin, role: plugin ? null : novaFileRole(base), size: fork.length, read: () => fork };
 }
@@ -303,7 +345,7 @@ function novaGame() {
     files,
     add(file, forkBytes) {
       const fork = novaOpenFork(forkBytes);
-      files.push({ name: file.name, plugin: !!file.plugin, role: file.role, fork });
+      files.push({ name: file.name, plugin: !!file.plugin, role: file.role, kind: file.kind || 'nova', fork });
       files.sort(novaFileOrder);
       memo.clear();
       return fork;
@@ -348,6 +390,25 @@ function novaGame() {
     name(type, id) {
       const e = game.list(type).find(r => r.id === id);
       return e ? e.name : null;
+    },
+    /* Which game the files are: 'nova', or 'ev' or 'evo' for Nova's elders,
+       as the first base file (else the first file) is. */
+    kind() {
+      const f = files.find(x => !x.plugin && !x.edits) || files.find(x => !x.edits);
+      return f ? f.kind : 'nova';
+    },
+    /* A type's record table: Nova's (nova-records.js), or for EV and EV
+       Override the one the templates in the files give, or null. */
+    table(type) {
+      if (game.kind() === 'nova') return NOVA_RECORDS[type] || null;
+      const k = 'table\0' + type;
+      if (!memo.has(k)) {
+        // by name, file by file: EV Graphics and EV Data each have a TMPL 128
+        let found = null;
+        for (const f of files) for (const e of f.fork.resourcesByType[novaTypeKey('TMPL')] || []) if (e.name === type) found = f.fork.dataOf(novaTypeKey('TMPL'), e);
+        memo.set(k, found ? novaTmplTable(found) : null);
+      }
+      return memo.get(k);
     },
     /* Every type present, as names. */
     types() {

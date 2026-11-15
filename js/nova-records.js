@@ -267,8 +267,7 @@ function novaFixedString(b, off, n) {
 
 /* One record, read by its table: { field: value }. Fields the bytes do not
    reach are absent. `pad` fields are not returned. */
-function novaRecord(type, b) {
-  const table = NOVA_RECORDS[type];
+function novaRecord(type, b, table = NOVA_RECORDS[type]) {
   if (!table) throw new Error('no record table for ' + type);
   const rec = {};
   let off = 0;
@@ -314,7 +313,40 @@ function novaRecord(type, b) {
 function novaGet(game, type, id) {
   const r = game.get(type, id);
   if (!r) return null;
-  return Object.assign({ id, name: r.name, file: r.file }, novaRecord(type, r.bytes));
+  const table = game.table ? game.table(type) : NOVA_RECORDS[type];
+  return Object.assign({ id, name: r.name, file: r.file }, table ? novaRecord(type, r.bytes, table) : {});
+}
+
+/* A record table from a template (TMPL), as Escape Velocity's and EV
+   Override's records are read: the fields in its order, named by its labels,
+   of the kinds above (DWRD i16, HWRD h16, DLNG i32, HLNG h32, CSTR cstr, Cnnn
+   str). A RECT is four words, as these templates use it for four slots. A
+   run of Unused fields is one pad, and a label used twice is numbered. Null
+   when the template has a code this does not read. */
+function novaTmplTable(t) {
+  const table = [], seen = new Map();
+  const KIND = { DWRD: 'i16', HWRD: 'h16', DLNG: 'i32', HLNG: 'h32' };
+  for (let p = 0; p + 1 <= t.length;) {
+    const n = t[p];
+    if (p + 1 + n + 4 > t.length) break;
+    let label = decodeMacRoman(t.subarray(p + 1, p + 1 + n)).trim(); p += 1 + n;
+    const code = String.fromCharCode(t[p], t[p + 1], t[p + 2], t[p + 3]); p += 4;
+    if (/^Unused$/i.test(label)) {
+      const size = code === 'DLNG' || code === 'HLNG' ? 4 : code === 'RECT' ? 8 : /^C[0-9A-F]{3}$/.test(code) ? parseInt(code.slice(1), 16) : 2;
+      const last = table[table.length - 1];
+      if (last && last[1] === 'pad') last[2] += size; else table.push([label, 'pad', size]);
+      continue;
+    }
+    const k = seen.get(label) || 0;
+    seen.set(label, k + 1);
+    if (k) label += ' ' + (k + 1);
+    if (KIND[code]) table.push([label, KIND[code]]);
+    else if (code === 'RECT') table.push([label, 'i16', 4]);
+    else if (code === 'CSTR') table.push([label, 'cstr']);
+    else if (/^C[0-9A-F]{3}$/.test(code)) table.push([label, 'str', parseInt(code.slice(1), 16)]);
+    else return null;
+  }
+  return table;
 }
 
 /* A record's name as the game shows it, and the note after it: the

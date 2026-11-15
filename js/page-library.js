@@ -37,8 +37,19 @@ const LIB_DERIVED = {
   'mïsn': { Storyline: r => { const n = novaStoryNote(novaNameParts(r.name).note); return n ? n.story + (n.step ? ' ' + n.step : '') : ''; } },
 };
 
+// The tables for the game open: EV Nova's above, or for Escape Velocity and
+// EV Override every type their templates read, with every field.
+function libTables() {
+  if (GAME.kind() === 'nova') return LIB_TABLES;
+  return GAME.types().filter(t => t !== 'TMPL' && GAME.table(t) && GAME.list(t).length).map(t => {
+    const known = LIB_TABLES.find(x => x[0] === t);
+    return [t, known ? known[1] : t, GAME.table(t).filter(f => f[1] !== 'pad' && f[1] !== 'cstr').map(f => f[0])];
+  });
+}
+
 function libLink(type, id, label) {
   const name = esc(label);
+  if (GAME.kind() !== 'nova') return name;
   if (type === 'shïp') return `<a data-ship="${id}">${name}</a>`;
   if (type === 'sÿst') return U.byId.has(id) ? `<a data-sys="${id}">${name}</a>` : name;
   if (type === 'spöb') return U.inSystems.has(id) ? `<a data-stellar="${id}">${name}</a>` : name;
@@ -70,6 +81,7 @@ const LIB_BASES = {
   'PICT': [['outfitPict', 'oütf', "outfitter's picture of"], ['shipTargetPict', 'shïp', 'target display of'], ['shipyardPict', 'shïp', 'shipyard picture of']],
 };
 function libRole(res, id) {
+  if (GAME.kind() !== 'nova') return '';
   const parts = [];
   const race = libRace(res, id);
   if (race) parts.push(esc(race));
@@ -112,7 +124,11 @@ const libRoleHas = (res, id, q) => libRole(res, id).replace(/<[^>]*>/g, '').toLo
 
 function libFromHash() {
   const p = new URLSearchParams(location.hash.slice(1));
-  if (!p.has('library')) { if (LIB.on) libLeave(true); return false; }
+  if (!p.has('library')) {
+    if (GAME && GAME.kind() !== 'nova') { libShow(LIB.tab, LIB.type, { fromHash: true }); return true; }
+    if (LIB.on) libLeave(true);
+    return false;
+  }
   const [tab, type] = (p.get('library') || 'table').split('.');
   libShow(tab, type, { fromHash: true });
   return true;
@@ -126,8 +142,10 @@ function libShow(tab, type, opts = {}) {
   if (CODE.on) codeLeave(true);
   LIB.on = true;
   LIB.tab = ['table', 'text', 'pict', 'snd'].includes(tab) ? tab : 'table';
-  const known = type && LIB_TABLES.find(t => t[0] === type || libWord(t[0]) === type);
+  const tables = libTables();
+  const known = type && tables.find(t => t[0] === type || libWord(t[0]) === type);
   if (known && known[0] !== LIB.type) { LIB.type = known[0]; LIB.sort = null; }
+  if (!tables.some(t => t[0] === LIB.type) && tables.length) { LIB.type = tables[0][0]; LIB.sort = null; }
   $('app').hidden = true;
   $('library').hidden = false;
   document.querySelectorAll('#views [data-view]').forEach(a => a.classList.toggle('on', a.dataset.view === 'library'));
@@ -137,6 +155,7 @@ function libShow(tab, type, opts = {}) {
   if (!opts.fromHash && location.hash !== libHash()) history.pushState(null, '', libHash());
 }
 function libLeave(fromHash) {
+  if (GAME && GAME.kind() !== 'nova') return;
   LIB.on = false;
   $('library').hidden = true;
   $('app').hidden = false;
@@ -160,14 +179,16 @@ function renderLibrary() {
   else if (LIB.tab === 'pict') body = libPictures(q);
   else body = libSounds(q);
   $('library').innerHTML = `<div class="libTop">${tabs}
-      ${LIB.tab === 'table' ? `<select id="libType">${LIB_TABLES.map(([t, l]) => `<option value="${esc(t)}"${t === LIB.type ? ' selected' : ''}>${l}</option>`).join('')}</select>` : ''}
+      ${LIB.tab === 'table' ? `<select id="libType">${libTables().map(([t, l]) => `<option value="${esc(t)}"${t === LIB.type ? ' selected' : ''}>${l}</option>`).join('')}</select>` : ''}
       <input type="search" id="libSearch" placeholder="Filter" value="${esc(LIB.q)}" autocomplete="off"></div>
     <div class="libBody">${body}</div>`;
   if (LIB.tab === 'pict') libFillPictures();
 }
 
 function libTable(q) {
-  const [type, , cols] = LIB_TABLES.find(t => t[0] === LIB.type);
+  const found = libTables().find(t => t[0] === LIB.type);
+  if (!found) return '<p class="note">No records the page can read in the files open.</p>';
+  const [type, , cols] = found;
   let rows = novaAll(GAME, type).map(r => ({ r, name: novaNameParts(r.name).name || `${type} ${r.id}` }));
   if (q) rows = rows.filter(x => x.name.toLowerCase().includes(q));
   const key = LIB.sort, derived = LIB_DERIVED[type] || {};
@@ -178,12 +199,14 @@ function libTable(q) {
   const head = [['id', 'id'], ['name', 'Name'], ...cols.map(c => [c, c])]
     .map(([k, l]) => `<th data-lib-sort="${k}" class="${key === k ? (LIB.desc ? 'down' : 'up') : ''}">${esc(l)}</th>`).join('');
   const cell = (r, c) => { if (derived[c]) return `<td>${esc(derived[c](r))}</td>`; const v = r[c]; return `<td>${esc(Array.isArray(v) ? v.join(', ') : novaFieldText(S_KIND(type, c), v))}</td>`; };
-  return `<p class="note">${rows.length} ${esc(type)} records with their fields as the files have them. Each field's meaning is in its note under the record's Every field. Tap a column to sort by it.</p>
+  const about = GAME.kind() === 'nova' ? 'Each field\'s meaning is in its note under the record\'s Every field.'
+    : `The field names come from the templates (TMPL) in ${esc(NOVA_GAME_NAMES[GAME.kind()])}'s files. The page has no notes on what the fields do in that game.`;
+  return `<p class="note">${rows.length} ${esc(type)} records with their fields as the files have them. ${about} Tap a column to sort by it.</p>
     <div class="libScroll"><table class="libTable"><thead><tr>${head}</tr></thead><tbody>${rows.map(({ r, name }) =>
       `<tr><td>${r.id}</td><td>${libLink(type, r.id, name)}</td>${cols.map(c => cell(r, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 // A field's kind, for printing it as the Every field box does.
-function S_KIND(type, field) { const f = NOVA_RECORDS[type].find(x => x[0] === field); return f ? f[1] : 'i16'; }
+function S_KIND(type, field) { const f = (GAME.table(type) || []).find(x => x[0] === field); return f ? f[1] : 'i16'; }
 
 function libText(q) {
   const descs = GAME.list('dësc').map(e => ({ e, d: novaGet(GAME, 'dësc', e.id) })).filter(x => x.d);
@@ -206,20 +229,22 @@ function libPictures(q) {
   return `<p class="note">${all.length} pictures.${all.length > shown.length ? ` The page shows the first ${shown.length}. Filter by id, name, or purpose to find more.` : ''}</p>
     <div class="libPicts">${shown.map(e => { const role = libRole('PICT', e.id); return `<figure data-pict="${e.id}"><div class="nopict wait">PICT ${e.id}</div><figcaption>PICT ${e.id}${e.name ? ' · ' + esc(e.name) : ''}${role ? `<br>${role}` : ''}</figcaption></figure>`; }).join('')}</div>`;
 }
+// A picture as the Library draws it: within its 180-pixel box, which the panel's wider limit would pass.
+const libCanvas = img => { const c = asCanvas(img, 'pict'); c.style.maxWidth = ''; return c; };
 // Pictures drawn as they come near the screen, a few at a time.
 let LIB_OBSERVER = null;
 function libFillPictures() {
   if (LIB_OBSERVER) LIB_OBSERVER.disconnect();
   const draw = fig => {
     const id = +fig.dataset.pict, img = pictImage(id), box = fig.querySelector('.nopict');
-    if (img && box) { const c = asCanvas(img, 'pict'); box.replaceWith(c); }
+    if (img && box) box.replaceWith(libCanvas(img));
     else if (!img && PICT_CACHE.get(id) === 'failed' && box) box.textContent = `PICT ${id} does not read`;
   };
   if (!('IntersectionObserver' in window)) { document.querySelectorAll('#library figure[data-pict]').forEach(draw); return; }
   LIB_OBSERVER = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) draw(e.target); }), { rootMargin: '400px' });
   document.querySelectorAll('#library figure[data-pict]').forEach(f => LIB_OBSERVER.observe(f));
 }
-document.addEventListener('pictready', () => { if (LIB.on && LIB.tab === 'pict') document.querySelectorAll('#library figure[data-pict]').forEach(f => { if (f.querySelector('.nopict')) { const id = +f.dataset.pict, img = pictImage(id); if (img) f.querySelector('.nopict').replaceWith(asCanvas(img, 'pict')); } }); });
+document.addEventListener('pictready', () => { if (LIB.on && LIB.tab === 'pict') document.querySelectorAll('#library figure[data-pict]').forEach(f => { if (f.querySelector('.nopict')) { const id = +f.dataset.pict, img = pictImage(id); if (img) f.querySelector('.nopict').replaceWith(libCanvas(img)); } }); });
 
 function libSounds(q) {
   const all = GAME.list('snd ').filter(e => !q || String(e.id).includes(q) || (e.name || '').toLowerCase().includes(q) || libRoleHas('snd ', e.id, q));
@@ -237,6 +262,28 @@ function libPlay(id) {
     LIB_AUDIO = new Audio(URL.createObjectURL(w.blob));
     LIB_AUDIO.play().catch(() => {});
   } catch (e) { setStatus(`snd ${id}: ${e.message}`, true); }
+}
+
+/* ---- Escape Velocity and EV Override ---------------------------------------- */
+
+/* A game of Nova's elders open: the map, ships, battle and code read Nova's
+   layouts and its program, so only the Library is shown. */
+function olderStart() {
+  U = null;
+  PICT_CACHE.clear();
+  $('start').hidden = true;
+  $('views').hidden = false;
+  document.querySelectorAll('#views [data-view]').forEach(a => { a.hidden = a.dataset.view !== 'library'; });
+  for (const id of ['compareBtn', 'collectionBtn', 'pluginBtn']) $(id).hidden = true;
+  if (SHIPS.on) shipsLeave(true);
+  if (BATTLE.on) battleLeave(true);
+  if (CODE.on) codeLeave(true);
+  if (/(^#|&)library\b/.test(location.hash)) libFromHash(); else libShow(LIB.tab, LIB.type);
+}
+// More of its files read: the pictures that did not read before are tried again.
+function olderFilesChanged() {
+  for (const [k, v] of PICT_CACHE) if (!v || v === 'failed') PICT_CACHE.delete(k);
+  if (LIB.on) renderLibrary();
 }
 
 /* ---- wiring --------------------------------------------------------------- */

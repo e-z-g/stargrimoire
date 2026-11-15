@@ -1295,6 +1295,35 @@ try {
       console.log(line);
     }
   }
+
+  // Escape Velocity's and EV Override's installers: the Library alone, the
+  // ships' table through the templates in their files, pictures drawn, and
+  // sounds and descriptions listed.
+  const INST = 'reference/game/collections/EscapeVelocityPluginCollection/Installers';
+  for (const [file, kind, ships] of [['Escape_Velocity.bin', 'ev', 27], ['EVOverride.bin', 'evo', 48]]) {
+    if (!fs.existsSync(path.join(ROOT, INST, file))) { console.log(`SKIP ${file}: not in reference/`); continue; }
+    const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INST + '/' + file), 'typeof LIB !== "undefined" && LIB.on && !PUMPING && PENDING.length === 0', 240000, { chrome,
+      then: async p => p.evaluate(`(async () => {
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        const o = { kind: GAME.kind(), hash: location.hash, views: [...document.querySelectorAll('#views [data-view]')].filter(a => !a.hidden).map(a => a.dataset.view),
+                    types: libTables().length, rows: document.querySelectorAll('#library tbody tr').length, cols: document.querySelectorAll('#library thead th').length };
+        libShow('text'); await wait(50);
+        o.descs = document.querySelectorAll('#library details.libItem').length;
+        libShow('pict'); for (let i = 0; i < 60 && !document.querySelector('#library figure canvas'); i++) await wait(100);
+        o.pict = document.querySelectorAll('#library figure canvas').length;
+        libShow('snd'); for (let i = 0; i < 120 && !GAME.list('snd ').length; i++) await wait(250);
+        o.snd = document.querySelectorAll('#library button[data-lib-play]').length;
+        history.pushState(null, '', '#galaxy'); window.dispatchEvent(new PopStateEvent('popstate')); await wait(50);
+        o.after = { lib: LIB.on, app: !document.getElementById('app').hidden };
+        return o;
+      })()`) });
+    for (const e of pageErrors(r.console)) fail(`${file}: ${describe(e)}`);
+    const o = r.more;
+    if (!r.met || !o) { fail(`${file} did not open in the Library`); continue; }
+    if (o.kind !== kind || o.views.join() !== 'library' || o.rows !== ships || o.cols < 20 || !(o.types > 10) || !(o.descs > 100) || !(o.pict > 0) || !(o.snd > 0) || !o.after.lib || o.after.app)
+      fail(`${file}: ${JSON.stringify(o)}`);
+    else console.log(`${file}: ${o.kind}, the Library alone at ${o.hash}, ${o.types} tables, ${o.rows} ships of ${o.cols} columns, ${o.descs} descriptions, ${o.pict} pictures drawn, ${o.snd} sounds; the map's address keeps the Library`);
+  }
 } finally {
   srv.close();
 }

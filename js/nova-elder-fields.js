@@ -587,4 +587,30 @@ const ELDER_FIELD_NOTES = {
         0x1000: { note: 'The bar offers the mission ahead of every mission without this bit.', evoNote: 'Override’s bar reads the word at 18 × i + 16 for mission i in a table whose rows are 20 bytes. That word is this mission’s Flags only by chance.', ev: [0x109950, 0x10996c, 0x1099c8], evo: [0x109ff4, 0x10a010, 0x10a06c] },
       } },
   },
+  'spïn': {
+    SpritesID: { note: 'The PICT with the frames. −1 loads nothing. A spïn whose SpritesID is an earlier spïn’s shares that one’s first 36 frames and loads no picture.',
+      ev: [0x12a288, 0x12a2dc, 0x12a318, 0x12a350, 0x12b1bc], evo: [0x11d84c, 0x11d894, 0x11d8d0, 0x11d908, 0x11e5c4] },
+    MasksID: { note: 'The PICT with the frames’ masks. −1 loads nothing.',
+      ev: [0x12a294, 0x12a2e8, 0x12b1cc], evo: [0x11d858, 0x11d8a0, 0x11e64c] },
+    xSize: { note: 'The width of one frame in pixels.',
+      ev: [0x12a2a0, 0x12a3cc], evo: [0x11d864, 0x11d99c] },
+    ySize: { note: 'The height of one frame in pixels.',
+      ev: [0x12a2ac, 0x12a3cc], evo: [0x11d870, 0x11d99c] },
+    xTiles: { note: 'The frames in each row of the picture. The loader numbers the frames along each row from the top row down. A stellar’s spïn is one frame whatever this is.',
+      ev: [0x12a2b8, 0x12a400, 0x12a1e0], evo: [0x11d87c, 0x11d9b8, 0x11d7a4] },
+    yTiles: { note: 'The rows of frames in the picture.',
+      ev: [0x12a2c4, 0x12a414], evo: [0x11d888, 0x11d9cc] },
+  },
+  'dësc': {
+    Description: { note: 'The text. The program copies it as a string that ends at its first zero byte. A dësc that is missing gives an empty text.',
+      ev: [0x1263f4, 0x126424, 0x126450], evo: [0x119804, 0x119834, 0x119860] },
+  },
+  'spït': {
+    TotalSprites: { note: 'The count of frames that fills the loading bar. The bar’s length is the frames loaded so far over this count.',
+      ev: [0x14ad00, 0x14ad40, 0x14aee0, 0x14afac], evo: [0x141794, 0x1417d4, 0x1419b0, 0x141a90] },
+  },
+  'yëä®': {
+    'Year Offset': { note: 'The years added to the year of the Mac’s clock for the date on which a new pilot begins.',
+      evo: [0x11eae8, 0x11eb00, 0x145e68, 0x145e88] },
+  },
 };

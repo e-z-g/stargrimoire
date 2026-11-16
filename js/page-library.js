@@ -199,8 +199,8 @@ function libTable(q) {
     .map(([k, l]) => `<th data-lib-sort="${k}" class="${key === k ? (LIB.desc ? 'down' : 'up') : ''}">${esc(l)}</th>`).join('');
   const cell = (r, c) => { if (derived[c]) return `<td>${esc(derived[c](r))}</td>`; const v = r[c]; return `<td>${esc(Array.isArray(v) ? v.join(', ') : novaFieldText(S_KIND(type, c), v))}</td>`; };
   const about = GAME.kind() === 'nova' ? 'Each field\'s meaning is in its note under the record\'s Every field.'
-    : `The field names come from the templates (TMPL) in ${esc(NOVA_GAME_NAMES[GAME.kind()])}'s files. The page has no notes on what the fields do in that game.`;
-  return `<p class="note">${rows.length} ${esc(type)} records with their fields as the files have them. ${about} Tap a column to sort by it.</p>
+    : `The field names come from the templates (TMPL) in ${esc(NOVA_GAME_NAMES[GAME.kind()])}'s files. What the game's program does with each field is in the box under this.`;
+  return `<p class="note">${rows.length} ${esc(type)} records with their fields as the files have them. ${about} Tap a column to sort by it.</p>${GAME.kind() === 'nova' ? '' : olderTypeNotes(type)}
     <div class="libScroll"><table class="libTable"><thead><tr>${head}</tr></thead><tbody>${rows.map(({ r, name }) =>
       `<tr><td>${r.id}</td><td>${libLink(type, r.id, name)}</td>${cols.map(c => cell(r, c)).join('')}</tr>`).join('')}</tbody></table></div>`;
 }

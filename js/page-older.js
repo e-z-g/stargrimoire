@@ -5,12 +5,14 @@
    The map draws their systems, links, stellars and nebulae as it draws EV
    Nova's (nova-universe.js reads their numbered fields). The panels here
    take the place of Nova's: what each record links to, by the field names
-   in the games' own templates, and the numbers the program adds to find a
+   in the games' templates, and the numbers the program adds to find a
    record's pictures and descriptions (NOVA_OLDER_FIGURES in
    nova-program.js), each linked to its instruction once the installer's
-   program is open. What the other fields do in these games is not read yet,
-   so a panel gives every field's value and no meanings. Nova's control
-   bits, missions, ships in flight, hypergates and services stay off.
+   program is open. A panel's Every field and the Library's tables put
+   under each field the note read from the two programs
+   (nova-elder-fields.js) and the addresses of the code it was read in. Nova's
+   control bits, missions, ships in flight, hypergates and services stay
+   off.
 
    The ships: each class's sprites are spïn n for shïp n, a PICT of frames
    in rows and a PICT mask beside it, and the list groups the classes whose
@@ -25,13 +27,50 @@ const olderGameName = () => NOVA_GAME_NAMES[GAME.kind()] || '';
 
 /* ---- a record's fields ----------------------------------------------------- */
 
-// Every field of a record by its template, with no notes.
+// The addresses a note was read from, each a link to its line in the Code
+// view while the game's program is open.
+function olderNoteAt(at) {
+  if (!at.length) return '';
+  const p = program();
+  return ` <span class="fieldRead">Read at ${at.map(a => {
+    const r = p && p.routineAt(a);
+    return r ? `<a class="codeNum" data-code="${hex(r.start)}" data-at="${hex(a)}" title="${esc(p.nameOf(r))} at ${hex(a)}">${a.toString(16)}</a>` : a.toString(16);
+  }).join(', ')}.</span>`;
+}
+// A field's note as the program's code was read (nova-elder-fields.js). With
+// a record's value, a flags field marks the bits that value has set and a
+// field of kinds shows the note of that value alone.
+function olderFieldNote(type, name, value) {
+  const n = elderFieldNote(GAME.kind(), type, name);
+  if (!n) return '';
+  const line = (label, q) => `<div class="fieldNote">${label ? `<b>${esc(label)}</b> ` : ''}${esc(q.text)}${olderNoteAt(q.at)}</div>`;
+  const given = typeof value === 'number';
+  const kinds = given && n.values.some(([v]) => v === value) ? n.values.filter(([v]) => v === value) : n.values;
+  return line('', n)
+    + n.bits.map(([m, q]) => line('0x' + m.toString(16).padStart(4, '0') + (given ? (value & m ? ' set' : ' clear') : ''), q)).join('')
+    + kinds.map(([v, q]) => line(String(v).replace('-', '−'), q)).join('');
+}
+// Every field of a record by its template, each with its note.
 function olderFieldsTable(type, rec) {
   const table = GAME.table(type);
   if (!table || !rec) return '';
   const rows = table.filter(([name, kind]) => kind !== 'pad' && name in rec)
-    .map(([name, kind]) => `<tr><td>${esc(name)}</td><td>${esc(novaFieldText(kind, rec[name]))}</td></tr>`).join('');
+    .map(([name, kind]) => `<tr><td>${esc(name)}</td><td>${esc(novaFieldText(kind, rec[name]))}${olderFieldNote(type, name, rec[name])}</td></tr>`).join('');
   return `<details class="fieldsBox"><summary>Every field of ${esc(type)} ${rec.id} in ${esc(rec.file)}</summary><table class="fields">${rows}</table></details>`;
+}
+// What each field of a type does, for the Library's table of it. Numbered
+// fields that have one note are one row.
+function olderTypeNotes(type) {
+  const seen = new Set(), rows = [];
+  for (const [name, kind] of GAME.table(type) || []) {
+    if (kind === 'pad') continue;
+    const base = (ELDER_FIELD_NOTES[type] || {})[name] ? name : name.replace(/\s*\d+$/, '');
+    if (seen.has(base)) continue;
+    seen.add(base);
+    const html = olderFieldNote(type, name);
+    if (html) rows.push(`<tr><td>${esc(base)}</td><td>${html}</td></tr>`);
+  }
+  return rows.length ? `<details class="fieldsBox"><summary>What ${esc(olderGameName())} does with each field of ${esc(type)}</summary><table class="fields">${rows.join('')}</table></details>` : '';
 }
 // A record named by its type and number, or the number where the files have none.
 function olderRecName(type, id) {

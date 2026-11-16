@@ -49,7 +49,8 @@ const starts = [...new Set(syms.values())].sort((a, b) => a - b);
 const inside = (name, at) => { const st = syms.get(name), next = starts.find(v => v > st); return at >= st && (next === undefined || at < next); };
 if (!inside('ShipsShareParent', 0x7926) || !inside('ShipsShareParent', 0x7990) || inside('ShipsShareParent', 0x7923) || inside('ShipsShareParent', 0x79c2)) fail('the place test cannot distinguish a place in a routine from one outside it');
 let places = 0;
-for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => /^nova-.*\.js$/.test(f) && f !== 'nova-fields.js')) {
+// The nova-elder files cite Escape Velocity's and EV Override's programs, which elder_fields_check and elder_fight_check read.
+for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => /^nova-.*\.js$/.test(f) && f !== 'nova-fields.js' && !/^nova-elder-/.test(f))) {
   const text = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8').replace(/\n[\s*\/]*(?=0x[0-9a-f]{3,6}\b)/g, ' ');
   for (const m of text.matchAll(/\b([A-Z][A-Za-z0-9]+)(?: |(?:'s\b[^()]{0,60}?)? \()(0x[0-9a-f]{3,6})\b/g)) {
     if (!syms.has(m[1])) continue;

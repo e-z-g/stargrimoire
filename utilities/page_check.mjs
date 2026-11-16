@@ -1303,7 +1303,9 @@ try {
   // stellar's landing page with its picture and its numbers linked to the
   // program, the ships with their sprites turning and their pictures, the
   // Code view of the installer's program, the Library's tables through the
-  // templates with descriptions, pictures and sounds, and Back to the map.
+  // templates with descriptions, pictures and sounds, the field notes in a
+  // system's panel and in the Library with their addresses linked, and Back
+  // to the map.
   const INST = 'reference/game/collections/EscapeVelocityPluginCollection/Installers';
   for (const [file, kind, systems, ships] of [['Escape_Velocity.bin', 'ev', 108, 27], ['EVOverride.bin', 'evo', 311, 48]]) {
     if (!fs.existsSync(path.join(ROOT, INST, file))) { console.log(`SKIP ${file}: not in reference/`); continue; }
@@ -1316,6 +1318,7 @@ try {
         const sys = U.systems.find(s => s.name === 'Sol');
         show('system', { sys: sys.id }); await wait(2500);
         o.sys = { stellars: sys.stellars.length, drawn: sys.stellars.filter(id => SPRITE_CACHE.get(novaStellarSpin(U.stellars.get(id)))).length, links: document.querySelectorAll('#panel a[data-sys]').length };
+        o.notes = { sys: document.querySelectorAll('#panel .fieldsBox .fieldNote').length, links: document.querySelectorAll('#panel .fieldsBox .fieldNote a.codeNum').length };
         const sp = sys.stellars[0];
         show('planet', { sys: sys.id, stellar: sp }); await until(() => /stellar=/.test(location.hash) && document.querySelector('#planet canvas'), 8000); await wait(200);
         o.planet = { hash: location.hash, pict: !!document.querySelector('#planet canvas'), desc: !!document.querySelector('#planet .desc:not(.dim)'), code: document.querySelectorAll('#panel a.codeNum').length };
@@ -1327,7 +1330,10 @@ try {
         codeShow(null, null); await wait(800);
         o.code = { on: CODE.on, routines: program() ? program().routines.length : 0 };
         libShow('table', 'shïp'); await wait(300);
-        o.lib = { rows: document.querySelectorAll('#library tbody tr').length, cols: document.querySelectorAll('#library thead th').length, types: libTables().length };
+        o.lib = { rows: document.querySelectorAll('#library table:not(.fields) > tbody > tr').length, cols: document.querySelectorAll('#library thead th').length, types: libTables().length };
+        libShow('table', 'mïsn'); await wait(300);
+        o.notes.lib = document.querySelectorAll('#library .fieldsBox .fieldNote').length;
+        o.notes.flags = [...document.querySelectorAll('#library .fieldsBox .fieldNote b')].filter(b => /^0x/.test(b.textContent)).length;
         libShow('text'); await wait(50);
         o.lib.descs = document.querySelectorAll('#library details.libItem').length;
         o.lib.role = libRole('PICT', 10000).replace(/<[^>]*>/g, '');
@@ -1368,6 +1374,7 @@ try {
     if (o.ship.rows !== ships || !(o.ship.thumbs > ships / 2) || !(o.ship.lit > 50) || !(o.ship.picts > 0) || !(o.ship.descs > 0)) bad.push('the ships');
     if (!o.code.on || !(o.code.routines > 500)) bad.push('the code');
     if (o.lib.rows !== ships || o.lib.cols < 20 || !(o.lib.types > 10) || !(o.lib.descs > 100) || !/landing picture/.test(o.lib.role) || !(o.lib.pict > 0) || !(o.lib.snd > 0)) bad.push('the Library');
+    if (!(o.notes.sys > 10) || !(o.notes.links > 20) || !(o.notes.lib > 50) || o.notes.flags !== (kind === 'ev' ? 8 : 10)) bad.push('the field notes');
     const bt = o.battle || {}, bf = bt.fight || {};
     if (!(bt.rows > 5) || !/,AI type 1,/.test(bt.flies) || bt.nova || (bt.n || []).join() !== '10,10' || !/^#battle&ships=/.test(bt.hash) || !bf.elder || !(bf.frame > 200) || !(bf.ships > 0) || bf.placed !== 20 || !(bf.lit > 100) || !/Shield/.test(bf.panel) || !(bt.gone > 0)) bad.push('the battle');
     if (o.after.lib || !o.after.app || o.after.mode !== 'galaxy') bad.push('Back to the map');

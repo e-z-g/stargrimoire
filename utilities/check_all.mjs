@@ -99,6 +99,7 @@ const CHECKS = [
   ['dmg', 'the 1.1.1 disk image read here against the files hdiutil copied out of it'],
   ['older', 'every file in Escape Velocity\'s and EV Override\'s installers against its stored CRC, their records read through their templates against the Nova ports, and the numbers the map reads from their programs'],
   ['elder_fight', 'the fight of Escape Velocity and EV Override against sums worked by hand, made fights with a control, and every ship of both installers in random fights'],
+  ['elder_fields', 'every address the field notes for Escape Velocity and EV Override cite in its program, a note for every template field of both games, and five controls'],
   ['rez', 'the .rez reader against the workbench\'s rez.py'],
   ['sprite', 'rlëD and rlë8 against ResForge, pixel for pixel'],
   ['universe', 'the map\'s rules, and every release read through them'],

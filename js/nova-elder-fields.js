@@ -614,3 +614,20 @@ const ELDER_FIELD_NOTES = {
       evo: [0x11eae8, 0x11eb00, 0x145e68, 0x145e88] },
   },
 };
+
+/* A field's note in one game ('ev' or 'evo') by the field's name in that
+   game's template, or null where the notes have none for that game. A
+   numbered field (Con3, Weap2) has the note of its name without the
+   number. The result is { text, at, bits, values }, with `at` the
+   addresses in that game's program, and `bits` and `values` lists of
+   [mask or value, { text, at }]. */
+function elderFieldNote(kind, type, name) {
+  const notes = ELDER_FIELD_NOTES[type] || {};
+  const one = q => (q && (q.unread || q[kind])
+    ? { text: [q.note, q[kind + 'Note']].filter(Boolean).join(' '), at: q[kind] || [], unread: !!q.unread } : null);
+  const o = notes[name] || notes[name.replace(/\s*\d+$/, '')];
+  const n = one(o);
+  if (!n) return null;
+  for (const k of ['bits', 'values']) n[k] = Object.entries(o[k] || {}).map(([v, q]) => [Number(v), one(q)]).filter(e => e[1]).sort((a, b) => a[0] - b[0]);
+  return n;
+}

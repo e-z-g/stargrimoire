@@ -138,6 +138,7 @@ const libWord = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 function libHash() { return '#library=' + LIB.tab + (LIB.tab === 'table' ? '.' + libWord(LIB.type) : ''); }
 function libShow(tab, type, opts = {}) {
   if (SHIPS.on) shipsLeave(true);
+  if (PORTS.on) portsLeave(true);
   if (BATTLE.on) battleLeave(true);
   if (CODE.on) codeLeave(true);
   LIB.on = true;
@@ -270,7 +271,7 @@ function wireLibrary() {
     const a = e.target.closest('[data-view]');
     if (!a || !GAME) return;
     if (a.dataset.view === 'library') { e.preventDefault(); e.stopImmediatePropagation(); if (!LIB.on) libShow(LIB.tab, LIB.type); }
-    else if (LIB.on) { e.preventDefault(); e.stopImmediatePropagation(); libLeave(); if (a.dataset.view === 'ships') shipsShow(SHIPS.id); else if (a.dataset.view === 'battle') battleShow(); else if (a.dataset.view === 'code') codeShow(null, null); }
+    else if (LIB.on) { e.preventDefault(); e.stopImmediatePropagation(); libLeave(); if (a.dataset.view === 'ships') shipsShow(SHIPS.id); else if (a.dataset.view === 'battle') battleShow(); else if (a.dataset.view === 'code') codeShow(null, null); else if (a.dataset.view === 'ports') portsShow(PORTS.type); }
   }, true);
   const el = $('library');
   el.addEventListener('click', e => {

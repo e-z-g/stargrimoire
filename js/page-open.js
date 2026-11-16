@@ -339,6 +339,7 @@ async function pumpPending(refused) {
     mapFilesChanged(); shipsFilesChanged();
     battleFilesChanged();
     if (GAME.kind() !== 'nova' && LIB.on) renderLibrary();
+    portsFilesChanged();
     // the ships fly on the map, so their files follow the pictures, unless that would stop the page
     if (!PENDING.length && SHIP_FILES.length && UNPACKER && await UNPACKER.ready) wantShipFiles();
   }

@@ -98,6 +98,7 @@ const CHECKS = [
   ['records', 'record tables against Ambrosia\'s templates and the ConText dump'],
   ['dmg', 'the 1.1.1 disk image read here against the files hdiutil copied out of it'],
   ['older', 'every file in Escape Velocity\'s and EV Override\'s installers against its stored CRC, their records read through their templates against the Nova ports, and the numbers the map reads from their programs'],
+  ['ports', 'Escape Velocity and EV Override against their Nova ports, every record in one place, the types without a table compared plainly, the ships against older_check, and four bent bytes'],
   ['elder_fight', 'the fight of Escape Velocity and EV Override against sums worked by hand, made fights with a control, and every ship of both installers in random fights'],
   ['elder_fields', 'every address the field notes for Escape Velocity and EV Override cite in its program, a note for every template field of both games, and five controls'],
   ['rez', 'the .rez reader against the workbench\'s rez.py'],

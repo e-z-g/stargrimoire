@@ -84,6 +84,7 @@ function shipsFromHash() {
 
 function shipsShow(id, opts = {}) {
   if (LIB.on) libLeave(true);
+  if (PORTS.on) portsLeave(true);
   if (CODE.on) codeLeave(true);
   const first = !SHIPS.on;
   SHIPS.on = true;

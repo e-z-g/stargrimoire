@@ -119,6 +119,7 @@ function codeHash() {
 }
 function codeShow(addr, at, opts = {}) {
   if (SHIPS.on) shipsLeave(true);
+  if (PORTS.on) portsLeave(true);
   if (LIB.on) libLeave(true);
   if (BATTLE.on) battleLeave(true);
   const p = program();
@@ -237,7 +238,7 @@ function wireCode() {
     const a = e.target.closest('[data-view]');
     if (!a || !GAME) return;
     if (a.dataset.view === 'code') { e.preventDefault(); e.stopImmediatePropagation(); if (!CODE.on) codeShow(null, null); }
-    else if (CODE.on) { e.preventDefault(); e.stopImmediatePropagation(); codeLeave(); if (a.dataset.view === 'ships') shipsShow(SHIPS.id); else if (a.dataset.view === 'battle') battleShow(); else if (a.dataset.view === 'library') libShow(LIB.tab, LIB.type); }
+    else if (CODE.on) { e.preventDefault(); e.stopImmediatePropagation(); codeLeave(); if (a.dataset.view === 'ships') shipsShow(SHIPS.id); else if (a.dataset.view === 'battle') battleShow(); else if (a.dataset.view === 'library') libShow(LIB.tab, LIB.type); else if (a.dataset.view === 'ports') portsShow(PORTS.type); }
   }, true);
   $('code').addEventListener('click', e => {
     const a = e.target.closest('[data-code],[data-code-list]');

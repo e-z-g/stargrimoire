@@ -80,6 +80,7 @@ function battleReset() { BATTLE_ELDER = null; BATTLE_IMAGES.clear(); BATTLE.pick
 function battleFilesChanged() { BATTLE_ELDER = null; if (BATTLE.on) { battlePanel(); battleDraw(); } }
 function battleShow(opts = {}) {
   if (SHIPS.on) shipsLeave(true);
+  if (PORTS.on) portsLeave(true);
   if (LIB.on) libLeave(true);
   if (CODE.on) codeLeave(true);
   BATTLE.on = true;

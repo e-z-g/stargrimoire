@@ -229,7 +229,29 @@ table.fields.editing input { width: 100%; box-sizing: border-box; background: va
 /* ---- the ships ---- */
 #ships { flex: 1; display: flex; min-height: 0; }
 #code { flex: 1; display: flex; min-height: 0; }
-#library { flex: 1; min-height: 0; overflow: auto; padding: 12px 18px 40px; }
+#library, #ports { flex: 1; min-height: 0; overflow: auto; padding: 12px 18px 40px; }
+#ports .libTop { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+#ports .libTop button.on { background: var(--raise); color: var(--text); }
+#ports .libTop input { flex: 1; min-width: 120px; }
+#ports .libScroll { overflow-x: auto; }
+#ports table.libTable { border-collapse: collapse; font-size: 12.5px; }
+#ports table.libTable th { text-align: left; padding: 4px 8px; color: var(--dim); white-space: nowrap; border-bottom: 1px solid var(--line); }
+#ports table.libTable td { padding: 3px 8px; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.04); }
+#ports table.portsSum td:nth-child(n+2):not(.how) { text-align: right; font-variant-numeric: tabular-nums; }
+#ports td.how { color: var(--dim); }
+#ports details.libItem { border-bottom: 1px solid var(--line); padding: 4px 0; }
+#ports details.libItem summary { cursor: pointer; }
+#ports .desc { white-space: pre-wrap; margin: 6px 0 10px; }
+#ports .portsTexts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 1100px; }
+#ports .portsTexts h4 { margin: 4px 0; color: var(--dim); }
+#ports .portsPicts { display: flex; flex-wrap: wrap; gap: 14px; }
+#ports .portsPicts figure { margin: 0; }
+#ports .portsPicts canvas { max-width: 320px; max-height: 320px; display: block; background: #080a0f; border-radius: 4px; }
+#ports .portsPicts .nopict { width: 160px; height: 100px; display: flex; align-items: center; justify-content: center; color: var(--dim); background: #080a0f; border-radius: 4px; font-size: 12px; }
+#ports .portsPicts figcaption { font-size: 11.5px; color: var(--dim); margin-top: 3px; }
+#ports .portsOnly { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+#choose label.pair { display: block; margin: 3px 0; }
+@media (max-width: 700px) { #ports .portsTexts { grid-template-columns: 1fr; } }
 #library .libTop { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; position: sticky; top: -12px; background: var(--bg); padding: 6px 0; z-index: 1; }
 #library .libTop button.on { background: var(--raise); color: var(--text); }
 #library .libTop input { flex: 1; min-width: 120px; }
@@ -355,7 +377,7 @@ details.inline .list { margin-top: 4px; }
   #fileMenu > .btn, #fileMenu > button { text-align: left; }
   #bar.more #fileMenu { display: flex; }
   #views a { padding: 3px 8px; }
-  #library { padding: 8px 10px 40px; }
+  #library, #ports { padding: 8px 10px 40px; }
   #library .libTop { top: -8px; }
   #bitsIn { width: 110px; }
   #panelBtn svg { transform: rotate(90deg); }
@@ -390,7 +412,7 @@ details.inline .list { margin-top: 4px; }
 <body>
 <header id="bar">
   <button id="creditsBtn" aria-expanded="false" aria-controls="creditsMenu" title="Credits"><span id="brand">StarGrimoire</span></button>
-  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a><a data-view="code" href="#code">Code</a><a data-view="library" href="#library=table">Library</a></nav>
+  <nav id="views" hidden><a data-view="map" class="on" href="#galaxy">Map</a><a data-view="ships" href="#ships">Ships</a><a data-view="battle" href="#battle">Battle</a><a data-view="code" href="#code">Code</a><a data-view="library" href="#library=table">Library</a><a data-view="ports" href="#ports">Ports</a></nav>
   <nav id="crumbs"></nav>
   <span id="status"></span>
   <button id="moreBtn" aria-expanded="false" aria-controls="fileMenu" aria-label="More" title="More">⋯</button>
@@ -487,6 +509,7 @@ details.inline .list { margin-top: 4px; }
 </main>
 
 <main id="library" hidden></main>
+<main id="ports" hidden></main>
 <div id="storyMap" hidden></div>
 <main id="code" hidden>
   <nav id="codeList">
@@ -628,7 +651,7 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-elder-fight.js?v=669fc127"></script>
 <script src="js/nova-elder-fields.js?v=b04e45bb"></script>
 <script src="js/nova-compare.js?v=4c219d4c"></script>
-<script src="js/nova-ports.js"></script>
+<script src="js/nova-ports.js?v=4837ce25"></script>
 <script src="js/nova-fields.js?v=c1d9213b"></script>
 <script src="js/nova-deadends.js?v=b54bfded"></script>
 <script src="js/nova-plugin.js?v=dc19831b"></script>
@@ -639,19 +662,20 @@ details.inline .list { margin-top: 4px; }
 <script src="js/nova-fieldsites.js?v=72e2ee28"></script>
 <script src="js/nova-collection.js?v=79bfdbf1"></script>
 <script src="js/nova-sound.js?v=f16602d0"></script>
-<script src="js/page-open.js?v=15a4c703"></script>
+<script src="js/page-open.js?v=7704783f"></script>
 <script src="js/page-compare.js?v=fc1f79ce"></script>
 <script src="js/page-collection.js?v=618b4291"></script>
 <script src="js/page-plugin.js?v=27d27d61"></script>
 <script src="js/page-svg.js?v=7ca07422"></script>
-<script src="js/page-map.js?v=21d28300"></script>
+<script src="js/page-map.js?v=38c2455b"></script>
 <script src="js/page-pilot.js?v=0778d41e"></script>
-<script src="js/page-ships.js?v=fa6f5bfa"></script>
+<script src="js/page-ships.js?v=7db7c573"></script>
 <script src="js/page-flight.js?v=ccaa9f92"></script>
-<script src="js/page-battle.js?v=a4be2aca"></script>
+<script src="js/page-battle.js?v=d35005e8"></script>
 <script src="js/page-records.js?v=9f724b29"></script>
-<script src="js/page-code.js?v=2a031ffa"></script>
-<script src="js/page-library.js?v=0fb17667"></script>
+<script src="js/page-code.js?v=b2b2fff3"></script>
+<script src="js/page-library.js?v=e04f97e4"></script>
+<script src="js/page-ports.js?v=678f14b2"></script>
 <script src="js/page-older.js?v=f79e5994"></script>
 </body>
 </html>

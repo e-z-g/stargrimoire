@@ -1307,6 +1307,7 @@ try {
   // system's panel and in the Library with their addresses linked, and Back
   // to the map.
   const INST = 'reference/game/collections/EscapeVelocityPluginCollection/Installers';
+  const PORTS = { ev: 'reference/game/EV_Classic_for_Nova_1.1.1_1.zip', evo: 'reference/game/extras/EV_Override_for_Nova.zip' };
   for (const [file, kind, systems, ships] of [['Escape_Velocity.bin', 'ev', 108, 27], ['EVOverride.bin', 'evo', 311, 48]]) {
     if (!fs.existsSync(path.join(ROOT, INST, file))) { console.log(`SKIP ${file}: not in reference/`); continue; }
     const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INST + '/' + file), 'typeof U !== "undefined" && U && !PUMPING && PENDING.length === 0', 240000, { chrome,
@@ -1341,6 +1342,15 @@ try {
         o.lib.pict = document.querySelectorAll('#library figure canvas').length;
         libShow('snd'); await until(() => document.querySelector('#library button[data-lib-play]'), 30000);
         o.lib.snd = document.querySelectorAll('#library button[data-lib-play]').length;
+        // the Ports view: the game against its Nova port, a type's fields, and a changed picture drawn twice
+        const port = new Uint8Array(await (await fetch('${PORTS[kind]}')).arrayBuffer());
+        await portsWith([{ name: 'port.zip', bytes: port }], 'the port');
+        o.ports = { on: PORTS.on, hash: location.hash, types: document.querySelectorAll('#ports .portsSum tbody tr').length, counts: PORTS.cmp && PORTS.cmp.counts };
+        document.querySelector('#ports [data-ports-type="shïp"]').click(); await wait(100);
+        o.ports.ship = { hash: location.hash, fields: document.querySelectorAll('#ports .portsFields tbody tr').length, ratios: [...document.querySelectorAll('#ports .portsFields td.how')].filter(td => /×/.test(td.textContent)).length };
+        portsShow('PICT'); await wait(100);
+        const pd = document.querySelector('#ports details'); pd.open = true; await wait(300);
+        o.ports.picts = document.querySelectorAll('#ports .portsPicts canvas').length;
         // the battle: a random one of 10 a side, fought and drawn, a ship's panel, and the address opened again
         document.querySelector('#views [data-view=battle]').click();
         await until(() => document.querySelector('#battleSide [data-battle-do="random"]'), 8000);
@@ -1367,7 +1377,9 @@ try {
     const o = r.more;
     if (!r.met || !o) { fail(`${file} did not open`); continue; }
     const bad = [];
-    if (o.kind !== kind || o.views.join() !== 'map,ships,battle,code,library' || !o.program) bad.push('kind, views or program');
+    if (o.kind !== kind || o.views.join() !== 'map,ships,battle,code,library,ports' || !o.program) bad.push('kind, views or program');
+    const po = o.ports || {};
+    if (!po.on || po.hash !== '#ports' || !(po.types > 20) || !po.counts || !(po.counts.same > 1000) || !po.ship || po.ship.hash !== '#ports=ship' || !(po.ship.fields > 20) || !(po.ship.ratios >= 3) || po.picts !== 2) bad.push('the Ports view');
     if (o.systems !== systems || !(o.links > systems)) bad.push('systems or links');
     if (!(o.sys.stellars > 0) || o.sys.drawn < o.sys.stellars || !(o.sys.links > 0)) bad.push('Sol');
     if (!o.planet.pict || !o.planet.desc || o.planet.code < 3 || !/stellar=/.test(o.planet.hash)) bad.push('the landing page');
@@ -1379,7 +1391,7 @@ try {
     if (!(bt.rows > 5) || !/,AI type 1,/.test(bt.flies) || bt.nova || (bt.n || []).join() !== '10,10' || !/^#battle&ships=/.test(bt.hash) || !bf.elder || !(bf.frame > 200) || !(bf.ships > 0) || bf.placed !== 20 || !(bf.lit > 100) || !/Shield/.test(bf.panel) || !(bt.gone > 0)) bad.push('the battle');
     if (o.after.lib || !o.after.app || o.after.mode !== 'galaxy') bad.push('Back to the map');
     if (bad.length) fail(`${file}: ${bad.join(', ')}: ${JSON.stringify(o)}`);
-    else console.log(`${file}: ${o.kind}, ${o.systems} systems and ${o.links} links, Sol's ${o.sys.stellars} stellars drawn, a landing page with ${o.planet.code} numbers linked to the program, ${o.ship.rows} ships with sprites and pictures, a random battle of ${bt.n.join(' against ')} with ${bt.gone} gone by frame ${bt.frames}, ${o.code.routines} routines, the Library's ${o.lib.types} tables, ${o.lib.descs} descriptions, ${o.lib.pict} pictures and ${o.lib.snd} sounds, and back to the galaxy`);
+    else console.log(`${file}: ${o.kind}, ${o.systems} systems and ${o.links} links, Sol's ${o.sys.stellars} stellars drawn, a landing page with ${o.planet.code} numbers linked to the program, ${o.ship.rows} ships with sprites and pictures, a random battle of ${bt.n.join(' against ')} with ${bt.gone} gone by frame ${bt.frames}, ${o.code.routines} routines, the Library's ${o.lib.types} tables, ${o.lib.descs} descriptions, ${o.lib.pict} pictures and ${o.lib.snd} sounds, the Ports view with ${o.ports.counts.same} records the same as the port's and ${o.ports.counts.differ} changed, and back to the galaxy`);
   }
 } finally {
   srv.close();

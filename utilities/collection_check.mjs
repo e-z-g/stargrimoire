@@ -54,8 +54,9 @@ const html = zipOf({ item: 'EscapeVelocityPluginCollection', zip: 'EVN.zip' }).h
 /* What of a set's listing is not in the copy as listed. archive.org's page
    of a zip's contents writes two spaces in a row as one, and its server
    gives such a file only by the name with both (EVO.zip's EVO-Sizer  1.2,
-   tried 16 November 2026), so the page cannot fetch it: counted in
-   `spaced`, not failed. */
+   tried 16 November 2026). The page tries each space doubled when a
+   download fails (novaCollectionSpaced), and each such name must be among
+   those tries. They are counted in `spaced`. */
 const spaced = new Map();
 function against(c, entries, files) {
   const bad = [];
@@ -64,7 +65,12 @@ function against(c, entries, files) {
     let size = c.zip ? zipOf(c).sizes.get(at) : (fs.existsSync(at) ? fs.statSync(at).size : undefined);
     if (size === undefined && c.zip) {
       const two = [...zipOf(c).sizes.keys()].find(k => k.includes('  ') && k.replace(/ {2,}/g, ' ') === at);
-      if (two) { size = zipOf(c).sizes.get(two); spaced.set(c.label, (spaced.get(c.label) || 0) + 1); }
+      if (two) {
+        size = zipOf(c).sizes.get(two);
+        // the page's retry must reach the zip's name
+        if (!S.novaCollectionSpaced(e.url).includes(S.novaCollectionUrl(c.item, c.zip, two))) bad.push(`${e.path}: no retry reaches ${two}`);
+        else spaced.set(c.label, (spaced.get(c.label) || 0) + 1);
+      }
     }
     if (size === undefined) bad.push(`${e.path} is not in the copy`);
     else if (size !== e.size) bad.push(`${e.path} is ${size} bytes in the copy, ${e.size} listed`);
@@ -120,6 +126,6 @@ if (nova) {
   }
   said.push(`${found} of 2 controls found`);
 }
-for (const [l, n] of spaced) said.push(`${l}: ${n} not fetchable, their double spaces listed as one`);
+for (const [l, n] of spaced) said.push(`${l}: ${n} listed with a double space as one, each reached by a retry`);
 console.log(`${fails ? fails + ' failed' : 'every plug-in listed is in the copy as listed'}: ${said.join('; ')}`);
 process.exit(fails ? 1 : 0);

@@ -72,6 +72,17 @@ function novaCollectionEntries(c, files) {
   return out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
 }
 
+/* The other addresses of a file whose download failed: archive.org's page
+   of a zip's contents writes two spaces in a row as one, and gives the file
+   only by its name with both (EVO.zip's "EVO-Sizer  1.2.sit.hqx"). Which
+   space was doubled is not shown, so each in the file's name is tried. */
+function novaCollectionSpaced(url) {
+  const at = url.lastIndexOf('/'), dir = url.slice(0, at + 1), name = url.slice(at + 1), parts = name.split('%20');
+  const out = [];
+  for (let k = 1; k < parts.length; k++) out.push(dir + parts.slice(0, k).join('%20') + '%20%20' + parts.slice(k).join('%20'));
+  return out;
+}
+
 /* A set whose folders are packages (the conversions: Polycon v2's Nova
    Files is eleven parts of one game) as [{ folder, files }], by folder, a
    folder of one file a package of one. Some folders hold alternatives

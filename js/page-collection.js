@@ -126,12 +126,23 @@ async function collectionAbout(det) {
   } catch (err) { out.textContent = 'Could not fetch the description from archive.org (' + err.message + ')'; }
 }
 
+// One plug-in's bytes, and where its name lost a space in archive.org's listing, by the name with it (novaCollectionSpaced).
+async function collectionFetch(f) {
+  try { return await fetchBytes(f.url, ' from archive.org'); }
+  catch (err) {
+    for (const url of novaCollectionSpaced(f.url)) {
+      try { return Object.assign(await fetchBytes(url, ' from archive.org'), { name: f.name }); } catch (e) { /* the next space */ }
+    }
+    throw err;
+  }
+}
+
 // The ticked plug-ins, fetched one after another and opened together.
 async function collectionOpen(list) {
   if (!list.length) return;
   const picked = [];
   for (const f of list) {
-    try { picked.push(await fetchBytes(f.url, ' from archive.org')); }
+    try { picked.push(await collectionFetch(f)); }
     catch (err) { setStatus(`Could not fetch ${f.name} from archive.org (${err.message})`, true); return; }
   }
   // kept ticked when the opening is canceled, as with plug-ins that have the same records

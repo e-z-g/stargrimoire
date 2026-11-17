@@ -870,6 +870,15 @@ try {
           const boom = document.createElement('div');
           boom.innerHTML = fieldsTable('bööm', novaGet(GAME, 'bööm', 128), true);
           o.prose = [...boom.querySelectorAll('.fieldFull > a.codeNum')].map(a => a.textContent);
+          // the program's facts under a ship's Flags note, worked out once Notes in full is on
+          notesFull(true);
+          const ship = document.createElement('div');
+          document.body.appendChild(ship);
+          ship.innerHTML = fieldsTable('shïp', novaGet(GAME, 'shïp', 128), true);
+          factsFill();
+          const flags = ship.querySelector('.fieldFacts[data-facts="shïp.Flags"]');
+          o.facts = flags ? { text: flags.textContent, links: flags.querySelectorAll('a.codeNum').length } : null;
+          ship.remove(); notesFull(false);
           if (links[0]) { o.clicked = links[0].textContent; links[0].click(); }
           o.code = { on: CODE.on, hash: location.hash, title: (document.querySelector('#codeView h2') || {}).textContent };
           div.remove();
@@ -889,7 +898,9 @@ try {
     if (o.kind !== 'macho' || !want.every(n => nums.includes(n)) || !(o.noteLinks > 5) || !o.code || !o.code.on || o.code.title !== o.clicked || !/^#code=0x[0-9a-f]+/.test(o.code.hash) ||
         !/DoOutfitDialog/.test(o.roles[0]) || !/HandlePlayer/.test(o.roles[1]) || !/^the nebula .*'s picture 4 of 7/.test(o.roles[2]) || JSON.stringify(o.ratings) !== JSON.stringify([0, 1, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600]) || !['300', '400'].every(n => (o.prose || []).includes(n)) || !(o.rules > 50) || !/the site uses 1\.165 \(nova-flight\.js \d+\)/.test(o.ruleAt || ''))
       fail('the disk image\'s program: ' + JSON.stringify({ kind: o.kind, nums, noteLinks: o.noteLinks, clicked: o.clicked, code: o.code, roles: o.roles, ratings: o.ratings, prose: o.prose, rules: o.rules, ruleAt: o.ruleAt }));
-    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text; ${o.rules} routines in the rules, and HyperSpawnFleet's line ${o.ruleAt}`);
+    else if (!o.facts || !/reads it in \d+ routines/.test(o.facts.text) || !/0x0400/.test(o.facts.text) || !/0x4000/.test(o.facts.text) || !(o.facts.links > 20))
+      fail('the program\'s facts under shïp Flags: ' + JSON.stringify(o.facts));
+    else console.log(`1.1.1's program: the panels' numbers ${nums.join(', ')} link into it; a stellar's field notes cite ${o.noteLinks} routines, and ${o.clicked} opens at ${o.code.hash}; the Library: PICT 8502 ${o.roles[0]}; dësc 13999 ${o.roles[1]}; ${o.roles[2]}; the combat ratings from ${o.ratings.length} comparisons; an explosion's field notes link ${o.prose.join(' and ')} in their text; shïp Flags' facts with ${o.facts.links} links; ${o.rules} routines in the rules, and HyperSpawnFleet's line ${o.ruleAt}`);
   }
 
   // Compared with 1.0.2 by ?compare=: the galaxy's panel lists what changed,

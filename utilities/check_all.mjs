@@ -112,6 +112,7 @@ const CHECKS = [
   ['sound', 'every snd read, the IMA4-compressed ones sample for sample as macOS\'s afconvert decodes them'],
   ['program', 'the game\'s program: its system calls named from its loader, its figures as LLVM reads them, in every release'],
   ['fieldsites', 'where a field note\'s routine reads the field, checked against the workbench\'s fieldtrace.py and a store broken on purpose'],
+  ['fieldfacts', 'the field notes\' bits against the bits the program tests, in two releases, with a bit taken out of a note'],
   ['pilot', 'save files decrypted and read, the layout checked against FlipNpil run by the workbench\'s flipnpil.py and the decryption against evnova-utils\' simpleCrypt'],
   ['plugin', 'plug-ins written: every record back as read, .rez byte for byte and against rez.py, the Mac file read back'],
   ['corpus', 'every record in archive.org\'s collection of Nova plug-ins written back as read, and every field of them read'],

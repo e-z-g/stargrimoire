@@ -75,8 +75,10 @@ function novaFactsAfter(prog, ops, i, rt) {
       else if (op.mn === 'andis.' && regs.has(op.rs)) bits.push({ mask: ((op.imm & 0xffff) << 16) >>> 0, addr: o.addr });
       else if (/^(rlwinm|clrlwi|slwi|srwi|extrwi|rotlwi)\.?$/.test(op.mn) && regs.has(op.rs) && op.mb !== undefined) {
         const mask = novaRlwinmBits(op.sh || 0, op.mb, op.me);
-        // a zero extension of a half word or a byte is the whole value, not a bit
-        if (mask === 0xffff || mask === 0xff || mask === 0xffffffff) regs.add(op.ra);
+        // a zero extension of a half word or a byte is the whole value, not a bit,
+        // and a mask of more than eight bits passes the value on (clearing the top bit), not a test
+        const n = mask.toString(2).replace(/0/g, '').length;
+        if (mask === 0xffff || mask === 0xff || n > 8) regs.add(op.ra);
         else bits.push({ mask, addr: o.addr });
       }
       else if ((op.mn === 'cmpwi' || op.mn === 'cmplwi') && regs.has(op.ra)) compares.push({ value: op.imm, addr: o.addr });

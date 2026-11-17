@@ -30,6 +30,7 @@ let NOTES_FULL = false;
 function notesFull(on) {
   NOTES_FULL = on;
   document.documentElement.classList.toggle('notesFull', on);
+  if (on) factsSoon();
   for (const c of document.querySelectorAll('[data-notes-full]')) c.checked = on;
   try { localStorage.setItem(NOTES_STORE, on ? '1' : ''); } catch (e) { /* the choice lasts the visit */ }
 }
@@ -93,7 +94,34 @@ function fieldsFill(el) {
     t.innerHTML = fieldsRows(type, novaGet(GAME, type, +box.dataset.id), false).join('');
   }
 }
+/* What the open program does with each field shown (nova-fieldfacts.js):
+   the routines that read it and the bits and numbers its value meets there,
+   worked out when Notes in full is on, since the first field needs every
+   routine of the program read. */
+let FACTS_TIMER = null;
+function factsSoon() { if (!FACTS_TIMER) FACTS_TIMER = setTimeout(factsFill, 0); }
+function factsFill() {
+  FACTS_TIMER = null;
+  const p = program();
+  if (!p || !NOTES_FULL) return;
+  for (const el of document.querySelectorAll('.fieldFacts[data-facts]:empty')) {
+    const [type, name] = el.dataset.facts.split('.'), f = novaFieldFacts(p, type, name);
+    if (!f || !f.reads.length) continue;
+    const at = list => `<a class="codeNum" data-code="${hex(p.routineAt(list[0]).start)}" data-at="${hex(list[0])}" data-field="${esc(el.dataset.facts)}">`;
+    const routines = [...new Map(f.reads.map(x => [x.routine.start, x])).values()];
+    const list = items => new Intl.ListFormat('en-US').format(items);
+    const parts = [`The open program reads it in ${routines.length} routine${routines.length === 1 ? '' : 's'} (${list(routines.map(x => `<a class="codeNum" data-code="${hex(x.routine.start)}" data-at="${hex(x.addr)}" data-field="${esc(el.dataset.facts)}">${esc(p.nameOf(x.routine))}</a>`))}).`];
+    const w = new Set(f.writes.map(x => x.routine.start)).size;
+    if (w) parts.push(`It writes it in ${w} routine${w === 1 ? '' : 's'}.`);
+    const bits = [...f.bits].sort((a, b) => a[0] - b[0]);
+    if (bits.length) parts.push(`It tests the bits ${list(bits.map(([m, at0]) => `${at(at0)}0x${m.toString(16).padStart(4, '0')}</a>`))}.`);
+    const cmp = [...f.compares].sort((a, b) => a[0] - b[0]);
+    if (cmp.length) parts.push(`It compares it with ${list(cmp.map(([v, at0]) => `${at(at0)}${v}</a>`))}.`);
+    el.innerHTML = parts.join(' ');
+  }
+}
 function fieldsRows(type, rec, editing) {
+  if (NOTES_FULL) factsSoon();
   const rows = [];
   if (editing) rows.push(`<tr><td>name</td><td><input data-f="" value="${esc(rec.name || '')}" maxlength="255"></td></tr>`);
   for (const [name, kind, n] of NOVA_RECORDS[type]) {
@@ -104,6 +132,7 @@ function fieldsRows(type, rec, editing) {
     const sh = novaFieldShort(type, name);
     const note = (sh ? `<div class="fieldNote fieldShort">${esc(sh)}</div>` : '') +
                  (fn ? `<div class="fieldNote fieldFull">${codeLinkProse(esc(fn.note))}<span class="fieldCode">Read from ${fn.code.map(([f]) => codeRoutine(f, type, name)).join(', ')}.</span></div>` : '') +
+                 (fn && GAME.kind() === 'nova' ? `<div class="fieldNote fieldFull fieldFacts" data-facts="${esc(type + '.' + name)}"></div>` : '') +
                  (fn && fn.bible ? `<div class="fieldNote fieldFull">The Bible: ${esc(fn.bible)}</div>` : '') +
                  (rd ? `<div class="fieldNote fieldRead">This one: ${esc(rd)}</div>` : '');
     if (!editing) { rows.push(`<tr><td>${esc(name)}</td><td>${esc(text)}${note}</td></tr>`); continue; }

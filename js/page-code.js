@@ -195,7 +195,8 @@ function renderCode() {
   for (const [key, uses] of novaProgramUses(p, GAME).fixed) for (const u of uses) if (u.routine === r.start) label(u.addr, `loads ${esc(key.trim())}${u.index !== undefined ? `, entry ${u.index}` : ''}`, 'imm');
   const [ftype, fname] = CODE.field ? CODE.field.split('.') : [];
   const sites = CODE.field ? novaFieldSites(p, r, ftype, fname) : [];
-  for (const s of sites) label(s.addr, `${s.call ? 'hands to the call' : s.load ? 'reads' : 'writes'} ${esc(ftype)} ${esc(fname)}`, 'place');
+  for (const s of sites) label(s.addr, s.via !== undefined ? `calls <a data-code="${hex(s.via)}" data-field="${esc(CODE.field)}">${esc(p.nameOf(p.routineAt(s.via)))}</a>, which reads ${esc(ftype)} ${esc(fname)}`
+    : `${s.call ? 'hands to the call' : s.load ? 'reads' : 'writes'} ${esc(ftype)} ${esc(fname)}`, s.via !== undefined ? undefined : 'place');
   const opsText = ops.map(novaOpText);
   // the number a figure was read from, or the place a field is read at
   const pick = (i, addr) => {

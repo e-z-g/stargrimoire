@@ -57,9 +57,38 @@ function novaArrayAccesses(prog, ops, each, seed) {
   const volatile = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].concat(macho ? [2] : []);
   const forget = r => { at.delete(r); plus.delete(r); type.delete(r); };
   const placeOf = (ra, d) => ra === 1 ? 'sp@' + d : at.has(ra) ? at.get(ra).g + '@' + (at.get(ra).k + d) : null;
+  // Forward branches: what the registers hold is saved at each branch for its
+  // target, and at the target taken up again, kept where every way in matches
+  // (the way in from the line before only when that line can fall through).
+  // A loop's branch back is not followed.
+  const saved = new Map();
+  let falls = true;
+  const join = (into, maps, same) => {
+    const keep = new Map([...maps[0]].filter(([r, v]) => maps.every(m => m.has(r) && same(m.get(r), v))));
+    into.clear();
+    for (const [r, v] of keep) into.set(r, v);
+  };
   ops.forEach((o, i) => {
     const op = o.op;
+    if (saved.has(o.addr)) {
+      const ways = saved.get(o.addr);
+      if (falls) ways.push({ at: new Map(at), plus: new Map(plus) });
+      join(at, ways.map(w => w.at), (x, y) => x.g === y.g && x.k === y.k);
+      join(plus, ways.map(w => w.plus), (x, y) => x === y);
+      type.clear();
+      saved.delete(o.addr);
+    }
+    falls = true;
     if (!op) return;
+    if (op.branch && !op.lk) {
+      const always = !op.conditional || (op.bo & 0x14) === 0x14;
+      if (op.disp !== undefined && !op.aa && op.disp > 0) {
+        const to = o.addr + op.disp;
+        if (!saved.has(to)) saved.set(to, []);
+        saved.get(to).push({ at: new Map(at), plus: new Map(plus) });
+      }
+      if (always) falls = false;
+    }
     if (op.branch) {
       if (op.lk) {
         each(o, i, { call: true, args: [3, 4, 5, 6].map(r => at.get(r)) });
@@ -164,8 +193,8 @@ function novaFieldPlaces(prog) {
    register name ("'mïsn':1"), only what is read through it; without, in
    LoadObjectData, a load from anything but the array stored to, the stack
    or 1.0.x's TOC. */
-function novaCopies(prog, ops, access, from, to, type, rec) {
-  const size = novaRecordSize(type) || 0x10000, byG = new Map();
+function novaCopies(prog, ops, access, from, to, type, rec, limit) {
+  const size = limit || novaRecordSize(type) || 0x10000, byG = new Map();
   const put = (g, at, off, addr, call, float) => {
     if (g[0] === "'") return;                                   // a record, not an array
     if (!byG.has(g)) byG.set(g, new Map());
@@ -292,6 +321,43 @@ function novaFieldCopies(prog) {
   return out;
 }
 
+/* Copies of an element's fields into another array's elements (a ship in
+   flight is given values from its class's element as it spawns): in every
+   routine, a store whose value was loaded from a place LoadObjectData gives
+   a field. Map type -> [{ g, places: Map record offset -> { off, addr } }],
+   one for each other array, keeping only a place where every such store
+   matches. Cached. */
+function novaElementCopies(prog) {
+  if (prog.elementCopies) return prog.elementCopies;
+  const out = new Map(), loaded = novaFieldPlaces(prog);
+  prog.elementCopies = out;
+  const fieldAt = new Map([...loaded].map(([t, x]) => [x.g, { t, rec: new Map([...x.places].map(([rec, p]) => [p.off, rec])) }]));
+  const found = new Map();   // type -> g -> rec -> Set of element places
+  for (const r of prog.routines) {
+    if (r.glue) continue;
+    const ops = prog.ops(r), access = new Map();
+    novaArrayAccesses(prog, ops, (o, i, a) => access.set(i, a));
+    for (const [g, { t, rec }] of fieldAt) {
+      for (const [g2, m] of novaCopies(prog, ops, access, 0, ops.length, t, g, 0x10000)) {
+        if (g2 === g || fieldAt.has(g2)) continue;
+        for (const [elemOff, p] of m) {
+          if (!rec.has(elemOff)) continue;
+          const byG = found.get(t) || new Map(), byRec = byG.get(g2) || new Map();
+          found.set(t, byG); byG.set(g2, byRec);
+          if (!byRec.has(rec.get(elemOff))) byRec.set(rec.get(elemOff), new Map());
+          byRec.get(rec.get(elemOff)).set(p.off, p.addr);
+        }
+      }
+    }
+  }
+  for (const [t, byG] of found) for (const [g, byRec] of byG) {
+    const places = new Map();
+    for (const [rec, offs] of byRec) if (offs.size === 1) { const [[off, addr]] = [...offs]; places.set(rec, { off, addr }); }
+    if (places.size) { if (!out.has(t)) out.set(t, []); out.get(t).push({ g, places }); }
+  }
+  return out;
+}
+
 /* The globals a record's handle is kept in: where a routine that requests
    a resource by type stores the handle it receives in a global's first
    word (ActivateCharResource stores the chär it requests by name). A routine
@@ -323,14 +389,15 @@ function novaHandleGlobals(prog) {
 }
 
 /* The instructions in a routine that read or write a record's field, or
-   hand its place to a call: [{ addr, load, call }], in order; empty where
-   none is found. A field is read through the record's handle, at its
+   hand its place to a call: [{ addr, load, call }], in order. Where there
+   is none, the calls to a routine that reads the field ({ addr, call,
+   via }, via that routine's start); empty where neither is found. A field is read through the record's handle, at its
    offset, or out of an array a copy put it in (novaFieldPlaces,
    novaFieldCopies), at its place there. */
-function novaFieldSites(prog, routine, type, field) {
+function novaFieldSites(prog, routine, type, field, deep = true) {
   const recs = new Set((novaLayout(type) || []).filter(f => f.name === field && !f.variable).map(f => f.offset));
   if (!recs.size) return [];
-  const arrays = [novaFieldPlaces(prog).get(type), ...(novaFieldCopies(prog).get(type) || [])].filter(Boolean)
+  const arrays = [novaFieldPlaces(prog).get(type), ...(novaFieldCopies(prog).get(type) || []), ...(novaElementCopies(prog).get(type) || [])].filter(Boolean)
     .map(t => ({ g: t.g, offs: new Set([...recs].map(rec => t.places.get(rec)).filter(Boolean).map(p => p.off)) })).filter(t => t.offs.size);
   const direct = new Set([`'${type}':1`, ...(novaHandleGlobals(prog).get(type) || [])]);
   const hit = (g, off) => (direct.has(g) && recs.has(off)) || arrays.some(t => t.g === g && t.offs.has(off));
@@ -344,6 +411,26 @@ function novaFieldSites(prog, routine, type, field) {
   if (loader && routine.start === loader.start && t && !out.some(s => s.load)) {
     for (const rec of recs) if (t.places.has(rec)) out.push({ addr: t.places.get(rec).addr, load: true });
     out.sort((x, y) => x.addr - y.addr);
+  }
+  // none here: the calls to a routine that reads the field itself, read with
+  // what the call hands it (CanBuyOutfitItem calls ShipFreeMass, which reads
+  // the player's ship class's FreeMass), one call deep
+  if (!out.length && deep) {
+    const byAddr = new Map(prog.ops(routine).map(o => [o.addr, o]));
+    for (const { addr, a } of novaRoutineAccesses(prog, routine)) {
+      if (!a.call) continue;
+      const o = byAddr.get(addr), callee = o && o.target !== null ? prog.routineAt(o.target) : null;
+      // LoadObjectData reads every field, so a call to it shows nothing of one
+      if (!callee || callee.glue || callee.start === routine.start || (loader && callee.start === loader.start)) continue;
+      // the callee read with what this call hands it, in the registers it reads as arguments
+      const used = novaArgsRead(prog, callee), seed = new Map();
+      a.args.forEach((x, j) => { if (x && used.has(3 + j)) seed.set(3 + j, x); });
+      let reads = false;
+      novaArrayAccesses(prog, prog.ops(callee), (oo, ii, b) => {
+        if (!reads && !b.call && hit(b.g, b.off)) reads = true;
+      }, seed, null);
+      if (reads || novaFieldSites(prog, callee, type, field, false).length) out.push({ addr, call: true, via: callee.start });
+    }
   }
   return out;
 }

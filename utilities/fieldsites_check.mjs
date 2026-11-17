@@ -27,6 +27,12 @@
 //     which fieldtrace does not read: every such place the same in 1.0.10
 //     and 1.1.1, compiled apart, and lost when 1.0.10's load of the double
 //     is bent to another stack slot;
+//   - a field copied on from one array's element into another's (a ship
+//     is given its class's InherentAI as it spawns, novaElementCopies): each at
+//     the same place in 1.0.10 and 1.1.1;
+//   - a link whose routine reads the field nowhere, ringing the call to a routine that
+//     reads the field: that routine on fieldtrace's list for the field, far
+//     more often than another routine the same one calls;
 //   - a copy broken on purpose: one store's displacement changed in 1.0.10's
 //     code, the place read from it must change with it, and a check of the
 //     places would fail.
@@ -107,6 +113,38 @@ if (intel) {
   console.log(`1.1.1: of the routines a note's link rings a line in, ${real.on} are in fieldtrace's list and ${real.off} are missing from it. Two bytes off the places, ${control.on} and ${control.off}`);
   if (real.on < 150 || real.on < 3 * real.off) fail(`1.1.1: too few of the lines found are in routines fieldtrace lists (${real.on} to ${real.off})`);
   if (control.on * 4 > real.on) fail(`1.1.1: two bytes off the places still finds ${control.on} listed routines against ${real.on}, so the match does not come from the places`);
+
+  // a link whose routine reads the field nowhere rings the call to a routine that reads
+  // the field: that routine should be on fieldtrace's list for the field,
+  // and as a control another routine the same routine calls mostly not
+  {
+    let on = 0, off = 0, cOn = 0, cOff = 0;
+    for (const [type, fields] of Object.entries(S.NOVA_FIELD_NOTES)) {
+      const theirs = intel.get(type);
+      if (!theirs) continue;
+      for (const [field, note] of Object.entries(fields)) {
+        const recs = (S.novaLayout(type) || []).filter(f => f.name === field).map(f => f.offset);
+        const used = new Set(recs.flatMap(rec => (theirs.get(rec) || { used: [] }).used));
+        if (!used.size) continue;
+        for (const [name] of note.code) {
+          const r = S.novaRoutineNamed(R111.prog, name);
+          if (!r) continue;
+          const sites = S.novaFieldSites(R111.prog, r, type, field).filter(x => x.via !== undefined);
+          if (!sites.length) continue;
+          const via = new Set(sites.map(x => x.via));
+          for (const v of via) if (used.has(R111.prog.nameOf(R111.prog.routineAt(v)))) on++; else { off++; if (process.env.SHOW_VIA) console.log(`  not listed: ${type} ${field}, ${name} calls ${R111.prog.nameOf(R111.prog.routineAt(v))}`); }
+          const other = R111.prog.ops(r).find(o => o.target !== null && o.op && o.op.lk && !via.has(o.target) && !R111.prog.routineAt(o.target).glue);
+          if (other) { if (used.has(R111.prog.nameOf(R111.prog.routineAt(other.target)))) cOn++; else cOff++; }
+        }
+      }
+    }
+    console.log(`1.1.1: of the routines a call is ringed for, ${on} are on fieldtrace's list for the field and ${off} are missing from it. Another call in the same routine, ${cOn} and ${cOff}`);
+    // fieldtrace misses a place reached through a pointer handed on, which is
+    // how a called routine is given its element (AdjustedItemMass), so the
+    // bar is lower than for a line in the routine itself, and the control is the test
+    if (on < 1.5 * off) fail(`1.1.1: too few ringed calls go to a routine fieldtrace lists (${on} to ${off})`);
+    if (cOn * 3 > on) fail(`1.1.1: another call in the same routines is listed ${cOn} times against ${on}, so the match does not come from the reads`);
+  }
 }
 
 // ---- copies made elsewhere (a mission into the missions under way, a
@@ -179,6 +217,17 @@ if (intel) {
       else console.log(`float copies: ${keys.size - differ.length} of ${keys.size} places the same in 1.0.10 and 1.1.1, and the bent load of shïp Maneuver gives none`);
     }
   }
+}
+
+// ---- copies of one array's elements into another's (a ship's spawn from its
+// class): each place the same in 1.0.10 and 1.1.1, compiled apart
+{
+  const flat = prog => { const out = new Map(); for (const [t, list] of S.novaElementCopies(prog)) for (const c of list) for (const [rec, p] of c.places) { const k = `${t}@${rec}`; if (!out.has(k)) out.set(k, new Set()); out.get(k).add(p.off); } return out; };
+  const a = flat(R1010.prog), b = flat(R111.prog), keys = [...new Set([...a.keys(), ...b.keys()])];
+  const same = keys.filter(k => a.has(k) && b.has(k) && [...a.get(k)].some(o => b.get(k).has(o))).length;
+  const both = keys.filter(k => a.has(k) && b.has(k)).length;
+  console.log(`element copies: ${keys.length} fields copied on into another array, ${both} in both releases, ${same} of those at a place the same in both`);
+  if (both < 3 || same < both) fail(`element copies: ${same} of the ${both} found in both releases at the same place`);
 }
 
 // ---- a store broken on purpose

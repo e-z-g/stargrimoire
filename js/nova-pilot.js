@@ -171,10 +171,14 @@ const NOVA_PILOT_GROUPS = {
     ['at4', 4, 's16'], ['deadline', 6, 's16', 7],   // a DateTimeRec: year, month, day, hour, minute, second, day of the week
   ] },
   // EV's and Override's: the mission slot (18 bytes, its deadline a DateTimeRec
-  // at 4) and the mission under way, its name at 94 and 102 (0x128bb8, 0x11c154)
+  // at 4) and the mission under way. Taking a mission copies its name to 126 in
+  // EV and 134 in Override, up to 127 characters (0x1537d0, 0x14a7c0), and the
+  // list of missions under way reads it there (0x15187c, 0x148574). The string
+  // at 94 and 102 is the name of the special ships, drawn from mïsn ShipNameID's
+  // STR# (0x154664, 0x14b818) and empty when there is none.
   elderObjective: { size: 18, fields: [['active', 0, 'u8'], ['deadline', 4, 's16', 7]] },
-  evMission: { size: 382, fields: [['name', 94, 'pstr', 32]] },
-  evoMission: { size: 390, fields: [['name', 102, 'pstr', 32]] },
+  evMission: { size: 382, fields: [['shipName', 94, 'pstr', 32], ['name', 126, 'pstr', 128]] },
+  evoMission: { size: 390, fields: [['shipName', 102, 'pstr', 32], ['name', 134, 'pstr', 128]] },
   mission: { size: 0x8ec, fields: [
     ['destStellar', 0x00, 's16'], ['at02', 0x02, 's16'], ['returnStellar', 0x04, 's16'],
     ['specialShipCount', 0x06, 's16'], ['specialShipDude', 0x08, 's16'], ['specialShipGoal', 0x0a, 's16'],

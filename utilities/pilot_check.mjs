@@ -229,6 +229,29 @@ if (robert && haveRelease('1.0.10')) {
     control('the escorts a byte later', () => { G.layout[128] = keep.layout.map(f => f[0] === 'escorts' ? [f[0], f[1] + 1, f[2], f[3]] : f); });
     console.log(`EV Override: ${read} of ${saves.length} saves read as the program reads them, and ${found} of 2 controls found`);
   }
+  // Escape Velocity's: the save made in SheepShaver on 17 November 2026, against what
+  // the game showed as it was made (evnova-reference's README)
+  const EV = path.join(REF, 'saves/sg test pilot.bin');
+  if (!fs.existsSync(EV)) console.log('SKIP the Escape Velocity save, with no saves/sg test pilot.bin in reference/');
+  else {
+    const fork = S.novaOpenFork(S.sniffMacContainer(new Uint8Array(fs.readFileSync(EV))).rsrc);
+    const shown = { kind: 'ev', version: 106, cash: 7600, food: 20, date: '11/19/2276', ship: 'Journeyman', missions: '["Ferry Passengers to <DST>"]' };
+    const wrong = () => {
+      const p = S.novaReadPilot(fork, 'sg test pilot'), P = p.pilot;
+      const got = { kind: p.kind, version: p.game.version, cash: P.cash, food: P.cargo[0], date: `${P.month}/${P.day}/${P.year}`, ship: p.shipName,
+        missions: JSON.stringify(P.missions.filter((m, i) => P.objectives[i].active).map(m => m.name)) };
+      return Object.keys(shown).filter(k => got[k] !== shown[k]).map(k => `${k} ${got[k]}`);
+    };
+    const bad = wrong();
+    if (bad.length) fail(`Escape Velocity's save: ${bad.join(', ')}`);
+    // control: the mission's name read at 94, where the special ships' name is
+    const g = S.NOVA_PILOT_GROUPS.evMission, keep = g.fields;
+    g.fields = keep.map(f => (f[0] === 'name' ? ['name', 94, 'pstr', 32] : f));
+    const caught = wrong().length > 0;
+    g.fields = keep;
+    if (!caught) fail('the control with the mission\'s name at 94 was not found');
+    if (!bad.length && caught) console.log('Escape Velocity: the save reads as the game showed it, and the control with the mission\'s name at 94 found');
+  }
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

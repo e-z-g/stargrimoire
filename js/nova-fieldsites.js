@@ -20,10 +20,10 @@
    the call that requested it or from a global the handle was kept in
    (novaHandleGlobals). A routine every call to which hands it an
    element's place in an argument register starts out knowing it
-   (novaHandedIn). Copies of another shape (lists in a loop, a value
-   worked out first) give no place, and a routine that reaches the element
-   through a pointer kept elsewhere (a ship's to its class) gives no site:
-   the link then opens the routine with nothing ringed.
+   (novaHandedIn). A whole number copied as a float (Speed, kept ÷ 100)
+   is followed back through the conversion (novaFloatCopySource). Copies of
+   another shape (lists in a loop, text) give no place, and the link then
+   opens the routine with nothing ringed.
 
    An array is named by the global it is reached through and how many
    loads deep: in 1.0.x the TOC's word for a global (an `lwz rN, k(r2)` the
@@ -166,10 +166,10 @@ function novaFieldPlaces(prog) {
    or 1.0.x's TOC. */
 function novaCopies(prog, ops, access, from, to, type, rec) {
   const size = novaRecordSize(type) || 0x10000, byG = new Map();
-  const put = (g, at, off, addr, call) => {
+  const put = (g, at, off, addr, call, float) => {
     if (g[0] === "'") return;                                   // a record, not an array
     if (!byG.has(g)) byG.set(g, new Map());
-    if (!byG.get(g).has(at)) byG.get(g).set(at, { off, addr, call });
+    if (!byG.get(g).has(at)) byG.get(g).set(at, float ? { off, addr, float } : { off, addr, call });
   };
   for (let i = from; i < to; i++) {
     const a = access.get(i);
@@ -180,7 +180,8 @@ function novaCopies(prog, ops, access, from, to, type, rec) {
       if (d && s && d.g !== s.g && (!rec || s.g === rec) && s.k > 0 && s.k < size) put(d.g, s.k, d.k, ops[i].addr, true);
       continue;
     }
-    if (a.load || a.fp) continue;
+    if (a.load) continue;
+    if (a.fp) { const at = novaFloatCopySource(prog, ops, access, from, i, a.rt, rec, size); if (at !== undefined) put(a.g, at, a.off, ops[i].addr, false, true); continue; }
     // a store: its value's last write, through extensions and moves, a
     // load at the record's offset
     let reg = a.rt;
@@ -207,6 +208,62 @@ function novaCopies(prog, ops, access, from, to, type, rec) {
     for (const [at, p] of m) if (p.call && stored.has(p.off)) m.delete(at);
   }
   return byG;
+}
+
+/* A float stored from a record's whole number (Speed, kept ÷ 100 as a
+   float): the float register followed back through the arithmetic to the
+   double loaded from the stack, the word stored under it there, and that
+   word back to its load from the record, as the compiler turns an integer
+   into a float:
+       lha   r0, 6(r9)          the record's byte 6
+       xoris r0, r0, 0x8000
+       stw   r0, 2628(r1)       the low word of 0x43300000 8000xxxx
+       lfd   f0, 2624(r1)
+       fsub  f0, f0, f31        minus 2^52 + 2^31
+       fdiv  f0, f0, f13        ÷ 100
+       frsp  f0, f0
+       stfs  f0, 64(r11)
+   The record offset, or undefined where the chain is not that. */
+const NOVA_FLOAT_STEP = { fsub: 1, fadd: 1, fdiv: 1, fmul: 1, fsubs: 1, fadds: 1, fdivs: 1, fmuls: 1, frsp: 1, fmr: 1, fneg: 1, fabs: 1 };
+function novaFloatCopySource(prog, ops, access, from, i, freg, rec, size) {
+  // the stack slot the float register's value was loaded from, through the
+  // arithmetic: a multiply or an add may have the value on either side (1.0.10
+  // multiplies 0.1 by it), so each source is tried
+  const slotOf = (k, reg, depth) => {
+    for (; k >= Math.max(from, i - 16); k--) {
+      const p = ops[k].op;
+      if (!p) continue;
+      if (p.branch) return null;
+      if (NOVA_FLOAT_STEP[p.mn] && p.args && p.args[0] === reg) {
+        for (const src of p.args.slice(1, p.mn === 'fmul' || p.mn === 'fmuls' || p.mn === 'fadd' || p.mn === 'fadds' ? 3 : 2)) {
+          const got = depth < 6 ? slotOf(k - 1, src, depth + 1) : null;
+          if (got) return got;
+        }
+        return null;
+      }
+      if (p.mn === 'lfd' && p.rt === reg) return p.ra === 1 ? { slot: p.d + 4, k } : null;
+      if (p.mn[0] === 'l' && p.mn[1] === 'f' && p.rt === reg) return null;
+    }
+    return null;
+  };
+  const found = slotOf(i - 1, freg, 0);
+  let k = found ? found.k : 0, slot = found ? found.slot : undefined;
+  if (slot === undefined) return undefined;
+  let reg;
+  for (k--; k >= Math.max(from, i - 30); k--) {
+    const p = ops[k].op;
+    if (!p) continue;
+    if (p.branch) return undefined;
+    if (reg === undefined) { if (p.mn === 'stw' && p.ra === 1 && p.d === slot) reg = p.rt; continue; }
+    const writes = p.rd !== undefined ? p.rd : (p.rs !== undefined && p.ra !== undefined && p.d === undefined) ? p.ra : (p.mn[0] === 'l' ? p.rt : undefined);
+    if (writes !== reg) continue;
+    if (/^(extsh|extsb|mr|clrlwi|xoris)$/.test(p.mn)) { reg = p.rs; continue; }
+    if (!/^l[hb][az]x?$/.test(p.mn)) return undefined;
+    const src = access.get(k), at = src && !src.call && src.load ? src.off : rec ? undefined : p.d;
+    const fromRecord = rec ? src && src.g === rec : p.ra !== 1 && !(p.ra === 2 && prog.kind !== 'macho');
+    return fromRecord && at !== undefined && at >= 0 && at < size ? at : undefined;
+  }
+  return undefined;
 }
 
 /* Copies of records into arrays elsewhere than LoadObjectData: in each

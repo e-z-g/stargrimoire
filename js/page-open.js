@@ -146,6 +146,9 @@ async function openGameFiles(picked, opts = {}) {
   }
   if (saves.length && !found.length) {
     if (!GAME) { setStatus('The page shows a save file on the game\'s map. Open the game first and then the save file.', true); return; }
+    const other = saves.filter(v => v.kind !== GAME.kind());
+    if (other.length === saves.length) { setStatus(`${other[0].name} is a save file of ${NOVA_GAME_NAMES[other[0].kind]}. The game open is ${NOVA_GAME_NAMES[GAME.kind()]}.`, true); return; }
+    for (const v of other) { saves.splice(saves.indexOf(v), 1); refused.push(`${v.name} is a save file of ${NOVA_GAME_NAMES[v.kind]}`); }
     if (!opts.remembered) {
       KEPT = KEPT.concat(picked.map(({ name, bytes }) => ({ name, bytes })));
       keptPut({ files: KEPT, savedAt: Date.now() }).then(() => showForget(true), () => {});

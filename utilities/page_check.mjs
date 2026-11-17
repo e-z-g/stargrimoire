@@ -1298,6 +1298,59 @@ try {
     }
   }
 
+  // Nova's elders from the start page, a banded mask and an elder save
+  // (page-open.js, mac-rsrc-types.js's decodePict, page-pilot.js): the start
+  // page's two buttons; Escape Velocity's PICT 1013, eight bands of a
+  // version 1 picture, decoded whole with white in its last band; Add
+  // plug-ins listing the set of EV's plug-ins alone; and EV Override with Rick
+  // Hardslab's save (EVO.zip's EVOPilotFile), its ship, date and credits in
+  // the galaxy's panel and "The player is here" in its system's.
+  {
+    const INSTS = 'reference/game/collections/EscapeVelocityPluginCollection/Installers';
+    const RICK = 'reference/unpacked/elder-pilots/out/EVOPilotFile/Rick Hardslab';
+    if (!fs.existsSync(path.join(ROOT, INSTS, 'Escape_Velocity.bin'))) console.log('SKIP the elders\' start: no installer in reference/');
+    else {
+      const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INSTS + '/Escape_Velocity.bin'), 'typeof U !== "undefined" && U && !PUMPING && PENDING.length === 0', 240000, { chrome,
+        then: async p => p.evaluate(`(() => {
+          const o = { buttons: [...document.querySelectorAll('#start [data-elder]')].map(b => b.dataset.elder).join() };
+          const d = decodePict(GAME.get('PICT', 1013).bytes), px = d.canvas.getContext('2d').getImageData(0, 400, d.width, 32).data;
+          let white = 0; for (let k = 0; k < px.length; k += 4) if (px[k] > 200) white++;
+          o.mask = { images: d.images, w: d.width, h: d.height, white };
+          o.addShown = !document.getElementById('collectionBtn').hidden;
+          collectionAsk();
+          o.sets = [...document.querySelectorAll('#choose [data-set]')].map(b => b.textContent).join();
+          document.getElementById('choose').hidden = true;
+          return o;
+        })()`) });
+      for (const e of pageErrors(r.console)) fail('the elders\' start: ' + describe(e));
+      const o = r.more || {};
+      if (!r.met) fail('the elders\' start: never opened');
+      else if (o.buttons !== 'Escape_Velocity.bin,EVOverride.bin' || !o.mask || o.mask.images !== 8 || o.mask.w !== 432 || o.mask.h !== 432 || !(o.mask.white > 0) || !o.addShown || o.sets !== 'EV plug-ins')
+        fail(`the elders' start: ${JSON.stringify(o)}`);
+      else console.log(`the elders' start: both buttons; PICT 1013 in ${o.mask.images} bands, ${o.mask.white} white pixels in its last; Add plug-ins lists ${o.sets}`);
+    }
+    if (!fs.existsSync(path.join(ROOT, INSTS, 'EVOverride.bin')) || !fs.existsSync(path.join(ROOT, RICK))) console.log('SKIP the elder save: no EV Override installer or Rick Hardslab in reference/ (unar EVO.zip\'s EVO/Cheats/EVOPilotFile.sit into unpacked/elder-pilots/out)');
+    else {
+      const r = await loadPage(srv.base + 'index.html?src=' + encodeURIComponent(INSTS + '/EVOverride.bin') + '&src=' + encodeURIComponent(RICK + '/..namedfork/rsrc'),
+        'typeof U !== "undefined" && U && !PUMPING && !!PILOT', 240000, { chrome,
+        then: async p => p.evaluate(`(() => {
+          const panel = document.getElementById('panel'), s = pilotState();
+          const rows = () => Object.fromEntries([...panel.querySelectorAll('table.kv tr')].map(tr => [tr.cells[0].textContent, tr.cells[1] ? tr.cells[1].textContent : '']));
+          VIEW.sel = null; renderPanel();
+          const g = rows(), o = { kind: PILOT.save.kind, ship: g['Ship'], date: g['Date'], credits: g['Credits'], source: (panel.innerHTML.match(/OpïL 129 and 128[^<]*/) || [''])[0] };
+          VIEW.sel = { kind: 'system', id: s.system }; renderPanel();
+          o.here = rows()['In the save'];
+          return o;
+        })()`) });
+      for (const e of pageErrors(r.console)) fail('the elder save: ' + describe(e));
+      const o = r.more || {};
+      if (!r.met) fail('the elder save: never opened');
+      else if (o.kind !== 'evo' || !/^UE Fighter, /.test(o.ship || '') || o.date !== '1/8/2153' || o.credits !== (39514).toLocaleString() || !o.source || !/The player is here/.test(o.here || ''))
+        fail(`the elder save: ${JSON.stringify(o)}`);
+      else console.log(`the elder save: Rick Hardslab's, ${o.ship}, ${o.date}, ${o.credits} credits, and his system's panel says he is there`);
+    }
+  }
+
   // Escape Velocity's and EV Override's installers: the map with every
   // system and link, a system's panel and its stellars drawn masked, a
   // stellar's landing page with its picture and its numbers linked to the

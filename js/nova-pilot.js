@@ -35,9 +35,9 @@
 const NOVA_PILOT_KEY = 0xB36A210F;
 
 // DoEncryption 0xa51cb: the key stream xored over the record, which undoes itself.
-function novaPilotCrypt(bytes) {
+function novaPilotCrypt(bytes, start = NOVA_PILOT_KEY) {
   const b = Uint8Array.from(bytes);
-  let key = NOVA_PILOT_KEY, i = 0;
+  let key = start, i = 0;
   for (; i + 4 <= b.length; i += 4) {
     b[i] ^= key >>> 24; b[i + 1] ^= (key >>> 16) & 255; b[i + 2] ^= (key >>> 8) & 255; b[i + 3] ^= key & 255;
     key = ((key - 0x21524111) ^ 0xDEADBEEF) >>> 0;
@@ -107,6 +107,61 @@ const NOVA_PILOT_LAYOUT = {
 };
 const NOVA_PILOT_SIZE = { 128: 0xe9b2, 129: 0x66fe };
 
+/* ESCAPE VELOCITY AND EV OVERRIDE. Their saves are Finder type MpïL and
+   OpïL, records 128 and 129 of that type, encrypted as Nova's are with the
+   key 0xABCD1234 (EV's 0x167b0c and Override's 0x1617c4, called at 0x12878c
+   and 0x11bcf4). Record 129 is read first (EV at 0x128360, Override at
+   0x11b884), record 128 after it (0x12875c, 0x11bcc4), and each field's
+   address below is where Override's loader reads it; EV's reads the same
+   offsets up to the missions. Escape Velocity stops at version 105 alone and
+   writes 106 (0x127a20). Override stops at every version except 107, which it writes
+   (0x11af48). The two layouts differ in the size of a mission under way
+   (382 and 382 + 8 bytes) and the number of control bits (256 and 512),
+   which moves every field after the missions. */
+function novaElderPilotLayout(evo) {
+  const after = evo ? 320 : 0;   // eight missions 8 bytes longer, and 256 more bits
+  return {
+    128: [
+      ['stellar', 0, 's16'],                // 0x11bd14: your stellar, its system yours
+      ['shipClass', 2, 's16'],              // 0x11be20
+      ['cargo', 4, 's16', 6],               // 0x11be54
+      ['fuel', 18, 's16'],                  // 0x11bee4: 100 a jump
+      ['month', 20, 's16'], ['day', 22, 's16'], ['year', 24, 's16'], // 0x11bef8 to 0x11bf20, kept as a DateTimeRec
+      ['explored', 26, 's16', 1000],        // 0x11bf54: by system, 2 landed in (0x128be0)
+      ['outfits', 2026, 's16', 128],        // 0x11be90: how many of each outfit
+      ['legal', 2282, 's16', 1000],         // 0x11bf90: your standing in each system, against gövt CrimeTol
+      ['weapons', 4282, 's16', 64],         // 0x11bfd4
+      ['ammo', 4410, 's16', 64],            // 0x11c000
+      ['cash', 4538, 's32'],                // 0x11c024
+      ['objectives', 4542, 'elderObjective', 8], // 0x11c074
+      ['missions', 4686, evo ? 'evoMission' : 'evMission', 8], // 0x11c0cc, copied whole
+      ['bits', 4686 + 8 * 382 + (evo ? 64 : 0), 'u8', evo ? 512 : 256], // 0x11c2a0
+      ['dominated', 7998 + after, 'u8', 1500],  // 0x11c2e0
+      ['escorts', 9498 + after, 's16', 36],     // 0x11c328: -1 none; a class, captured; 1000 + a class, hired
+      ['fighters', 9570 + after, 's16', 36],    // 0x11c3f0: -1 none, else a class
+      ['kills', 9642 + after, 's32'],           // 0x11c038: the combat rating
+    ],
+    129: [
+      ['version', 0, 's16'],                // 0x11b8d8
+      ['strict', 2, 's16'],                 // 0x11b960: 1, strict play
+      ['defense', 4, 's16', 1500],          // 0x11b9cc: each stellar's defense ships left
+      ['present', 3004, 's16', 512],        // 0x11ba80: each person's flag (+414), set as the përs are loaded (0x118b9c)
+      ['grudge', 4028, 's16', 512],         // 0x11bab8: each person's +415, which with përs Flags 0x1 sets them on you (0x106ba4)
+      ['daysDominated', 5180, 's16', 1500], // 0x11b9f8: each stellar, days since you dominated it (0x16c0b8)
+      ['disasterDays', 8182, 's16', 128],   // 0x11bb8c
+      ['disasterAt', 8438, 's16', 128],     // 0x11bbb8: the stellar a disaster is at, -1 none
+      ['junk', 8694, 's16', 128],           // 0x11bbfc: tons of each jünk
+      ['at8950', 8950, 's16', 2], ['at8954', 8954, 's16', 2], // 0x11bc3c, 0x11bc64: 100 at a new game (0x153f38)
+    ],
+  };
+}
+const NOVA_ELDER_PILOT_KEY = 0xABCD1234;
+const NOVA_PILOT_GAMES = {
+  nova: { type: 'NpïL', key: NOVA_PILOT_KEY, layout: NOVA_PILOT_LAYOUT, size: NOVA_PILOT_SIZE },
+  ev: { type: 'MpïL', key: NOVA_ELDER_PILOT_KEY, layout: novaElderPilotLayout(false), size: { 128: 9646, 129: 8958 } },
+  evo: { type: 'OpïL', key: NOVA_ELDER_PILOT_KEY, layout: novaElderPilotLayout(true), size: { 128: 9966, 129: 8958 } },
+};
+
 /* A mission under way (0x8ec bytes, copied whole into currentMissions) and
    its objectives (20 bytes, currentMissionObjectives), with DumpPilotLog's
    names. Stellars and dudes are kept as indexes, a mission as its index. */
@@ -115,6 +170,11 @@ const NOVA_PILOT_GROUPS = {
     ['active', 0, 'u8'], ['travelObjComplete', 1, 'u8'], ['shipObjComplete', 2, 'u8'], ['missionFailed', 3, 'u8'],
     ['at4', 4, 's16'], ['deadline', 6, 's16', 7],   // a DateTimeRec: year, month, day, hour, minute, second, day of the week
   ] },
+  // EV's and Override's: the mission slot (18 bytes, its deadline a DateTimeRec
+  // at 4) and the mission under way, its name at 94 and 102 (0x128bb8, 0x11c154)
+  elderObjective: { size: 18, fields: [['active', 0, 'u8'], ['deadline', 4, 's16', 7]] },
+  evMission: { size: 382, fields: [['name', 94, 'pstr', 32]] },
+  evoMission: { size: 390, fields: [['name', 102, 'pstr', 32]] },
   mission: { size: 0x8ec, fields: [
     ['destStellar', 0x00, 's16'], ['at02', 0x02, 's16'], ['returnStellar', 0x04, 's16'],
     ['specialShipCount', 0x06, 's16'], ['specialShipDude', 0x08, 's16'], ['specialShipGoal', 0x0a, 's16'],
@@ -156,23 +216,32 @@ function novaPilotFields(bytes, base, fields) {
 /* A save file's resource fork, read: { name, shipName, pilot, game }, the
    two records' fields; or it throws an Error with the reason the program
    would not open it. `name` is the file's name, which is the pilot's. */
-function novaHoldsPilot(fork) {
-  const list = fork.resourcesByType[novaTypeKey('NpïL')];
-  return !!list && list.some(e => e.id === 128) && list.some(e => e.id === 129);
+function novaPilotGameOf(fork) {
+  return Object.keys(NOVA_PILOT_GAMES).find(k => {
+    const list = fork.resourcesByType[novaTypeKey(NOVA_PILOT_GAMES[k].type)];
+    return !!list && list.some(e => e.id === 128) && list.some(e => e.id === 129);
+  }) || null;
 }
+const novaHoldsPilot = fork => !!novaPilotGameOf(fork);
+// `kind` is the save's game: 'nova', 'ev' or 'evo'.
 function novaReadPilot(fork, name) {
-  const key = novaTypeKey('NpïL'), list = fork.resourcesByType[key] || [];
+  const kind = novaPilotGameOf(fork), G = NOVA_PILOT_GAMES[kind || 'nova'];
+  const key = novaTypeKey(G.type), list = fork.resourcesByType[key] || [];
   const rec = id => list.find(e => e.id === id);
-  if (!rec(128) || !rec(129)) throw new Error(`${name} is not a save file. It has no NpïL 128 and 129`);
+  if (!kind) throw new Error(`${name} is not a save file. It has no NpïL, MpïL or OpïL 128 and 129`);
   const bytes = {};
   for (const id of [128, 129]) {
-    bytes[id] = novaPilotCrypt(fork.dataOf(key, rec(id)));
-    if (bytes[id].length < NOVA_PILOT_SIZE[id]) throw new Error(`${name}'s NpïL ${id} is ${bytes[id].length} bytes, not ${NOVA_PILOT_SIZE[id]}`);
+    bytes[id] = novaPilotCrypt(fork.dataOf(key, rec(id)), G.key);
+    if (bytes[id].length < G.size[id]) throw new Error(`${name}'s ${G.type} ${id} is ${bytes[id].length} bytes, not ${G.size[id]}`);
   }
-  const game = novaPilotFields(bytes[129], 0, NOVA_PILOT_LAYOUT[129]);
-  // LoadPilotData stops with one error at 107 and with another at anything else up to 299
-  if (game.version <= 299) throw new Error(`${name} is a save file of version ${game.version}, which the game does not open. The game opens 300 and above`);
-  return { name, shipName: rec(129).name.trim(), pilot: novaPilotFields(bytes[128], 0, NOVA_PILOT_LAYOUT[128]), game };
+  const game = novaPilotFields(bytes[129], 0, G.layout[129]);
+  // LoadPilotData stops with one error at 107 and with another at anything else up to 299;
+  // Escape Velocity at 105 alone, EV Override at every version except 107
+  const v = game.version;
+  if (kind === 'nova' && v <= 299) throw new Error(`${name} is a save file of version ${v}, which the game does not open. The game opens 300 and above`);
+  if (kind === 'ev' && v === 105) throw new Error(`${name} is a save file of version 105, which Escape Velocity does not open`);
+  if (kind === 'evo' && v !== 107) throw new Error(`${name} is a save file of version ${v}, which EV Override does not open. It opens 107`);
+  return { name, kind, shipName: rec(129).name.trim(), pilot: novaPilotFields(bytes[128], 0, G.layout[128]), game };
 }
 
 /* What the map needs of a save, with the game's ids (an index + 128):
@@ -183,7 +252,7 @@ function novaPilotState(p, U) {
   const id = i => i + 128, P = p.pilot, G = p.game;
   const bits = new Set();
   P.bits.forEach((on, i) => { if (on) bits.add(i); });
-  const stellar = P.stellar >= 0 ? id(P.stellar) : null, male = G.gender === 1;
+  const stellar = P.stellar >= 0 ? id(P.stellar) : null, male = G.gender === undefined || G.gender === 1;
   // of the systems the stellar is in, the one shown with the save's bits
   const inSys = stellar === null ? [] : U.inSystems.get(stellar) || [];
   const sys = inSys.find(s => { const v = U.byId.get(s).visibility; return !v || ncbTest(v, { bits, male, registered: true }); }) ?? inSys[0] ?? null;
@@ -193,13 +262,13 @@ function novaPilotState(p, U) {
     explored: byIndex(P.explored, v => v > 0),
     legal: byIndex(P.legal, v => v !== 0),
     dominated: new Set([...byIndex(P.dominated, v => !!v).keys()]),
-    destroyed: byIndex(G.destroyed, v => v > 0),
-    ranks: [...byIndex(G.ranks, v => !!v).keys()],
+    destroyed: byIndex(G.destroyed || [], v => v > 0),
+    ranks: [...byIndex(G.ranks || [], v => !!v).keys()],
     outfits: byIndex(P.outfits, v => v > 0),
     weapons: byIndex(P.weapons, v => v > 0),
-    escorts: P.escorts.map((v, i) => v < 0 ? null : { cls: id(v % 1000), hired: v >= 1000, upgrade: !!P.upgrade[i], sale: v < 1000 && !!P.sale[i] }).filter(Boolean),
+    escorts: P.escorts.map((v, i) => v < 0 ? null : { cls: id(v % 1000), hired: v >= 1000, upgrade: !!(P.upgrade && P.upgrade[i]), sale: v < 1000 && !!(P.sale && P.sale[i]) }).filter(Boolean),
     fighters: P.fighters.filter(v => v >= 0).map(id),
-    missions: P.missions.map((m, i) => (P.objectives[i].active ? Object.assign({ id: id(m.mission), objectives: P.objectives[i] }, m) : null)).filter(Boolean),
+    missions: P.missions.map((m, i) => (P.objectives[i].active ? Object.assign({ id: m.mission === undefined ? null : id(m.mission), objectives: P.objectives[i] }, m) : null)).filter(Boolean),
   };
 }
 
@@ -219,6 +288,7 @@ const NOVA_PILOT_SHIP_ADDS = [['Holds', 2, 1], ['Shield', 4, 1], ['Armor', 6, 1]
   ['Fuel', 12, 1], ['ShieldRech', 5, 1], ['ArmorRech', 29, 1], ['Deionize', 39, 1], ['IonizeMax', 40, 1]];
 const NOVA_STOCK_OUTFIT_KINDS = new Set([17, 18, 25, 30, 31, 33, 34, 35, 36, 37, 49]);
 function novaPilotShip(game, save) {
+  if (save.kind && save.kind !== 'nova') return null;   // Nova's ship fields alone
   const P = save.pilot, from = P.shipClass + 128, cls = novaGet(game, 'shïp', from);
   if (!cls) return null;
   const mods = o => [[o.ModType, o.ModVal], [o.ModType2, o.ModVal2], [o.ModType3, o.ModVal3], [o.ModType4, o.ModVal4]];

@@ -23,6 +23,10 @@
 //   - what a routine is handed, a record's place every call to it hands in
 //     a register: a register the routine reads as an argument in the other
 //     release too, compiled apart;
+//   - a whole number copied as a float (Speed ÷ 100, novaFloatCopySource),
+//     which fieldtrace does not read: every such place the same in 1.0.10
+//     and 1.1.1, compiled apart, and lost when 1.0.10's load of the double
+//     is bent to another stack slot;
 //   - a copy broken on purpose: one store's displacement changed in 1.0.10's
 //     code, the place read from it must change with it, and a check of the
 //     places would fail.
@@ -146,6 +150,35 @@ if (intel) {
   if (!g111.has('chär') || !g1010.has('chär')) fail('chär: no handle global found');
   console.log(`handles kept: ${named} globals in 1.1.1, each named as a handle, for ${g111.size} types, and ${g1010.size} types in 1.0.10`);
   if (named < 20) fail(`handles kept: only ${named} found`);
+}
+
+// ---- float copies (a whole number turned into a float, Speed ÷ 100): each
+// place the same in 1.0.10 and 1.1.1, compiled apart; and 1.0.10 bent, the
+// load of shïp Maneuver's double moved to another stack slot, must lose it
+{
+  const floats = prog => { const out = new Map(); for (const [t, x] of S.novaFieldPlaces(prog)) for (const [rec, p] of x.places) if (p.float) out.set(`${t}@${rec}`, p); return out; };
+  const a = floats(R1010.prog), b = floats(R111.prog), keys = new Set([...a.keys(), ...b.keys()]);
+  const differ = [...keys].filter(k => !a.get(k) || !b.get(k) || a.get(k).off !== b.get(k).off);
+  if (keys.size < 10) fail(`only ${keys.size} float copies found`);
+  for (const k of differ.slice(0, 5)) fail(`float copy ${k}: element byte ${a.get(k) && a.get(k).off} in 1.0.10, ${b.get(k) && b.get(k).off} in 1.1.1`);
+  const man = a.get('shïp@8');
+  if (!man) fail('1.0.10: shïp Maneuver has no float copy');
+  else {
+    const prog = R1010.prog, ops = prog.ops(prog.routineAt(man.addr)), i = ops.findIndex(o => o.addr === man.addr);
+    const lfd = ops.slice(Math.max(0, i - 12), i).reverse().find(o => o.op && o.op.mn === 'lfd' && o.op.ra === 1);
+    const bytes = R1010.src.read(), want = lfd && lfd.word, prev = lfd && ops[ops.indexOf(lfd) - 1].word;
+    let at = -1;
+    for (let k = 4; want !== undefined && k + 4 <= bytes.length; k += 2)
+      if (((bytes[k] << 24) | (bytes[k + 1] << 16) | (bytes[k + 2] << 8) | bytes[k + 3]) >>> 0 === want && (((bytes[k - 4] << 24) | (bytes[k - 3] << 16) | (bytes[k - 2] << 8) | bytes[k - 1]) >>> 0) === prev) { at = k; break; }
+    if (at < 0) fail('1.0.10: the load of shïp Maneuver\'s double not found in the bytes');
+    else {
+      const bent = bytes.slice();
+      bent[at + 3] = (bent[at + 3] + 8) & 255;                    // lfd f0, 2448(r1) -> 2456(r1)
+      const p2 = S.novaFieldPlaces(S.novaProgram(bent, R1010.src.readRsrc())).get('shïp').places.get(8);
+      if (p2) fail(`1.0.10 bent: shïp Maneuver still placed at element byte ${p2.off} from another stack slot`);
+      else console.log(`float copies: ${keys.size - differ.length} of ${keys.size} places the same in 1.0.10 and 1.1.1, and the bent load of shïp Maneuver gives none`);
+    }
+  }
 }
 
 // ---- a store broken on purpose

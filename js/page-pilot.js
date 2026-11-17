@@ -32,7 +32,8 @@ function pilotState() {
   if (PILOT.U !== U) { PILOT.state = novaPilotState(PILOT.save, U); PILOT.U = U; }
   return PILOT.state;
 }
-const pilotShown = () => SHOW_MODE === 'save' && !!PILOT;
+// EV and EV Override show every system, so a save of theirs is shown whenever it is open.
+const pilotShown = () => !!PILOT && (SHOW_MODE === 'save' || olderOn());
 
 // The system you are in, ringed in white outside any other ring.
 function pilotRing(ctx, sysId, path) {
@@ -42,21 +43,28 @@ function pilotRing(ctx, sysId, path) {
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke(); ctx.lineWidth = 1;
 }
 
-// DateToShortString 0x8b79: the prefix, month/day/year, the suffix.
+// DateToShortString 0x8b79: the prefix, month/day/year, the suffix. EV and EV Override have neither.
 function pilotDate(p) {
   const P = p.pilot, G = p.game;
-  return `${G.datePrefix}${P.month}/${P.day}/${P.year}${G.dateSuffix}`;
+  return `${G.datePrefix || ''}${P.month}/${P.day}/${P.year}${G.dateSuffix || ''}`;
+}
+// Where the program reads the save: Nova's LoadPilotData, or the elder's loader at its address.
+const PILOT_ELDER_LOADER = { ev: [0x128360, 0x12875c], evo: [0x11b884, 0x11bcc4] };
+function pilotSource(p) {
+  if (p.kind === 'ev' || p.kind === 'evo') return `These come from the save's ${p.kind === 'ev' ? 'MpïL' : 'OpïL'} 129 and 128 as the program reads them.${olderNoteAt(PILOT_ELDER_LOADER[p.kind])}`;
+  return `These come from the save's NpïL 128 and 129 as the program reads them (${codeRoutine('LoadPilotData')}).`;
 }
 
 // The galaxy panel's part.
 function pilotBlock() {
   if (!pilotShown()) return '';
-  const p = PILOT.save, P = p.pilot, G = p.game, s = pilotState();
+  const p = PILOT.save, P = p.pilot, G = p.game, s = pilotState(), nova = !p.kind || p.kind === 'nova';
   const cargo = P.cargo.map((n, i) => (n > 0 ? `${n} tons of ${esc(commodityName(i))}` : null)).filter(Boolean)
     .concat(G.junk.map((n, i) => (n > 0 ? `${n} tons of ${recLink('jünk', 128 + i)}` : null)).filter(Boolean));
   const escorts = s.escorts.map(e => `${recShipLink(e.cls)} <span class="note">${e.hired ? 'hired' : 'captured'}${e.upgrade ? ', marked for upgrade' : ''}${e.sale ? ', marked for sale' : ''}</span>`)
     .concat(s.fighters.map(c => `${recShipLink(c)} <span class="note">fighter</span>`));
   const missions = s.missions.map(m => {
+    if (m.id === null) return esc(m.name);   // EV and EV Override keep the mission's name and not its number
     const o = m.objectives, done = [o.travelObjComplete && 'been to its destination', o.shipObjComplete && 'done with its ships', o.missionFailed && 'failed'].filter(Boolean);
     return `${missionData().byId.has(m.id) ? missionLink(m.id) : esc(m.name)}${done.length ? ` <span class="note">${done.join(', ')}</span>` : ''}`;
   });
@@ -65,7 +73,7 @@ function pilotBlock() {
   const here = s.system !== null ? s.legal.get(s.system) || 0 : null;
   return `<h3>Save file</h3>
     <table class="kv">
-      ${kvRow('Pilot', `${esc(p.name)}${G.nickname ? ` <span class="note">“${esc(G.nickname)}”</span>` : ''}${G.gender === 1 ? '' : ' <span class="note">female</span>'}${G.strict === 1 ? ' <span class="note">strict play</span>' : ''}`)}
+      ${kvRow('Pilot', `${esc(p.name)}${G.nickname ? ` <span class="note">“${esc(G.nickname)}”</span>` : ''}${G.gender === undefined || G.gender === 1 ? '' : ' <span class="note">female</span>'}${G.strict === 1 ? ' <span class="note">strict play</span>' : ''}`)}
       ${kvRow('Ship', `${esc(p.shipName)}, ${recShipLink(P.shipClass + 128)}`)}
       ${kvRow('At', s.stellar !== null ? `${stellarRef(s.stellar)}${s.system !== null ? ' in ' + sysLink(s.system) : ''}` : '')}
       ${kvRow('Date', esc(pilotDate(p)))}
@@ -78,14 +86,14 @@ function pilotBlock() {
       ${kvRow('Outfits', many([...s.outfits].map(([id, n]) => counted(n, recLink('oütf', id))), 'outfits'))}
       ${kvRow('Escorts', listOr(escorts, 'none'))}
       ${kvRow('Missions under way', listOr(missions, 'none'))}
-      ${kvRow('Ranks', listOr(s.ranks.map(id => recLink('ränk', id)), 'none'))}
+      ${nova ? kvRow('Ranks', listOr(s.ranks.map(id => recLink('ränk', id)), 'none')) : ''}
       ${kvRow('Dominated', listOr([...s.dominated].map(stellarRef), 'none'))}
-      ${kvRow('Destroyed', listOr([...s.destroyed.keys()].map(stellarRef), 'none'))}
-      ${kvRow('People no longer met', many(people(G.alive.map(v => !v)), 'people'))}
+      ${nova ? kvRow('Destroyed', listOr([...s.destroyed.keys()].map(stellarRef), 'none')) : ''}
+      ${nova ? kvRow('People no longer met', many(people(G.alive.map(v => !v)), 'people')) : ''}
       ${kvRow('With a grudge against the player', listOr(people(G.grudge), 'none'))}
       ${kvRow('Bits on', many([...s.bits].sort((a, b) => a - b).map(n => `<a data-bit="${n}">b${n}</a>`), 'bits'))}
     </table>
-    <p class="note">These come from the save's NpïL 128 and 129 as the program reads them (${codeRoutine('LoadPilotData')}).</p>`;
+    <p class="note">${pilotSource(p)}</p>`;
 }
 
 // A system's rows.
@@ -100,5 +108,5 @@ function pilotStellarRows(sp) {
   if (!pilotShown()) return '';
   const s = pilotState(), G = PILOT.save.game, days = s.destroyed.get(sp.id);
   return kvRow('In the save', [s.dominated.has(sp.id) && 'Dominated.', days && `Destroyed and rebuilt in ${days} day${days === 1 ? '' : 's'}.`, s.stellar === sp.id && 'The player is here.'].filter(Boolean).join(' ')) +
-    (novaDefense(sp) ? kvRow('Defense ships left', String(G.defense[sp.id - 128])) : '');
+    ((olderOn() ? sp.DefDude >= 128 && sp.DefCount > 0 : novaDefense(sp)) ? kvRow('Defense ships left', String(G.defense[sp.id - 128])) : '');
 }

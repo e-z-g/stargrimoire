@@ -14,7 +14,13 @@
 //     layout with one field moved, which the comparison with FlipNpil must
 //     find;
 //   - Robert's ship copied as a ship class, against figures worked by hand
-//     from his outfits, with a copy bent to fail.
+//     from his outfits, with a copy bent to fail;
+//   - EV Override's saves in the collection's EVO.zip (EVOPilotFile and the
+//     pilot editor's example), opened as the page opens them, with the game
+//     from its installer: version 107, a date, every ship class, escort and
+//     fighter a shïp of the game; each elder layout tiling its records with
+//     no field over another; a key one bit off, and the escorts moved a
+//     byte, each found.
 // Needs python3 and otool for flipnpil.py, and perl for simpleCrypt;
 // without them that part skips.
 import fs from 'node:fs';
@@ -73,7 +79,7 @@ function saves(dir, out = []) {
     let fork = null;
     try { fork = fs.readFileSync(p + '/..namedfork/rsrc'); } catch (e) { continue; }
     if (!fork.length) continue;
-    try { const f = S.openResourceFork(new Uint8Array(fork)); if (S.novaHoldsPilot(f)) out.push({ path: p, fork: f }); } catch (e) { /* not a fork */ }
+    try { const f = S.openResourceFork(new Uint8Array(fork)); if (S.novaPilotGameOf(f) === 'nova') out.push({ path: p, fork: f }); } catch (e) { /* not a fork */ }
   }
   return out;
 }
@@ -157,6 +163,72 @@ if (robert && haveRelease('1.0.10')) {
   m[2] = 1; const bent = S.novaPilotShip(g, save); m[2] = 0.1;
   if (!differs(bent.change).includes('Maneuver')) fail('a copy adding Maneuver\'s ModVal whole passed');
   if (!bad.length && !others.length) console.log(`Robert's ship copied as shïp ${res[0].id}, ${Object.keys(want).length} fields as worked by hand and the rest the class's. Maneuver bent to ${bent.change.Maneuver} is found`);
+}
+
+// ---- Escape Velocity's and EV Override's saves
+{
+  // each layout's fields in order, none over the next, the last ending at the record's size (129 has two gaps it never reads)
+  for (const kind of ['ev', 'evo']) {
+    const G = S.NOVA_PILOT_GAMES[kind];
+    for (const id of [128, 129]) {
+      let end = 0, gaps = 0;
+      for (const [name, off, k, count] of G.layout[id]) {
+        const g = S.NOVA_PILOT_GROUPS[k], w = g ? g.size : k === 'pstr' || k === 'cstr' ? 1 : { s16: 2, s32: 4, u8: 1 }[k];
+        if (off < end) fail(`${kind} ${id}: ${name} at ${off} is over the field before it, which ends at ${end}`);
+        if (off > end) gaps++;
+        end = off + w * (count || 1);
+      }
+      if (end !== G.size[id]) fail(`${kind} ${id}: the fields end at ${end}, not ${G.size[id]}`);
+      if (id === 128 && gaps !== 1) fail(`${kind} 128 has ${gaps} gaps, not the one at the shield (16)`);
+      if (id === 129 && gaps !== 2) fail(`${kind} 129 has ${gaps} gaps, not the two the loader skips`);
+    }
+  }
+  const ZIP = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/EVO.zip');
+  const INST = path.join(REF, 'game/collections/EscapeVelocityPluginCollection/Installers/EVOverride.bin');
+  if (!fs.existsSync(ZIP) || !fs.existsSync(INST)) console.log('SKIP the elder saves, with no EVO.zip or EV Override installer in reference/');
+  else {
+    const game = S.novaGame();
+    for (const f of S.novaArchiveFiles(S.novaArchiveIn(new Uint8Array(fs.readFileSync(INST))))) game.add(f, f.read());
+    const classes = new Set(S.novaAll(game, 'shïp').map(r => r.id));
+    const saves = [];
+    for (const entry of ['EVO/Cheats/EVOPilotFile.sit', 'EVO/Utilities/PilotFileEditorV2.sit.hqx']) {
+      const bytes = new Uint8Array(execFileSync('unzip', ['-p', ZIP, entry], { maxBuffer: 64 << 20 }));
+      let arch = bytes;
+      try { const w = S.sniffMacContainer(bytes); if (w && w.data && w.data.length) arch = w.data; } catch (e) { /* not BinHex */ }
+      for (const f of S.novaArchiveFiles(arch).filter(x => x.pilot)) saves.push({ f, fork: S.novaOpenFork(f.read()) });
+    }
+    // what a save must be: EV Override's, version 107, a date, and ships of the game
+    const wrong = (p, label) => {
+      const bad = [];
+      if (p.kind !== 'evo') bad.push(`reads as ${p.kind}`);
+      if (p.game.version !== 107) bad.push(`version ${p.game.version}`);
+      if (!(p.pilot.month >= 1 && p.pilot.month <= 12 && p.pilot.day >= 1 && p.pilot.day <= 31)) bad.push(`date ${p.pilot.month}/${p.pilot.day}`);
+      if (!classes.has(p.pilot.shipClass + 128)) bad.push(`ship class ${p.pilot.shipClass}`);
+      for (const v of p.pilot.escorts) if (v >= 0 && !classes.has(v % 1000 + 128)) bad.push(`escort ${v}`);
+      for (const v of p.pilot.fighters) if (v >= 0 && !classes.has(v + 128)) bad.push(`fighter ${v}`);
+      return bad.length ? `${label}: ${bad.slice(0, 4).join(', ')}` : null;
+    };
+    let read = 0;
+    for (const { f, fork } of saves) {
+      let p;
+      try { p = S.novaReadPilot(fork, f.name); } catch (e) { fail(e.message); continue; }
+      const bad = wrong(p, f.name);
+      if (bad) fail(bad); else read++;
+    }
+    if (saves.length !== 2) fail(`${saves.length} EV Override saves found in EVO.zip, not 2`);
+    // controls: the key one bit off, and the escorts a byte later
+    const G = S.NOVA_PILOT_GAMES.evo, keep = { key: G.key, layout: G.layout[128] };
+    let found = 0;
+    const control = (what, bend) => {
+      bend();
+      const caught = saves.some(({ f, fork }) => { try { return !!wrong(S.novaReadPilot(fork, f.name), f.name); } catch (e) { return true; } });
+      G.key = keep.key; G.layout[128] = keep.layout;
+      if (caught) found++; else fail(`the control with ${what} was not found`);
+    };
+    control('the key one bit off', () => { G.key = keep.key ^ 0x10000; });   // a bit of the version's half
+    control('the escorts a byte later', () => { G.layout[128] = keep.layout.map(f => f[0] === 'escorts' ? [f[0], f[1] + 1, f[2], f[3]] : f); });
+    console.log(`EV Override: ${read} of ${saves.length} saves read as the program reads them, and ${found} of 2 controls found`);
+  }
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

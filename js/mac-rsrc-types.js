@@ -1012,7 +1012,7 @@ function decodePict(data){
     if(embedded){const blob=new Blob([embedded.bytes],{type:embedded.type==='jpeg'?'image/jpeg':'image/png'});return {kind:'embedded',blob,ext:embedded.type==='jpeg'?'jpg':'png'};}
   }
   const parsed=decodePictPackBits(data,found);
-  // A picture of several images, each drawn by its own opcode: a version 1
+  // A picture of several images, an opcode for each: a version 1
   // picture saved in bands of rows has one PackBitsRect a band (Escape
   // Velocity's sprite masks, PICT 1013 in eight). Every image is drawn at
   // its destination within the picture's frame, as DrawPicture draws them

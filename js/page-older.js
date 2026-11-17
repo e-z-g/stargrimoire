@@ -104,6 +104,7 @@ function olderGalaxyPanel() {
     <div class="sub">${esc(olderGameName())} · ${U.systems.length} systems at ${places} places · ${LINKS.length} hyperspace links</div>
     <p class="note">The map shows every system in ${esc(olderGameName())}'s files.${versions} Tap a system to see it. Tap it again to go in.</p>
     <p class="note">The panels name each field as the game's templates do. The page colors each government differently. Every record is in the <a data-view-lib>Library</a>.</p>
+    ${pilotBlock()}
     ${routeBlock()}
     <h3>Governments</h3><div class="legend">${legend}</div>
     <h3>Nebulae</h3><div class="list">${neb || '<span class="note">none</span>'}</div>
@@ -149,6 +150,7 @@ function olderSystemPanel(sys) {
       ${kvRow('DudeTypes', olderListed(r, 'DudeTypes', 'düde', '% Prob', '% Prob'))}
       ${kvRow('AlwaysPers', olderListed(r, 'AlwaysPers', 'përs'))}
     </table>
+    ${pilotShown() ? `<table class="kv">${pilotSystemRows(sys)}</table>` : ''}
     ${versions ? `<h3>Systems at this place</h3><table class="kv">${versions}</table>` : ''}
     ${olderFieldsTable('sÿst', r)}`;
 }
@@ -171,6 +173,7 @@ function olderStellarPanel(sp) {
       ${kvRow('Landing picture', `PICT ${land}${sp.CustPicID >= 128 ? ' (its CustPicID)' : ` (${olderBase('landingPict', NOVA_OLDER.landingPict)} + its Type ${sp.Type})`}`)}
       ${kvRow('Description', `dësc ${novaStellarDescId(sp)} (${olderBase('stellarDesc', 128)} + ${n})`)}
       ${kvRow('Sprite', `spïn ${novaStellarSpin(sp)} (${olderBase('stellarSpin', NOVA_OLDER.stellarSpin)} + its Type ${sp.Type})`)}
+      ${pilotStellarRows(sp)}
     </table>
     ${olderProgramNote()}
     <h3>In ${inSys.length === 1 ? 'the system' : 'the systems'}</h3><div class="list">${inSys.map(id => sysLink(id)).join('') || '<span class="note">none: in no system\'s Nav fields</span>'}</div>

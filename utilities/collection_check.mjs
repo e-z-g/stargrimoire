@@ -43,15 +43,29 @@ function zipSizes(file) {
   }
   return out;
 }
-const inZip = zipSizes(EVN);
-const html = fs.readFileSync(path.join(LIST, 'EVN.zip.html'), 'utf8');
+// each zip's sizes and archive.org's listing of it, read once
+const ZIPS = new Map();
+const zipOf = c => {
+  if (!ZIPS.has(c.zip)) ZIPS.set(c.zip, { sizes: zipSizes(path.join(COLL, c.item, c.zip)), html: fs.readFileSync(path.join(LIST, c.zip + '.html'), 'utf8') });
+  return ZIPS.get(c.zip);
+};
+const html = zipOf({ item: 'EscapeVelocityPluginCollection', zip: 'EVN.zip' }).html;
 
-// What of a set's listing is not in the copy as listed.
+/* What of a set's listing is not in the copy as listed. archive.org's page
+   of a zip's contents writes two spaces in a row as one, and its server
+   gives such a file only by the name with both (EVO.zip's EVO-Sizer  1.2,
+   tried 16 November 2026), so the page cannot fetch it: counted in
+   `spaced`, not failed. */
+const spaced = new Map();
 function against(c, entries, files) {
   const bad = [];
   for (const e of entries) {
     const at = c.zip ? e.path : path.join(COLL, c.item, e.path);
-    const size = c.zip ? inZip.get(at) : (fs.existsSync(at) ? fs.statSync(at).size : undefined);
+    let size = c.zip ? zipOf(c).sizes.get(at) : (fs.existsSync(at) ? fs.statSync(at).size : undefined);
+    if (size === undefined && c.zip) {
+      const two = [...zipOf(c).sizes.keys()].find(k => k.includes('  ') && k.replace(/ {2,}/g, ' ') === at);
+      if (two) { size = zipOf(c).sizes.get(two); spaced.set(c.label, (spaced.get(c.label) || 0) + 1); }
+    }
     if (size === undefined) bad.push(`${e.path} is not in the copy`);
     else if (size !== e.size) bad.push(`${e.path} is ${size} bytes in the copy, ${e.size} listed`);
   }
@@ -61,12 +75,12 @@ function against(c, entries, files) {
 const said = [];
 let nova = null;
 for (const c of S.NOVA_COLLECTIONS) {
-  const files = c.zip ? S.novaCollectionZip(html) : S.novaCollectionItem(JSON.parse(fs.readFileSync(path.join(LIST, c.item + '.json'), 'utf8')));
+  const files = c.zip ? S.novaCollectionZip(zipOf(c).html) : S.novaCollectionItem(JSON.parse(fs.readFileSync(path.join(LIST, c.item + '.json'), 'utf8')));
   const entries = S.novaCollectionEntries(c, files);
   if (!entries.length) { fail(`${c.label}: nothing listed`); continue; }
   if (!c.zip && !fs.existsSync(path.join(COLL, c.item))) { said.push(`${c.label}: ${entries.length}, no copy to check them against`); continue; }
   for (const b of against(c, entries, files).slice(0, 5)) fail(`${c.label}: ${b}`);
-  if (c.zip) nova = { c, entries, files };
+  if (c.key === 'nova') nova = { c, entries, files };
   if (c.packages) {
     const packs = S.novaCollectionPackages(entries), n = packs.reduce((s, p) => s + p.files.length, 0), poly = packs.find(p => p.folder === 'Polycon v2/Nova Files');
     if (n !== entries.length || new Set(packs.flatMap(p => p.files)).size !== n) fail(`${c.label}: ${n} files in packages, ${entries.length} listed`);
@@ -106,5 +120,6 @@ if (nova) {
   }
   said.push(`${found} of 2 controls found`);
 }
+for (const [l, n] of spaced) said.push(`${l}: ${n} not fetchable, their double spaces listed as one`);
 console.log(`${fails ? fails + ' failed' : 'every plug-in listed is in the copy as listed'}: ${said.join('; ')}`);
 process.exit(fails ? 1 : 0);

@@ -28,7 +28,7 @@ function collectionAsk() {
   const el = document.getElementById('choose'), box = el.querySelector('.box');
   box.className = 'box coll';
   box.innerHTML = `<h2>Plug-ins on archive.org</h2>
-    <div class="collSets">${NOVA_COLLECTIONS.map(c => `<button data-set="${c.key}">${esc(c.label)}</button>`).join('')}</div>
+    <div class="collSets">${novaCollectionsFor(GAME.kind()).map(c => `<button data-set="${c.key}">${esc(c.label)}</button>`).join('')}</div>
     <p class="note" id="collNote"></p>
     <input type="search" id="collSearch" placeholder="Find a plug-in" autocomplete="off" value="${esc(COLLECTION.q)}">
     <div id="collRows"></div>
@@ -54,6 +54,7 @@ function collectionAsk() {
     close();
     if (a.dataset.a === 'open') collectionOpen([...COLLECTION.ticked.values()]);
   };
+  if (!novaCollectionsFor(GAME.kind()).some(c => c.key === COLLECTION.at)) COLLECTION.at = novaCollectionsFor(GAME.kind())[0].key;
   collectionShow();
   collectionTicked();
 }

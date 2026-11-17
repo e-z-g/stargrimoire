@@ -32,7 +32,14 @@ const NOVA_COLLECTIONS = [
     note: 'EV\'s plug-ins ported to Nova. The notes in their archive say each needs "a port of EV Classic for the base Nova Files folder", as EV_Classic_for_Nova under Conversions is, and that they are "not fully debugged".' },
   { key: 'evo', label: 'Override ports', item: 'EVO_Ported', within: /^EVO\/(Plugins|Cheats)\//, strip: 'EVO/',
     note: 'EV Override\'s plug-ins ported to Nova. The notes in their archive say each needs "a port of EV Override for the base Nova Files folder", as EV_Override_for_Nova under Conversions is, and that they are "not fully debugged".' },
+  // Escape Velocity's and EV Override's own plug-ins, listed while that game is open
+  { key: 'ev-elder', game: 'ev', label: 'EV plug-ins', item: 'EscapeVelocityPluginCollection', zip: 'EV.zip', within: /^EV\/(Plugins|Cheats)\//, strip: 'EV/',
+    note: "Ambrosia's add-on files for Escape Velocity kept whole, with the plug-ins and the cheats. A plug-in's description is the add-on page's, as written." },
+  { key: 'evo-elder', game: 'evo', label: 'Override plug-ins', item: 'EscapeVelocityPluginCollection', zip: 'EVO.zip', within: /^EVO\/(Plugins|Cheats)\//, strip: 'EVO/',
+    note: "Ambrosia's add-on files for EV Override kept whole, with the plug-ins and the cheats. A plug-in's description is the add-on page's, as written." },
 ];
+// The sets for a game: 'nova' (a set with no game), 'ev' or 'evo'.
+const novaCollectionsFor = kind => NOVA_COLLECTIONS.filter(c => (c.game || 'nova') === kind);
 
 const novaCollectionUrl = (...parts) => NOVA_COLLECTION_BASE + parts.join('/').split('/').map(encodeURIComponent).join('/');
 const novaCollectionUnescape = s => s.replace(/&(amp|lt|gt|quot|#39|#x27);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", '#x27': "'" })[e]);

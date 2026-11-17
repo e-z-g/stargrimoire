@@ -268,7 +268,7 @@ function mapStart(fresh) {
   if (older) OLDER_SHEETS.clear();
   else if (fresh) { COMPARE = null; setTimeout(compareFromAddress, 0); } else compareRefresh();
   $('compareBtn').hidden = older;
-  $('collectionBtn').hidden = older;
+  $('collectionBtn').hidden = false;
   olderControls(older);
   PICT_CACHE.clear();
   SPRITE_CACHE.clear();

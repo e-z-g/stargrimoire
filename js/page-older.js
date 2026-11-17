@@ -199,10 +199,10 @@ function olderRenderPlanet(sp, el) {
 
 /* The frames of spïn id: { w, h, count, frame(i) } once its pictures are
    read, or null. The mask is a second PICT the same size, white where the
-   sprite is and black around it in every sprite of the two games. A mask
-   that decodes smaller than its sheet is left out: some are version 1
-   pictures in bands of rows, one opcode each, and mac-rsrc-types.js's
-   decodePict reads the first band alone. The sheet's ground is black, as
+   sprite is and black around it in every sprite of the two games. Nine of
+   Escape Velocity's masks are version 1 pictures in bands of rows, one
+   opcode each, which decodePict draws together. A mask smaller than its
+   sheet is still left out. The sheet's ground is black, as
    the map's and the ship's box are, so a sprite without its mask looks the
    same there. */
 const OLDER_SHEETS = new Map();

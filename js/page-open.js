@@ -25,6 +25,8 @@
 const ARCHIVE_ORG = {
   item: 'https://archive.org/details/Macintosh_Garden_Games_2019_E',
   url: 'https://archive.org/cors/Macintosh_Garden_Games_2019_E/EV_Nova_1.0.10.sit',
+  // Nova's elders: the installers in EscapeVelocityPluginCollection, as the Ports view fetches them
+  elders: 'https://archive.org/cors/EscapeVelocityPluginCollection/Installers/',
 };
 
 /* Remembering what was opened between visits, as grimoire does: the files
@@ -375,6 +377,7 @@ function wireOpening() {
   const params = new URLSearchParams(location.search);
   const srcs = params.getAll('src');
   document.getElementById('useRemote').addEventListener('click', () => fetchAndOpen([ARCHIVE_ORG.url]));
+  for (const b of document.querySelectorAll('[data-elder]')) b.addEventListener('click', () => fetchAndOpen([ARCHIVE_ORG.elders + b.dataset.elder]));
   // Credits: the panel under the bar, shut by the button again, Escape or a click elsewhere
   const credits = document.getElementById('creditsMenu'), creditsBtn = document.getElementById('creditsBtn');
   const creditsShow = on => {
@@ -436,7 +439,7 @@ async function fetchBytes(url, from = '') {
 async function fetchAndOpen(urls) {
   const picked = [];
   for (const s of urls) {
-    const from = s === ARCHIVE_ORG.url ? ' from archive.org' : '';
+    const from = s === ARCHIVE_ORG.url || s.startsWith(ARCHIVE_ORG.elders) ? ' from archive.org' : '';
     try { picked.push(await fetchBytes(s, from)); }
     catch (e) {
       setStatus(`Could not fetch ${decodeURIComponent(s.split('/').pop())}${from} (${e.message})`, true);

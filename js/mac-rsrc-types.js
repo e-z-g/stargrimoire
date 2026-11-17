@@ -855,7 +855,9 @@ const PICT_IMAGE_OPS = new Set([0x0090,0x0091,0x0098,0x0099,0x009A,0x009B]);
 // Walk the opcode stream (skipping every opcode we don't render) until we
 // reach a bitmap opcode. This replaces a byte-by-byte signature scan, which
 // could false-match inside pixel/text data and silently mis-locate images.
-function findPictImageOpcode(data){
+// `from`, where given, is where an image ended (decodePictPackBits's `end`),
+// and the walk goes on from there to the next image.
+function findPictImageOpcode(data,from){
   // Version 1 pictures use ONE-byte opcodes; version 2 uses two. The word at
   // offset 10 is 0x0011 for v2 and 0x1101 for v1, so this must be detected
   // before any opcode is read or the whole walk is misaligned.
@@ -864,6 +866,7 @@ function findPictImageOpcode(data){
   const v2 = (verWord===0x0011);
   if(v2){ p+=4; } else { p+=2; }   // v2: 0x0011 0x02FF | v1: 0x11 0x01
   if(v2 && u16be(data,p)===0x0C00){ p+=2+24; }
+  if(from!==undefined) p=from;
   let guard=0;
   while(p<data.length && guard++<20000){
     if(v2){ if(p%2) p+=1; if(p+2>data.length) break; }
@@ -1008,7 +1011,28 @@ function decodePict(data){
     const embedded=findEmbeddedImage(data,found.p,found.p+found.size);
     if(embedded){const blob=new Blob([embedded.bytes],{type:embedded.type==='jpeg'?'image/jpeg':'image/png'});return {kind:'embedded',blob,ext:embedded.type==='jpeg'?'jpg':'png'};}
   }
-  const parsed=decodePictPackBits(data,found);return {kind:'canvas',...parsed};
+  const parsed=decodePictPackBits(data,found);
+  // A picture of several images, each drawn by its own opcode: a version 1
+  // picture saved in bands of rows has one PackBitsRect a band (Escape
+  // Velocity's sprite masks, PICT 1013 in eight). Every image is drawn at
+  // its destination within the picture's frame, as DrawPicture draws them
+  // in turn, and `images` counts them. One image is returned as it was.
+  const more=[];
+  for(let at=parsed.end, n=0; n<4096; n++){
+    let next;
+    try{ next=findPictImageOpcode(data,at); }catch(e){ break; }
+    if(!next||next.quicktime) break;
+    let r;
+    try{ r=decodePictPackBits(data,next); }catch(e){ break; }
+    more.push(r); at=r.end;
+  }
+  if(!more.length) return {kind:'canvas',...parsed,images:1};
+  const frame=readRect(data,2), W=frame.right-frame.left, H=frame.bottom-frame.top;
+  if(W<=0||H<=0) return {kind:'canvas',...parsed,images:1};
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  for(const r of [parsed,...more]) ctx.drawImage(r.canvas, r.dst.left-frame.left, r.dst.top-frame.top, r.dst.right-r.dst.left, r.dst.bottom-r.dst.top);
+  return {kind:'canvas',...parsed,canvas:c,width:W,height:H,images:1+more.length,end:more[more.length-1].end};
 }
 
 // ---- A PICT's pixels written back ----

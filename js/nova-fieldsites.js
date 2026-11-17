@@ -394,13 +394,22 @@ function novaHandleGlobals(prog) {
    via }, via that routine's start); empty where neither is found. A field is read through the record's handle, at its
    offset, or out of an array a copy put it in (novaFieldPlaces,
    novaFieldCopies), at its place there. */
-function novaFieldSites(prog, routine, type, field, deep = true) {
+/* Where a field is kept: hit(g, off) is true for a place an access gives
+   (the record through its handle, or an array a copy put it in), with recs
+   the field's record offsets and arrays [{ g, offs }]; null for a field with
+   no fixed offset. */
+function novaFieldHit(prog, type, field) {
   const recs = new Set((novaLayout(type) || []).filter(f => f.name === field && !f.variable).map(f => f.offset));
-  if (!recs.size) return [];
+  if (!recs.size) return null;
   const arrays = [novaFieldPlaces(prog).get(type), ...(novaFieldCopies(prog).get(type) || []), ...(novaElementCopies(prog).get(type) || [])].filter(Boolean)
     .map(t => ({ g: t.g, offs: new Set([...recs].map(rec => t.places.get(rec)).filter(Boolean).map(p => p.off)) })).filter(t => t.offs.size);
   const direct = new Set([`'${type}':1`, ...(novaHandleGlobals(prog).get(type) || [])]);
-  const hit = (g, off) => (direct.has(g) && recs.has(off)) || arrays.some(t => t.g === g && t.offs.has(off));
+  return { recs, arrays, direct, hit: (g, off) => (direct.has(g) && recs.has(off)) || arrays.some(t => t.g === g && t.offs.has(off)) };
+}
+function novaFieldSites(prog, routine, type, field, deep = true) {
+  const kept = novaFieldHit(prog, type, field);
+  if (!kept) return [];
+  const { recs, hit } = kept;
   const out = [];
   for (const { addr, a } of novaRoutineAccesses(prog, routine)) {
     if (a.call) { if (a.args.some(x => x && hit(x.g, x.k))) out.push({ addr, call: true }); }

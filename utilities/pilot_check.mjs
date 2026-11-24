@@ -252,6 +252,57 @@ if (robert && haveRelease('1.0.10')) {
     if (!caught) fail('the control with the mission\'s name at 94 was not found');
     if (!bad.length && caught) console.log('Escape Velocity: the save reads as the game showed it, and the control with the mission\'s name at 94 found');
   }
+  // Nova's: Wyze, against the pilot data dump 1.1.1 wrote of it on 26 November 2012
+  // (saves/Wyze-pilotlog.txt). The dump gives stellars and dudes as ids, and in the
+  // mission record they are indices. The dump's current system is the system of the save's stellar.
+  const WY = path.join(REF, 'saves/Wyze.bin');
+  if (!fs.existsSync(WY)) console.log('SKIP Wyze, with no saves/Wyze.bin in reference/');
+  else {
+    const fork = S.novaOpenFork(S.sniffMacContainer(new Uint8Array(fs.readFileSync(WY))).rsrc);
+    const U = S.novaUniverse(openRelease(S, '1.0.10'));
+    const shown = {
+      ship: "Yuk'ship", nickname: 'Sam', gender: 1, strict: 0, seenIntro: 1, shipClass: 128, system: '133 Nesre Secundus',
+      date: '7/4/1177', fuel: 300, cash: 88500, kills: 0, cargo: '0,0,0,0,0,0',
+      bits: '6016 6021 6022 6034 8338 9215', outfits: '128:1 184:1 185:1', escorts: '',
+      disasters: '128@137:20 129@175:7 130@163:17 131@213:30 132@139:30 133@182:21 134@185:34 135@143:6 136@245:50 137@248:90 ' +
+        '138@305:20 139@334:40 140@316:21 141@318:10 142@328:46 143@331:40 144@354:45 145@360:5 146@378:50',
+      cron: '157 0/240 161 21/202 162 21/174 163 21/141 164 21/112 165 21/171 166 21/204 167 21/170 168 21/171 169 21/113 ' +
+        '179 10/0 184 11/0 185 5/0 192 0/0 193 10/0 216 0/18',
+      missions: '830 0 1 0 800 0 1 -32000 315 128 1 1 243 -1 -1 0 157 0 0 0 1 0 -1 -1 1 -1 -1 -1 -1 75 5 0 0 1 0 -1 0 0 50000',
+    };
+    const wrong = () => {
+      const p = S.novaReadPilot(fork, 'Wyze'), P = p.pilot, G = p.game, id = i => i + 128;
+      const at = (U.inSystems.get(id(P.stellar)) || []).map(n => `${n} ${U.systems.find(s => s.id === n).name}`);
+      const M = P.missions.map((m, i) => [m, P.objectives[i]]).filter(([, o]) => o.active).map(([m, o]) => [
+        m.mission + 128, o.travelObjComplete, o.shipObjComplete, o.missionFailed, (m.flags & 0xffff).toString(16), (m.flags2 & 0xffff).toString(16),
+        m.canAbort, m.timeLeft, id(m.destStellar), id(m.returnStellar), m.initialShipCount, m.specialShipCount, id(m.specialShipDude),
+        m.specialShipGoal, m.specialShipBehavior, m.specialShipStart, m.specialShipSyst, m.specialShipsKilled, m.specialShipsBoarded,
+        m.specialShipsDisabled, m.specialShipsJumpedIn, m.specialShipsJumpedOut, m.specialShipNameIndex, m.specialShipSubtitleIndex,
+        m.specialShipPreselectType, m.auxShipCount, m.auxShipsLeft, m.auxShipDude, m.auxShipSyst, m.cargoType, m.cargoQty,
+        m.pickupMode, m.dropoffMode, m.cargoLoaded, m.scanMask, m.compGovt, m.compReward, m.datePostIncrement, m.pay].join(' '));
+      const got = {
+        ship: p.shipName, nickname: G.nickname, gender: G.gender, strict: G.strict, seenIntro: G.seenIntro, shipClass: id(P.shipClass),
+        system: at.includes('133 Nesre Secundus') ? '133 Nesre Secundus' : at.join(', '),
+        date: `${P.month}/${P.day}/${P.year}`, fuel: P.fuel, cash: P.cash, kills: P.kills, cargo: P.cargo.join(),
+        bits: P.bits.map((b, i) => (b ? i : -1)).filter(i => i >= 0).join(' '),
+        outfits: P.outfits.map((n, i) => (n > 0 ? `${id(i)}:${n}` : '')).filter(Boolean).join(' '),
+        escorts: P.escorts.filter(e => e >= 0).join(' '),
+        disasters: G.disasterAt.map((a, i) => (a >= 0 ? `${id(i)}@${id(a)}:${G.disasterDays[i]}` : '')).filter(Boolean).join(' '),
+        cron: G.cronDuration.map((d, i) => (d >= 0 ? `${id(i)} ${d}/${G.cronHoldoff[i]}` : '')).filter(Boolean).join(' '),
+        missions: M.join(' | '),
+      };
+      return Object.keys(shown).filter(k => got[k] !== shown[k]).map(k => `${k} ${got[k]}`);
+    };
+    const bad = wrong();
+    if (bad.length) fail(`Wyze differs from its pilot log in ${bad.join('; ')}`);
+    // control: the missions a byte later
+    const g = S.NOVA_PILOT_LAYOUT[128], keep = g.slice();
+    g.splice(0, g.length, ...keep.map(f => (f[0] === 'missions' ? [f[0], f[1] + 1, f[2], f[3]] : f)));
+    let caught; try { caught = wrong().length > 0; } catch (e) { caught = true; }
+    g.splice(0, g.length, ...keep);
+    if (!caught) fail('the control with the missions a byte later was not found');
+    if (!bad.length && caught) console.log('Nova: Wyze reads as its pilot log has it, and the control with the missions a byte later found');
+  }
 }
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }

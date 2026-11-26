@@ -276,6 +276,22 @@ function novaPilotState(p, U) {
   };
 }
 
+/* Whether a Nova save fits the game open, by its dates. The save has its
+   dates' prefix and suffix (NpïL 129 at 0x5ede and 0x5eee), and each chär
+   (a new-game start) has a pair too. When no chär in the files open has the
+   save's pair, the save is from another scenario, most likely a total
+   conversion: { prefix, suffix }. Null when one has it, for EV's and
+   Override's saves, and with no chär open. A scenario with the same pair
+   as the game open passes. */
+function novaPilotScenario(game, save) {
+  if (save.kind && save.kind !== 'nova') return null;
+  const starts = novaAll(game, 'chär');
+  if (!starts.length) return null;
+  const prefix = save.game.datePrefix || '', suffix = save.game.dateSuffix || '';
+  if (starts.some(c => (c.DatePrefix || '') === prefix && (c.DateSuffix || '') === suffix)) return null;
+  return { prefix, suffix };
+}
+
 /* The save's ship as the fields of a copy of its class (novaShipCopy):
    { from, name, change, left }. Its weapons and their ammunition are the
    save's, in the class's eight weapon slots; its outfits are added in as

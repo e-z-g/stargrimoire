@@ -305,5 +305,33 @@ if (robert && haveRelease('1.0.10')) {
   }
 }
 
+// A save from another scenario, by its dates (novaPilotScenario). Over 1.1.1 every
+// Nova save in saves/ fits but Sol Hill, which Acheron's chär 128 made (550 " YP").
+// Over Acheron's files Sol Hill fits and Wyze is of another scenario.
+{
+  const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  const dir = path.join(REF, 'saves'), ach = path.join(REF, 'unpacked/game/extras/Acheron 1.1/Nova Files');
+  if (!haveRelease('1.1.1') || !fs.existsSync(path.join(dir, 'old-pilots/Sol Hill.bin'))) console.log('SKIP the scenario test, with no 1.1.1 or no saves/old-pilots in reference/');
+  else {
+    const read = p => S.novaReadPilot(S.novaOpenFork(S.sniffMacContainer(new Uint8Array(fs.readFileSync(p))).rsrc), path.basename(p, '.bin'));
+    const saves = walk(dir).filter(p => p.endsWith('.bin')).map(read).filter(p => p.kind === 'nova');
+    const nova = openRelease(S, '1.1.1');
+    const other = saves.filter(p => S.novaPilotScenario(nova, p)).map(p => p.name);
+    if (other.join() !== 'Sol Hill') fail(`over 1.1.1 the saves of another scenario are ${other.join(', ') || 'none'}, where Sol Hill alone should be`);
+    const sol = saves.find(p => p.name === 'Sol Hill'), wyze = saves.find(p => p.name === 'Wyze');
+    const w = S.novaPilotScenario(nova, sol);
+    if (!w || w.suffix !== ' YP' || w.prefix !== '') fail(`Sol Hill's dates over 1.1.1 read as ${JSON.stringify(w)}`);
+    let acheron = '';
+    if (fs.existsSync(ach)) {
+      const g = S.novaGame();
+      for (const n of fs.readdirSync(ach).filter(n => n.endsWith('.rez'))) g.add({ name: n }, new Uint8Array(fs.readFileSync(path.join(ach, n))));
+      if (S.novaPilotScenario(g, sol)) fail('Sol Hill is of another scenario over Acheron\'s files');
+      if (!wyze || !S.novaPilotScenario(g, wyze)) fail('Wyze fits Acheron\'s files');
+      acheron = ', and over Acheron\'s files Sol Hill fits and Wyze is of another scenario';
+    } else acheron = ' (no Acheron in reference/unpacked)';
+    if (!fails) console.log(`scenario: over 1.1.1 ${saves.length - 1} of ${saves.length} Nova saves fit and Sol Hill is of another scenario${acheron}`);
+  }
+}
+
 if (fails) { console.log(`${fails} failed`); process.exit(1); }
 console.log('ok');

@@ -14,11 +14,21 @@ let PILOT = null;   // { save, U, state }: the save as read, and what the map ne
 
 function pilotOpen(save) {
   PILOT = { save, U: null, state: null };
+  const other = pilotOtherScenario();
+  if (other) setStatus(other, true);
   // the menu's choice, added with the first save opened
   if (!$('showSave')) $('showSel').insertAdjacentHTML('beforeend', '<option value="save" id="showSave">As in the save file</option>');
   $('showSel').value = 'save';
   applyShowMode();
   renderPanel();
+}
+// A save from another scenario than the game open, by its dates (novaPilotScenario): the warning, or ''.
+function pilotOtherScenario() {
+  const w = PILOT && GAME && novaPilotScenario(GAME, PILOT.save);
+  if (!w) return '';
+  const q = t => `“${t.trim()}”`;
+  const dates = w.prefix && w.suffix ? `begin with ${q(w.prefix)} and end in ${q(w.suffix)}` : w.prefix ? `begin with ${q(w.prefix)}` : w.suffix ? `end in ${q(w.suffix)}` : 'have no prefix or suffix';
+  return `${PILOT.save.name}'s dates ${dates}. No new-game start in the files open has dates like that. The save is probably from another scenario. What the page shows of it here may be wrong.`;
 }
 // Another game opened: its save, if any, is another's.
 function pilotClose() {
@@ -71,7 +81,9 @@ function pilotBlock() {
   const explored = [...s.explored.values()], landed = explored.filter(v => v >= 2).length;
   const people = list => list.map((v, i) => (v && novaGet(GAME, 'përs', 128 + i) ? recLink('përs', 128 + i) : null)).filter(Boolean);
   const here = s.system !== null ? s.legal.get(s.system) || 0 : null;
+  const other = pilotOtherScenario();
   return `<h3>Save file</h3>
+    ${other ? `<p class="warn">${esc(other)}</p>` : ''}
     <table class="kv">
       ${kvRow('Pilot', `${esc(p.name)}${G.nickname ? ` <span class="note">“${esc(G.nickname)}”</span>` : ''}${G.gender === undefined || G.gender === 1 ? '' : ' <span class="note">female</span>'}${G.strict === 1 ? ' <span class="note">strict play</span>' : ''}`)}
       ${kvRow('Ship', `${esc(p.shipName)}, ${recShipLink(P.shipClass + 128)}`)}

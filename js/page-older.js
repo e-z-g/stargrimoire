@@ -423,19 +423,23 @@ function drawElderThings(ctx, w, at, z, alpha, mark, cw, ch) {
 /* ---- Nova's switches, hidden for these games ------------------------------------- */
 
 // The switches that depend on Nova's field meanings: which systems a control bit shows, the ships in flight, the gates, the services.
-const OLDER_HIDDEN = ['showSel', 'bitsIn', 'optShips', 'optGates', 'litSel'];
+const OLDER_HIDDEN = ['showSel', 'bitsIn', 'optShips', 'optGates'];
 const OLDER_DOTS = ['interference', 'asteroids', 'traffic'];
 function olderControls(older) {
   for (const id of OLDER_HIDDEN) {
     const el = $(id), label = el && el.closest('label');
     (label || el).hidden = older || (id === 'bitsIn' && $('showSel').value !== 'bits');
   }
+  // Light up's heading and switches (lit-<test> and optLitAll)
+  const lights = [...document.querySelectorAll('#opts input[id^="lit-"], #optLitAll')];
+  $('litHead').hidden = older;
+  for (const el of lights) el.closest('label').hidden = older;
   for (const o of $('dotSel').options) if (OLDER_DOTS.includes(o.value)) o.hidden = older;
   if (older) {
     $('showSel').value = 'all';
     $('optGates').checked = false;
     if (OLDER_DOTS.includes($('dotSel').value)) $('dotSel').value = 'govt';
-    $('litSel').value = 'all';
-    for (const id of ['optGates', 'dotSel', 'litSel']) $(id).dispatchEvent(new Event('change'));
+    for (const el of lights) el.checked = false;
+    for (const el of [$('optGates'), $('dotSel'), lights[0]]) el.dispatchEvent(new Event('change'));
   }
 }

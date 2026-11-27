@@ -29,7 +29,7 @@ const PORTS_BASE = {
   evo: { port: PORTS_EXTRAS + 'EV_Override_for_Nova_1.1.1.zip', portLabel: 'EV Override for Nova 1.1.1', portSize: '8.6 MB',
          elder: 'EscapeVelocityPluginCollection/Installers/EVOverride.bin', elderSize: '7.1 MB', ports: 'evo' },
 };
-// The elder plug-ins, as Add plug-ins lists them.
+// The elder plug-ins in the list Add plug-ins shows.
 const PORTS_ELDER_SETS = { ev: NOVA_COLLECTIONS.find(c => c.key === 'ev-elder'), evo: NOVA_COLLECTIONS.find(c => c.key === 'evo-elder') };
 
 // The two games, elder first: null when the game opened since is of the same kind as the other.

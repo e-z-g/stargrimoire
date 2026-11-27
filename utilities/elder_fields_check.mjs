@@ -87,7 +87,7 @@ const controls = [
   ['a note of no field', c => { c['gövt'].Nonesuch = { note: 'x', ev: c['gövt'].Flags.ev }; }],
   ['a bit\'s address outside the code', c => { c['mïsn'].Flags.bits[1].evo[0] = 0x7fffff00; }],
 ];
-for (const [what, change] of controls) if (bent(change) <= real.out.length) fail(`the control did not fail: ${what}`);
+for (const [what, change] of controls) if (bent(change) <= real.out.length) fail(`the control with ${what} did not fail`);
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }
 console.log(`ok: ${real.cited} addresses and ${real.fields} template fields in the two games, and ${controls.length} controls that fail`);
